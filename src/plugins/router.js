@@ -1,17 +1,55 @@
 import { health } from '../routes/health.js'
 import { example } from '../routes/example.js'
-import importRoute from '../routes/import.js'
-import { adminImport } from '../routes/admin-import.js'
+import { uploadCallback } from '../routes/upload-callback.js'
+import {
+  initiateImportController,
+  checkUploadStatusController,
+  adminImportPageController
+} from '../routes/admin-import.js'
+import Inert from '@hapi/inert'
 
 const router = {
   plugin: {
     name: 'router',
     register: async (server, _options) => {
-      // Register import route plugin
-      await server.register(importRoute)
+      // Register @hapi/inert for static file serving
+      await server.register(Inert)
 
-      // Register other routes
-      server.route([health].concat(example).concat(adminImport))
+      // Health check and example routes
+      server.route([health].concat(example))
+
+      // CDP Uploader callback route
+      server.route(uploadCallback)
+
+      // Admin import routes
+      server.route([
+        {
+          method: 'GET',
+          path: '/admin/import',
+          ...adminImportPageController
+        },
+        {
+          method: 'POST',
+          path: '/admin/import/initiate',
+          ...initiateImportController
+        },
+        {
+          method: 'GET',
+          path: '/admin/import/status',
+          ...checkUploadStatusController
+        },
+        {
+          method: 'GET',
+          path: '/templates/{file*}',
+          handler: {
+            directory: {
+              path: 'templates',
+              redirectToSlash: true,
+              index: false
+            }
+          }
+        }
+      ])
     }
   }
 }

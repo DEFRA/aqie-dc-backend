@@ -132,6 +132,49 @@ const config = convict({
       default: 'x-cdp-request-id',
       env: 'TRACING_HEADER'
     }
+  },
+  cdpUploader: {
+    url: {
+      doc: 'CDP Uploader service URL',
+      format: String,
+      default: 'http://localhost:7337',
+      env: 'CDP_UPLOADER_URL'
+    },
+    s3Bucket: {
+      doc: 'S3 bucket for uploaded files',
+      format: String,
+      default: 'aqie-dc-uploads',
+      env: 'CDP_UPLOADER_S3_BUCKET'
+    },
+    s3Prefix: {
+      doc: 'S3 prefix (folder) for uploaded files',
+      format: String,
+      default: 'imports',
+      env: 'CDP_UPLOADER_S3_PREFIX'
+    },
+    maxFileSize: {
+      doc: 'Maximum file size in bytes',
+      format: Number,
+      default: 10485760, // 10MB
+      env: 'CDP_UPLOADER_MAX_FILE_SIZE'
+    },
+    allowedMimeTypes: {
+      doc: 'Allowed MIME types for uploads',
+      format: Array,
+      default: [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel'
+      ],
+      env: 'CDP_UPLOADER_ALLOWED_MIME_TYPES'
+    }
+  },
+  aws: {
+    region: {
+      doc: 'AWS region',
+      format: String,
+      default: 'eu-west-2',
+      env: 'AWS_REGION'
+    }
   }
 })
 
