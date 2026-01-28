@@ -228,12 +228,14 @@ async function importAppliances(db, data, options = {}) {
 
       if (result.upsertedCount > 0) {
         inserted++
-        if (options.verbose)
-          {console.log(`   ✓ Inserted: ${appliance.applianceId}`)}
+        if (options.verbose) {
+          console.log(`   ✓ Inserted: ${appliance.applianceId}`)
+        }
       } else if (result.modifiedCount > 0) {
         updated++
-        if (options.verbose)
-          {console.log(`   ↻ Updated: ${appliance.applianceId}`)}
+        if (options.verbose) {
+          console.log(`   ↻ Updated: ${appliance.applianceId}`)
+        }
       }
     } catch (error) {
       failed++
