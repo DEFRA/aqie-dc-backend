@@ -1,4 +1,6 @@
 import Hapi from '@hapi/hapi'
+import Inert from '@hapi/inert'
+import Path from 'path'
 
 import { secureContext } from '@defra/hapi-secure-context'
 
@@ -40,6 +42,7 @@ async function createServer() {
   })
 
   // Hapi Plugins:
+  // Inert          - static file serving
   // requestLogger  - automatically logs incoming requests
   // requestTracing - trace header logging and propagation
   // secureContext  - loads CA certificates from environment config
@@ -47,6 +50,7 @@ async function createServer() {
   // mongoDb        - sets up mongo connection pool and attaches to `server` and `request` objects
   // router         - routes used in the app
   await server.register([
+    Inert,
     requestLogger,
     requestTracing,
     secureContext,
@@ -57,6 +61,22 @@ async function createServer() {
     },
     router
   ])
+
+  // Serve static files from templates directory
+  server.route({
+    method: 'GET',
+    path: '/templates/{file*}',
+    options: {
+      auth: false
+    },
+    handler: {
+      directory: {
+        path: Path.join(process.cwd(), 'templates'),
+        redirectToSlash: true,
+        index: false
+      }
+    }
+  })
 
   return server
 }
