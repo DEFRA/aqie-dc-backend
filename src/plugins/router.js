@@ -6,6 +6,7 @@ import {
   checkUploadStatusController,
   adminImportPageController
 } from '../routes/admin-import.js'
+import { test } from '../dc/routes/test.js'
 import Inert from '@hapi/inert'
 
 const router = {
@@ -15,8 +16,10 @@ const router = {
       // Register @hapi/inert for static file serving
       await server.register(Inert)
 
-      // Health check and example routes
-      server.route([health].concat(example))
+      // Health check, example, and test routes
+      const testRoutes = [test]
+      const baseRoutes = [health].concat(example).concat(testRoutes)
+      server.route(baseRoutes)
 
       // CDP Uploader callback route
       server.route(uploadCallback)
