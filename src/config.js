@@ -138,9 +138,10 @@ const config = convict({
     url: {
       doc: 'CDP Uploader service URL',
       format: String,
-      default: cdpEnvironment === 'local' 
-        ? 'http://localhost:7337'
-        : `https://cdp-uploader.${cdpEnvironment}.cdp-int.defra.cloud`,
+      default:
+        cdpEnvironment === 'local'
+          ? 'http://localhost:7337'
+          : `https://cdp-uploader.${cdpEnvironment}.cdp-int.defra.cloud`,
       env: 'CDP_UPLOADER_URL'
     },
     s3Bucket: {
