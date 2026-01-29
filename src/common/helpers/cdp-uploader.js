@@ -49,20 +49,27 @@ export async function initiateCdpUpload(options = {}) {
     maxFileSize
   }
 
-  const response = await fetch(`${cdpUploaderUrl}/initiate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(payload)
-  })
+  try {
+    const response = await fetch(`${cdpUploaderUrl}/initiate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
 
-  if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`CDP Uploader initiate failed: ${error}`)
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`CDP Uploader initiate failed: ${error}`)
+    }
+
+    return response.json()
+  } catch (error) {
+    throw new Error(
+      `Failed to connect to CDP Uploader at ${cdpUploaderUrl}: ${error.message}. ` +
+        `Cause: ${error.cause?.code || error.cause?.message || 'unknown'}`
+    )
   }
-
-  return response.json()
 }
 
 /**
