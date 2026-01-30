@@ -6,7 +6,9 @@
 export const ENTITY_TYPES = {
   APPLIANCES: 'appliances',
   FUELS: 'fuels',
-  USERS: 'users'
+  USERS: 'users',
+  USER_APPLIANCES: 'userAppliances',
+  USER_FUELS: 'userFuels'
 }
 
 export const ENTITY_CONFIG = {
@@ -30,6 +32,20 @@ export const ENTITY_CONFIG = {
     uniqueKey: 'userId',
     transform: transformToUser,
     sampleData: getSampleUser
+  },
+  [ENTITY_TYPES.USER_APPLIANCES]: {
+    collectionName: 'UserAppliances',
+    defaultSheetName: 'UserAppliances',
+    uniqueKey: null, // Composite key: userId + applianceId
+    transform: transformToUserAppliance,
+    sampleData: getSampleUserAppliance
+  },
+  [ENTITY_TYPES.USER_FUELS]: {
+    collectionName: 'UserFuels',
+    defaultSheetName: 'UserFuels',
+    uniqueKey: null, // Composite key: userId + fuelId
+    transform: transformToUserFuel,
+    sampleData: getSampleUserFuel
   }
 }
 
@@ -197,6 +213,32 @@ function transformToUser(row) {
   }
 }
 
+function transformToUserAppliance(row) {
+  return {
+    userId: row.userId || row.UserID || row['User ID'],
+    applianceId: row.applianceId || row.ApplianceID || row['Appliance ID'],
+    assignedDate:
+      parseDate(row.assignedDate || row['Assigned Date']) || new Date(),
+    status: row.status || row.Status || 'active',
+    notes: row.notes || row.Notes || null,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+}
+
+function transformToUserFuel(row) {
+  return {
+    userId: row.userId || row.UserID || row['User ID'],
+    fuelId: row.fuelId || row.FuelID || row['Fuel ID'],
+    assignedDate:
+      parseDate(row.assignedDate || row['Assigned Date']) || new Date(),
+    status: row.status || row.Status || 'active',
+    notes: row.notes || row.Notes || null,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+}
+
 /**
  * Sample data generators
  */
@@ -271,5 +313,25 @@ function getSampleUser() {
     postcode: 'SW1A 1AA',
     isActive: 'Yes',
     registrationDate: '01/01/2025'
+  }
+}
+
+function getSampleUserAppliance() {
+  return {
+    userId: 'USER001',
+    applianceId: 'APP001',
+    assignedDate: '15/01/2025',
+    status: 'active',
+    notes: 'Primary heating appliance'
+  }
+}
+
+function getSampleUserFuel() {
+  return {
+    userId: 'USER001',
+    fuelId: 'FUEL001',
+    assignedDate: '15/01/2025',
+    status: 'active',
+    notes: 'Preferred fuel type'
   }
 }

@@ -310,6 +310,11 @@ const adminImportPageController = {
                 <a href="/templates/fuels-template.xlsx" download>Fuels</a>
                 <a href="/templates/users-template.xlsx" download>Users</a>
                 <a href="/templates/combined-template.xlsx" download>All Combined</a>
+                <br><br>
+                <h3>🔗 Relationship Templates:</h3>
+                <a href="/templates/user-appliances-template.xlsx" download>User-Appliances</a>
+                <a href="/templates/user-fuels-template.xlsx" download>User-Fuels</a>
+                <a href="/templates/relationships-template.xlsx" download>All Relationships</a>
             </div>
 
             <form id="importForm">
@@ -328,6 +333,14 @@ const adminImportPageController = {
                             <input type="checkbox" name="entityType" value="users">
                             <span>Users</span>
                         </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox" name="entityType" value="userAppliances">
+                            <span>User-Appliances Relationships</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox" name="entityType" value="userFuels">
+                            <span>User-Fuels Relationships</span>
+                        </label>
                     </div>
                 </div>
 
@@ -344,6 +357,16 @@ const adminImportPageController = {
                 <div class="form-group" id="usersSheetGroup" style="display: none;">
                     <label for="usersSheet">Users Sheet Name (optional)</label>
                     <input type="text" id="usersSheet" name="usersSheet" placeholder="Default: Users">
+                </div>
+
+                <div class="form-group" id="userAppliancesSheetGroup" style="display: none;">
+                    <label for="userAppliancesSheet">User-Appliances Sheet Name (optional)</label>
+                    <input type="text" id="userAppliancesSheet" name="userAppliancesSheet" placeholder="Default: UserAppliances">
+                </div>
+
+                <div class="form-group" id="userFuelsSheetGroup" style="display: none;">
+                    <label for="userFuelsSheet">User-Fuels Sheet Name (optional)</label>
+                    <input type="text" id="userFuelsSheet" name="userFuelsSheet" placeholder="Default: UserFuels">
                 </div>
 
                 <div class="form-group">

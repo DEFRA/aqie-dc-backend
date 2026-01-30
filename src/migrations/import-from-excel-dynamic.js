@@ -84,38 +84,84 @@ async function importEntity(
       // Transform row to document
       const document = transform(row)
 
-      if (!document[uniqueKey]) {
-        results.errors.push({
-          row: i + 2, // +2 for header and 0-index
-          error: `Missing ${uniqueKey}`
-        })
-        results.skipped++
-        continue
-      }
+      // Handle entities with composite keys (UserAppliances, UserFuels)
+      if (!uniqueKey) {
+        // Composite key for relationship entities
+        if (!document.userId || (!document.applianceId && !document.fuelId)) {
+          results.errors.push({
+            row: i + 2,
+            error: `Missing required fields (userId and applianceId/fuelId)`
+          })
+          results.skipped++
+          continue
+        }
 
-      // Upsert logic
-      const filter = { [uniqueKey]: document[uniqueKey] }
-      const existing = await collection.findOne(filter)
+        const filter = document.applianceId
+          ? { userId: document.userId, applianceId: document.applianceId }
+          : { userId: document.userId, fuelId: document.fuelId }
 
-      if (existing) {
-        // Update existing
-        const { createdAt, ...updateDoc } = document
-        await collection.updateOne(filter, {
-          $set: updateDoc,
-          $setOnInsert: { createdAt: existing.createdAt }
-        })
-        results.updated++
+        const existing = await collection.findOne(filter)
 
-        if (verbose) {
-          console.log(`   ✓ Updated: ${document[uniqueKey]}`)
+        if (existing) {
+          // Update existing relationship
+          const { createdAt, ...updateDoc } = document
+          await collection.updateOne(filter, {
+            $set: updateDoc,
+            $setOnInsert: { createdAt: existing.createdAt }
+          })
+          results.updated++
+
+          if (verbose) {
+            console.log(
+              `   ✓ Updated: ${document.userId} - ${document.applianceId || document.fuelId}`
+            )
+          }
+        } else {
+          // Insert new relationship
+          await collection.insertOne(document)
+          results.inserted++
+
+          if (verbose) {
+            console.log(
+              `   + Inserted: ${document.userId} - ${document.applianceId || document.fuelId}`
+            )
+          }
         }
       } else {
-        // Insert new
-        await collection.insertOne(document)
-        results.inserted++
+        // Standard single unique key logic
+        if (!document[uniqueKey]) {
+          results.errors.push({
+            row: i + 2, // +2 for header and 0-index
+            error: `Missing ${uniqueKey}`
+          })
+          results.skipped++
+          continue
+        }
 
-        if (verbose) {
-          console.log(`   + Inserted: ${document[uniqueKey]}`)
+        // Upsert logic
+        const filter = { [uniqueKey]: document[uniqueKey] }
+        const existing = await collection.findOne(filter)
+
+        if (existing) {
+          // Update existing
+          const { createdAt, ...updateDoc } = document
+          await collection.updateOne(filter, {
+            $set: updateDoc,
+            $setOnInsert: { createdAt: existing.createdAt }
+          })
+          results.updated++
+
+          if (verbose) {
+            console.log(`   ✓ Updated: ${document[uniqueKey]}`)
+          }
+        } else {
+          // Insert new
+          await collection.insertOne(document)
+          results.inserted++
+
+          if (verbose) {
+            console.log(`   + Inserted: ${document[uniqueKey]}`)
+          }
         }
       }
     } catch (error) {
