@@ -1,6 +1,7 @@
 import { MongoClient } from 'mongodb'
 import { LockManager } from 'mongo-locks'
 import { setupAppliancesAndFuels } from '../../migrations/setup-appliances-fuels.js'
+import { setupUsersAndRelationships } from '../../migrations/setup-users-relationships.js'
 
 export const mongoDb = {
   plugin: {
@@ -56,7 +57,11 @@ async function ensureAppliancesAndFuelsCollections(db, logger) {
 
     const hasAppliances = collectionNames.includes('Appliances')
     const hasFuels = collectionNames.includes('Fuels')
+    const hasUsers = collectionNames.includes('Users')
+    const hasUserAppliances = collectionNames.includes('UserAppliances')
+    const hasUserFuels = collectionNames.includes('UserFuels')
 
+    // Setup Appliances and Fuels
     if (!hasAppliances || !hasFuels) {
       logger.info('Setting up Appliances and Fuels collections...')
       await setupAppliancesAndFuels(db, {
@@ -67,8 +72,19 @@ async function ensureAppliancesAndFuelsCollections(db, logger) {
     } else {
       logger.info('Appliances and Fuels collections already exist')
     }
+
+    // Setup Users and Relationships
+    if (!hasUsers || !hasUserAppliances || !hasUserFuels) {
+      logger.info('Setting up Users and Relationships collections...')
+      await setupUsersAndRelationships(db, {
+        dropExisting: false
+      })
+      logger.info('Users and Relationships collections setup complete')
+    } else {
+      logger.info('Users and Relationships collections already exist')
+    }
   } catch (error) {
-    logger.error(error, 'Failed to setup Appliances and Fuels collections')
+    logger.error(error, 'Failed to setup collections')
     // Don't throw - allow the app to start even if migration fails
   }
 }
