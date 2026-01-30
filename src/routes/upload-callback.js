@@ -1,10 +1,11 @@
 /**
  * Upload Callback Handler
  * Receives callbacks from CDP Uploader after virus scanning completes
+ * Supports dynamic entity imports
  */
 
 import Joi from 'joi'
-import { importFromExcel } from '../migrations/import-from-excel.js'
+import { importFromExcel } from '../migrations/import-from-excel-dynamic.js'
 import {
   downloadFromS3,
   cleanupTempFile
@@ -94,7 +95,17 @@ const uploadCallbackController = {
     }
 
     const { s3Bucket, s3Key, filename } = fileField
-    const { importType, appliancesSheet, fuelsSheet } = metadata
+    const { entities } = metadata
+
+    if (!entities || !Array.isArray(entities) || entities.length === 0) {
+      request.logger.error('No entities specified in metadata')
+      return h
+        .response({
+          success: false,
+          message: 'No entities specified for import'
+        })
+        .code(200)
+    }
 
     let tempFilePath
 
@@ -106,15 +117,13 @@ const uploadCallbackController = {
       )
       tempFilePath = await downloadFromS3(s3Bucket, s3Key, request.logger)
 
-      // Import data
+      // Import data for each entity
       request.logger.info(
-        { importType, filename, tempFilePath },
+        { entities, filename, tempFilePath },
         'Processing Excel import'
       )
 
-      const results = await importFromExcel(db, tempFilePath, importType, {
-        appliancesSheet,
-        fuelsSheet,
+      const results = await importFromExcel(db, tempFilePath, entities, {
         verbose: false
       })
 

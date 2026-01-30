@@ -1,6 +1,7 @@
 /**
  * Admin Import Routes
  * Provides UI and API endpoints for Excel file imports using CDP Uploader
+ * Supports dynamic entity types
  */
 
 import Joi from 'joi'
@@ -8,37 +9,46 @@ import {
   initiateCdpUpload,
   getCdpUploadStatus
 } from '../common/helpers/cdp-uploader.js'
+import { ENTITY_TYPES } from '../common/helpers/entity-config.js'
 
 /**
  * Initiate CDP Upload
  * Starts the CDP Uploader flow and returns uploadUrl and statusUrl
+ * Supports dynamic entity configuration
  */
 const initiateImportController = {
   options: {
     validate: {
       payload: Joi.object({
-        importType: Joi.string()
-          .valid('appliances', 'fuels', 'both')
-          .required(),
-        appliancesSheet: Joi.string().optional(),
-        fuelsSheet: Joi.string().optional()
+        entities: Joi.array()
+          .items(
+            Joi.object({
+              type: Joi.string()
+                .valid(...Object.values(ENTITY_TYPES))
+                .required(),
+              sheetName: Joi.string().optional()
+            })
+          )
+          .min(1)
+          .required()
       })
     }
   },
   handler: async (request, h) => {
-    const { importType, appliancesSheet, fuelsSheet } = request.payload
+    const { entities } = request.payload
 
     try {
       // Initiate upload with CDP Uploader
       const result = await initiateCdpUpload({
         metadata: {
-          importType,
-          appliancesSheet: appliancesSheet || 'Appliances',
-          fuelsSheet: fuelsSheet || 'Fuels'
+          entities
         }
       })
 
-      request.logger.info({ uploadId: result.uploadId }, 'CDP upload initiated')
+      request.logger.info(
+        { uploadId: result.uploadId, entities },
+        'CDP upload initiated'
+      )
 
       return h
         .response({
@@ -291,34 +301,49 @@ const adminImportPageController = {
     <div class="container">
         <div class="header">
             <h1>📊 Excel Import</h1>
-            <p>Upload Appliances and Fuels data</p>
+            <p>Upload Appliances, Fuels, and Users data</p>
         </div>
         <div class="content">
             <div class="template-links">
                 <h3>📥 Download Templates:</h3>
-                <a href="/templates/appliances-import-template.xlsx" download>Appliances Template</a>
-                <a href="/templates/fuels-import-template.xlsx" download>Fuels Template</a>
-                <a href="/templates/combined-import-template.xlsx" download>Combined Template</a>
+                <a href="/templates/appliances-template.xlsx" download>Appliances</a>
+                <a href="/templates/fuels-template.xlsx" download>Fuels</a>
+                <a href="/templates/users-template.xlsx" download>Users</a>
+                <a href="/templates/combined-template.xlsx" download>All Combined</a>
             </div>
 
             <form id="importForm">
                 <div class="form-group">
-                    <label for="importType">Import Type</label>
-                    <select id="importType" name="importType" required>
-                        <option value="both">Both (Appliances & Fuels)</option>
-                        <option value="appliances">Appliances Only</option>
-                        <option value="fuels">Fuels Only</option>
-                    </select>
+                    <label>Select Entities to Import</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox" name="entityType" value="appliances" checked>
+                            <span>Appliances</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox" name="entityType" value="fuels" checked>
+                            <span>Fuels</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox" name="entityType" value="users">
+                            <span>Users</span>
+                        </label>
+                    </div>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="appliancesSheetGroup">
                     <label for="appliancesSheet">Appliances Sheet Name (optional)</label>
                     <input type="text" id="appliancesSheet" name="appliancesSheet" placeholder="Default: Appliances">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="fuelsSheetGroup">
                     <label for="fuelsSheet">Fuels Sheet Name (optional)</label>
                     <input type="text" id="fuelsSheet" name="fuelsSheet" placeholder="Default: Fuels">
+                </div>
+
+                <div class="form-group" id="usersSheetGroup" style="display: none;">
+                    <label for="usersSheet">Users Sheet Name (optional)</label>
+                    <input type="text" id="usersSheet" name="usersSheet" placeholder="Default: Users">
                 </div>
 
                 <div class="form-group">
@@ -351,6 +376,17 @@ const adminImportPageController = {
         const uploadBtn = document.getElementById('uploadBtn');
         const status = document.getElementById('status');
         const progress = document.getElementById('progress');
+        const entityCheckboxes = document.querySelectorAll('input[name="entityType"]');
+
+        // Toggle sheet name inputs based on selected entities
+        entityCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                const sheetGroup = document.getElementById(\`\${checkbox.value}SheetGroup\`);
+                if (sheetGroup) {
+                    sheetGroup.style.display = checkbox.checked ? 'block' : 'none';
+                }
+            });
+        });
 
         // Drag and drop
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -445,12 +481,25 @@ const adminImportPageController = {
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('importType', document.getElementById('importType').value);
-            const appliancesSheet = document.getElementById('appliancesSheet').value;
-            const fuelsSheet = document.getElementById('fuelsSheet').value;
-            if (appliancesSheet) formData.append('appliancesSheet', appliancesSheet);
-            if (fuelsSheet) formData.append('fuelsSheet', fuelsSheet);
+            // Build entities array from selected checkboxes
+            const selectedEntities = [];
+            const checkboxes = document.querySelectorAll('input[name="entityType"]:checked');
+            
+            if (checkboxes.length === 0) {
+                showStatus('❌ Please select at least one entity type', 'error');
+                return;
+            }
+
+            checkboxes.forEach(checkbox => {
+                const entityType = checkbox.value;
+                const sheetInput = document.getElementById(\`\${entityType}Sheet\`);
+                const sheetName = sheetInput ? sheetInput.value : undefined;
+                
+                selectedEntities.push({
+                    type: entityType,
+                    ...(sheetName && { sheetName })
+                });
+            });
 
             uploadBtn.disabled = true;
             showStatus('🚀 Initiating upload...', 'info');
@@ -462,9 +511,7 @@ const adminImportPageController = {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        importType: document.getElementById('importType').value,
-                        appliancesSheet: appliancesSheet || undefined,
-                        fuelsSheet: fuelsSheet || undefined
+                        entities: selectedEntities
                     })
                 });
 
