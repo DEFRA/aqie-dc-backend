@@ -3,11 +3,12 @@ import { example } from '../routes/example.js'
 import { uploadCallback } from '../routes/upload-callback.js'
 import {
   initiateImportController,
-  checkUploadStatusController,
-  adminImportPageController
+  checkUploadStatusController
 } from '../routes/admin-import.js'
 import { test } from '../dc/routes/test.js'
 import Inert from '@hapi/inert'
+import H2o2 from '@hapi/h2o2'
+import { config } from '../config.js'
 
 const router = {
   plugin: {
@@ -15,6 +16,9 @@ const router = {
     register: async (server, _options) => {
       // Register @hapi/inert for static file serving
       await server.register(Inert)
+
+      // Register @hapi/h2o2 for proxying
+      await server.register(H2o2)
 
       // Health check, example, and test routes
       const testRoutes = [test]
@@ -26,11 +30,6 @@ const router = {
 
       // Admin import routes
       server.route([
-        {
-          method: 'GET',
-          path: '/admin/import',
-          ...adminImportPageController
-        },
         {
           method: 'POST',
           path: '/admin/import/initiate',
@@ -53,6 +52,33 @@ const router = {
           }
         }
       ])
+
+      // Proxy route for CDP Uploader upload endpoint
+      server.route({
+        method: 'POST',
+        path: '/upload-and-scan/{uploadId}',
+        options: {
+          auth: false,
+          payload: {
+            output: 'stream',
+            parse: false,
+            maxBytes: config.get('cdpUploader.maxFileSize')
+          }
+        },
+        handler: {
+          proxy: {
+            mapUri: (request) => {
+              const { uploadId } = request.params
+              const cdpUploaderUrl = config.get('cdpUploader.url')
+              return {
+                uri: `${cdpUploaderUrl}/upload-and-scan/${uploadId}`
+              }
+            },
+            passThrough: true,
+            xforward: true
+          }
+        }
+      })
     }
   }
 }

@@ -172,6 +172,13 @@ const config = convict({
       env: 'CDP_UPLOADER_ALLOWED_MIME_TYPES'
     }
   },
+  cdpXApiKey: {
+    doc: 'CDP X API Key',
+    format: '*',
+    default: '',
+    sensitive: true,
+    env: 'CDP_X_API_KEY'
+  },
   aws: {
     region: {
       doc: 'AWS region',
@@ -181,6 +188,15 @@ const config = convict({
     }
   }
 })
+
+// Load local.json if it exists (for local development only)
+if (cdpEnvironment === 'local') {
+  try {
+    config.loadFile('./local.json')
+  } catch (error) {
+    // Silently ignore if local.json doesn't exist
+  }
+}
 
 config.validate({ allowed: 'strict' })
 
