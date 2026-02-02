@@ -53,7 +53,7 @@ const router = {
         }
       ])
 
-      // Proxy route for CDP Uploader upload endpoint
+      // // Proxy route for CDP Uploader upload endpoint
       server.route({
         method: 'POST',
         path: '/upload-and-scan/{uploadId}',
