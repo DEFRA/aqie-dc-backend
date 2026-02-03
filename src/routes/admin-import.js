@@ -10,6 +10,7 @@ import {
   getCdpUploadStatus
 } from '../common/helpers/cdp-uploader.js'
 import { ENTITY_TYPES } from '../common/helpers/entity-config.js'
+import { config } from '../config.js'
 
 /**
  * Initiate CDP Upload
@@ -58,11 +59,21 @@ const initiateImportController = {
         'CDP upload initiated'
       )
 
+      // Transform uploadUrl to include service prefix in non-local environments
+      const cdpEnvironment = config.get('cdpEnvironment')
+      const serviceName = config.get('serviceName')
+      let uploadUrl = result.uploadUrl
+
+      if (cdpEnvironment !== 'local') {
+        // Prepend service name to the relative uploadUrl
+        uploadUrl = `/${serviceName}${result.uploadUrl}`
+      }
+
       return h
         .response({
           success: true,
           uploadId: result.uploadId,
-          uploadUrl: result.uploadUrl,
+          uploadUrl,
           statusUrl: result.statusUrl
         })
         .code(200)
