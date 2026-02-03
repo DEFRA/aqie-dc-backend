@@ -52,10 +52,22 @@ export const ENTITY_CONFIG = {
 /**
  * Helper functions
  */
+// Helper to get first non-empty value
+function getValueOrDefault(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null && value !== '') {
+      return value
+    }
+  }
+  return values[values.length - 1] // Return last value as default
+}
+
 function parseBoolean(value) {
   if (typeof value === 'boolean') return value
   if (typeof value === 'string') {
-    return value.toLowerCase() === 'yes' || value.toLowerCase() === 'true'
+    const trimmed = value.trim()
+    if (trimmed === '') return false
+    return trimmed.toLowerCase() === 'yes' || trimmed.toLowerCase() === 'true'
   }
   return false
 }
@@ -82,66 +94,126 @@ function parseDate(dateString) {
  */
 function transformToAppliance(row) {
   // Validate and normalize appliance type
-  const rawType = row.applianceType || row['Appliance Type'] || 'Other'
+  const rawType = getValueOrDefault(
+    row.applianceType,
+    row['Appliance Type'],
+    'Other'
+  )
   const validTypes = ['Stove', 'Boiler', 'Fire', 'Heater', 'Other']
   const applianceType = validTypes.includes(rawType) ? rawType : 'Other'
 
   const appliance = {
-    applianceId: row.applianceId || row.ApplianceID || row.ID || '',
-    manufacturer: row.manufacturer || row.Manufacturer || 'Unknown',
-    manufacturerAddress:
-      row.manufacturerAddress || row['Manufacturer Address'] || 'Not Provided',
-    manufacturerContactName:
-      row.manufacturerContactName || row['Contact Name'] || 'Not Provided',
-    manufacturerContactEmail:
-      row.manufacturerContactEmail ||
-      row['Contact Email'] ||
-      'noemail@example.com',
-    manufacturerPhone:
-      row.manufacturerPhone || row['Contact Phone'] || 'Not Provided',
-    modelName: row.modelName || row['Model Name'] || 'Unknown Model',
-    modelNumber: row.modelNumber || row['Model Number'] || 'N/A',
-    applianceType,
-    isVariant: parseBoolean(row.isVariant || row['Is Variant']),
-    nominalOutput: parseFloat(
-      row.nominalOutput || row['Nominal Output (kW)'] || 0
+    applianceId: getValueOrDefault(
+      row.applianceId,
+      row.ApplianceID,
+      row.ID,
+      ''
     ),
-    allowedFuels: row.allowedFuels || row['Allowed Fuels'] || 'Not Specified',
-    instructionManualTitle:
-      row.instructionManualTitle || row['Manual Title'] || 'Not Provided',
+    manufacturer: getValueOrDefault(
+      row.manufacturer,
+      row.Manufacturer,
+      'Unknown'
+    ),
+    manufacturerAddress: getValueOrDefault(
+      row.manufacturerAddress,
+      row['Manufacturer Address'],
+      'Not Provided'
+    ),
+    manufacturerContactName: getValueOrDefault(
+      row.manufacturerContactName,
+      row['Contact Name'],
+      'Not Provided'
+    ),
+    manufacturerContactEmail: getValueOrDefault(
+      row.manufacturerContactEmail,
+      row['Contact Email'],
+      'noemail@example.com'
+    ),
+    manufacturerPhone: getValueOrDefault(
+      row.manufacturerPhone,
+      row['Contact Phone'],
+      'Not Provided'
+    ),
+    modelName: getValueOrDefault(
+      row.modelName,
+      row['Model Name'],
+      'Unknown Model'
+    ),
+    modelNumber: getValueOrDefault(row.modelNumber, row['Model Number'], 'N/A'),
+    applianceType,
+    isVariant: parseBoolean(
+      getValueOrDefault(row.isVariant, row['Is Variant'])
+    ),
+    nominalOutput: parseFloat(
+      getValueOrDefault(row.nominalOutput, row['Nominal Output (kW)'], 0)
+    ),
+    allowedFuels: getValueOrDefault(
+      row.allowedFuels,
+      row['Allowed Fuels'],
+      'Not Specified'
+    ),
+    instructionManualTitle: getValueOrDefault(
+      row.instructionManualTitle,
+      row['Manual Title'],
+      'Not Provided'
+    ),
     instructionManualDate:
-      parseDate(row.instructionManualDate || row['Manual Date']) || new Date(),
-    instructionManualReference:
-      row.instructionManualReference || row['Manual Reference'] || 'N/A',
-    submittedBy: row.submittedBy || row['Submitted By'] || 'Unknown',
-    approvedBy: row.approvedBy || row['Approved By'] || 'Unknown',
+      parseDate(
+        getValueOrDefault(row.instructionManualDate, row['Manual Date'])
+      ) || new Date(),
+    instructionManualReference: getValueOrDefault(
+      row.instructionManualReference,
+      row['Manual Reference'],
+      'N/A'
+    ),
+    submittedBy: getValueOrDefault(
+      row.submittedBy,
+      row['Submitted By'],
+      'Unknown'
+    ),
+    approvedBy: getValueOrDefault(
+      row.approvedBy,
+      row['Approved By'],
+      'Unknown'
+    ),
     publishedDate:
-      parseDate(row.publishedDate || row['Published Date']) || new Date(),
+      parseDate(getValueOrDefault(row.publishedDate, row['Published Date'])) ||
+      new Date(),
     updatedAt: new Date(),
     createdAt: new Date()
   }
 
   // Optional fields
-  if (row.manufacturerAlternateEmail || row['Alternate Email']) {
-    appliance.manufacturerAlternateEmail =
-      row.manufacturerAlternateEmail || row['Alternate Email']
+  const altEmail = getValueOrDefault(
+    row.manufacturerAlternateEmail,
+    row['Alternate Email']
+  )
+  if (altEmail) {
+    appliance.manufacturerAlternateEmail = altEmail
   }
 
-  if (row.existingAuthorisedAppliance || row['Existing Appliance']) {
-    appliance.existingAuthorisedAppliance =
-      row.existingAuthorisedAppliance || row['Existing Appliance']
+  const existingAppliance = getValueOrDefault(
+    row.existingAuthorisedAppliance,
+    row['Existing Appliance']
+  )
+  if (existingAppliance) {
+    appliance.existingAuthorisedAppliance = existingAppliance
   }
 
-  if (row.additionalConditions || row['Additional Conditions']) {
-    appliance.additionalConditions =
-      row.additionalConditions || row['Additional Conditions']
+  const additionalConds = getValueOrDefault(
+    row.additionalConditions,
+    row['Additional Conditions']
+  )
+  if (additionalConds) {
+    appliance.additionalConditions = additionalConds
   }
 
-  if (row.permittedFuels || row['Permitted Fuels']) {
-    const fuelsString = row.permittedFuels || row['Permitted Fuels']
-    appliance.permittedFuels = fuelsString
-      ? fuelsString.split(',').map((f) => f.trim())
-      : null
+  const fuelsString = getValueOrDefault(
+    row.permittedFuels,
+    row['Permitted Fuels']
+  )
+  if (fuelsString) {
+    appliance.permittedFuels = fuelsString.split(',').map((f) => f.trim())
   }
 
   return appliance
@@ -149,72 +221,112 @@ function transformToAppliance(row) {
 
 function transformToFuel(row) {
   const fuel = {
-    fuelId: row.fuelId || row.FuelID || row.ID || '',
-    manufacturerName:
-      row.manufacturerName || row['Manufacturer Name'] || 'Unknown',
-    manufacturerAddress:
-      row.manufacturerAddress || row['Manufacturer Address'] || 'Not Provided',
-    manufacturerContactName:
-      row.manufacturerContactName || row['Contact Name'] || 'Not Provided',
-    manufacturerContactEmail:
-      row.manufacturerContactEmail ||
-      row['Contact Email'] ||
-      'noemail@example.com',
-    manufacturerPhone:
-      row.manufacturerPhone || row['Contact Phone'] || 'Not Provided',
-    representativeName:
-      row.representativeName || row['Representative Name'] || 'Not Provided',
-    representativeEmail:
-      row.representativeEmail ||
-      row['Representative Email'] ||
-      'noemail@example.com',
+    fuelId: getValueOrDefault(row.fuelId, row.FuelID, row.ID, ''),
+    manufacturerName: getValueOrDefault(
+      row.manufacturerName,
+      row['Manufacturer Name'],
+      'Unknown'
+    ),
+    manufacturerAddress: getValueOrDefault(
+      row.manufacturerAddress,
+      row['Manufacturer Address'],
+      'Not Provided'
+    ),
+    manufacturerContactName: getValueOrDefault(
+      row.manufacturerContactName,
+      row['Contact Name'],
+      'Not Provided'
+    ),
+    manufacturerContactEmail: getValueOrDefault(
+      row.manufacturerContactEmail,
+      row['Contact Email'],
+      'noemail@example.com'
+    ),
+    manufacturerPhone: getValueOrDefault(
+      row.manufacturerPhone,
+      row['Contact Phone'],
+      'Not Provided'
+    ),
+    representativeName: getValueOrDefault(
+      row.representativeName,
+      row['Representative Name'],
+      'Not Provided'
+    ),
+    representativeEmail: getValueOrDefault(
+      row.representativeEmail,
+      row['Representative Email'],
+      'noemail@example.com'
+    ),
     hasCustomerComplaints: parseBoolean(
-      row.hasCustomerComplaints || row['Customer Complaints']
+      getValueOrDefault(row.hasCustomerComplaints, row['Customer Complaints'])
     ),
-    qualityControlSystem:
-      row.qualityControlSystem ||
-      row['Quality Control System'] ||
-      'Not Specified',
-    certificationScheme:
-      row.certificationScheme || row['Certification Scheme'] || 'None',
-    fuelName: row.fuelName || row['Fuel Name'] || 'Unknown Fuel',
-    fuelBagging: row.fuelBagging || row['Fuel Bagging'] || 'Bagged',
+    qualityControlSystem: getValueOrDefault(
+      row.qualityControlSystem,
+      row['Quality Control System'],
+      'Not Specified'
+    ),
+    certificationScheme: getValueOrDefault(
+      row.certificationScheme,
+      row['Certification Scheme'],
+      'None'
+    ),
+    fuelName: getValueOrDefault(row.fuelName, row['Fuel Name'], 'Unknown Fuel'),
+    fuelBagging: getValueOrDefault(
+      row.fuelBagging,
+      row['Fuel Bagging'],
+      'Bagged'
+    ),
     isBaggedAtSource: parseBoolean(
-      row.isBaggedAtSource || row['Bagged at Source']
+      getValueOrDefault(row.isBaggedAtSource, row['Bagged at Source'])
     ),
-    fuelDescription:
-      row.fuelDescription || row['Fuel Description'] || 'No description',
-    fuelWeight: row.fuelWeight || row['Fuel Weight'] || 'Not Specified',
-    fuelComposition:
-      row.fuelComposition || row['Fuel Composition'] || 'Not Specified',
+    fuelDescription: getValueOrDefault(
+      row.fuelDescription,
+      row['Fuel Description'],
+      'No description'
+    ),
+    fuelWeight: getValueOrDefault(
+      row.fuelWeight,
+      row['Fuel Weight'],
+      'Not Specified'
+    ),
+    fuelComposition: getValueOrDefault(
+      row.fuelComposition,
+      row['Fuel Composition'],
+      'Not Specified'
+    ),
     sulphurContent: parseFloat(
-      row.sulphurContent || row['Sulphur Content'] || 0
+      getValueOrDefault(row.sulphurContent, row['Sulphur Content'], 0)
     ),
-    manufacturingProcess:
-      row.manufacturingProcess ||
-      row['Manufacturing Process'] ||
-      'Not Specified',
+    manufacturingProcess: getValueOrDefault(
+      row.manufacturingProcess,
+      row['Manufacturing Process'],
+      'Not Specified'
+    ),
     isRebrandedProduct: parseBoolean(
-      row.isRebrandedProduct || row['Is Rebranded']
+      getValueOrDefault(row.isRebrandedProduct, row['Is Rebranded'])
     ),
     hasChangedFromOriginal: parseBoolean(
-      row.hasChangedFromOriginal || row['Changed from Original']
+      getValueOrDefault(
+        row.hasChangedFromOriginal,
+        row['Changed from Original']
+      )
     ),
     updatedAt: new Date(),
     createdAt: new Date()
   }
 
   // Optional fields
-  if (row.manufacturerAlternateEmail || row['Alternate Email']) {
-    fuel.manufacturerAlternateEmail =
-      row.manufacturerAlternateEmail || row['Alternate Email']
+  const altEmail = getValueOrDefault(
+    row.manufacturerAlternateEmail,
+    row['Alternate Email']
+  )
+  if (altEmail) {
+    fuel.manufacturerAlternateEmail = altEmail
   }
 
-  if (row.brandNames || row['Brand Names']) {
-    const brandsString = row.brandNames || row['Brand Names']
-    fuel.brandNames = brandsString
-      ? brandsString.split(',').map((b) => b.trim())
-      : null
+  const brandsString = getValueOrDefault(row.brandNames, row['Brand Names'])
+  if (brandsString) {
+    fuel.brandNames = brandsString.split(',').map((b) => b.trim())
   }
 
   return fuel
@@ -222,26 +334,26 @@ function transformToFuel(row) {
 
 function transformToUser(row) {
   // Validate and normalize role
-  const rawRole = row.role || row.Role || 'user'
+  const rawRole = getValueOrDefault(row.role, row.Role, 'user')
   const validRoles = ['admin', 'user', 'manager', 'viewer']
   const role = validRoles.includes(rawRole.toLowerCase())
     ? rawRole.toLowerCase()
     : 'user'
 
   return {
-    userId: row.userId || row.UserID || row.ID || '',
-    firstName: row.firstName || row['First Name'] || 'Unknown',
-    lastName: row.lastName || row['Last Name'] || 'User',
-    email: row.email || row.Email || 'noemail@example.com',
-    phone: row.phone || row.Phone || null,
+    userId: getValueOrDefault(row.userId, row.UserID, row.ID, ''),
+    firstName: getValueOrDefault(row.firstName, row['First Name'], 'Unknown'),
+    lastName: getValueOrDefault(row.lastName, row['Last Name'], 'User'),
+    email: getValueOrDefault(row.email, row.Email, 'noemail@example.com'),
+    phone: getValueOrDefault(row.phone, row.Phone, null),
     role,
-    organization: row.organization || row.Organization || null,
-    address: row.address || row.Address || null,
-    city: row.city || row.City || null,
-    postcode: row.postcode || row.Postcode || null,
-    isActive: parseBoolean(row.isActive || row['Is Active']),
+    organization: getValueOrDefault(row.organization, row.Organization, null),
+    address: getValueOrDefault(row.address, row.Address, null),
+    city: getValueOrDefault(row.city, row.City, null),
+    postcode: getValueOrDefault(row.postcode, row.Postcode, null),
+    isActive: parseBoolean(getValueOrDefault(row.isActive, row['Is Active'])),
     registrationDate: parseDate(
-      row.registrationDate || row['Registration Date']
+      getValueOrDefault(row.registrationDate, row['Registration Date'])
     ),
     updatedAt: new Date(),
     createdAt: new Date()
