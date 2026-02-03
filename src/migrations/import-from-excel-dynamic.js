@@ -165,14 +165,23 @@ async function importEntity(
         }
       }
     } catch (error) {
+      // Log detailed validation error for debugging
+      const errorDetails = error.message
+      if (error.errInfo && error.errInfo.details) {
+        console.log(
+          `   ✗ Validation error for ${collectionName} row ${i + 2}:`,
+          JSON.stringify(error.errInfo.details, null, 2)
+        )
+      }
+
       results.errors.push({
         row: i + 2,
-        error: error.message
+        error: errorDetails
       })
       results.skipped++
 
       if (verbose) {
-        console.log(`   ✗ Error at row ${i + 2}: ${error.message}`)
+        console.log(`   ✗ Error: ${errorDetails}`)
       }
     }
   }
