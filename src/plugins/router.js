@@ -54,6 +54,8 @@ const router = {
       ])
 
       // Proxy route for CDP Uploader upload endpoint
+      // Note: This route does NOT include the service name prefix
+      // The gateway strips /aqie-dc-backend before routing to this service
       server.route({
         method: 'POST',
         path: '/upload-and-scan/{uploadId}',
