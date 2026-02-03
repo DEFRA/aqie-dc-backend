@@ -101,7 +101,7 @@ function transformToAppliance(row) {
       row.manufacturerPhone || row['Contact Phone'] || 'Not Provided',
     modelName: row.modelName || row['Model Name'] || 'Unknown Model',
     modelNumber: row.modelNumber || row['Model Number'] || 'N/A',
-    applianceType: applianceType,
+    applianceType,
     isVariant: parseBoolean(row.isVariant || row['Is Variant']),
     nominalOutput: parseFloat(
       row.nominalOutput || row['Nominal Output (kW)'] || 0
@@ -234,7 +234,7 @@ function transformToUser(row) {
     lastName: row.lastName || row['Last Name'] || 'User',
     email: row.email || row.Email || 'noemail@example.com',
     phone: row.phone || row.Phone || null,
-    role: role,
+    role,
     organization: row.organization || row.Organization || null,
     address: row.address || row.Address || null,
     city: row.city || row.City || null,
