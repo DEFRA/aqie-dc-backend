@@ -81,31 +81,42 @@ function parseDate(dateString) {
  * Transform functions for each entity type
  */
 function transformToAppliance(row) {
+  // Validate and normalize appliance type
+  const rawType = row.applianceType || row['Appliance Type'] || 'Other'
+  const validTypes = ['Stove', 'Boiler', 'Fire', 'Heater', 'Other']
+  const applianceType = validTypes.includes(rawType) ? rawType : 'Other'
+
   const appliance = {
-    applianceId: row.applianceId || row.ApplianceID || row.ID,
-    manufacturer: row.manufacturer || row.Manufacturer,
-    manufacturerAddress: row.manufacturerAddress || row['Manufacturer Address'],
-    manufacturerContactName: row.manufacturerContactName || row['Contact Name'],
+    applianceId: row.applianceId || row.ApplianceID || row.ID || '',
+    manufacturer: row.manufacturer || row.Manufacturer || 'Unknown',
+    manufacturerAddress:
+      row.manufacturerAddress || row['Manufacturer Address'] || 'Not Provided',
+    manufacturerContactName:
+      row.manufacturerContactName || row['Contact Name'] || 'Not Provided',
     manufacturerContactEmail:
-      row.manufacturerContactEmail || row['Contact Email'],
-    manufacturerPhone: row.manufacturerPhone || row['Contact Phone'],
-    modelName: row.modelName || row['Model Name'],
-    modelNumber: row.modelNumber || row['Model Number'],
-    applianceType: row.applianceType || row['Appliance Type'],
+      row.manufacturerContactEmail ||
+      row['Contact Email'] ||
+      'noemail@example.com',
+    manufacturerPhone:
+      row.manufacturerPhone || row['Contact Phone'] || 'Not Provided',
+    modelName: row.modelName || row['Model Name'] || 'Unknown Model',
+    modelNumber: row.modelNumber || row['Model Number'] || 'N/A',
+    applianceType: applianceType,
     isVariant: parseBoolean(row.isVariant || row['Is Variant']),
     nominalOutput: parseFloat(
       row.nominalOutput || row['Nominal Output (kW)'] || 0
     ),
-    allowedFuels: row.allowedFuels || row['Allowed Fuels'],
-    instructionManualTitle: row.instructionManualTitle || row['Manual Title'],
-    instructionManualDate: parseDate(
-      row.instructionManualDate || row['Manual Date']
-    ),
+    allowedFuels: row.allowedFuels || row['Allowed Fuels'] || 'Not Specified',
+    instructionManualTitle:
+      row.instructionManualTitle || row['Manual Title'] || 'Not Provided',
+    instructionManualDate:
+      parseDate(row.instructionManualDate || row['Manual Date']) || new Date(),
     instructionManualReference:
-      row.instructionManualReference || row['Manual Reference'],
-    submittedBy: row.submittedBy || row['Submitted By'],
-    approvedBy: row.approvedBy || row['Approved By'],
-    publishedDate: parseDate(row.publishedDate || row['Published Date']),
+      row.instructionManualReference || row['Manual Reference'] || 'N/A',
+    submittedBy: row.submittedBy || row['Submitted By'] || 'Unknown',
+    approvedBy: row.approvedBy || row['Approved By'] || 'Unknown',
+    publishedDate:
+      parseDate(row.publishedDate || row['Published Date']) || new Date(),
     updatedAt: new Date(),
     createdAt: new Date()
   }
@@ -138,34 +149,51 @@ function transformToAppliance(row) {
 
 function transformToFuel(row) {
   const fuel = {
-    fuelId: row.fuelId || row.FuelID || row.ID,
-    manufacturerName: row.manufacturerName || row['Manufacturer Name'],
-    manufacturerAddress: row.manufacturerAddress || row['Manufacturer Address'],
-    manufacturerContactName: row.manufacturerContactName || row['Contact Name'],
+    fuelId: row.fuelId || row.FuelID || row.ID || '',
+    manufacturerName:
+      row.manufacturerName || row['Manufacturer Name'] || 'Unknown',
+    manufacturerAddress:
+      row.manufacturerAddress || row['Manufacturer Address'] || 'Not Provided',
+    manufacturerContactName:
+      row.manufacturerContactName || row['Contact Name'] || 'Not Provided',
     manufacturerContactEmail:
-      row.manufacturerContactEmail || row['Contact Email'],
-    manufacturerPhone: row.manufacturerPhone || row['Contact Phone'],
-    representativeName: row.representativeName || row['Representative Name'],
-    representativeEmail: row.representativeEmail || row['Representative Email'],
+      row.manufacturerContactEmail ||
+      row['Contact Email'] ||
+      'noemail@example.com',
+    manufacturerPhone:
+      row.manufacturerPhone || row['Contact Phone'] || 'Not Provided',
+    representativeName:
+      row.representativeName || row['Representative Name'] || 'Not Provided',
+    representativeEmail:
+      row.representativeEmail ||
+      row['Representative Email'] ||
+      'noemail@example.com',
     hasCustomerComplaints: parseBoolean(
       row.hasCustomerComplaints || row['Customer Complaints']
     ),
     qualityControlSystem:
-      row.qualityControlSystem || row['Quality Control System'],
-    certificationScheme: row.certificationScheme || row['Certification Scheme'],
-    fuelName: row.fuelName || row['Fuel Name'],
-    fuelBagging: row.fuelBagging || row['Fuel Bagging'],
+      row.qualityControlSystem ||
+      row['Quality Control System'] ||
+      'Not Specified',
+    certificationScheme:
+      row.certificationScheme || row['Certification Scheme'] || 'None',
+    fuelName: row.fuelName || row['Fuel Name'] || 'Unknown Fuel',
+    fuelBagging: row.fuelBagging || row['Fuel Bagging'] || 'Bagged',
     isBaggedAtSource: parseBoolean(
       row.isBaggedAtSource || row['Bagged at Source']
     ),
-    fuelDescription: row.fuelDescription || row['Fuel Description'],
-    fuelWeight: row.fuelWeight || row['Fuel Weight'],
-    fuelComposition: row.fuelComposition || row['Fuel Composition'],
+    fuelDescription:
+      row.fuelDescription || row['Fuel Description'] || 'No description',
+    fuelWeight: row.fuelWeight || row['Fuel Weight'] || 'Not Specified',
+    fuelComposition:
+      row.fuelComposition || row['Fuel Composition'] || 'Not Specified',
     sulphurContent: parseFloat(
       row.sulphurContent || row['Sulphur Content'] || 0
     ),
     manufacturingProcess:
-      row.manufacturingProcess || row['Manufacturing Process'],
+      row.manufacturingProcess ||
+      row['Manufacturing Process'] ||
+      'Not Specified',
     isRebrandedProduct: parseBoolean(
       row.isRebrandedProduct || row['Is Rebranded']
     ),
@@ -193,17 +221,24 @@ function transformToFuel(row) {
 }
 
 function transformToUser(row) {
+  // Validate and normalize role
+  const rawRole = row.role || row.Role || 'user'
+  const validRoles = ['admin', 'user', 'manager', 'viewer']
+  const role = validRoles.includes(rawRole.toLowerCase())
+    ? rawRole.toLowerCase()
+    : 'user'
+
   return {
-    userId: row.userId || row.UserID || row.ID,
-    firstName: row.firstName || row['First Name'],
-    lastName: row.lastName || row['Last Name'],
-    email: row.email || row.Email,
-    phone: row.phone || row.Phone,
-    role: row.role || row.Role || 'user',
-    organization: row.organization || row.Organization,
-    address: row.address || row.Address,
-    city: row.city || row.City,
-    postcode: row.postcode || row.Postcode,
+    userId: row.userId || row.UserID || row.ID || '',
+    firstName: row.firstName || row['First Name'] || 'Unknown',
+    lastName: row.lastName || row['Last Name'] || 'User',
+    email: row.email || row.Email || 'noemail@example.com',
+    phone: row.phone || row.Phone || null,
+    role: role,
+    organization: row.organization || row.Organization || null,
+    address: row.address || row.Address || null,
+    city: row.city || row.City || null,
+    postcode: row.postcode || row.Postcode || null,
     isActive: parseBoolean(row.isActive || row['Is Active']),
     registrationDate: parseDate(
       row.registrationDate || row['Registration Date']
