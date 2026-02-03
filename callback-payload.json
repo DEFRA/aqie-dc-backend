@@ -1,0 +1,27 @@
+{
+  "uploadId": "b9a5888d-565e-40d6-8da6-a6d4d4b2aa82",
+  "uploadStatus": "ready",
+  "metadata": {
+    "entities": [
+      { "type": "appliances", "sheetName": "Appliances" },
+      { "type": "fuels", "sheetName": "Fuels" },
+      { "type": "users", "sheetName": "Users" },
+      { "type": "userAppliances", "sheetName": "UserAppliances" },
+      { "type": "userFuels", "sheetName": "UserFuels" }
+    ]
+  },
+  "form": {
+    "file": {
+      "fileId": "3d22832b-6e3d-4f91-8b8b-bbd3a23c71a9",
+      "filename": "combined-template.xlsx",
+      "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "fileStatus": "complete",
+      "contentLength": 57936,
+      "checksumSha256": "Z9qY1LlXWd8VqPDPwwW+51a1WQ2uSJIV4BNo9NJ6NFI=",
+      "detectedContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "s3Key": "imports/b9a5888d-565e-40d6-8da6-a6d4d4b2aa82/3d22832b-6e3d-4f91-8b8b-bbd3a23c71a9",
+      "s3Bucket": "dev-aqie-dc-uploads-c63f2"
+    }
+  },
+  "numberOfRejectedFiles": 0
+}
