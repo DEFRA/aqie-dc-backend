@@ -1,0 +1,25 @@
+{
+  "uploadId": "f0026eae-261d-46b5-b2d8-f5f3ebe8f251",
+  "uploadStatus": "ready",
+  "metadata": {
+    "entities": [
+      { "type": "appliances" },
+      { "type": "fuels" },
+      { "type": "users" }
+    ]
+  },
+  "form": {
+    "file": {
+      "fileId": "3d233284-e232-42f2-a339-1e0903fe29f3",
+      "filename": "combined-import-template.xlsx",
+      "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "fileStatus": "complete",
+      "contentLength": 26124,
+      "checksumSha256": "jOWjop1SqhuNud0uN+Rr8Je3AVMscsR4Knh057dtmfE=",
+      "detectedContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "s3Key": "imports/f0026eae-261d-46b5-b2d8-f5f3ebe8f251/3d233284-e232-42f2-a339-1e0903fe29f3",
+      "s3Bucket": "dev-aqie-dc-uploads-c63f2"
+    }
+  },
+  "numberOfRejectedFiles": 0
+}

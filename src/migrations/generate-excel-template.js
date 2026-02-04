@@ -67,6 +67,43 @@ const fuelsTemplate = [
   }
 ]
 
+const usersTemplate = [
+  {
+    userId: 'USER001',
+    firstName: 'Alex',
+    lastName: 'Smith',
+    email: 'alex.smith@example.com',
+    phone: '07123456789',
+    role: 'user',
+    organization: 'Example Org',
+    address: '10 Example Street',
+    city: 'Newcastle',
+    postcode: 'NE1 1AA',
+    isActive: 'Yes',
+    registrationDate: '01/01/2025'
+  }
+]
+
+const userAppliancesTemplate = [
+  {
+    userId: 'USER001',
+    applianceId: 'APP001',
+    assignedDate: '15/01/2025',
+    status: 'active',
+    notes: 'Primary heating appliance'
+  }
+]
+
+const userFuelsTemplate = [
+  {
+    userId: 'USER001',
+    fuelId: 'FUEL001',
+    assignedDate: '15/01/2025',
+    status: 'active',
+    notes: 'Preferred fuel type'
+  }
+]
+
 function generateTemplate() {
   console.log('🚀 Generating Excel templates...\n')
 
@@ -153,10 +190,86 @@ function generateTemplate() {
   xlsx.writeFile(fuelsWorkbook, fuelsPath)
   console.log(`✅ Fuels template created: ${fuelsPath}`)
 
+  // Create Users template
+  const usersWorkbook = xlsx.utils.book_new()
+  const usersSheet = xlsx.utils.json_to_sheet(usersTemplate)
+
+  // Set column widths
+  usersSheet['!cols'] = [
+    { wch: 15 }, // userId
+    { wch: 15 }, // firstName
+    { wch: 15 }, // lastName
+    { wch: 30 }, // email
+    { wch: 15 }, // phone
+    { wch: 12 }, // role
+    { wch: 25 }, // organization
+    { wch: 30 }, // address
+    { wch: 15 }, // city
+    { wch: 10 }, // postcode
+    { wch: 10 }, // isActive
+    { wch: 15 } // registrationDate
+  ]
+
+  xlsx.utils.book_append_sheet(usersWorkbook, usersSheet, 'Users')
+
+  const usersPath = join(templatesDir, 'users-import-template.xlsx')
+  xlsx.writeFile(usersWorkbook, usersPath)
+  console.log(`✅ Users template created: ${usersPath}`)
+
+  // Create UserAppliances template
+  const userAppliancesWorkbook = xlsx.utils.book_new()
+  const userAppliancesSheet = xlsx.utils.json_to_sheet(userAppliancesTemplate)
+
+  userAppliancesSheet['!cols'] = [
+    { wch: 15 }, // userId
+    { wch: 15 }, // applianceId
+    { wch: 15 }, // assignedDate
+    { wch: 12 }, // status
+    { wch: 40 } // notes
+  ]
+
+  xlsx.utils.book_append_sheet(
+    userAppliancesWorkbook,
+    userAppliancesSheet,
+    'UserAppliances'
+  )
+
+  const userAppliancesPath = join(
+    templatesDir,
+    'user-appliances-import-template.xlsx'
+  )
+  xlsx.writeFile(userAppliancesWorkbook, userAppliancesPath)
+  console.log(`✅ UserAppliances template created: ${userAppliancesPath}`)
+
+  // Create UserFuels template
+  const userFuelsWorkbook = xlsx.utils.book_new()
+  const userFuelsSheet = xlsx.utils.json_to_sheet(userFuelsTemplate)
+
+  userFuelsSheet['!cols'] = [
+    { wch: 15 }, // userId
+    { wch: 15 }, // fuelId
+    { wch: 15 }, // assignedDate
+    { wch: 12 }, // status
+    { wch: 40 } // notes
+  ]
+
+  xlsx.utils.book_append_sheet(userFuelsWorkbook, userFuelsSheet, 'UserFuels')
+
+  const userFuelsPath = join(templatesDir, 'user-fuels-import-template.xlsx')
+  xlsx.writeFile(userFuelsWorkbook, userFuelsPath)
+  console.log(`✅ UserFuels template created: ${userFuelsPath}`)
+
   // Create combined template
   const combinedWorkbook = xlsx.utils.book_new()
   xlsx.utils.book_append_sheet(combinedWorkbook, appliancesSheet, 'Appliances')
   xlsx.utils.book_append_sheet(combinedWorkbook, fuelsSheet, 'Fuels')
+  xlsx.utils.book_append_sheet(combinedWorkbook, usersSheet, 'Users')
+  xlsx.utils.book_append_sheet(
+    combinedWorkbook,
+    userAppliancesSheet,
+    'UserAppliances'
+  )
+  xlsx.utils.book_append_sheet(combinedWorkbook, userFuelsSheet, 'UserFuels')
 
   const combinedPath = join(templatesDir, 'combined-import-template.xlsx')
   xlsx.writeFile(combinedWorkbook, combinedPath)

@@ -1,0 +1,485 @@
+{
+  "info": {
+    "name": "AQIE DC Backend API",
+    "description": "REST API endpoints for accessing users, appliances, and fuels data from MongoDB",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345678"
+  },
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Results per page (default: 20, max: 100)"
+                }
+              ]
+            },
+            "description": "Retrieve all users with pagination support"
+          },
+          "response": []
+        },
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/search?q=john&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "john",
+                  "description": "Search query (min 2 characters)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Results per page (default: 20, max: 100)"
+                }
+              ]
+            },
+            "description": "Search users by name or email"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/:userId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "USR001",
+                  "description": "User ID"
+                }
+              ]
+            },
+            "description": "Get a single user by their ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User With Relations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/:userId/details",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":userId", "details"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "USR001",
+                  "description": "User ID"
+                }
+              ]
+            },
+            "description": "Get user with their appliances and fuels"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Appliances",
+      "item": [
+        {
+          "name": "Get All Appliances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appliances?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Results per page (default: 20, max: 100)"
+                }
+              ]
+            },
+            "description": "Retrieve all appliances with pagination support"
+          },
+          "response": []
+        },
+        {
+          "name": "Search Appliances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appliances/search?q=stove&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "stove",
+                  "description": "Search query (min 2 characters)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Results per page (default: 20, max: 100)"
+                }
+              ]
+            },
+            "description": "Search appliances by name or type"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Appliance By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appliances/:applianceId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances", ":applianceId"],
+              "variable": [
+                {
+                  "key": "applianceId",
+                  "value": "APP001",
+                  "description": "Appliance ID"
+                }
+              ]
+            },
+            "description": "Get a single appliance by its ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Appliance With Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/appliances/:applianceId/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "appliances", ":applianceId", "users"],
+              "variable": [
+                {
+                  "key": "applianceId",
+                  "value": "APP001",
+                  "description": "Appliance ID"
+                }
+              ]
+            },
+            "description": "Get appliance with all users who have it"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Fuels",
+      "item": [
+        {
+          "name": "Get All Fuels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/fuels?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "fuels"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Results per page (default: 20, max: 100)"
+                }
+              ]
+            },
+            "description": "Retrieve all fuels with pagination support"
+          },
+          "response": []
+        },
+        {
+          "name": "Search Fuels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/fuels/search?q=gas&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "fuels", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "gas",
+                  "description": "Search query (min 2 characters)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Results per page (default: 20, max: 100)"
+                }
+              ]
+            },
+            "description": "Search fuels by name or type"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Fuel By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/fuels/:fuelId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "fuels", ":fuelId"],
+              "variable": [
+                {
+                  "key": "fuelId",
+                  "value": "FUL001",
+                  "description": "Fuel ID"
+                }
+              ]
+            },
+            "description": "Get a single fuel by its ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Fuel With Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/fuels/:fuelId/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "fuels", ":fuelId", "users"],
+              "variable": [
+                {
+                  "key": "fuelId",
+                  "value": "FUL001",
+                  "description": "Fuel ID"
+                }
+              ]
+            },
+            "description": "Get fuel with all users who use it"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Initiate Import",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entities\": [\"users\", \"appliances\", \"fuels\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/import/initiate",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "import", "initiate"]
+            },
+            "description": "Initiate file upload and import process via CDP Uploader"
+          },
+          "response": []
+        },
+        {
+          "name": "Check Upload Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/import/status?uploadId=:uploadId",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "import", "status"],
+              "query": [
+                {
+                  "key": "uploadId",
+                  "value": ":uploadId",
+                  "description": "Upload ID from initiate response"
+                }
+              ]
+            },
+            "description": "Check the status of an upload"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Health check endpoint"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://ephemeral-protected.api.dev.cdp-int.defra.cloud/aqie-dc-backend",
+      "type": "string"
+    },
+    {
+      "key": "x-api-key",
+      "value": "YOUR_API_KEY",
+      "type": "string"
+    }
+  ]
+}
