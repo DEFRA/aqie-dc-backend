@@ -8,7 +8,7 @@
  */
 async function getAllFuels(db, { page = 1, limit = 20 }, logger) {
   try {
-    const collection = db.collection('fuels')
+    const collection = db.collection('Fuels')
     const skip = (page - 1) * limit
 
     const fuels = await collection
@@ -41,7 +41,7 @@ async function getAllFuels(db, { page = 1, limit = 20 }, logger) {
  */
 async function getFuelById(db, fuelId, logger) {
   try {
-    const collection = db.collection('fuels')
+    const collection = db.collection('Fuels')
     const fuel = await collection.findOne({ fuelId })
 
     if (!fuel) {
@@ -68,7 +68,7 @@ async function getFuelById(db, fuelId, logger) {
 async function getFuelWithUsers(db, fuelId, logger) {
   try {
     // Get fuel
-    const fuel = await db.collection('fuels').findOne({ fuelId })
+    const fuel = await db.collection('Fuels').findOne({ fuelId })
 
     if (!fuel) {
       return {
@@ -80,7 +80,7 @@ async function getFuelWithUsers(db, fuelId, logger) {
 
     // Get all users who use this fuel
     const userFuels = await db
-      .collection('userFuels')
+      .collection('UserFuels')
       .find({ fuelId })
       .toArray()
 
@@ -88,7 +88,7 @@ async function getFuelWithUsers(db, fuelId, logger) {
     const users =
       userIds.length > 0
         ? await db
-            .collection('users')
+            .collection('Users')
             .find({ userId: { $in: userIds } })
             .toArray()
         : []
@@ -120,7 +120,7 @@ async function getFuelWithUsers(db, fuelId, logger) {
  */
 async function searchFuels(db, { query, page = 1, limit = 20 }, logger) {
   try {
-    const collection = db.collection('fuels')
+    const collection = db.collection('Fuels')
     const skip = (page - 1) * limit
 
     const searchQuery = {

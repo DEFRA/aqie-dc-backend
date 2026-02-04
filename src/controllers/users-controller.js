@@ -8,7 +8,7 @@
  */
 async function getAllUsers(db, { page = 1, limit = 20 }, logger) {
   try {
-    const collection = db.collection('users')
+    const collection = db.collection('Users')
     const skip = (page - 1) * limit
 
     // Get users with pagination
@@ -43,7 +43,7 @@ async function getAllUsers(db, { page = 1, limit = 20 }, logger) {
  */
 async function getUserById(db, userId, logger) {
   try {
-    const collection = db.collection('users')
+    const collection = db.collection('Users')
     const user = await collection.findOne({ userId })
 
     if (!user) {
@@ -70,7 +70,7 @@ async function getUserById(db, userId, logger) {
 async function getUserWithRelations(db, userId, logger) {
   try {
     // Get user
-    const user = await db.collection('users').findOne({ userId })
+    const user = await db.collection('Users').findOne({ userId })
 
     if (!user) {
       return {
@@ -82,7 +82,7 @@ async function getUserWithRelations(db, userId, logger) {
 
     // Get user's appliances
     const userAppliances = await db
-      .collection('userAppliances')
+      .collection('UserAppliances')
       .find({ userId })
       .toArray()
 
@@ -90,14 +90,14 @@ async function getUserWithRelations(db, userId, logger) {
     const appliances =
       applianceIds.length > 0
         ? await db
-            .collection('appliances')
+            .collection('Appliances')
             .find({ applianceId: { $in: applianceIds } })
             .toArray()
         : []
 
     // Get user's fuels
     const userFuels = await db
-      .collection('userFuels')
+      .collection('UserFuels')
       .find({ userId })
       .toArray()
 
@@ -105,7 +105,7 @@ async function getUserWithRelations(db, userId, logger) {
     const fuels =
       fuelIds.length > 0
         ? await db
-            .collection('fuels')
+            .collection('Fuels')
             .find({ fuelId: { $in: fuelIds } })
             .toArray()
         : []
@@ -149,7 +149,7 @@ async function getUserWithRelations(db, userId, logger) {
  */
 async function searchUsers(db, { query, page = 1, limit = 20 }, logger) {
   try {
-    const collection = db.collection('users')
+    const collection = db.collection('Users')
     const skip = (page - 1) * limit
 
     // Search in name and email fields
