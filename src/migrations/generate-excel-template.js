@@ -67,6 +67,23 @@ const fuelsTemplate = [
   }
 ]
 
+const usersTemplate = [
+  {
+    userId: 'USER001',
+    firstName: 'Alex',
+    lastName: 'Smith',
+    email: 'alex.smith@example.com',
+    phone: '07123456789',
+    role: 'user',
+    organization: 'Example Org',
+    address: '10 Example Street',
+    city: 'Newcastle',
+    postcode: 'NE1 1AA',
+    isActive: 'Yes',
+    registrationDate: '01/01/2025'
+  }
+]
+
 function generateTemplate() {
   console.log('🚀 Generating Excel templates...\n')
 
@@ -153,10 +170,37 @@ function generateTemplate() {
   xlsx.writeFile(fuelsWorkbook, fuelsPath)
   console.log(`✅ Fuels template created: ${fuelsPath}`)
 
+  // Create Users template
+  const usersWorkbook = xlsx.utils.book_new()
+  const usersSheet = xlsx.utils.json_to_sheet(usersTemplate)
+
+  // Set column widths
+  usersSheet['!cols'] = [
+    { wch: 15 }, // userId
+    { wch: 15 }, // firstName
+    { wch: 15 }, // lastName
+    { wch: 30 }, // email
+    { wch: 15 }, // phone
+    { wch: 12 }, // role
+    { wch: 25 }, // organization
+    { wch: 30 }, // address
+    { wch: 15 }, // city
+    { wch: 10 }, // postcode
+    { wch: 10 }, // isActive
+    { wch: 15 } // registrationDate
+  ]
+
+  xlsx.utils.book_append_sheet(usersWorkbook, usersSheet, 'Users')
+
+  const usersPath = join(templatesDir, 'users-import-template.xlsx')
+  xlsx.writeFile(usersWorkbook, usersPath)
+  console.log(`✅ Users template created: ${usersPath}`)
+
   // Create combined template
   const combinedWorkbook = xlsx.utils.book_new()
   xlsx.utils.book_append_sheet(combinedWorkbook, appliancesSheet, 'Appliances')
   xlsx.utils.book_append_sheet(combinedWorkbook, fuelsSheet, 'Fuels')
+  xlsx.utils.book_append_sheet(combinedWorkbook, usersSheet, 'Users')
 
   const combinedPath = join(templatesDir, 'combined-import-template.xlsx')
   xlsx.writeFile(combinedWorkbook, combinedPath)
