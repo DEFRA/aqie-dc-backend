@@ -326,7 +326,7 @@ function transformToFuel(row) {
 
   const brandsString = getValueOrDefault(row.brandNames, row['Brand Names'])
   if (brandsString) {
-    fuel.brandNames = brandsString.split(',').map((b) => b.trim())
+    fuel.brandNames = brandsString
   }
 
   return fuel
