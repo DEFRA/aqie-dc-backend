@@ -8,7 +8,7 @@
  */
 async function getAllAppliances(db, { page = 1, limit = 20 }, logger) {
   try {
-    const collection = db.collection('appliances')
+    const collection = db.collection('Appliances')
     const skip = (page - 1) * limit
 
     const appliances = await collection
@@ -41,7 +41,7 @@ async function getAllAppliances(db, { page = 1, limit = 20 }, logger) {
  */
 async function getApplianceById(db, applianceId, logger) {
   try {
-    const collection = db.collection('appliances')
+    const collection = db.collection('Appliances')
     const appliance = await collection.findOne({ applianceId })
 
     if (!appliance) {
@@ -68,7 +68,7 @@ async function getApplianceById(db, applianceId, logger) {
 async function getApplianceWithUsers(db, applianceId, logger) {
   try {
     // Get appliance
-    const appliance = await db.collection('appliances').findOne({ applianceId })
+    const appliance = await db.collection('Appliances').findOne({ applianceId })
 
     if (!appliance) {
       return {
@@ -80,7 +80,7 @@ async function getApplianceWithUsers(db, applianceId, logger) {
 
     // Get all users who have this appliance
     const userAppliances = await db
-      .collection('userAppliances')
+      .collection('UserAppliances')
       .find({ applianceId })
       .toArray()
 
@@ -88,7 +88,7 @@ async function getApplianceWithUsers(db, applianceId, logger) {
     const users =
       userIds.length > 0
         ? await db
-            .collection('users')
+            .collection('Users')
             .find({ userId: { $in: userIds } })
             .toArray()
         : []
@@ -122,7 +122,7 @@ async function getApplianceWithUsers(db, applianceId, logger) {
  */
 async function searchAppliances(db, { query, page = 1, limit = 20 }, logger) {
   try {
-    const collection = db.collection('appliances')
+    const collection = db.collection('Appliances')
     const skip = (page - 1) * limit
 
     const searchQuery = {
