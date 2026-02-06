@@ -13,10 +13,10 @@ describe('db-service', () => {
   beforeAll(async () => {
     server = await createServer()
     await server.initialize()
-  })
+  }, 20000) // Increase timeout for setup if needed
 
   afterAll(async () => {
-    await server.stop({ timeout: 2000 })
+    await server.stop({ timeout: 1000 })
   })
 
   beforeEach(async () => {
