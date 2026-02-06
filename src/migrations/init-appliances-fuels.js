@@ -43,7 +43,7 @@ db.createCollection('Appliances', {
           description: 'Unique appliance identifier - required'
         },
         permittedFuels: {
-          sonType: 'string',
+          bsonType: 'string',
           //bsonType: ['array', 'null'],
           //items: { bsonType: 'string' },
           description: 'Array of permitted fuel IDs'
@@ -76,7 +76,7 @@ db.createCollection('Appliances', {
         },
         modelName: {
           //bsonType: 'string',
-          sonType: 'number',
+          bsonType: 'number',
           description: 'Appliance model name - required'
         },
         modelNumber: {
