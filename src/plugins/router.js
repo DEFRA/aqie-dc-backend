@@ -1,6 +1,7 @@
 import { health } from '../routes/health.js'
 import { example } from '../routes/example.js'
 import { uploadCallback } from '../routes/upload-callback.js'
+import { api } from '../routes/api.js'
 import {
   initiateImportController,
   checkUploadStatusController
@@ -34,7 +35,7 @@ const router = {
 
       // Health check, example, and test routes
       const testRoutes = [test]
-      const baseRoutes = [health].concat(example).concat(testRoutes)
+      const baseRoutes = [health].concat(example).concat(testRoutes).concat(api)
       server.route(baseRoutes)
 
       // CDP Uploader callback route
