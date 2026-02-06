@@ -80,9 +80,9 @@ describe('db-service', () => {
     const created = await createItem(server.db, 'appliance', {
       manufacturer: 'Old'
     })
-    const before = await server.db
-      .collection('Appliance')
-      .findOne({ applianceId: created.applianceId })
+    // const before = await server.db
+    //   .collection('Appliance')
+    //   .findOne({ applianceId: created.applianceId })
     const { updated } = await updateItem(
       server.db,
       'appliance',
