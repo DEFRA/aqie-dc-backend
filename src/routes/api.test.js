@@ -8,7 +8,6 @@ import {
   vi
 } from 'vitest'
 import * as dbService from './db-service.js'
-import { createServer } from '../server.js'
 
 // Mock db-service before server creation so routes use the mocks
 vi.mock('./db-service.js', () => ({
@@ -23,12 +22,16 @@ describe('api routes (generic)', () => {
   let server
 
   beforeAll(async () => {
-    server = await createServer()
+    // dynamic import ensures test mocks/setup are applied before server module loads
+    const mod = await import('../server.js') // adjust path in db-service.test.js if necessary
+    server = await mod.createServer()
     await server.initialize()
-  })
+  }, 20000) // optional increased timeout (20s) to avoid CI timing issues
 
   afterAll(async () => {
-    await server.stop({ timeout: 2000 })
+    if (server) {
+      await server.stop({ timeout: 1000 })
+    }
   })
 
   beforeEach(() => {

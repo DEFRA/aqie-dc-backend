@@ -1,5 +1,4 @@
 import { beforeAll, afterAll, beforeEach, describe, test, expect } from 'vitest'
-//import { createServer } from '../server.js'
 import {
   createItem,
   findAllItems,
@@ -9,11 +8,6 @@ import {
 } from './db-service.js'
 
 describe('db-service', () => {
-  // inside your test file (api.test.js / db-service.test.js)
-
-  // remove any top-level: import { createServer } from '../server.js'
-  // keep other imports (mocks, dbService) as-is
-
   let server
 
   beforeAll(async () => {
@@ -91,9 +85,6 @@ describe('db-service', () => {
     )
     expect(updated).toBeDefined()
     expect(updated.manufacturer).toBe('New')
-    // expect(new Date(updated.updatedAt).getTime()).toBeGreaterThan(
-    //   new Date(before.updatedAt).getTime()
-    // )
   })
 
   test('updateItem returns notFound for missing document', async () => {
