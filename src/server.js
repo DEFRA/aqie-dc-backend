@@ -1,4 +1,7 @@
 import Hapi from '@hapi/hapi'
+import Inert from '@hapi/inert'
+import Vision from '@hapi/vision'
+import HapiSwagger from 'hapi-swagger'
 
 import { secureContext } from '@defra/hapi-secure-context'
 
@@ -39,6 +42,19 @@ async function createServer() {
     }
   })
 
+  const swaggerOptions = {
+    info: {
+      title: 'API Documentation',
+      version: '1.0.0',
+      description: 'Simple CRUD API for items'
+    },
+    tags: [
+      {
+        name: 'Api',
+        description: 'CRUD operations'
+      }
+    ]
+  }
   // Hapi Plugins:
   // requestLogger  - automatically logs incoming requests
   // requestTracing - trace header logging and propagation
@@ -47,6 +63,12 @@ async function createServer() {
   // mongoDb        - sets up mongo connection pool and attaches to `server` and `request` objects
   // router         - routes used in the app
   await server.register([
+    Inert,
+    Vision,
+    {
+      plugin: HapiSwagger,
+      options: swaggerOptions
+    },
     requestLogger,
     requestTracing,
     secureContext,

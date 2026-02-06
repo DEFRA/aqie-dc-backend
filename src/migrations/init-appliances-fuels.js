@@ -43,8 +43,9 @@ db.createCollection('Appliances', {
           description: 'Unique appliance identifier - required'
         },
         permittedFuels: {
-          bsonType: ['array', 'null'],
-          items: { bsonType: 'string' },
+          sonType: 'string',
+          //bsonType: ['array', 'null'],
+          //items: { bsonType: 'string' },
           description: 'Array of permitted fuel IDs'
         },
         manufacturer: {
@@ -74,7 +75,8 @@ db.createCollection('Appliances', {
           description: 'Contact phone number - required'
         },
         modelName: {
-          bsonType: 'string',
+          //bsonType: 'string',
+          sonType: 'number',
           description: 'Appliance model name - required'
         },
         modelNumber: {
@@ -105,30 +107,33 @@ db.createCollection('Appliances', {
           description: 'Comma-separated list of allowed fuels - required'
         },
         testReport: {
-          bsonType: ['object', 'null'],
-          properties: {
-            filename: { bsonType: 'string' },
-            url: { bsonType: 'string' },
-            uploadDate: { bsonType: 'date' }
-          },
+          bsonType: 'string',
+          // bsonType: ['object', 'null'],
+          // properties: {
+          //   filename: { bsonType: 'string' },
+          //   url: { bsonType: 'string' },
+          //   uploadDate: { bsonType: 'date' }
+          // },
           description: 'Test report file details - optional'
         },
         technicalDrawings: {
-          bsonType: ['object', 'null'],
-          properties: {
-            filename: { bsonType: 'string' },
-            url: { bsonType: 'string' },
-            uploadDate: { bsonType: 'date' }
-          },
+          bsonType: 'string',
+          // bsonType: ['object', 'null'],
+          // properties: {
+          //   filename: { bsonType: 'string' },
+          //   url: { bsonType: 'string' },
+          //   uploadDate: { bsonType: 'date' }
+          // },
           description: 'Technical drawings file details - optional'
         },
         ceMark: {
-          bsonType: ['object', 'null'],
-          properties: {
-            filename: { bsonType: 'string' },
-            url: { bsonType: 'string' },
-            uploadDate: { bsonType: 'date' }
-          },
+          bsonType: 'string',
+          // bsonType: ['object', 'null'],
+          // properties: {
+          //   filename: { bsonType: 'string' },
+          //   url: { bsonType: 'string' },
+          //   uploadDate: { bsonType: 'date' }
+          // },
           description: 'CE mark certificate file details - optional'
         },
         conditionsForUse: {
