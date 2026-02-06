@@ -16,7 +16,7 @@ describe('db-service', () => {
   })
 
   afterAll(async () => {
-    await server.stop({ timeout: 1000 })
+    await server.stop({ timeout: 2000 })
   })
 
   beforeEach(async () => {
