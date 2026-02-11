@@ -1,8 +1,8 @@
 import { describe, test, expect } from 'vitest'
-import { applienceSchema, fuelSchema } from './schema.js'
+import { applianceSchema, fuelSchema } from './schema.js'
 
 describe('schema.js - Phone Validators', () => {
-  describe('applienceSchema - manufacturerPhone', () => {
+  describe('applianceSchema - manufacturerPhone', () => {
     test('valid phone with country code -> normalizes to E164', () => {
       const payload = {
         permittedFuels: 'wood',
@@ -30,7 +30,7 @@ describe('schema.js - Phone Validators', () => {
         publishedDate: '2026-02-03'
       }
 
-      const { value, error } = applienceSchema.validate(payload)
+      const { value, error } = applianceSchema.validate(payload)
       expect(error).toBeUndefined()
       expect(value.manufacturerPhone).toMatch(/^\+\d[\d\s-]+$/) // E164 format
       expect(value.manufacturerPhone).not.toBe('+44 111 222 1231') // was transformed
@@ -63,7 +63,7 @@ describe('schema.js - Phone Validators', () => {
         publishedDate: '2026-02-03'
       }
 
-      const { value, error } = applienceSchema.validate(payload)
+      const { value, error } = applianceSchema.validate(payload)
       expect(error).toBeUndefined()
       // optional phone field should be undefined
       expect(value.manufacturerPhone).toBeUndefined()
@@ -96,7 +96,7 @@ describe('schema.js - Phone Validators', () => {
         publishedDate: '2026-02-03'
       }
 
-      const { error } = applienceSchema.validate(payload)
+      const { error } = applianceSchema.validate(payload)
       expect(error).toBeDefined()
       expect(error.details[0].message).toContain('Invalid phone number')
     })
@@ -128,7 +128,7 @@ describe('schema.js - Phone Validators', () => {
         publishedDate: '2026-02-03'
       }
 
-      const { error } = applienceSchema.validate(payload)
+      const { error } = applianceSchema.validate(payload)
       expect(error).toBeDefined()
       expect(error.details[0].message).toContain('Invalid phone number')
     })

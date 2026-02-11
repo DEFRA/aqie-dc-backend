@@ -2,7 +2,7 @@ import Joi from 'joi'
 import pkg from 'google-libphonenumber'
 const { PhoneNumberUtil } = pkg
 const phoneUtil = PhoneNumberUtil.getInstance()
-export const applienceSchema = Joi.object({
+export const applianceSchema = Joi.object({
   permittedFuels: Joi.string().required().description('Permitted fuels'),
   manufacturer: Joi.string().required().description('Manufacturer'),
   manufacturerAddress: Joi.string()
@@ -41,9 +41,9 @@ export const applienceSchema = Joi.object({
   modelNumber: Joi.number().required().description('Model number'),
   applianceType: Joi.string().required().description('Appliance type'),
   isVariant: Joi.boolean().required().description('Variant of appliance'),
-  exsistingAuthorizedAppliance: Joi.string()
+  existingAuthorisedAppliance: Joi.string()
     .optional()
-    .description('Exsisting authorized appliance'),
+    .description('Existing authorised appliance'),
   nominalOutput: Joi.number().required().description('Nominal output (kW)'),
   allowedFuels: Joi.string().required().description('Allowed fuels'),
   testReport: Joi.string().required().description('Test report'),

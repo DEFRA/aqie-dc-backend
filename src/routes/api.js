@@ -6,7 +6,7 @@ import {
   updateItem,
   deleteItem
 } from './db-service.js'
-import { applienceSchema, fuelSchema } from './schema.js'
+import { applianceSchema, fuelSchema } from './schema.js'
 
 export const api = [
   {
@@ -86,7 +86,7 @@ export const api = [
           assign: 'validatedPayload',
           method: (request, h) => {
             const { type } = request.params
-            const schema = type === 'appliance' ? applienceSchema : fuelSchema
+            const schema = type === 'appliance' ? applianceSchema : fuelSchema
 
             const { value, error } = schema.validate(request.payload, {
               abortEarly: false
