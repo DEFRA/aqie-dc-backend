@@ -1,11 +1,11 @@
+import { describe, test, expect } from 'vitest'
+import { applianceSchema, fuelSchema } from './schema.js'
 const TEST_DATE = '2026-02-03'
 const TEST_SUBMITTED_DATE = '2026-02-01'
 const TEST_MANUFACTURER_ADDRESS = '123 Street'
 const TEST_MANUFACTURER_EMAIL = 'john@acme.com'
 const TEST_MANUFACTURER_ALT_EMAIL = 'alt@acme.com'
 const TEST_INVALID_PHONE_MSG = 'Invalid phone number'
-import { describe, test, expect } from 'vitest'
-import { applianceSchema, fuelSchema } from './schema.js'
 
 describe('applianceSchema - manufacturerPhone', () => {
   const basePayload = {

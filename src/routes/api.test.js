@@ -114,20 +114,6 @@ describe('api routes (generic)', () => {
     englandApproval: 'Approved'
   }
 
-  // test('POST /add-new/appliance -> createItem throws -> 500', async () => {
-  //   dbService.createItem.mockRejectedValue(new Error('insert failed'))
-
-  //   const res = await server.inject({
-  //     method: 'POST',
-  //     url: '/add-new/appliance',
-  //     payload: validAppliance
-  //   })
-
-  //   expect(res.statusCode).toBe(500)
-  //   const body = JSON.parse(res.payload)
-  //   expect(body).toMatchObject({ msg: 'Failed to create item' })
-  // })
-
   test('GET /get-all/appliance -> OK (200) with data', async () => {
     dbService.findAllItems.mockResolvedValue([{ applianceId: 'APP-1' }])
 
@@ -250,23 +236,6 @@ describe('api routes (generic)', () => {
     expect(res.statusCode).toBe(400)
   })
 
-  // test('POST /add-new/appliance -> Created (201) with applicationId', async () => {
-  //   dbService.createItem.mockResolvedValue({
-  //     applianceId: 'APP-1',
-  //     _id: 'mongoid'
-  //   })
-
-  //   const res = await server.inject({
-  //     method: 'POST',
-  //     url: '/add-new/appliance',
-  //     payload: validAppliance
-  //   })
-
-  //   expect(res.statusCode).toBe(201)
-  //   const body = JSON.parse(res.payload)
-  //   expect(body).toEqual({ msg: 'Created', applicationId: 'APP-1' })
-  // })
-
   test('POST /add-new/fuel -> Created (201) with applicationId', async () => {
     dbService.createItem.mockResolvedValue({
       fuelId: 'FUEL-1',
@@ -283,20 +252,6 @@ describe('api routes (generic)', () => {
     const body = JSON.parse(res.payload)
     expect(body).toEqual({ msg: 'Created', applicationId: 'FUEL-1' })
   })
-
-  // test('POST /add-new/appliance -> uses _id fallback when no domain id returned', async () => {
-  //   dbService.createItem.mockResolvedValue({ _id: 'mongo-id-only' })
-
-  //   const res = await server.inject({
-  //     method: 'POST',
-  //     url: '/add-new/appliance',
-  //     payload: validAppliance
-  //   })
-
-  //   expect(res.statusCode).toBe(201)
-  //   const body = JSON.parse(res.payload)
-  //   expect(body.applicationId).toBe('mongo-id-only')
-  // })
 
   test('POST /add-new/appliance -> invalid payload -> 400', async () => {
     const res = await server.inject({
