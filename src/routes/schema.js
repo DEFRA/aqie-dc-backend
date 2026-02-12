@@ -77,18 +77,22 @@ export const applianceSchema = Joi.object({
   technicalApproval: Joi.string().required().description('Technical approval'),
   walesApproval: Joi.string()
     .valid('Approved', 'Rejected', 'Revoked', 'Pending')
+    .default('Pending')
     .required()
     .description('Wales approval'),
   nIrelandApproval: Joi.string()
     .valid('Approved', 'Rejected', 'Revoked', 'Pending')
+    .default('Pending')
     .required()
     .description('Northern Ireland approval'),
   scotlandApproval: Joi.string()
     .valid('Approved', 'Rejected', 'Revoked', 'Pending')
+    .default('Pending')
     .required()
     .description('Scotland approval'),
   englandApproval: Joi.string()
     .valid('Approved', 'Rejected', 'Revoked', 'Pending')
+    .default('Pending')
     .required()
     .description('England approval')
 }).label('Appliance')
@@ -178,18 +182,22 @@ export const fuelSchema = Joi.object({
   technicalApproval: Joi.string().required().description('Technical approval'),
   walesApproval: Joi.string()
     .valid('Approved', 'Rejected', 'Revoked')
+    .default('Pending')
     .required()
     .description('Wales approval'),
   nIrelandApproval: Joi.string()
     .valid('Approved', 'Rejected', 'Revoked', 'Pending')
+    .default('Pending')
     .required()
     .description('Northern Ireland approval'),
   scotlandApproval: Joi.string()
     .valid('Approved', 'Rejected', 'Revoked', 'Pending')
+    .default('Pending')
     .required()
     .description('Scotland approval'),
   englandApproval: Joi.string()
     .valid('Approved', 'Rejected', 'Revoked', 'Pending')
+    .default('Pending')
     .required()
     .description('England approval')
 }).label('Fuel')
