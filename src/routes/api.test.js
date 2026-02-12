@@ -26,7 +26,7 @@ describe('api routes (generic)', () => {
     const mod = await import('../server.js') // adjust path in db-service.test.js if necessary
     server = await mod.createServer()
     await server.initialize()
-  }, 12000) // optional increased timeout (20s) to avoid CI timing issues
+  }, 20000) // optional increased timeout (20s) to avoid CI timing issues
 
   afterAll(async () => {
     if (server) {

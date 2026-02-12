@@ -3,6 +3,12 @@ import pkg from 'google-libphonenumber'
 const { PhoneNumberUtil } = pkg
 const phoneUtil = PhoneNumberUtil.getInstance()
 
+const approvalField = Joi.string()
+  .valid('Approved', 'Rejected', 'Revoked', 'Pending')
+  .empty('') // treat "" as undefined
+  .default('Pending') // applies to undefined or ""
+  .description('Approval status')
+
 export const applianceSchema = Joi.object({
   manufacturerName: Joi.string().required().description('Manufacturer name'),
   manufacturerAddress: Joi.string()
@@ -75,26 +81,12 @@ export const applianceSchema = Joi.object({
   publishedDate: Joi.date().required().description('Published date'),
   submittedDate: Joi.date().required().description('Submitted date'),
   technicalApproval: Joi.string().required().description('Technical approval'),
-  walesApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
-    .default('Pending')
-    .required()
-    .description('Wales approval'),
-  nIrelandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
-    .default('Pending')
-    .required()
-    .description('Northern Ireland approval'),
-  scotlandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
-    .default('Pending')
-    .required()
-    .description('Scotland approval'),
-  englandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
-    .default('Pending')
-    .required()
-    .description('England approval')
+  walesApproval: approvalField.description('Wales approval status'),
+  nIrelandApproval: approvalField.description(
+    'Northern Ireland approval status'
+  ),
+  scotlandApproval: approvalField.description('Scotland approval status'),
+  englandApproval: approvalField.description('England approval status')
 }).label('Appliance')
 
 export const fuelSchema = Joi.object({
@@ -180,24 +172,10 @@ export const fuelSchema = Joi.object({
   publishedDate: Joi.date().required().description('Published date'),
   submittedDate: Joi.date().required().description('Submitted date'),
   technicalApproval: Joi.string().required().description('Technical approval'),
-  walesApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked')
-    .default('Pending')
-    .required()
-    .description('Wales approval'),
-  nIrelandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
-    .default('Pending')
-    .required()
-    .description('Northern Ireland approval'),
-  scotlandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
-    .default('Pending')
-    .required()
-    .description('Scotland approval'),
-  englandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
-    .default('Pending')
-    .required()
-    .description('England approval')
+  walesApproval: approvalField.description('Wales approval status'),
+  nIrelandApproval: approvalField.description(
+    'Northern Ireland approval status'
+  ),
+  scotlandApproval: approvalField.description('Scotland approval status'),
+  englandApproval: approvalField.description('England approval status')
 }).label('Fuel')
