@@ -76,19 +76,19 @@ export const applianceSchema = Joi.object({
   submittedDate: Joi.date().required().description('Submitted date'),
   technicalApproval: Joi.string().required().description('Technical approval'),
   walesApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked')
+    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
     .required()
     .description('Wales approval'),
   nIrelandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked')
+    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
     .required()
     .description('Northern Ireland approval'),
   scotlandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked')
+    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
     .required()
     .description('Scotland approval'),
   englandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked')
+    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
     .required()
     .description('England approval')
 }).label('Appliance')
@@ -181,15 +181,15 @@ export const fuelSchema = Joi.object({
     .required()
     .description('Wales approval'),
   nIrelandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked')
+    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
     .required()
     .description('Northern Ireland approval'),
   scotlandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked')
+    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
     .required()
     .description('Scotland approval'),
   englandApproval: Joi.string()
-    .valid('Approved', 'Rejected', 'Revoked')
+    .valid('Approved', 'Rejected', 'Revoked', 'Pending')
     .required()
     .description('England approval')
 }).label('Fuel')
