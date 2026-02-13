@@ -4,9 +4,9 @@ const { PhoneNumberUtil } = pkg
 const phoneUtil = PhoneNumberUtil.getInstance()
 
 const approvalField = Joi.string()
+  .empty('', null)
+  .default('Pending')
   .valid('Approved', 'Rejected', 'Revoked', 'Pending')
-  .empty('') // treat "" as undefined
-  .default('Pending') // applies to undefined or ""
   .description('Approval status')
 
 export const applianceSchema = Joi.object({
@@ -80,7 +80,7 @@ export const applianceSchema = Joi.object({
   approvedBy: Joi.string().required().description('Approved by'),
   publishedDate: Joi.date().required().description('Published date'),
   submittedDate: Joi.date().required().description('Submitted date'),
-  technicalApproval: Joi.string().required().description('Technical approval'),
+  technicalApproval: approvalField.description('Technical approval'),
   walesApproval: approvalField.description('Wales approval status'),
   nIrelandApproval: approvalField.description(
     'Northern Ireland approval status'
@@ -171,7 +171,7 @@ export const fuelSchema = Joi.object({
   approvedBy: Joi.string().required().description('Approved by'),
   publishedDate: Joi.date().required().description('Published date'),
   submittedDate: Joi.date().required().description('Submitted date'),
-  technicalApproval: Joi.string().required().description('Technical approval'),
+  technicalApproval: approvalField.description('Technical approval'),
   walesApproval: approvalField.description('Wales approval status'),
   nIrelandApproval: approvalField.description(
     'Northern Ireland approval status'

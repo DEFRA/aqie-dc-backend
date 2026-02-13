@@ -106,7 +106,7 @@ describe('fuelSchema - manufacturerPhone', () => {
     approvedBy: 'Bob',
     publishedDate: TEST_DATE,
     submittedDate: TEST_SUBMITTED_DATE,
-    technicalApproval: 'TA',
+    technicalApproval: 'Approved',
     walesApproval: 'Approved',
     nIrelandApproval: 'Approved',
     scotlandApproval: 'Approved',

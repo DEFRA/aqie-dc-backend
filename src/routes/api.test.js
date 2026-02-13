@@ -107,7 +107,7 @@ describe('api routes (generic)', () => {
     approvedBy: 'Bob',
     publishedDate: '2026-02-03',
     submittedDate: '2026-02-01',
-    technicalApproval: 'TA',
+    technicalApproval: 'Approved',
     walesApproval: 'Approved',
     nIrelandApproval: 'Approved',
     scotlandApproval: 'Approved',
