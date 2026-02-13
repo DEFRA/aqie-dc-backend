@@ -8,7 +8,7 @@ const TEST_MANUFACTURER_ALT_EMAIL = 'alt@acme.com'
 const TEST_INVALID_PHONE_MSG = 'Invalid phone number'
 
 describe('applianceSchema - manufacturerPhone', () => {
-  const basePayload = {
+  const applianceBasePayload = {
     manufacturerName: 'ACME',
     manufacturerAddress: TEST_MANUFACTURER_ADDRESS,
     manufacturerContactName: 'John',
@@ -44,26 +44,35 @@ describe('applianceSchema - manufacturerPhone', () => {
     englandApproval: 'Approved'
   }
   test('valid phone with country code -> normalizes to E164', () => {
-    const payload = { ...basePayload, manufacturerPhone: '+44 7405 123456' }
+    const payload = {
+      ...applianceBasePayload,
+      manufacturerPhone: '+44 7405 123456'
+    }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
     expect(value.manufacturerPhone).toMatch(/^\+\d[\d\s-]+$/) // E164 format
     expect(value.manufacturerPhone).not.toBe('+44 111 222 1231') // was transformed
   })
   test('optional phone -> undefined or null passes', () => {
-    const payload = { ...basePayload }
+    const payload = { ...applianceBasePayload }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
     expect(value.manufacturerPhone).toBeUndefined()
   })
   test('invalid phone (try/catch) -> error', () => {
-    const payload = { ...basePayload, manufacturerPhone: 'not-a-phone' }
+    const payload = {
+      ...applianceBasePayload,
+      manufacturerPhone: 'not-a-phone'
+    }
     const { error } = applianceSchema.validate(payload)
     expect(error).toBeDefined()
     expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
   })
   test('invalid phone format (parse fails) -> catch block', () => {
-    const payload = { ...basePayload, manufacturerPhone: '!!!invalid!!!' }
+    const payload = {
+      ...applianceBasePayload,
+      manufacturerPhone: '!!!invalid!!!'
+    }
     const { error } = applianceSchema.validate(payload)
     expect(error).toBeDefined()
     expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
@@ -71,10 +80,34 @@ describe('applianceSchema - manufacturerPhone', () => {
   test('phone parses but is not valid (isValidNumber returns false)', () => {
     // This number parses but is not a valid phone number
     // e.g., +44 1234 is not a valid UK number
-    const payload = { ...basePayload, manufacturerPhone: '+44 1234' }
+    const payload = { ...applianceBasePayload, manufacturerPhone: '+44 1234' }
     const { error } = applianceSchema.validate(payload)
     expect(error).toBeDefined()
     expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
+  })
+
+  test('approvalField empty string -> defaults to Pending', () => {
+    const payload = { ...applianceBasePayload, technicalApproval: '' }
+    const { value, error } = applianceSchema.validate(payload)
+    expect(error).toBeUndefined()
+    expect(value.technicalApproval).toBe('Pending')
+  })
+
+  // test('approvalField null -> defaults to Pending', () => {
+  //   const payload = { ...applianceBasePayload, walesApproval: null }
+  //   const { value, error } = applianceSchema.validate(payload)
+  //   expect(error).toBeUndefined()
+  //   expect(value.walesApproval).toBe('Pending')
+  // })
+
+  test('approvalField invalid value -> validation error', () => {
+    const payload = {
+      ...applianceBasePayload,
+      scotlandApproval: 'InvalidValue'
+    }
+    const { error } = applianceSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].message).toContain('must be one of')
   })
 })
 // Fuel schema tests - similar to appliance but with fuel-specific required fields

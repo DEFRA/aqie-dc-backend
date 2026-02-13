@@ -4,7 +4,8 @@ const { PhoneNumberUtil } = pkg
 const phoneUtil = PhoneNumberUtil.getInstance()
 
 const approvalField = Joi.string()
-  .empty('', null)
+  .allow('', null)
+  .empty(['', null])
   .default('Pending')
   .valid('Approved', 'Rejected', 'Revoked', 'Pending')
   .description('Approval status')
