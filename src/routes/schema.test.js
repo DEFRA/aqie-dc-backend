@@ -93,12 +93,12 @@ describe('applianceSchema - manufacturerPhone', () => {
     expect(value.technicalApproval).toBe('Pending')
   })
 
-  // test('approvalField null -> defaults to Pending', () => {
-  //   const payload = { ...applianceBasePayload, walesApproval: null }
-  //   const { value, error } = applianceSchema.validate(payload)
-  //   expect(error).toBeUndefined()
-  //   expect(value.walesApproval).toBe('Pending')
-  // })
+  test('approvalField null -> defaults to Pending', () => {
+    const payload = { ...applianceBasePayload, walesApproval: null }
+    const { value, error } = applianceSchema.validate(payload)
+    expect(error).toBeUndefined()
+    expect(value.walesApproval).toBe('Pending')
+  })
 
   test('approvalField invalid value -> validation error', () => {
     const payload = {
