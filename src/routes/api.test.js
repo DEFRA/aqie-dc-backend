@@ -44,7 +44,7 @@ describe('api routes (generic)', () => {
     manufacturerContactName: 'John Doe',
     manufacturerContactEmail: 'john@acme.com',
     manufacturerAlternateEmail: 'alt@acme.com',
-    manufacturerPhone: '+44111222123',
+    manufacturerPhone: '+447523456789',
     modelName: 'Model X',
     modelNumber: 123,
     applianceType: 'heat',
@@ -341,6 +341,104 @@ describe('api routes (generic)', () => {
 
   test('POST /add-new/appliance -> phone custom validator catch block (invalid format)', async () => {
     const payload = { ...validAppliance, manufacturerPhone: '!!!invalid!!!' }
+
+    const res = await server.inject({
+      method: 'POST',
+      url: '/add-new/appliance',
+      payload
+    })
+
+    expect(res.statusCode).toBe(400)
+    const body = JSON.parse(res.payload)
+    expect(body.msg).toBe('Validation failed')
+    expect(body.details).toBeDefined()
+  })
+
+  // Tests for approval field defaults and validation
+  test('POST /add-new/appliance -> technicalApproval empty string defaults to Pending', async () => {
+    const payload = { ...validAppliance, technicalApproval: '' }
+    dbService.createItem.mockResolvedValue({
+      applianceId: 'APP-1',
+      technicalApproval: 'Pending'
+    })
+
+    const res = await server.inject({
+      method: 'POST',
+      url: '/add-new/appliance',
+      payload
+    })
+
+    if (res.statusCode !== 201) {
+      console.log('Error details:', JSON.parse(res.payload))
+    }
+    expect(res.statusCode).toBe(201)
+  })
+
+  test('POST /add-new/appliance -> technicalApproval null defaults to Pending', async () => {
+    const payload = { ...validAppliance, technicalApproval: null }
+    dbService.createItem.mockResolvedValue({
+      applianceId: 'APP-1',
+      technicalApproval: 'Pending'
+    })
+
+    const res = await server.inject({
+      method: 'POST',
+      url: '/add-new/appliance',
+      payload
+    })
+
+    expect(res.statusCode).toBe(201)
+  })
+
+  test('POST /add-new/appliance -> technicalApproval omitted defaults to Pending', async () => {
+    const { technicalApproval, ...payloadWithoutTechnical } = validAppliance
+    dbService.createItem.mockResolvedValue({
+      applianceId: 'APP-1',
+      technicalApproval: 'Pending'
+    })
+
+    const res = await server.inject({
+      method: 'POST',
+      url: '/add-new/appliance',
+      payload: payloadWithoutTechnical
+    })
+
+    expect(res.statusCode).toBe(201)
+  })
+
+  test('POST /add-new/appliance -> technicalApproval "Approved" stays Approved', async () => {
+    const payload = { ...validAppliance, technicalApproval: 'Approved' }
+    dbService.createItem.mockResolvedValue({
+      applianceId: 'APP-1',
+      technicalApproval: 'Approved'
+    })
+
+    const res = await server.inject({
+      method: 'POST',
+      url: '/add-new/appliance',
+      payload
+    })
+
+    expect(res.statusCode).toBe(201)
+  })
+
+  test('POST /add-new/appliance -> technicalApproval "undefined" string returns validation error', async () => {
+    const payload = { ...validAppliance, technicalApproval: 'undefined' }
+
+    const res = await server.inject({
+      method: 'POST',
+      url: '/add-new/appliance',
+      payload
+    })
+
+    expect(res.statusCode).toBe(400)
+    const body = JSON.parse(res.payload)
+    expect(body.msg).toBe('Validation failed')
+    expect(body.details).toBeDefined()
+  })
+
+  test('POST /add-new/appliance -> technicalApproval "Foo" returns validation error', async () => {
+    const payload = { ...validAppliance, technicalApproval: 'Foo' }
 
     const res = await server.inject({
       method: 'POST',
