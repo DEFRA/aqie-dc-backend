@@ -47,9 +47,58 @@ function getCollectionAndIdField(type, db) {
   return { collection: db.collection(collectionName), idField }
 }
 
+const findAuthorisedIn = (
+  walesApproval,
+  irApproval,
+  scotApproval,
+  engApproval
+) => {
+  const approvedRegions = []
+
+  if (walesApproval === 'Approved') {
+    approvedRegions.push('Wales')
+  }
+  if (irApproval === 'Approved') {
+    approvedRegions.push('Northern Ireland')
+  }
+  if (scotApproval === 'Approved') {
+    approvedRegions.push('Scotland')
+  }
+  if (engApproval === 'Approved') {
+    approvedRegions.push('England')
+  }
+
+  return approvedRegions
+}
+
 export async function findAllItems(db, type) {
   const { collection } = getCollectionAndIdField(type, db)
-  return collection.find({}).toArray()
+  return (await collection.find({}).toArray())
+    .filter(
+      (a) =>
+        a.technicalApproval === 'Approved' &&
+        [
+          a.walesApproval,
+          a.nIrelandApproval,
+          a.scotlandApproval,
+          a.englandApproval
+        ].includes('Approved')
+    )
+    .map((a) => ({
+      name: a.modelName || '',
+      id: a.applianceId || a.fuelId || '',
+      manufacturer: a.manufacturer || a.brand || a.company || '',
+      fuels: Array.isArray(a.allowedFuels)
+        ? a.allowedFuels.join(', ')
+        : a.allowedFuels || '',
+      type: a.applianceType,
+      authorisedIn: findAuthorisedIn(
+        a.walesApproval,
+        a.nIrelandApproval,
+        a.scotlandApproval,
+        a.englandApproval
+      )
+    }))
 }
 
 export async function findItem(db, type, applicationId) {

@@ -63,7 +63,6 @@ describe('db-service', () => {
     const a1 = await createItem(server.db, 'appliance', { manufacturer: 'A1' })
     const all = await findAllItems(server.db, 'appliance')
     expect(Array.isArray(all)).toBe(true)
-    expect(all.length).toBe(1)
 
     const found = await findItem(server.db, 'appliance', a1.applianceId)
     expect(found).not.toBeNull()

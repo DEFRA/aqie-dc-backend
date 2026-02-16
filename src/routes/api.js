@@ -39,7 +39,7 @@ export const api = [
               existingAuthorisedAppliance: 'Old Model',
               nominalOutput: 10,
               multiFuelAppliance: false,
-              allowedFuels: 'wood',
+              allowedFuels: ['Wood Logs'],
               testReport: 'TR-001',
               technicalDrawings: 'drawing.pdf',
               ceMark: 'CE123',

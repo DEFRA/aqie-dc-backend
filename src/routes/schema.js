@@ -8,7 +8,8 @@ const approvalField = Joi.string()
   .empty(['', null])
   .default('Pending')
   .valid('Approved', 'Rejected', 'Revoked', 'Pending')
-  .description('Approval status')
+
+const fuelOptions = ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other']
 
 export const applianceSchema = Joi.object({
   manufacturerName: Joi.string().required().description('Manufacturer name'),
@@ -55,7 +56,14 @@ export const applianceSchema = Joi.object({
   multiFuelAppliance: Joi.boolean()
     .required()
     .description('Multifuel capability'),
-  allowedFuels: Joi.string().required().description('Allowed fuels'),
+  allowedFuels: Joi.array()
+    .single() // "Wood Logs" -> ["Wood Logs"]
+    .items(Joi.string().valid(...fuelOptions))
+    .min(1)
+    .unique()
+    .required()
+    .description('Allowed fuels'),
+
   testReport: Joi.string().required().description('Test report'),
   technicalDrawings: Joi.string().required().description('Technical drawings'),
   ceMark: Joi.string().required().description('CE mark'),
