@@ -59,7 +59,7 @@ function getCollectionAndIdField(type, db) {
 
 const findAuthorisedIn = (
   walesApproval,
-  irApproval,
+  niApproval,
   scotApproval,
   engApproval
 ) => {
@@ -68,7 +68,7 @@ const findAuthorisedIn = (
   if (walesApproval === 'Approved') {
     approvedRegions.push('Wales')
   }
-  if (irApproval === 'Approved') {
+  if (niApproval === 'Approved') {
     approvedRegions.push('Northern Ireland')
   }
   if (scotApproval === 'Approved') {

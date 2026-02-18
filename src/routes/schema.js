@@ -23,7 +23,7 @@ export const applianceSchema = Joi.object({
     .required()
     .description('Manufacturer contact email'),
   manufacturerAlternateEmail: Joi.string()
-    .required()
+    .optional()
     .description('Manufacturer alternate contact email'),
   manufacturerPhone: Joi.string()
     .trim()

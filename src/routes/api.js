@@ -177,7 +177,7 @@ export const api = [
     method: 'GET',
     path: '/get/{type}/{applicationId}',
     options: {
-      tags: ['api', 'update'],
+      tags: ['api', 'read'],
       description: 'Update item fields for the given type and applicationId',
 
       validate: {
