@@ -1,3 +1,13 @@
+import crypto from 'crypto'
+
+const generateSecureId = () => {
+  return crypto
+    .randomBytes(9)
+    .toString('base64') // 12 chars but includes +=/
+    .replace(/[^a-zA-Z0-9]/g, '') // remove symbols
+    .slice(0, 12)
+}
+
 export async function createItem(db, type, item) {
   if (!db) throw new Error('db is required')
   if (!type) throw new Error('type is required')
@@ -20,9 +30,9 @@ export async function createItem(db, type, item) {
   }
 
   if (type === 'appliance') {
-    doc.applianceId = doc.applianceId || `APP-${Date.now()}`
+    doc.applianceId = doc.applianceId || `APP-${generateSecureId()}`
   } else {
-    doc.fuelId = doc.fuelId || `FUEL-${Date.now()}`
+    doc.fuelId = doc.fuelId || `FUEL-${generateSecureId()}`
   }
 
   const result = await collection.insertOne(doc)
@@ -73,21 +83,21 @@ const findAuthorisedIn = (
 
 export async function findAllItems(db, type) {
   const { collection } = getCollectionAndIdField(type, db)
-  return (await collection.find({}).toArray())
-    .filter(
-      (a) =>
-        a.technicalApproval === 'Approved' &&
-        [
-          a.walesApproval,
-          a.nIrelandApproval,
-          a.scotlandApproval,
-          a.englandApproval
-        ].includes('Approved')
-    )
-    .map((a) => ({
+  const data = (await collection.find({}).toArray()).filter(
+    (a) =>
+      a.technicalApproval === 'Approved' &&
+      [
+        a.walesApproval,
+        a.nIrelandApproval,
+        a.scotlandApproval,
+        a.englandApproval
+      ].includes('Approved')
+  )
+  if (type === 'appliance') {
+    return data.map((a) => ({
       name: a.modelName || '',
-      id: a.applianceId || a.fuelId || '',
-      manufacturer: a.manufacturer || a.brand || a.company || '',
+      id: a.applianceId || '',
+      manufacturer: a.manufacturerName || '',
       fuels: Array.isArray(a.allowedFuels)
         ? a.allowedFuels.join(', ')
         : a.allowedFuels || '',
@@ -99,6 +109,19 @@ export async function findAllItems(db, type) {
         a.englandApproval
       )
     }))
+  } else {
+    return data.map((a) => ({
+      name: a.brandNames || '',
+      id: a.fuelId,
+      manufacturer: a.manufacturerName || '',
+      authorisedIn: findAuthorisedIn(
+        a.walesApproval,
+        a.nIrelandApproval,
+        a.scotlandApproval,
+        a.englandApproval
+      )
+    }))
+  }
 }
 
 export async function findItem(db, type, applicationId) {

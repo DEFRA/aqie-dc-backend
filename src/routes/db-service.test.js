@@ -60,11 +60,34 @@ describe('db-service', () => {
   })
 
   test('findAllItems and findItem return expected data', async () => {
-    const a1 = await createItem(server.db, 'appliance', { manufacturer: 'A1' })
+    const a1 = await createItem(server.db, 'appliance', {
+      manufacturer: 'A1',
+      technicalApproval: 'Approved',
+      walesApproval: 'Approved',
+      nIrelandApproval: 'Approved',
+      scotlandApproval: 'Approved',
+      englandApproval: 'Approved'
+    })
     const all = await findAllItems(server.db, 'appliance')
     expect(Array.isArray(all)).toBe(true)
 
     const found = await findItem(server.db, 'appliance', a1.applianceId)
+    expect(found).not.toBeNull()
+    expect(found.manufacturer).toBe('A1')
+  })
+  test('findAllFeuel and findItem return expected data', async () => {
+    const a1 = await createItem(server.db, 'fuel', {
+      manufacturer: 'A1',
+      technicalApproval: 'Approved',
+      walesApproval: 'Approved',
+      nIrelandApproval: 'Approved',
+      scotlandApproval: 'Approved',
+      englandApproval: 'Approved'
+    })
+    const all = await findAllItems(server.db, 'fuel')
+    expect(Array.isArray(all)).toBe(true)
+
+    const found = await findItem(server.db, 'fuel', a1.fuelId)
     expect(found).not.toBeNull()
     expect(found.manufacturer).toBe('A1')
   })
