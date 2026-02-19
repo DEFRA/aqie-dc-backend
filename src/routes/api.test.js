@@ -52,7 +52,7 @@ describe('api routes (generic)', () => {
     existingAuthorisedAppliance: 'Old Model',
     nominalOutput: 10,
     multiFuelAppliance: false,
-    allowedFuels: 'wood',
+    allowedFuels: ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other'],
     testReport: 'TR-001',
     technicalDrawings: 'drawing.pdf',
     ceMark: 'CE123',

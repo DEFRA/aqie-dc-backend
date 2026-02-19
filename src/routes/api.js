@@ -39,7 +39,7 @@ export const api = [
               existingAuthorisedAppliance: 'Old Model',
               nominalOutput: 10,
               multiFuelAppliance: false,
-              allowedFuels: 'wood',
+              allowedFuels: ['Wood Logs'],
               testReport: 'TR-001',
               technicalDrawings: 'drawing.pdf',
               ceMark: 'CE123',
@@ -177,7 +177,7 @@ export const api = [
     method: 'GET',
     path: '/get/{type}/{applicationId}',
     options: {
-      tags: ['api', 'update'],
+      tags: ['api', 'read'],
       description: 'Update item fields for the given type and applicationId',
 
       validate: {

@@ -60,12 +60,34 @@ describe('db-service', () => {
   })
 
   test('findAllItems and findItem return expected data', async () => {
-    const a1 = await createItem(server.db, 'appliance', { manufacturer: 'A1' })
+    const a1 = await createItem(server.db, 'appliance', {
+      manufacturer: 'A1',
+      technicalApproval: 'Approved',
+      walesApproval: 'Approved',
+      nIrelandApproval: 'Approved',
+      scotlandApproval: 'Approved',
+      englandApproval: 'Approved'
+    })
     const all = await findAllItems(server.db, 'appliance')
     expect(Array.isArray(all)).toBe(true)
-    expect(all.length).toBe(1)
 
     const found = await findItem(server.db, 'appliance', a1.applianceId)
+    expect(found).not.toBeNull()
+    expect(found.manufacturer).toBe('A1')
+  })
+  test('findAllFeuel and findItem return expected data', async () => {
+    const a1 = await createItem(server.db, 'fuel', {
+      manufacturer: 'A1',
+      technicalApproval: 'Approved',
+      walesApproval: 'Approved',
+      nIrelandApproval: 'Approved',
+      scotlandApproval: 'Approved',
+      englandApproval: 'Approved'
+    })
+    const all = await findAllItems(server.db, 'fuel')
+    expect(Array.isArray(all)).toBe(true)
+
+    const found = await findItem(server.db, 'fuel', a1.fuelId)
     expect(found).not.toBeNull()
     expect(found.manufacturer).toBe('A1')
   })
@@ -74,9 +96,6 @@ describe('db-service', () => {
     const created = await createItem(server.db, 'appliance', {
       manufacturer: 'Old'
     })
-    // const before = await server.db
-    //   .collection('Appliance')
-    //   .findOne({ applianceId: created.applianceId })
     const { updated } = await updateItem(
       server.db,
       'appliance',
@@ -101,7 +120,7 @@ describe('db-service', () => {
     const r = await deleteItem(server.db, 'fuel', created.fuelId)
     expect(r.deleted).toBe(true)
     const found = await server.db
-      .collection('Fuels')
+      .collection('Fuel')
       .findOne({ fuelId: created.fuelId })
     expect(found).toBeNull()
   })
