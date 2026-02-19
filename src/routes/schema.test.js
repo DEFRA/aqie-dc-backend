@@ -21,7 +21,7 @@ describe('applianceSchema - manufacturerPhone', () => {
     isVariant: false,
     nominalOutput: 10,
     multiFuelAppliance: false,
-    allowedFuels: 'wood',
+    allowedFuels: ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other'],
     testReport: 'TR',
     technicalDrawings: 'drawing',
     ceMark: 'CE',
