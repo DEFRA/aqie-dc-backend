@@ -12,20 +12,18 @@ const approvalField = Joi.string()
 const fuelOptions = ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other']
 
 export const applianceSchema = Joi.object({
-  manufacturerName: Joi.string().required().description('Manufacturer name'),
-  manufacturerAddress: Joi.string()
+  companyName: Joi.string().required().description('Company name'),
+  companyAddress: Joi.string().required().description('Company address'),
+  companyContactName: Joi.string()
     .required()
-    .description('Manufacturer address'),
-  manufacturerContactName: Joi.string()
+    .description('Company contact name'),
+  companyContactEmail: Joi.string()
     .required()
-    .description('Manufacturer contact name'),
-  manufacturerContactEmail: Joi.string()
-    .required()
-    .description('Manufacturer contact email'),
-  manufacturerAlternateEmail: Joi.string()
+    .description('Company contact email'),
+  companyAlternateEmail: Joi.string()
     .optional()
-    .description('Manufacturer alternate contact email'),
-  manufacturerPhone: Joi.string()
+    .description('Company alternate contact email'),
+  companyPhone: Joi.string()
     .trim()
     .optional()
     .custom((value, helpers) => {
@@ -67,7 +65,7 @@ export const applianceSchema = Joi.object({
   testReport: Joi.string().required().description('Test report'),
   technicalDrawings: Joi.string().required().description('Technical drawings'),
   ceMark: Joi.string().required().description('CE mark'),
-  conditionForUse: Joi.string().required().description('Condition for use'),
+  conditionsForUse: Joi.string().required().description('Conditions for use'),
   instructionManual: Joi.string().required().description('Instruction manual'),
   instructionManualTitle: Joi.string()
     .required()
@@ -78,16 +76,14 @@ export const applianceSchema = Joi.object({
   instructionManualVersion: Joi.string()
     .required()
     .description('Instruction manual version'),
-  declaration: Joi.boolean().required().description('Declaration'),
   instructionManualAdditionalInfo: Joi.string()
     .required()
     .description('Instruction manual additional information'),
   airControlModifications: Joi.string()
     .required()
     .description('Air control modifications'),
+  declaration: Joi.boolean().required().description('Declaration'),
   submittedBy: Joi.string().required().description('Submitted by'),
-  approvedBy: Joi.string().required().description('Approved by'),
-  publishedDate: Joi.date().required().description('Published date'),
   submittedDate: Joi.date().required().description('Submitted date'),
   technicalApproval: approvalField.description('Technical approval'),
   walesApproval: approvalField.description('Wales approval status'),
@@ -95,7 +91,27 @@ export const applianceSchema = Joi.object({
     'Northern Ireland approval status'
   ),
   scotlandApproval: approvalField.description('Scotland approval status'),
-  englandApproval: approvalField.description('England approval status')
+  englandApproval: approvalField.description('England approval status'),
+  walesApprovedBy: Joi.string().required().description('Wales approved by'),
+  nIrelandApprovedBy: Joi.string()
+    .required()
+    .description('Northern Ireland approved by'),
+  scotlandApprovedBy: Joi.string()
+    .required()
+    .description('Scotland approved by'),
+  englandApprovedBy: Joi.string().required().description('England approved by'),
+  walesDateFirstAuthorised: Joi.date()
+    .required()
+    .description('Wales date first authorised'),
+  nIrelandDateFirstAuthorised: Joi.date()
+    .required()
+    .description('Northern Ireland date first authorised'),
+  scotlandDateFirstAuthorised: Joi.date()
+    .required()
+    .description('Scotland date first authorised'),
+  englandDateFirstAuthorised: Joi.date()
+    .required()
+    .description('England date first authorised')
 }).label('Appliance')
 
 export const fuelSchema = Joi.object({
