@@ -196,7 +196,6 @@ export const fuelSchema = Joi.object({
     .description('Fuel additional documents'),
   declaration: Joi.boolean().required().description('Declaration'),
   submittedBy: Joi.string().required().description('Submitted by'),
-  approvedBy: Joi.string().required().description('Approved by'),
   publishedDate: Joi.date().required().description('Published date'),
   submittedDate: Joi.date().required().description('Submitted date'),
   technicalApproval: approvalField.description('Technical approval'),
@@ -205,5 +204,25 @@ export const fuelSchema = Joi.object({
     'Northern Ireland approval status'
   ),
   scotlandApproval: approvalField.description('Scotland approval status'),
-  englandApproval: approvalField.description('England approval status')
+  englandApproval: approvalField.description('England approval status'),
+   walesApprovedBy: Joi.string().required().description('Wales approved by'),
+  nIrelandApprovedBy: Joi.string()
+    .required()
+    .description('Northern Ireland approved by'),
+  scotlandApprovedBy: Joi.string()
+    .required()
+    .description('Scotland approved by'),
+  englandApprovedBy: Joi.string().required().description('England approved by'),
+  walesDateFirstAuthorised: Joi.date()
+    .required()
+    .description('Wales date first authorised'),
+  nIrelandDateFirstAuthorised: Joi.date()
+    .required()
+    .description('Northern Ireland date first authorised'),
+  scotlandDateFirstAuthorised: Joi.date()
+    .required()
+    .description('Scotland date first authorised'),
+  englandDateFirstAuthorised: Joi.date()
+    .required()
+    .description('England date first authorised')
 }).label('Fuel')
