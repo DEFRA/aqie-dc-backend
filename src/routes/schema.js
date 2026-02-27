@@ -8,6 +8,7 @@ const approvalField = Joi.string()
   .empty(['', null])
   .default('Uncertified')
   .valid('Certified', 'Revoked', 'Uncertified')
+  .optional() //needs to be an optional field to allow it to be omitted and default to Uncertified
 
 const fuelOptions = ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other']
 

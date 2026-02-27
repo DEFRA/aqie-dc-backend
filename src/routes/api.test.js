@@ -39,12 +39,12 @@ describe('api routes (generic)', () => {
   })
 
   const validAppliance = {
-    manufacturerName: 'ACME',
-    manufacturerAddress: '123 Street',
-    manufacturerContactName: 'John Doe',
-    manufacturerContactEmail: 'john@acme.com',
-    manufacturerAlternateEmail: 'alt@acme.com',
-    manufacturerPhone: '+447523456789',
+    companyName: 'ACME',
+    companyAddress: '123 Street',
+    companyContactName: 'John Doe',
+    companyContactEmail: 'john@acme.com',
+    companyAlternateEmail: 'alt@acme.com',
+    companyPhone: '+447523456789',
     modelName: 'Model X',
     modelNumber: 123,
     applianceType: 'heat',
@@ -56,7 +56,7 @@ describe('api routes (generic)', () => {
     testReport: 'TR-001',
     technicalDrawings: 'drawing.pdf',
     ceMark: 'CE123',
-    conditionForUse: 'indoor',
+    conditionsForUse: 'indoor',
     instructionManual: 'manual.pdf',
     instructionManualTitle: 'Manual X',
     instructionManualDate: '2026-02-03',
@@ -66,22 +66,25 @@ describe('api routes (generic)', () => {
     airControlModifications:
       'Must be fitted with the supplied secondary air control limiters',
     submittedBy: 'Alice',
-    approvedBy: 'Bob',
+    walesApprovedBy: 'Bob',
+    nIrelandApprovedBy: 'Charlie',
+    scotlandApprovedBy: 'Dave',
+    englandApprovedBy: 'Eve',
     publishedDate: '2026-02-03',
     submittedDate: '2026-02-01',
-    technicalApproval: 'Approved',
-    walesApproval: 'Approved',
-    nIrelandApproval: 'Approved',
-    scotlandApproval: 'Approved',
-    englandApproval: 'Approved'
+    technicalApproval: 'Certified',
+    walesApproval: 'Certified',
+    nIrelandApproval: 'Certified',
+    scotlandApproval: 'Certified',
+    englandApproval: 'Certified'
   }
   const validFuel = {
-    manufacturerName: 'FuelCo',
-    manufacturerAddress: 'Some address',
-    manufacturerContactName: 'Fuel Person',
-    manufacturerContactEmail: 'fuel@co.com',
-    manufacturerAlternateEmail: 'alt@co.com',
-    manufacturerPhone: '+441234567890',
+    companyName: 'FuelCo',
+    companyAddress: 'Some address',
+    companyContactName: 'Fuel Person',
+    companyContactEmail: 'fuel@co.com',
+    companyAlternateEmail: 'alt@co.com',
+    companyPhone: '+441234567890',
     responsibleName: 'Rep Name',
     responsibleEmailAddress: 'rep@co.com',
     customerComplaints: false,
@@ -104,14 +107,17 @@ describe('api routes (generic)', () => {
     fuelAdditionalDocuments: 'Extra.pdf',
     declaration: true,
     submittedBy: 'Alice',
-    approvedBy: 'Bob',
+    walesApprovedBy: 'Bob',
+    nIrelandApprovedBy: 'Charlie',
+    scotlandApprovedBy: 'Dave',
+    englandApprovedBy: 'Eve',
     publishedDate: '2026-02-03',
     submittedDate: '2026-02-01',
-    technicalApproval: 'Approved',
-    walesApproval: 'Approved',
-    nIrelandApproval: 'Approved',
-    scotlandApproval: 'Approved',
-    englandApproval: 'Approved'
+    technicalApproval: 'Certified',
+    walesApproval: 'Certified',
+    nIrelandApproval: 'Certified',
+    scotlandApproval: 'Certified',
+    englandApproval: 'Certified'
   }
 
   test('GET /get-all/appliance -> OK (200) with data', async () => {
@@ -143,7 +149,7 @@ describe('api routes (generic)', () => {
   test('GET /get/appliance/:id -> found (200)', async () => {
     dbService.findItem.mockResolvedValue({
       applianceId: 'APP-1',
-      manufacturer: 'ACME'
+      companyName: 'ACME'
     })
 
     const res = await server.inject({
@@ -152,7 +158,7 @@ describe('api routes (generic)', () => {
     })
 
     expect(res.statusCode).toBe(200)
-    expect(JSON.parse(res.payload).data.manufacturer).toBe('ACME')
+    expect(JSON.parse(res.payload).data.companyName).toBe('ACME')
   })
 
   test('GET /get/appliance/:id -> not found (404)', async () => {
@@ -250,7 +256,7 @@ describe('api routes (generic)', () => {
 
     expect(res.statusCode).toBe(201)
     const body = JSON.parse(res.payload)
-    expect(body).toEqual({ msg: 'Created', applicationId: 'FUEL-1' })
+    expect(body).toEqual({ msg: 'Created', fuelId: 'FUEL-1' })
   })
 
   test('POST /add-new/appliance -> invalid payload -> 400', async () => {
@@ -265,7 +271,7 @@ describe('api routes (generic)', () => {
   test('POST /add-new/appliance -> invalid phone -> 400 and message contains "Invalid phone number"', async () => {
     const badPhonePayload = {
       ...validAppliance,
-      manufacturerPhone: 'notaphone'
+      companyPhone: 'notaphone'
     }
     const res = await server.inject({
       method: 'POST',
@@ -311,7 +317,7 @@ describe('api routes (generic)', () => {
   })
 
   test('POST /add-new/appliance -> invalid phone in pre failAction -> 400', async () => {
-    const payload = { ...validAppliance, manufacturerPhone: 'notaphone' }
+    const payload = { ...validAppliance, companyPhone: 'notaphone' }
 
     const res = await server.inject({
       method: 'POST',
@@ -326,7 +332,7 @@ describe('api routes (generic)', () => {
   })
 
   test('POST /add-new/fuel -> invalid phone in pre failAction -> 400', async () => {
-    const badPhonePayload = { ...validFuel, manufacturerPhone: 'notaphone' }
+    const badPhonePayload = { ...validFuel, companyPhone: 'notaphone' }
 
     const res = await server.inject({
       method: 'POST',
@@ -340,7 +346,7 @@ describe('api routes (generic)', () => {
   })
 
   test('POST /add-new/appliance -> phone custom validator catch block (invalid format)', async () => {
-    const payload = { ...validAppliance, manufacturerPhone: '!!!invalid!!!' }
+    const payload = { ...validAppliance, companyPhone: '!!!invalid!!!' }
 
     const res = await server.inject({
       method: 'POST',
@@ -355,11 +361,11 @@ describe('api routes (generic)', () => {
   })
 
   // Tests for approval field defaults and validation
-  test('POST /add-new/appliance -> technicalApproval empty string defaults to Pending', async () => {
+  test('POST /add-new/appliance -> technicalApproval empty string defaults to Uncertified', async () => {
     const payload = { ...validAppliance, technicalApproval: '' }
     dbService.createItem.mockResolvedValue({
       applianceId: 'APP-1',
-      technicalApproval: 'Pending'
+      technicalApproval: 'Uncertified'
     })
 
     const res = await server.inject({
@@ -374,11 +380,11 @@ describe('api routes (generic)', () => {
     expect(res.statusCode).toBe(201)
   })
 
-  test('POST /add-new/appliance -> technicalApproval null defaults to Pending', async () => {
+  test('POST /add-new/appliance -> technicalApproval null defaults to Uncertified', async () => {
     const payload = { ...validAppliance, technicalApproval: null }
     dbService.createItem.mockResolvedValue({
       applianceId: 'APP-1',
-      technicalApproval: 'Pending'
+      technicalApproval: 'Uncertified'
     })
 
     const res = await server.inject({
@@ -390,11 +396,11 @@ describe('api routes (generic)', () => {
     expect(res.statusCode).toBe(201)
   })
 
-  test('POST /add-new/appliance -> technicalApproval omitted defaults to Pending', async () => {
+  test('POST /add-new/appliance -> technicalApproval omitted defaults to Uncertified', async () => {
     const { technicalApproval, ...payloadWithoutTechnical } = validAppliance
     dbService.createItem.mockResolvedValue({
       applianceId: 'APP-1',
-      technicalApproval: 'Pending'
+      technicalApproval: 'Uncertified'
     })
 
     const res = await server.inject({
@@ -406,11 +412,11 @@ describe('api routes (generic)', () => {
     expect(res.statusCode).toBe(201)
   })
 
-  test('POST /add-new/appliance -> technicalApproval "Approved" stays Approved', async () => {
-    const payload = { ...validAppliance, technicalApproval: 'Approved' }
+  test('POST /add-new/appliance -> technicalApproval "Certified" stays Certified', async () => {
+    const payload = { ...validAppliance, technicalApproval: 'Certified' }
     dbService.createItem.mockResolvedValue({
       applianceId: 'APP-1',
-      technicalApproval: 'Approved'
+      technicalApproval: 'Certified'
     })
 
     const res = await server.inject({
