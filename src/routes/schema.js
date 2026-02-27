@@ -6,8 +6,8 @@ const phoneUtil = PhoneNumberUtil.getInstance()
 const approvalField = Joi.string()
   .allow('', null)
   .empty(['', null])
-  .default('Pending')
-  .valid('Approved', 'Rejected', 'Revoked', 'Pending')
+  .default('Uncertified')
+  .valid('Certified', 'Revoked', 'Uncertified')
 
 const fuelOptions = ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other']
 
