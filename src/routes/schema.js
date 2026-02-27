@@ -118,20 +118,18 @@ export const applianceSchema = Joi.object({
 }).label('Appliance')
 
 export const fuelSchema = Joi.object({
-  manufacturerName: Joi.string().required().description('Manufacturer'),
-  manufacturerAddress: Joi.string()
-    .required()
-    .description('Manufacturer address'),
-  manufacturerContactName: Joi.string()
+  companyName: Joi.string().required().description('Manufacturer'),
+  companyAddress: Joi.string().required().description('Manufacturer address'),
+  companyContactName: Joi.string()
     .required()
     .description('Manufacturer contact name'),
-  manufacturerContactEmail: Joi.string()
+  companyContactEmail: Joi.string()
     .required()
     .description('Manufacturer contact email'),
-  manufacturerAlternateEmail: Joi.string()
+  companyAlternateEmail: Joi.string()
     .optional()
     .description('Manufacturer alternate email'),
-  manufacturerPhone: Joi.string()
+  companyPhone: Joi.string()
     .trim()
     .optional()
     .custom((value, helpers) => {
@@ -139,16 +137,16 @@ export const fuelSchema = Joi.object({
         // If you know the user's country, pass it here (e.g., 'GB', 'US')
         const number = phoneUtil.parse(value, undefined) // undefined = expects +countrycode
         if (!phoneUtil.isValidNumber(number)) {
-          return helpers.error('any.invalid')
+          return helpers.error(INVALID_PHONE_ERROR)
         }
         const e164 = phoneUtil.format(number, 1) // 1 = E164
         return e164
       } catch {
-        return helpers.error('any.invalid')
+        return helpers.error(INVALID_PHONE_ERROR)
       }
     }, 'libphonenumber validation')
     .messages({
-      'any.invalid': 'Invalid phone number'
+      [INVALID_PHONE_ERROR]: 'Invalid phone number'
     })
     .description('Validated and normalized with google-libphonenumber'),
   responsibleName: Joi.string().required().description('Responsible name'),
@@ -166,10 +164,10 @@ export const fuelSchema = Joi.object({
     .required()
     .description('Manufacturer or reseller'),
   originalFuelManufacturer: Joi.string()
-    .optional()
+    .required()
     .description('Original fuel manufacturer'),
   originalFuelNameOrBrand: Joi.string()
-    .optional()
+    .required()
     .description('Original fuel name or brand'),
   changedFromOriginalFuel: Joi.boolean()
     .required()
@@ -205,7 +203,7 @@ export const fuelSchema = Joi.object({
   ),
   scotlandApproval: approvalField.description('Scotland approval status'),
   englandApproval: approvalField.description('England approval status'),
-   walesApprovedBy: Joi.string().required().description('Wales approved by'),
+  walesApprovedBy: Joi.string().required().description('Wales approved by'),
   nIrelandApprovedBy: Joi.string()
     .required()
     .description('Northern Ireland approved by'),
