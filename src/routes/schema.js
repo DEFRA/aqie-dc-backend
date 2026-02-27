@@ -11,6 +11,8 @@ const approvalField = Joi.string()
 
 const fuelOptions = ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other']
 
+const INVALID_PHONE_ERROR = 'any.invalid'
+
 export const applianceSchema = Joi.object({
   companyName: Joi.string().required().description('Company name'),
   companyAddress: Joi.string().required().description('Company address'),
@@ -31,16 +33,16 @@ export const applianceSchema = Joi.object({
         // If you know the user's country, pass it here (e.g., 'GB', 'US')
         const number = phoneUtil.parse(value, undefined) // undefined = expects +countrycode
         if (!phoneUtil.isValidNumber(number)) {
-          return helpers.error('any.invalid')
+          return helpers.error(INVALID_PHONE_ERROR)
         }
         const e164 = phoneUtil.format(number, 1) // 1 = E164
         return e164
       } catch {
-        return helpers.error('any.invalid')
+        return helpers.error(INVALID_PHONE_ERROR)
       }
     }, 'libphonenumber validation')
     .messages({
-      'any.invalid': 'Invalid phone number'
+      [INVALID_PHONE_ERROR]: 'Invalid phone number'
     })
     .description('Validated and normalized with google-libphonenumber'),
   modelName: Joi.string().required().description('Model name'),
@@ -85,6 +87,7 @@ export const applianceSchema = Joi.object({
   declaration: Joi.boolean().required().description('Declaration'),
   submittedBy: Joi.string().required().description('Submitted by'),
   submittedDate: Joi.date().required().description('Submitted date'),
+  publishedDate: Joi.date().required().description('Published date'),
   technicalApproval: approvalField.description('Technical approval'),
   walesApproval: approvalField.description('Wales approval status'),
   nIrelandApproval: approvalField.description(
