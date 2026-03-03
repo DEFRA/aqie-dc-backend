@@ -57,7 +57,7 @@ function getCollectionAndIdField(type, db) {
   return { collection: db.collection(collectionName), idField }
 }
 
-const findAuthorisedIn = (
+const findCertified = (
   walesApproval,
   niApproval,
   scotApproval,
@@ -65,16 +65,16 @@ const findAuthorisedIn = (
 ) => {
   const approvedRegions = []
 
-  if (walesApproval === 'Approved') {
+  if (walesApproval === 'Certified') {
     approvedRegions.push('Wales')
   }
-  if (niApproval === 'Approved') {
+  if (niApproval === 'Certified') {
     approvedRegions.push('Northern Ireland')
   }
-  if (scotApproval === 'Approved') {
+  if (scotApproval === 'Certified') {
     approvedRegions.push('Scotland')
   }
-  if (engApproval === 'Approved') {
+  if (engApproval === 'Certified') {
     approvedRegions.push('England')
   }
 
@@ -85,24 +85,24 @@ export async function findAllItems(db, type) {
   const { collection } = getCollectionAndIdField(type, db)
   const data = (await collection.find({}).toArray()).filter(
     (a) =>
-      a.technicalApproval === 'Approved' &&
+      a.technicalApproval === 'Certified' &&
       [
         a.walesApproval,
         a.nIrelandApproval,
         a.scotlandApproval,
         a.englandApproval
-      ].includes('Approved')
+      ].includes('Certified')
   )
   if (type === 'appliance') {
     return data.map((a) => ({
       name: a.modelName || '',
       id: a.applianceId || '',
-      manufacturer: a.manufacturerName || '',
+      manufacturer: a.companyName || '',
       fuels: Array.isArray(a.allowedFuels)
         ? a.allowedFuels.join(', ')
         : a.allowedFuels || '',
       type: a.applianceType,
-      authorisedIn: findAuthorisedIn(
+      authorisedIn: findCertified(
         a.walesApproval,
         a.nIrelandApproval,
         a.scotlandApproval,
@@ -113,8 +113,8 @@ export async function findAllItems(db, type) {
     return data.map((a) => ({
       name: a.brandNames || '',
       id: a.fuelId,
-      manufacturer: a.manufacturerName || '',
-      authorisedIn: findAuthorisedIn(
+      manufacturer: a.companyName || '',
+      authorisedIn: findCertified(
         a.walesApproval,
         a.nIrelandApproval,
         a.scotlandApproval,
@@ -126,13 +126,27 @@ export async function findAllItems(db, type) {
 
 export async function findItem(db, type, applicationId) {
   const { collection, idField } = getCollectionAndIdField(type, db)
-  console.log('Finding item:', { type, applicationId })
-  console.log('Using collection and idField:', {
-    collection: collection.collectionName,
-    idField
-  })
-  return collection.findOne({ [idField]: applicationId })
+  const data = await collection.findOne({[idField]: applicationId})
+  
+  if (!data) return null
+  
+  return {
+    ...data,
+    manufacturerName: data.companyName || '',
+    manufacturerAddress: data.companyAddress || '',
+    manufacturerContactName: data.companyContactName || '',
+    manufacturerContactEmail: data.companyContactEmail || '',
+    manufacturerAlternateEmail: data.companyAlternateEmail || '',
+    manufacturerPhone: data.companyPhone || '',
+    authorisedIn: findCertified(
+      data.walesApproval,
+      data.nIrelandApproval,
+      data.scotlandApproval,
+      data.englandApproval
+    )
+  }
 }
+
 
 export async function updateItem(db, type, applicationId, updates) {
   const { collection, idField } = getCollectionAndIdField(type, db)
