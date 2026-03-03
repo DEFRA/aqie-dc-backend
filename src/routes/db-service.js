@@ -83,7 +83,7 @@ const findCertified = (
 
 export async function findAllItems(db, type) {
   const { collection } = getCollectionAndIdField(type, db)
-  const data = (await collection.find({}).toArray()).filter(
+  const items = (await collection.find({}).toArray()).filter(
     (a) =>
       a.technicalApproval === 'Certified' &&
       [
@@ -94,7 +94,7 @@ export async function findAllItems(db, type) {
       ].includes('Certified')
   )
   if (type === 'appliance') {
-    return data.map((a) => ({
+    return items.map((a) => ({
       name: a.modelName || '',
       id: a.applianceId || '',
       manufacturer: a.companyName || '',
@@ -110,7 +110,7 @@ export async function findAllItems(db, type) {
       )
     }))
   } else {
-    return data.map((a) => ({
+    return items.map((a) => ({
       name: a.brandNames || '',
       id: a.fuelId,
       manufacturer: a.companyName || '',
@@ -126,27 +126,26 @@ export async function findAllItems(db, type) {
 
 export async function findItem(db, type, applicationId) {
   const { collection, idField } = getCollectionAndIdField(type, db)
-  const data = await collection.findOne({[idField]: applicationId})
-  
-  if (!data) return null
-  
+  const item = await collection.findOne({ [idField]: applicationId })
+
+  if (!item) return null
+
   return {
-    ...data,
-    manufacturerName: data.companyName || '',
-    manufacturerAddress: data.companyAddress || '',
-    manufacturerContactName: data.companyContactName || '',
-    manufacturerContactEmail: data.companyContactEmail || '',
-    manufacturerAlternateEmail: data.companyAlternateEmail || '',
-    manufacturerPhone: data.companyPhone || '',
+    ...item,
+    manufacturerName: item.companyName || '',
+    manufacturerAddress: item.companyAddress || '',
+    manufacturerContactName: item.companyContactName || '',
+    manufacturerContactEmail: item.companyContactEmail || '',
+    manufacturerAlternateEmail: item.companyAlternateEmail || '',
+    manufacturerPhone: item.companyPhone || '',
     authorisedIn: findCertified(
-      data.walesApproval,
-      data.nIrelandApproval,
-      data.scotlandApproval,
-      data.englandApproval
+      item.walesApproval,
+      item.nIrelandApproval,
+      item.scotlandApproval,
+      item.englandApproval
     )
   }
 }
-
 
 export async function updateItem(db, type, applicationId, updates) {
   const { collection, idField } = getCollectionAndIdField(type, db)
