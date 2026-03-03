@@ -51,7 +51,7 @@ export const applianceSchema = Joi.object({
   applianceType: Joi.string().required().description('Appliance type'),
   isVariant: Joi.boolean().required().description('Variant of appliance'),
   existingAuthorisedAppliance: Joi.string()
-    .required()
+    .optional()
     .description('Existing authorised appliance'),
   nominalOutput: Joi.number().required().description('Nominal output (kW)'),
   multiFuelAppliance: Joi.boolean()
@@ -68,7 +68,6 @@ export const applianceSchema = Joi.object({
   testReport: Joi.string().required().description('Test report'),
   technicalDrawings: Joi.string().required().description('Technical drawings'),
   ceMark: Joi.string().required().description('CE mark'),
-  conditionsForUse: Joi.string().required().description('Conditions for use'),
   instructionManual: Joi.string().required().description('Instruction manual'),
   instructionManualTitle: Joi.string()
     .required()
