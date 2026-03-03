@@ -84,7 +84,7 @@ describe('api routes (generic)', () => {
     companyContactName: 'Fuel Person',
     companyContactEmail: 'fuel@co.com',
     companyAlternateEmail: 'alt@co.com',
-    companyPhone: '+441234567890',
+    companyPhone: '+447537328906',
     responsibleName: 'Rep Name',
     responsibleEmailAddress: 'rep@co.com',
     customerComplaints: false,
@@ -107,17 +107,21 @@ describe('api routes (generic)', () => {
     fuelAdditionalDocuments: 'Extra.pdf',
     declaration: true,
     submittedBy: 'Alice',
-    walesApprovedBy: 'Bob',
-    nIrelandApprovedBy: 'Charlie',
-    scotlandApprovedBy: 'Dave',
-    englandApprovedBy: 'Eve',
     publishedDate: '2026-02-03',
     submittedDate: '2026-02-01',
     technicalApproval: 'Certified',
     walesApproval: 'Certified',
     nIrelandApproval: 'Certified',
     scotlandApproval: 'Certified',
-    englandApproval: 'Certified'
+    englandApproval: 'Certified',
+    walesApprovedBy: 'Bob',
+    nIrelandApprovedBy: 'Charlie',
+    scotlandApprovedBy: 'Dave',
+    englandApprovedBy: 'Eve',
+    walesDateFirstAuthorised: '2026-02-03',
+    nIrelandDateFirstAuthorised: '2026-02-03',
+    scotlandDateFirstAuthorised: '2026-02-03',
+    englandDateFirstAuthorised: '2026-02-03'
   }
 
   test('GET /get-all/appliance -> OK (200) with data', async () => {
@@ -256,7 +260,7 @@ describe('api routes (generic)', () => {
 
     expect(res.statusCode).toBe(201)
     const body = JSON.parse(res.payload)
-    expect(body).toEqual({ msg: 'Created', fuelId: 'FUEL-1' })
+    expect(body).toEqual({ msg: 'Created', applicationId: 'FUEL-1' })
   })
 
   test('POST /add-new/appliance -> invalid payload -> 400', async () => {
