@@ -102,6 +102,7 @@ export async function findAllItems(db, type) {
         ? a.allowedFuels.join(', ')
         : a.allowedFuels || '',
       type: a.applianceType,
+      modelNumber: a.modelNumber,
       authorisedIn: findAuthorisedIn(
         a.walesApproval,
         a.nIrelandApproval,
