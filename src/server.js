@@ -13,6 +13,7 @@ import { failAction } from './common/helpers/fail-action.js'
 import { pulse } from './common/helpers/pulse.js'
 import { requestTracing } from './common/helpers/request-tracing.js'
 import { setupProxy } from './common/helpers/proxy/setup-proxy.js'
+import sqsConsumer from './plugins/sqs-consumer.js'
 
 async function createServer() {
   setupProxy()
@@ -63,6 +64,7 @@ async function createServer() {
   // mongoDb        - sets up mongo connection pool and attaches to `server` and `request` objects
   // router         - routes used in the app
   await server.register([
+    sqsConsumer,
     Inert,
     Vision,
     {

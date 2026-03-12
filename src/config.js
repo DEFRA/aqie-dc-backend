@@ -185,6 +185,12 @@ const config = convict({
       format: String,
       default: 'eu-west-2',
       env: 'AWS_REGION'
+    },
+    sqsEndpoint: {
+      doc: 'SQS endpoint URL',
+      format: String,
+      default: 'https://sqs.eu-west-2.amazonaws.com/332499610595/aqie-dc-queue',
+      env: 'SQS_ENDPOINT'
     }
   }
 })
