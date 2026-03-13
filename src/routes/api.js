@@ -43,7 +43,6 @@ export const api = [
               testReport: 'TR-001',
               technicalDrawings: 'drawing.pdf',
               ceMark: 'CE123',
-              conditionsForUse: 'indoor',
               instructionManual: 'manual.pdf',
               instructionManualTitle: 'Manual X',
               instructionManualDate: '2026-02-03',

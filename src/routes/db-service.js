@@ -129,10 +129,22 @@ export async function findItem(db, type, applicationId) {
   const { collection, idField } = getCollectionAndIdField(type, db)
   const item = await collection.findOne({ [idField]: applicationId })
 
-  if (!item) return null
+  if (!item) {
+    return null
+  }
+  //NEEDTO: temporary until doing full DB changes
+  const {
+    companyName,
+    companyAddress,
+    companyContactName,
+    companyContactEmail,
+    companyAlternateEmail,
+    companyPhone,
+    ...rest
+  } = item
 
   return {
-    ...item,
+    ...rest,
     manufacturerName: item.companyName || '',
     manufacturerAddress: item.companyAddress || '',
     manufacturerContactName: item.companyContactName || '',
