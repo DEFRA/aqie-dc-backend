@@ -12,7 +12,9 @@ permissions:
 
 env:
   AWS_REGION: eu-west-2
-  AWS_ACCOUNT_ID: "094954420758"
+  AWS_ACCOUNT_ID: '094954420758'
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
 jobs:
   build:
@@ -23,17 +25,16 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v4
 
-    #  Uncomment this section if you are going to also run sonarqube as it
-    #  requires the output from the test coverage.
+      #  Uncomment this section if you are going to also run sonarqube as it
+      #  requires the output from the test coverage.
       - name: Test code and Create Test Coverage Reports
         uses: actions/setup-node@v4
         with:
-         node-version-file: .nvmrc
-         cache: npm
+          node-version-file: .nvmrc
+          cache: npm
       - run: |
-         npm ci
-         npm test
-
+          npm ci
+          npm test
 
       - name: Build and Publish
         uses: DEFRA/cdp-build-action/build@main
@@ -44,5 +45,5 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v5.3.1 #  (or check latest version on https://github.com/marketplace/actions/official-sonarqube-scan)
         continue-on-error: true
         env:
-         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

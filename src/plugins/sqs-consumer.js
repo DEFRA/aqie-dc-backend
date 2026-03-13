@@ -12,7 +12,7 @@ export default {
     // Background loop
     const poll = async () => {
       while (keepRunning) {
-        await main(undefined, abortController.signal)
+        await main(server, undefined, abortController.signal)
         await new Promise((res) => setTimeout(res, 500)) // small sleep
       }
     }
