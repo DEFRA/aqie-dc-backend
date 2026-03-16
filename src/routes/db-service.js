@@ -84,6 +84,7 @@ const findCertified = (
 export async function findAllItems(db, type) {
   const { collection } = getCollectionAndIdField(type, db)
   const items = (await collection.find({}).toArray()).filter(
+    //NEEDTO: change a to item for consistnecy
     (a) =>
       a.technicalApproval === 'Certified' &&
       [
@@ -143,20 +144,35 @@ export async function findItem(db, type, applicationId) {
     ...rest
   } = item
 
-  return {
-    ...rest,
-    manufacturerName: item.companyName || '',
-    manufacturerAddress: item.companyAddress || '',
-    manufacturerContactName: item.companyContactName || '',
-    manufacturerContactEmail: item.companyContactEmail || '',
-    manufacturerAlternateEmail: item.companyAlternateEmail || '',
-    manufacturerPhone: item.companyPhone || '',
-    authorisedIn: findCertified(
-      item.walesApproval,
-      item.nIrelandApproval,
-      item.scotlandApproval,
-      item.englandApproval
-    )
+  const manufacturerFields = {
+    manufacturerName: companyName || '',
+    manufacturerAddress: companyAddress || '',
+    manufacturerContactName: companyContactName || '',
+    manufacturerContactEmail: companyContactEmail || '',
+    manufacturerAlternateEmail: companyAlternateEmail || '',
+    manufacturerPhone: companyPhone || ''
+  }
+
+  if (type === 'appliance') {
+    return {
+      ...rest,
+      ...manufacturerFields,
+      authorisedIn: findCertified(
+        item.walesApproval,
+        item.nIrelandApproval,
+        item.scotlandApproval,
+        item.englandApproval
+      ),
+      name: item.modelName || '',
+      id: item.applianceId || ''
+    }
+  } else {
+    return {
+      ...rest,
+      ...manufacturerFields,
+      name: item.brandNames || ''
+      //id: item.fuelId,
+    }
   }
 }
 
