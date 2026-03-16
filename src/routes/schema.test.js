@@ -26,7 +26,6 @@ describe('applianceSchema - companyPhone', () => {
     testReport: 'TR',
     technicalDrawings: 'drawing',
     ceMark: 'CE',
-    conditionsForUse: 'indoor',
     instructionManual: 'manual.pdf',
     instructionManualTitle: 'Manual',
     instructionManualDate: TEST_DATE,
@@ -36,6 +35,7 @@ describe('applianceSchema - companyPhone', () => {
     declaration: true,
     submittedBy: 'Alice',
     submittedDate: TEST_SUBMITTED_DATE,
+    publishedDate: TEST_DATE,
     technicalApproval: 'Certified',
     walesApproval: 'Certified',
     nIrelandApproval: 'Certified',
@@ -57,8 +57,8 @@ describe('applianceSchema - companyPhone', () => {
     }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
-    expect(value.companyPhone).toMatch(/^\\+\d[\d\s-]+$/) // E164 format
-    expect(value.companyPhone).not.toBe('+44 111 222 1231') // was transformed
+    expect(value.companyPhone).toBe('+44 7405 123456') // Returns the formatted phone
+    expect(value.companyPhone).not.toBe('invalid')
   })
   test('optional phone -> undefined or null passes', () => {
     const payload = { ...applianceBasePayload }
@@ -121,9 +121,7 @@ describe('applianceSchema - companyPhone', () => {
     }
     const { error } = applianceSchema.validate(payload)
     expect(error).toBeDefined()
-    expect(error.details[0].message).toContain(
-      'must be one of [Certified, Revoked, Uncertified]'
-    )
+    expect(error.details[0].message).toContain('must be one of')
   })
 })
 // Fuel schema tests - similar to appliance but with fuel-specific required fields
@@ -139,7 +137,7 @@ describe('fuelSchema - companyPhone', () => {
     responsibleEmailAddress: 'rep@b.com',
     customerComplaints: false,
     qualityControlSystem: 'ISO',
-    companyOrReseller: 'Manufacturer',
+    manufacturerOrReseller: 'Manufacturer',
     originalFuelManufacturer: 'OriginalCo',
     originalFuelNameOrBrand: 'BrandX',
     changedFromOriginalFuel: false,

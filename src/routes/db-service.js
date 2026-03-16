@@ -170,8 +170,14 @@ export async function findItem(db, type, applicationId) {
     return {
       ...rest,
       ...manufacturerFields,
-      name: item.brandNames || ''
-      //id: item.fuelId,
+      authorisedIn: findCertified(
+        item.walesApproval,
+        item.nIrelandApproval,
+        item.scotlandApproval,
+        item.englandApproval
+      ),
+      name: item.brandNames || '',
+      id: item.fuelId
     }
   }
 }

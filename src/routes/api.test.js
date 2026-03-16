@@ -56,7 +56,6 @@ describe('api routes (generic)', () => {
     testReport: 'TR-001',
     technicalDrawings: 'drawing.pdf',
     ceMark: 'CE123',
-    conditionsForUse: 'indoor',
     instructionManual: 'manual.pdf',
     instructionManualTitle: 'Manual X',
     instructionManualDate: '2026-02-03',
@@ -76,7 +75,11 @@ describe('api routes (generic)', () => {
     walesApproval: 'Certified',
     nIrelandApproval: 'Certified',
     scotlandApproval: 'Certified',
-    englandApproval: 'Certified'
+    englandApproval: 'Certified',
+    walesDateFirstAuthorised: '2026-02-03',
+    nIrelandDateFirstAuthorised: '2026-02-03',
+    scotlandDateFirstAuthorised: '2026-02-03',
+    englandDateFirstAuthorised: '2026-02-03'
   }
   const validFuel = {
     companyName: 'FuelCo',
