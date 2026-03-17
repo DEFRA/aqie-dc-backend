@@ -7,6 +7,8 @@ import {
   //ChangeMessageVisibilityCommand
 } from '@aws-sdk/client-sqs'
 import { config } from '../config.js'
+import { createLogger } from '../common/helpers/logging/logger.js'
+const logger = createLogger()
 // const sqsClient = new SQSClient({
 //   region: config.get('aws.Region'),
 //   endpoint: config.get('aws.sqsEndpoint')
@@ -76,6 +78,7 @@ export const main = async (server, queueUrl = SQS_QUEUE_URL, abortSignal) => {
 
     if (Messages.length === 1) {
       console.log(Messages[0].Body)
+      logger.info(Messages[0].Body)
 
       // Parse SQS message
       const data = JSON.parse(Messages[0].Body)
@@ -83,6 +86,7 @@ export const main = async (server, queueUrl = SQS_QUEUE_URL, abortSignal) => {
       // Call the create API
       const apiResult = await callCreateAPI(server, data.type, data.payload)
       console.log('Created item:', apiResult)
+      logger.info('Created item:', apiResult)
 
       await sqsClient.send(
         new DeleteMessageCommand({
@@ -94,6 +98,7 @@ export const main = async (server, queueUrl = SQS_QUEUE_URL, abortSignal) => {
       // Messages is an array
       for (const message of Messages) {
         console.log('Processing multi message:', message.Body)
+        logger.info('Processing multi message:', message.Body)
 
         // Parse SQS payload
         let data
@@ -101,6 +106,7 @@ export const main = async (server, queueUrl = SQS_QUEUE_URL, abortSignal) => {
           data = JSON.parse(message.Body)
         } catch (err) {
           console.error('Invalid JSON in SQS message:', message.Body)
+          logger.error('Invalid JSON in SQS message:', message.Body)
           continue // Skip this one, do not break the loop
         }
 
@@ -108,9 +114,12 @@ export const main = async (server, queueUrl = SQS_QUEUE_URL, abortSignal) => {
         try {
           const apiResult = await callCreateAPI(server, data.type, data.payload)
           console.log('Created item:', apiResult)
+          logger.info('Created item:', apiResult)
         } catch (apiErr) {
           console.error('API call failed for message:', message.MessageId)
           console.error(apiErr)
+          logger.error('API call failed for message:', message.MessageId)
+          logger.error(apiErr)
           continue // Skip deletion for this message if API failed
         }
       }
@@ -128,8 +137,10 @@ export const main = async (server, queueUrl = SQS_QUEUE_URL, abortSignal) => {
   } catch (err) {
     if (err.name === 'AbortError') {
       console.log('SQS polling aborted gracefully.')
+      logger.info('SQS polling aborted gracefully.')
       return
     }
     console.error('SQS error:', err)
+    logger.error('SQS error:', err)
   }
 }
