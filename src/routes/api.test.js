@@ -45,6 +45,12 @@ describe('api routes (generic)', () => {
     companyContactEmail: 'john@acme.com',
     companyAlternateEmail: 'alt@acme.com',
     companyPhone: '+447523456789',
+    isUkBased: true,
+    companyAddressLine1: '456 Factory Road',
+    companyAddressLine2: 'Unit 7',
+    companyCity: 'Birmingham',
+    companyCounty: 'West Midlands',
+    companyPostcode: 'B1 2AB',
     modelName: 'Model X',
     modelNumber: 123,
     applianceType: 'heat',
@@ -88,6 +94,12 @@ describe('api routes (generic)', () => {
     companyContactEmail: 'fuel@co.com',
     companyAlternateEmail: 'alt@co.com',
     companyPhone: '+447537328906',
+    isUkBased: true,
+    companyAddressLine1: '789 Industrial Estate',
+    companyAddressLine2: 'Building C',
+    companyCity: 'Manchester',
+    companyCounty: 'Greater Manchester',
+    companyPostcode: 'M1 3CD',
     responsibleName: 'Rep Name',
     responsibleEmailAddress: 'rep@co.com',
     customerComplaints: false,
@@ -124,7 +136,11 @@ describe('api routes (generic)', () => {
     walesDateFirstAuthorised: '2026-02-03',
     nIrelandDateFirstAuthorised: '2026-02-03',
     scotlandDateFirstAuthorised: '2026-02-03',
-    englandDateFirstAuthorised: '2026-02-03'
+    englandDateFirstAuthorised: '2026-02-03',
+    walesDateLastUpdated: '2025-11-21',
+    nIrelandDateLastUpdated: '2025-12-15',
+    scotlandDateLastUpdated: '2025-10-30',
+    englandDateLastUpdated: '2025-12-05'
   }
 
   test('GET /get-all/appliance -> OK (200) with data', async () => {

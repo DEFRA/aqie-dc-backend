@@ -32,6 +32,12 @@ export const api = [
               companyContactEmail: 'john@acme.com',
               companyAlternateEmail: 'alt@acme.com',
               companyPhone: '+447537328906',
+              isUkBased: true,
+              companyAddressLine1: '456 Factory Road',
+              companyAddressLine2: 'Unit 7',
+              companyCity: 'Birmingham',
+              companyCounty: 'West Midlands',
+              companyPostcode: 'B1 2AB',
               modelName: 'Model X',
               modelNumber: 123,
               applianceType: 'heat',
@@ -70,6 +76,12 @@ export const api = [
             },
             fuel: {
               companyName: 'FuelCo',
+              isUkBased: true,
+              companyAddressLine1: '789 Industrial Estate',
+              companyAddressLine2: 'Building C',
+              companyCity: 'Manchester',
+              companyCounty: 'Greater Manchester',
+              companyPostcode: 'M1 3CD',
               companyAddress: 'Some address',
               companyContactName: 'Fuel Person',
               companyContactEmail: 'fuel@co.com',
@@ -111,7 +123,11 @@ export const api = [
               walesDateFirstAuthorised: '2026-02-03',
               nIrelandDateFirstAuthorised: '2026-02-03',
               scotlandDateFirstAuthorised: '2026-02-03',
-              englandDateFirstAuthorised: '2026-02-03'
+              englandDateFirstAuthorised: '2026-02-03',
+              walesDateLastUpdated: '2025-11-21',
+              nIrelandDateLastUpdated: '2025-12-15',
+              scotlandDateLastUpdated: '2025-10-30',
+              englandDateLastUpdated: '2025-12-05'
             }
           })
           .description('Payload depends on the type param (appliance or fuel)')

@@ -15,6 +15,12 @@ describe('applianceSchema - companyPhone', () => {
     companyContactEmail: TEST_COMPANY_EMAIL,
     companyAlternateEmail: TEST_COMPANY_ALT_EMAIL,
     companyPhone: undefined,
+    isUkBased: true,
+    companyAddressLine1: '456 Factory Road',
+    companyAddressLine2: 'Unit 7',
+    companyCity: 'Birmingham',
+    companyCounty: 'West Midlands',
+    companyPostcode: 'B1 2AB',
     modelName: 'X',
     modelNumber: 1,
     applianceType: 'heat',
@@ -128,6 +134,12 @@ describe('applianceSchema - companyPhone', () => {
 describe('fuelSchema - companyPhone', () => {
   const baseFuelPayload = {
     companyName: 'FuelCo',
+    isUkBased: true,
+    companyAddressLine1: '789 Industrial Estate',
+    companyAddressLine2: 'Building C',
+    companyCity: 'Manchester',
+    companyCounty: 'Greater Manchester',
+    companyPostcode: 'M1 3CD',
     companyAddress: 'Addr',
     companyContactName: 'Name',
     companyContactEmail: 'a@b.com',
@@ -169,7 +181,11 @@ describe('fuelSchema - companyPhone', () => {
     walesDateFirstAuthorised: TEST_DATE,
     nIrelandDateFirstAuthorised: TEST_DATE,
     scotlandDateFirstAuthorised: TEST_DATE,
-    englandDateFirstAuthorised: TEST_DATE
+    englandDateFirstAuthorised: TEST_DATE,
+    walesDateLastUpdated: '2025-11-21',
+    nIrelandDateLastUpdated: '2025-12-15',
+    scotlandDateLastUpdated: '2025-10-30',
+    englandDateLastUpdated: '2025-12-05'
   }
   test('changesMade field is accepted as string', () => {
     const payload = {

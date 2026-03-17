@@ -46,6 +46,20 @@ export const applianceSchema = Joi.object({
       [INVALID_PHONE_ERROR]: 'Invalid phone number'
     })
     .description('Validated and normalized with google-libphonenumber'),
+  isUkBased: Joi.boolean().required().description('Is the company UK based?'),
+  companyAddressLine1: Joi.string()
+    .required()
+    .description('Company address line 1'),
+  companyAddressLine2: Joi.string()
+    .optional()
+    .description('Company address line 2'),
+  companyCity: Joi.string().required().description('Company city'),
+  companyCounty: Joi.string()
+    .optional()
+    .description('Company county'),
+  companyPostcode: Joi.string()
+    .required()
+    .description('Company postcode'),
   modelName: Joi.string().required().description('Model name'),
   modelNumber: Joi.number().required().description('Model number'),
   applianceType: Joi.string().required().description('Appliance type'),
@@ -149,6 +163,20 @@ export const fuelSchema = Joi.object({
       [INVALID_PHONE_ERROR]: 'Invalid phone number'
     })
     .description('Validated and normalized with google-libphonenumber'),
+  isUkBased: Joi.boolean().required().description('Is the company UK based?'),
+  companyAddressLine1: Joi.string()
+    .required()
+    .description('Company address line 1'),
+  companyAddressLine2: Joi.string()
+    .optional()
+    .description('Company address line 2'),
+  companyCity: Joi.string().required().description('Company city'),
+  companyCounty: Joi.string()
+    .optional()
+    .description('Company county'),
+  companyPostcode: Joi.string()
+    .required()
+    .description('Company postcode'),
   responsibleName: Joi.string().required().description('Responsible name'),
   responsibleEmailAddress: Joi.string()
     .optional()
@@ -222,5 +250,19 @@ export const fuelSchema = Joi.object({
     .description('Scotland date first authorised'),
   englandDateFirstAuthorised: Joi.date()
     .required()
-    .description('England date first authorised')
+    .description('England date first authorised'),
+  walesDateLastUpdated: Joi.date()
+    .required()
+    .description('Wales date last updated (last certified or revoked)'),
+  nIrelandDateLastUpdated: Joi.date()
+    .required()
+    .description(
+      'Northern Ireland date last updated (last certified or revoked)'
+    ),
+  scotlandDateLastUpdated: Joi.date()
+    .required()
+    .description('Scotland date last updated (last certified or revoked)'),
+  englandDateLastUpdated: Joi.date()
+    .required()
+    .description('England date last updated (last certified or revoked)')
 }).label('Fuel')
