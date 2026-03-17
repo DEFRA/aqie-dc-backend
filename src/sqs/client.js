@@ -1,21 +1,44 @@
 import {
   SQSClient,
-  //GetQueueUrlCommand,
+  GetQueueUrlCommand,
   ReceiveMessageCommand,
   DeleteMessageCommand,
   DeleteMessageBatchCommand
-  //ChangeMessageVisibilityCommand
 } from '@aws-sdk/client-sqs'
-import { config } from '../config.js'
-import { createLogger } from '../common/helpers/logging/logger.js'
-const logger = createLogger()
-// const sqsClient = new SQSClient({
-//   region: config.get('aws.Region'),
-//   endpoint: config.get('aws.sqsEndpoint')
-// })
-// const command = new GetQueueUrlCommand({ QueueName: 'aqie-dc-queue' })
-// const SQS_QUEUE_URL = await sqsClient.send(command)
 
+//import { config } from '../config.js'
+import { createLogger } from '../common/helpers/logging/logger.js'
+
+const logger = createLogger()
+
+// -------------------------------
+// SQS CLIENT
+// -------------------------------
+export const sqsClient = new SQSClient({
+  region: 'eu-west-2',
+  //config.get('aws.region'), // eu-west-2
+  endpoint: 'https://sqs.eu-west-2.amazonaws.com'
+  //config.get('aws.sqsEndpoint') // https://sqs.eu-west-2.amazonaws.com
+  // credentials automatically loaded from env / IAM if running on EC2 / Lambda
+})
+
+// -------------------------------
+// GET QUEUE URL (Recommended)
+// -------------------------------
+const getQueueUrl = async () => {
+  const { QueueUrl } = await sqsClient.send(
+    new GetQueueUrlCommand({
+      QueueName: 'aqie-dc-queue'
+      //config.get('aws.queueName') // aqie-dc-queue
+    })
+  )
+
+  return QueueUrl
+}
+
+// -------------------------------
+// INTERNAL API CALL (Hapi inject)
+// -------------------------------
 async function callCreateAPI(server, type, payload) {
   const response = await server.inject({
     method: 'POST',
@@ -32,114 +55,99 @@ async function callCreateAPI(server, type, payload) {
   return response.result
 }
 
-export const sqsClient = new SQSClient({
-  region: config.get('aws.region'), // REQUIRED
-  endpoint: config.get('aws.sqsEndpoint') // Optional for Localstack or custom endpoint
-  // For real AWS SQS, credentials are typically loaded from environment variables or IAM roles, so we don't hardcode them here.
-  //   credentials: {
-  //     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  //     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-  //   }
-})
-
-const SQS_QUEUE_URL = config.get('aws.sqsEndpoint')
-
+// -------------------------------
+// SQS RECEIVE
+// -------------------------------
 const receiveMessage = (queueUrl, abortSignal) =>
   sqsClient.send(
     new ReceiveMessageCommand({
       AttributeNames: ['SentTimestamp'],
-      MaxNumberOfMessages: 1,
       MessageAttributeNames: ['All'],
+      MaxNumberOfMessages: 10, // supports batch
       QueueUrl: queueUrl,
-      WaitTimeSeconds: 1
+      WaitTimeSeconds: 10 // long polling
     }),
     { abortSignal } // AbortSignal so polling can stop cleanly.
   )
-// export const main = async (queueUrl = queueURL) => {
-//   const { Messages } = await receiveMessage(queueUrl)
 
-//   const response = await sqsClient.send(
-//     new ChangeMessageVisibilityCommand({
-//       QueueUrl: queueUrl,
-//       ReceiptHandle: Messages[0].ReceiptHandle,
-//       VisibilityTimeout: 20
-//     })
-//   )
-//   console.log(response)
-//   return response
-// }
-export const main = async (server, queueUrl = SQS_QUEUE_URL, abortSignal) => {
+// -------------------------------
+// MAIN POLLING FUNCTION
+// -------------------------------
+export const main = async (server, queueUrl, abortSignal) => {
   try {
-    const { Messages } = await receiveMessage(queueUrl, abortSignal)
-
-    if (!Messages) {
-      return
+    if (!queueUrl) {
+      queueUrl = await getQueueUrl() // ★ Correct queue URL
     }
 
+    const { Messages } = await receiveMessage(queueUrl, abortSignal)
+
+    if (!Messages) return
+
+    // -------------------------------
+    // SINGLE MESSAGE
+    // -------------------------------
     if (Messages.length === 1) {
-      console.log(Messages[0].Body)
-      logger.info(Messages[0].Body)
+      const message = Messages[0]
 
-      // Parse SQS message
-      const data = JSON.parse(Messages[0].Body)
+      logger.info(message.Body)
+      console.log(message.Body)
 
-      // Call the create API
+      const data = JSON.parse(message.Body)
+
       const apiResult = await callCreateAPI(server, data.type, data.payload)
-      console.log('Created item:', apiResult)
       logger.info('Created item:', apiResult)
 
       await sqsClient.send(
         new DeleteMessageCommand({
           QueueUrl: queueUrl,
-          ReceiptHandle: Messages[0].ReceiptHandle
+          ReceiptHandle: message.ReceiptHandle
         })
       )
-    } else {
-      // Messages is an array
-      for (const message of Messages) {
-        console.log('Processing multi message:', message.Body)
-        logger.info('Processing multi message:', message.Body)
 
-        // Parse SQS payload
-        let data
-        try {
-          data = JSON.parse(message.Body)
-        } catch (err) {
-          console.error('Invalid JSON in SQS message:', message.Body)
-          logger.error('Invalid JSON in SQS message:', message.Body)
-          continue // Skip this one, do not break the loop
-        }
+      return
+    }
 
-        // Call your create API
-        try {
-          const apiResult = await callCreateAPI(server, data.type, data.payload)
-          console.log('Created item:', apiResult)
-          logger.info('Created item:', apiResult)
-        } catch (apiErr) {
-          console.error('API call failed for message:', message.MessageId)
-          console.error(apiErr)
-          logger.error('API call failed for message:', message.MessageId)
-          logger.error(apiErr)
-          continue // Skip deletion for this message if API failed
-        }
+    // -------------------------------
+    // MULTIPLE MESSAGES
+    // -------------------------------
+    for (const message of Messages) {
+      logger.info('Processing multi message:', message.Body)
+
+      let data
+      try {
+        data = JSON.parse(message.Body)
+      } catch {
+        logger.error('Invalid JSON in SQS message:', message.Body)
+        continue // Skip this one, do not break the loop
       }
 
-      await sqsClient.send(
-        new DeleteMessageBatchCommand({
-          QueueUrl: queueUrl,
-          Entries: Messages.map((message) => ({
-            Id: message.MessageId,
-            ReceiptHandle: message.ReceiptHandle
-          }))
-        })
-      )
+      try {
+        const apiResult = await callCreateAPI(server, data.type, data.payload)
+        logger.info('Created item:', apiResult)
+      } catch (err) {
+        logger.error('API call failed. MessageId:', message.MessageId)
+        logger.error(err)
+        continue // Skip this one, do not break the loop
+      }
     }
+
+    // Batch delete
+    await sqsClient.send(
+      new DeleteMessageBatchCommand({
+        QueueUrl: queueUrl,
+        Entries: Messages.map((msg) => ({
+          Id: msg.MessageId,
+          ReceiptHandle: msg.ReceiptHandle
+        }))
+      })
+    )
   } catch (err) {
     if (err.name === 'AbortError') {
       console.log('SQS polling aborted gracefully.')
       logger.info('SQS polling aborted gracefully.')
       return
     }
+
     console.error('SQS error:', err)
     logger.error('SQS error:', err)
   }
