@@ -90,8 +90,8 @@ export const main = async (server, queueUrl, abortSignal) => {
     // -------------------------------
     if (Messages.length === 1) {
       const message = Messages[0]
-      logger.info('Processing message:', message)
-      logger.info('Processing message body:', message.Body)
+      logger.info(`Processing message: ${message}`)
+      logger.info(`Processing message body: ${message.Body}`)
 
       const data = JSON.parse(message.Body)
 
