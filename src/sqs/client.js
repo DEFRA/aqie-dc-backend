@@ -82,15 +82,16 @@ export const main = async (server, queueUrl, abortSignal) => {
     const { Messages } = await receiveMessage(queueUrl, abortSignal)
 
     if (!Messages) return
+    logger.info(`Received ${Messages.length} message(s) from SQS`)
+    logger.debug('Messages:', Messages)
 
     // -------------------------------
     // SINGLE MESSAGE
     // -------------------------------
     if (Messages.length === 1) {
       const message = Messages[0]
-
-      logger.info(message.Body)
-      console.log(message.Body)
+      logger.info('Processing message:', message)
+      logger.info('Processing message body:', message.Body)
 
       const data = JSON.parse(message.Body)
 
@@ -143,12 +144,10 @@ export const main = async (server, queueUrl, abortSignal) => {
     )
   } catch (err) {
     if (err.name === 'AbortError') {
-      console.log('SQS polling aborted gracefully.')
       logger.info('SQS polling aborted gracefully.')
       return
     }
 
-    console.error('SQS error:', err)
     logger.error('SQS error:', err)
   }
 }
