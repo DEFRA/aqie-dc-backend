@@ -174,7 +174,7 @@ describe('db-service', () => {
 
     expect(found).not.toBeNull()
     expect(found.manufacturerName).toBe('Acme Corp')
-    expect(found.manufacturerAddress).toBe('123 Main St')
+    expect(found.companyAddress).toBe('123 Main St')
     expect(found.manufacturerContactName).toBe('John Doe')
     expect(found.manufacturerContactEmail).toBe('john@acme.com')
     expect(found.manufacturerAlternateEmail).toBe('john.doe@acme.com')
@@ -203,7 +203,7 @@ describe('db-service', () => {
 
     expect(found).not.toBeNull()
     expect(found.manufacturerName).toBe('FuelCo Ltd')
-    expect(found.manufacturerAddress).toBe('456 Fuel St')
+    expect(found.companyAddress).toBe('456 Fuel St')
     expect(found.manufacturerContactName).toBe('Jane Smith')
     expect(found.manufacturerContactEmail).toBe('jane@fuelco.com')
     expect(found.manufacturerAlternateEmail).toBe('jane.smith@fuelco.com')
@@ -222,7 +222,6 @@ describe('db-service', () => {
 
     expect(found).not.toBeNull()
     expect(found.manufacturerName).toBe('')
-    expect(found.manufacturerAddress).toBe('')
     expect(found.manufacturerContactName).toBe('')
     expect(found.manufacturerContactEmail).toBe('')
     expect(found.manufacturerAlternateEmail).toBe('')

@@ -27,7 +27,6 @@ export const api = [
           .example({
             appliance: {
               companyName: 'ACME',
-
               companyContactName: 'John Doe',
               companyContactEmail: 'john@acme.com',
               companyAlternateEmail: 'alt@acme.com',

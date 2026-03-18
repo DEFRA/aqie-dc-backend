@@ -136,7 +136,6 @@ export async function findItem(db, type, applicationId) {
   //NEEDTO: temporary until doing full DB changes
   const {
     companyName,
-    companyAddress,
     companyContactName,
     companyContactEmail,
     companyAlternateEmail,
@@ -146,7 +145,6 @@ export async function findItem(db, type, applicationId) {
 
   const manufacturerFields = {
     manufacturerName: companyName || '',
-    manufacturerAddress: companyAddress || '',
     manufacturerContactName: companyContactName || '',
     manufacturerContactEmail: companyContactEmail || '',
     manufacturerAlternateEmail: companyAlternateEmail || '',
