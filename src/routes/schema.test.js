@@ -18,9 +18,9 @@ describe('applianceSchema - companyPhone', () => {
     isUkBased: true,
     companyAddressLine1: '456 Factory Road',
     companyAddressLine2: 'Unit 7',
-    companyCity: 'Birmingham',
-    companyCounty: 'West Midlands',
-    companyPostcode: 'B1 2AB',
+    companyAddressCity: 'Birmingham',
+    companyAddressCounty: 'West Midlands',
+    companyAddressPostcode: 'B1 2AB',
     modelName: 'X',
     modelNumber: 1,
     applianceType: 'heat',
@@ -129,6 +129,39 @@ describe('applianceSchema - companyPhone', () => {
     expect(error).toBeDefined()
     expect(error.details[0].message).toContain('must be one of')
   })
+
+  test('isUkBased false -> address fields optional', () => {
+    const {
+      companyAddressLine1,
+      companyAddressCity,
+      companyAddressPostcode,
+      ...rest
+    } = applianceBasePayload
+    const payload = { ...rest, isUkBased: false }
+    const { error } = applianceSchema.validate(payload)
+    expect(error).toBeUndefined()
+  })
+
+  test('isUkBased true -> companyAddressLine1 required', () => {
+    const { companyAddressLine1, ...payload } = applianceBasePayload
+    const { error } = applianceSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressLine1')
+  })
+
+  test('isUkBased true -> companyAddressCity required', () => {
+    const { companyAddressCity, ...payload } = applianceBasePayload
+    const { error } = applianceSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressCity')
+  })
+
+  test('isUkBased true -> companyAddressPostcode required', () => {
+    const { companyAddressPostcode, ...payload } = applianceBasePayload
+    const { error } = applianceSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressPostcode')
+  })
 })
 // Fuel schema tests - similar to appliance but with fuel-specific required fields
 describe('fuelSchema - companyPhone', () => {
@@ -137,9 +170,9 @@ describe('fuelSchema - companyPhone', () => {
     isUkBased: true,
     companyAddressLine1: '789 Industrial Estate',
     companyAddressLine2: 'Building C',
-    companyCity: 'Manchester',
-    companyCounty: 'Greater Manchester',
-    companyPostcode: 'M1 3CD',
+    companyAddressCity: 'Manchester',
+    companyAddressCounty: 'Greater Manchester',
+    companyAddressPostcode: 'M1 3CD',
     companyAddress: 'Addr',
     companyContactName: 'Name',
     companyContactEmail: 'a@b.com',
@@ -227,5 +260,38 @@ describe('fuelSchema - companyPhone', () => {
     const { error } = fuelSchema.validate(payload)
     expect(error).toBeDefined()
     expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
+  })
+
+  test('isUkBased false -> address fields optional', () => {
+    const {
+      companyAddressLine1,
+      companyAddressCity,
+      companyAddressPostcode,
+      ...rest
+    } = baseFuelPayload
+    const payload = { ...rest, isUkBased: false }
+    const { error } = fuelSchema.validate(payload)
+    expect(error).toBeUndefined()
+  })
+
+  test('isUkBased true -> companyAddressLine1 required', () => {
+    const { companyAddressLine1, ...payload } = baseFuelPayload
+    const { error } = fuelSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressLine1')
+  })
+
+  test('isUkBased true -> companyAddressCity required', () => {
+    const { companyAddressCity, ...payload } = baseFuelPayload
+    const { error } = fuelSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressCity')
+  })
+
+  test('isUkBased true -> companyAddressPostcode required', () => {
+    const { companyAddressPostcode, ...payload } = baseFuelPayload
+    const { error } = fuelSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressPostcode')
   })
 })
