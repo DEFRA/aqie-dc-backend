@@ -2,67 +2,80 @@ import { describe, test, expect } from 'vitest'
 import { applianceSchema, fuelSchema } from './schema.js'
 const TEST_DATE = '2026-02-03'
 const TEST_SUBMITTED_DATE = '2026-02-01'
-const TEST_MANUFACTURER_ADDRESS = '123 Street'
-const TEST_MANUFACTURER_EMAIL = 'john@acme.com'
-const TEST_MANUFACTURER_ALT_EMAIL = 'alt@acme.com'
+const TEST_COMPANY_ADDRESS = '123 Street'
+const TEST_COMPANY_EMAIL = 'john@acme.com'
+const TEST_COMPANY_ALT_EMAIL = 'alt@acme.com'
 const TEST_INVALID_PHONE_MSG = 'Invalid phone number'
 
-describe('applianceSchema - manufacturerPhone', () => {
+describe('applianceSchema - companyPhone', () => {
   const applianceBasePayload = {
-    manufacturerName: 'ACME',
-    manufacturerAddress: TEST_MANUFACTURER_ADDRESS,
-    manufacturerContactName: 'John',
-    manufacturerContactEmail: TEST_MANUFACTURER_EMAIL,
-    manufacturerAlternateEmail: TEST_MANUFACTURER_ALT_EMAIL,
-    manufacturerPhone: undefined,
+    companyName: 'ACME',
+    companyAddress: TEST_COMPANY_ADDRESS,
+    companyContactName: 'John',
+    companyContactEmail: TEST_COMPANY_EMAIL,
+    companyAlternateEmail: TEST_COMPANY_ALT_EMAIL,
+    companyPhone: undefined,
+    isUkBased: true,
+    companyAddressLine1: '456 Factory Road',
+    companyAddressLine2: 'Unit 7',
+    companyAddressCity: 'Birmingham',
+    companyAddressCounty: 'West Midlands',
+    companyAddressPostcode: 'B1 2AB',
     modelName: 'X',
     modelNumber: 1,
     applianceType: 'heat',
     isVariant: false,
+    existingAuthorisedAppliance: 'Old Model',
     nominalOutput: 10,
     multiFuelAppliance: false,
     allowedFuels: ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other'],
     testReport: 'TR',
     technicalDrawings: 'drawing',
     ceMark: 'CE',
-    conditionForUse: 'indoor',
     instructionManual: 'manual.pdf',
     instructionManualTitle: 'Manual',
     instructionManualDate: TEST_DATE,
     instructionManualVersion: 'IM-1',
-    declaration: true,
     instructionManualAdditionalInfo: 'Extra info',
     airControlModifications: 'Mod info',
+    declaration: true,
     submittedBy: 'Alice',
-    approvedBy: 'Bob',
-    publishedDate: TEST_DATE,
     submittedDate: TEST_SUBMITTED_DATE,
-    technicalApproval: 'Approved',
-    walesApproval: 'Approved',
-    nIrelandApproval: 'Approved',
-    scotlandApproval: 'Approved',
-    englandApproval: 'Approved'
+    publishedDate: TEST_DATE,
+    technicalApproval: 'Certified',
+    walesApproval: 'Certified',
+    nIrelandApproval: 'Certified',
+    scotlandApproval: 'Certified',
+    englandApproval: 'Certified',
+    walesApprovedBy: 'Bob',
+    nIrelandApprovedBy: 'Charlie',
+    scotlandApprovedBy: 'Dave',
+    englandApprovedBy: 'Eve',
+    walesDateFirstAuthorised: TEST_DATE,
+    nIrelandDateFirstAuthorised: TEST_DATE,
+    scotlandDateFirstAuthorised: TEST_DATE,
+    englandDateFirstAuthorised: TEST_DATE
   }
   test('valid phone with country code -> normalizes to E164', () => {
     const payload = {
       ...applianceBasePayload,
-      manufacturerPhone: '+44 7405 123456'
+      companyPhone: '+44 7405 123456'
     }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
-    expect(value.manufacturerPhone).toMatch(/^\+\d[\d\s-]+$/) // E164 format
-    expect(value.manufacturerPhone).not.toBe('+44 111 222 1231') // was transformed
+    expect(value.companyPhone).toBe('+44 7405 123456') // Returns the formatted phone
+    expect(value.companyPhone).not.toBe('invalid')
   })
   test('optional phone -> undefined or null passes', () => {
     const payload = { ...applianceBasePayload }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
-    expect(value.manufacturerPhone).toBeUndefined()
+    expect(value.companyPhone).toBeUndefined()
   })
   test('invalid phone (try/catch) -> error', () => {
     const payload = {
       ...applianceBasePayload,
-      manufacturerPhone: 'not-a-phone'
+      companyPhone: 'not-a-phone'
     }
     const { error } = applianceSchema.validate(payload)
     expect(error).toBeDefined()
@@ -71,7 +84,7 @@ describe('applianceSchema - manufacturerPhone', () => {
   test('invalid phone format (parse fails) -> catch block', () => {
     const payload = {
       ...applianceBasePayload,
-      manufacturerPhone: '!!!invalid!!!'
+      companyPhone: '!!!invalid!!!'
     }
     const { error } = applianceSchema.validate(payload)
     expect(error).toBeDefined()
@@ -80,24 +93,31 @@ describe('applianceSchema - manufacturerPhone', () => {
   test('phone parses but is not valid (isValidNumber returns false)', () => {
     // This number parses but is not a valid phone number
     // e.g., +44 1234 is not a valid UK number
-    const payload = { ...applianceBasePayload, manufacturerPhone: '+44 1234' }
+    const payload = { ...applianceBasePayload, companyPhone: '+44 1234' }
     const { error } = applianceSchema.validate(payload)
     expect(error).toBeDefined()
     expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
   })
 
-  test('approvalField empty string -> defaults to Pending', () => {
+  test('approvalField empty string -> defaults to Uncertified', () => {
     const payload = { ...applianceBasePayload, technicalApproval: '' }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
-    expect(value.technicalApproval).toBe('Pending')
+    expect(value.technicalApproval).toBe('Uncertified')
   })
 
-  test('approvalField null -> defaults to Pending', () => {
+  test('approvalField null -> defaults to Uncertified', () => {
     const payload = { ...applianceBasePayload, walesApproval: null }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
-    expect(value.walesApproval).toBe('Pending')
+    expect(value.walesApproval).toBe('Uncertified')
+  })
+
+  test('approvalField omitted -> defaults to Uncertified', () => {
+    const { technicalApproval, ...payload } = { ...applianceBasePayload }
+    const { value, error } = applianceSchema.validate(payload)
+    expect(error).toBeUndefined()
+    expect(value.technicalApproval).toBe('Uncertified')
   })
 
   test('approvalField invalid value -> validation error', () => {
@@ -109,18 +129,62 @@ describe('applianceSchema - manufacturerPhone', () => {
     expect(error).toBeDefined()
     expect(error.details[0].message).toContain('must be one of')
   })
+
+  test('isUkBased false -> address fields optional', () => {
+    const {
+      companyAddressLine1,
+      companyAddressCity,
+      companyAddressPostcode,
+      ...rest
+    } = applianceBasePayload
+    const payload = { ...rest, isUkBased: false }
+    const { error } = applianceSchema.validate(payload)
+    expect(error).toBeUndefined()
+  })
+
+  test('isUkBased true -> companyAddressLine1 required', () => {
+    const { companyAddressLine1, ...payload } = applianceBasePayload
+    const { error } = applianceSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressLine1')
+  })
+
+  test('isUkBased true -> companyAddressCity required', () => {
+    const { companyAddressCity, ...payload } = applianceBasePayload
+    const { error } = applianceSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressCity')
+  })
+
+  test('isUkBased true -> companyAddressPostcode required', () => {
+    const { companyAddressPostcode, ...payload } = applianceBasePayload
+    const { error } = applianceSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressPostcode')
+  })
 })
 // Fuel schema tests - similar to appliance but with fuel-specific required fields
-describe('fuelSchema - manufacturerPhone', () => {
+describe('fuelSchema - companyPhone', () => {
   const baseFuelPayload = {
-    manufacturerName: 'FuelCo',
-    manufacturerAddress: 'Addr',
-    manufacturerContactName: 'Name',
-    manufacturerContactEmail: 'a@b.com',
+    companyName: 'FuelCo',
+    isUkBased: true,
+    companyAddressLine1: '789 Industrial Estate',
+    companyAddressLine2: 'Building C',
+    companyAddressCity: 'Manchester',
+    companyAddressCounty: 'Greater Manchester',
+    companyAddressPostcode: 'M1 3CD',
+    companyAddress: 'Addr',
+    companyContactName: 'Name',
+    companyContactEmail: 'a@b.com',
+    companyAlternateEmail: 'alt@b.com',
+    companyPhone: '+447537328906',
     responsibleName: 'Rep',
+    responsibleEmailAddress: 'rep@b.com',
     customerComplaints: false,
     qualityControlSystem: 'ISO',
     manufacturerOrReseller: 'Manufacturer',
+    originalFuelManufacturer: 'OriginalCo',
+    originalFuelNameOrBrand: 'BrandX',
     changedFromOriginalFuel: false,
     changesMade: 'The fuel was turned into love hearts',
     fuelBagging: 'Bag',
@@ -136,14 +200,25 @@ describe('fuelSchema - manufacturerPhone', () => {
     fuelAdditionalDocuments: 'Doc',
     declaration: true,
     submittedBy: 'Alice',
-    approvedBy: 'Bob',
     publishedDate: TEST_DATE,
     submittedDate: TEST_SUBMITTED_DATE,
-    technicalApproval: 'Approved',
-    walesApproval: 'Approved',
-    nIrelandApproval: 'Approved',
-    scotlandApproval: 'Approved',
-    englandApproval: 'Approved'
+    technicalApproval: 'Certified',
+    walesApproval: 'Certified',
+    nIrelandApproval: 'Certified',
+    scotlandApproval: 'Certified',
+    englandApproval: 'Certified',
+    walesApprovedBy: 'Bob',
+    nIrelandApprovedBy: 'Charlie',
+    scotlandApprovedBy: 'Dave',
+    englandApprovedBy: 'Eve',
+    walesDateFirstAuthorised: TEST_DATE,
+    nIrelandDateFirstAuthorised: TEST_DATE,
+    scotlandDateFirstAuthorised: TEST_DATE,
+    englandDateFirstAuthorised: TEST_DATE,
+    walesDateLastUpdated: '2025-11-21',
+    nIrelandDateLastUpdated: '2025-12-15',
+    scotlandDateLastUpdated: '2025-10-30',
+    englandDateLastUpdated: '2025-12-05'
   }
   test('changesMade field is accepted as string', () => {
     const payload = {
@@ -155,25 +230,25 @@ describe('fuelSchema - manufacturerPhone', () => {
     expect(value.changesMade).toBe('Changed bagging method')
   })
   test('valid phone with country code -> normalizes to E164', () => {
-    const payload = { ...baseFuelPayload, manufacturerPhone: '+44 7405334441' }
+    const payload = { ...baseFuelPayload, companyPhone: '+44 7405334441' }
     const { value, error } = fuelSchema.validate(payload)
     expect(error).toBeUndefined()
-    expect(value.manufacturerPhone).not.toBe('+44 222 333 4441') // was transformed
+    expect(value.companyPhone).not.toBe('+44 222 333 4441') // was transformed
   })
   test('optional phone -> undefined passes', () => {
-    const { manufacturerPhone, ...payload } = { ...baseFuelPayload }
+    const { companyPhone, ...payload } = { ...baseFuelPayload }
     const { value, error } = fuelSchema.validate(payload)
     expect(error).toBeUndefined()
-    expect(value.manufacturerPhone).toBeUndefined()
+    expect(value.companyPhone).toBeUndefined()
   })
   test('invalid phone (try/catch) -> error', () => {
-    const payload = { ...baseFuelPayload, manufacturerPhone: '###bad###' }
+    const payload = { ...baseFuelPayload, companyPhone: '###bad###' }
     const { error } = fuelSchema.validate(payload)
     expect(error).toBeDefined()
     expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
   })
   test('invalid phone format (parse fails) -> catch block', () => {
-    const payload = { ...baseFuelPayload, manufacturerPhone: '!!!invalid!!!' }
+    const payload = { ...baseFuelPayload, companyPhone: '!!!invalid!!!' }
     const { error } = fuelSchema.validate(payload)
     expect(error).toBeDefined()
     expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
@@ -181,9 +256,42 @@ describe('fuelSchema - manufacturerPhone', () => {
   test('phone parses but is not valid (isValidNumber returns false)', () => {
     // This number parses but is not a valid phone number
     // e.g., +44 1234 is not a valid UK number
-    const payload = { ...baseFuelPayload, manufacturerPhone: '+44 1234' }
+    const payload = { ...baseFuelPayload, companyPhone: '+44 1234' }
     const { error } = fuelSchema.validate(payload)
     expect(error).toBeDefined()
     expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
+  })
+
+  test('isUkBased false -> address fields optional', () => {
+    const {
+      companyAddressLine1,
+      companyAddressCity,
+      companyAddressPostcode,
+      ...rest
+    } = baseFuelPayload
+    const payload = { ...rest, isUkBased: false }
+    const { error } = fuelSchema.validate(payload)
+    expect(error).toBeUndefined()
+  })
+
+  test('isUkBased true -> companyAddressLine1 required', () => {
+    const { companyAddressLine1, ...payload } = baseFuelPayload
+    const { error } = fuelSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressLine1')
+  })
+
+  test('isUkBased true -> companyAddressCity required', () => {
+    const { companyAddressCity, ...payload } = baseFuelPayload
+    const { error } = fuelSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressCity')
+  })
+
+  test('isUkBased true -> companyAddressPostcode required', () => {
+    const { companyAddressPostcode, ...payload } = baseFuelPayload
+    const { error } = fuelSchema.validate(payload)
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toContain('companyAddressPostcode')
   })
 })

@@ -57,7 +57,7 @@ function getCollectionAndIdField(type, db) {
   return { collection: db.collection(collectionName), idField }
 }
 
-const findAuthorisedIn = (
+const findCertified = (
   walesApproval,
   niApproval,
   scotApproval,
@@ -65,16 +65,16 @@ const findAuthorisedIn = (
 ) => {
   const approvedRegions = []
 
-  if (walesApproval === 'Approved') {
+  if (walesApproval === 'Certified') {
     approvedRegions.push('Wales')
   }
-  if (niApproval === 'Approved') {
+  if (niApproval === 'Certified') {
     approvedRegions.push('Northern Ireland')
   }
-  if (scotApproval === 'Approved') {
+  if (scotApproval === 'Certified') {
     approvedRegions.push('Scotland')
   }
-  if (engApproval === 'Approved') {
+  if (engApproval === 'Certified') {
     approvedRegions.push('England')
   }
 
@@ -83,27 +83,28 @@ const findAuthorisedIn = (
 
 export async function findAllItems(db, type) {
   const { collection } = getCollectionAndIdField(type, db)
-  const data = (await collection.find({}).toArray()).filter(
+  const items = (await collection.find({}).toArray()).filter(
+    //NEEDTO: change a to item for consistnecy
     (a) =>
-      a.technicalApproval === 'Approved' &&
+      a.technicalApproval === 'Certified' &&
       [
         a.walesApproval,
         a.nIrelandApproval,
         a.scotlandApproval,
         a.englandApproval
-      ].includes('Approved')
+      ].includes('Certified')
   )
   if (type === 'appliance') {
-    return data.map((a) => ({
+    return items.map((a) => ({
       name: a.modelName || '',
       id: a.applianceId || '',
-      manufacturer: a.manufacturerName || '',
+      manufacturer: a.companyName || '',
       fuels: Array.isArray(a.allowedFuels)
         ? a.allowedFuels.join(', ')
         : a.allowedFuels || '',
       type: a.applianceType,
       modelNumber: a.modelNumber,
-      authorisedIn: findAuthorisedIn(
+      authorisedIn: findCertified(
         a.walesApproval,
         a.nIrelandApproval,
         a.scotlandApproval,
@@ -111,11 +112,11 @@ export async function findAllItems(db, type) {
       )
     }))
   } else {
-    return data.map((a) => ({
+    return items.map((a) => ({
       name: a.brandNames || '',
       id: a.fuelId,
-      manufacturer: a.manufacturerName || '',
-      authorisedIn: findAuthorisedIn(
+      manufacturer: a.companyName || '',
+      authorisedIn: findCertified(
         a.walesApproval,
         a.nIrelandApproval,
         a.scotlandApproval,
@@ -127,12 +128,56 @@ export async function findAllItems(db, type) {
 
 export async function findItem(db, type, applicationId) {
   const { collection, idField } = getCollectionAndIdField(type, db)
-  console.log('Finding item:', { type, applicationId })
-  console.log('Using collection and idField:', {
-    collection: collection.collectionName,
-    idField
-  })
-  return collection.findOne({ [idField]: applicationId })
+  const item = await collection.findOne({ [idField]: applicationId })
+
+  if (!item) {
+    return null
+  }
+  //NEEDTO: temporary until doing full DB changes
+  const {
+    companyName,
+    companyContactName,
+    companyContactEmail,
+    companyAlternateEmail,
+    companyPhone,
+    ...rest
+  } = item
+
+  const manufacturerFields = {
+    manufacturerName: companyName || '',
+    manufacturerContactName: companyContactName || '',
+    manufacturerContactEmail: companyContactEmail || '',
+    manufacturerAlternateEmail: companyAlternateEmail || '',
+    manufacturerPhone: companyPhone || ''
+  }
+
+  if (type === 'appliance') {
+    return {
+      ...rest,
+      ...manufacturerFields,
+      authorisedIn: findCertified(
+        item.walesApproval,
+        item.nIrelandApproval,
+        item.scotlandApproval,
+        item.englandApproval
+      ),
+      name: item.modelName || '',
+      id: item.applianceId || ''
+    }
+  } else {
+    return {
+      ...rest,
+      ...manufacturerFields,
+      authorisedIn: findCertified(
+        item.walesApproval,
+        item.nIrelandApproval,
+        item.scotlandApproval,
+        item.englandApproval
+      ),
+      name: item.brandNames || '',
+      id: item.fuelId
+    }
+  }
 }
 
 export async function updateItem(db, type, applicationId, updates) {
