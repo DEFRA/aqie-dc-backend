@@ -17,35 +17,6 @@ const INVALID_PHONE_ERROR = 'any.invalid'
 export const applianceSchema = Joi.object({
   // Start of appliance application fields
   companyName: Joi.string().required().description('Company name'),
-  companyContactName: Joi.string()
-    .required()
-    .description('Company contact name'),
-  companyContactEmail: Joi.string()
-    .required()
-    .description('Company contact email'),
-  companyAlternateEmail: Joi.string()
-    .optional()
-    .description('Company alternate contact email'),
-  companyPhone: Joi.string()
-    .trim()
-    .optional()
-    .custom((value, helpers) => {
-      try {
-        // If you know the user's country, pass it here (e.g., 'GB', 'US')
-        const number = phoneUtil.parse(value, undefined) // undefined = expects +countrycode
-        if (!phoneUtil.isValidNumber(number)) {
-          return helpers.error(INVALID_PHONE_ERROR)
-        }
-        const e164 = phoneUtil.format(number, 1) // 1 = E164
-        return e164
-      } catch {
-        return helpers.error(INVALID_PHONE_ERROR)
-      }
-    }, 'libphonenumber validation')
-    .messages({
-      [INVALID_PHONE_ERROR]: 'Invalid phone number'
-    })
-    .description('Validated and normalized with google-libphonenumber'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
   companyAddress: Joi.string()
     .when('isUkBased', {
@@ -79,17 +50,46 @@ export const applianceSchema = Joi.object({
       otherwise: Joi.string().optional()
     })
     .description('Company postcode'),
+  companyContactName: Joi.string()
+    .required()
+    .description('Company contact name'),
+  companyContactEmail: Joi.string()
+    .required()
+    .description('Company contact email'),
+  companyAlternateEmail: Joi.string()
+    .optional()
+    .description('Company alternate contact email'),
+  companyPhone: Joi.string()
+    .trim()
+    .optional()
+    .custom((value, helpers) => {
+      try {
+        // If you know the user's country, pass it here (e.g., 'GB', 'US')
+        const number = phoneUtil.parse(value, undefined) // undefined = expects +countrycode
+        if (!phoneUtil.isValidNumber(number)) {
+          return helpers.error(INVALID_PHONE_ERROR)
+        }
+        const e164 = phoneUtil.format(number, 1) // 1 = E164
+        return e164
+      } catch {
+        return helpers.error(INVALID_PHONE_ERROR)
+      }
+    }, 'libphonenumber validation')
+    .messages({
+      [INVALID_PHONE_ERROR]: 'Invalid phone number'
+    })
+    .description('Validated and normalized with google-libphonenumber'),
+
   modelName: Joi.string().required().description('Model name'),
-  modelNumber: Joi.number().required().description('Model number'),
-  applianceType: Joi.string().required().description('Appliance type'),
+  modelNumber: Joi.number().optional().description('Model number'),
+  applianceType: Joi.string()
+    .required()
+    .description('Appliance type e.g. "heat"'),
   isVariant: Joi.boolean().required().description('Variant of appliance'),
   existingAuthorisedAppliance: Joi.string()
     .optional()
-    .description('Existing authorised appliance'),
-  nominalOutput: Joi.number().required().description('Nominal output (kW)'),
-  multiFuelAppliance: Joi.boolean()
-    .required()
-    .description('Multifuel capability'),
+    .description('If it is a variant, details'),
+  nominalOutput: Joi.number().required().description('Thermal output (kW)'),
   allowedFuels: Joi.array()
     .single() // "Wood Logs" -> ["Wood Logs"]
     .items(Joi.string().valid(...fuelOptions))
@@ -97,11 +97,6 @@ export const applianceSchema = Joi.object({
     .unique()
     .required()
     .description('Allowed fuels'),
-
-  testReport: Joi.string().required().description('Test report'),
-  technicalDrawings: Joi.string().required().description('Technical drawings'),
-  ceMark: Joi.string().required().description('CE mark'),
-  instructionManual: Joi.string().required().description('Instruction manual'),
   instructionManualTitle: Joi.string()
     .required()
     .description('Instruction manual title'),
@@ -114,11 +109,22 @@ export const applianceSchema = Joi.object({
   instructionManualAdditionalInfo: Joi.string()
     .optional()
     .description('Instruction manual additional information'),
+  // multiFuelAppliance: Joi.boolean()
+  //   .required()
+  //   .description('Multifuel capability'),
+  declaration: Joi.boolean().required().description('Declaration'),
+  // End of appliance application fields
+  //is this added later?
   airControlModifications: Joi.string()
     .optional()
     .description('Air control modifications'),
-  declaration: Joi.boolean().required().description('Declaration'),
-  // End of appliance application fields
+  instructionManual: Joi.string()
+    .optional()
+    .description('Instruction manual file'),
+  testReport: Joi.string().optional().description('Test report'),
+  technicalDrawings: Joi.string().optional().description('Technical drawings'),
+  ceMark: Joi.string().optional().description('CE mark'),
+  //Files added later
   submittedBy: Joi.string().optional().description('Submitted by'),
   submittedDate: Joi.date().optional().description('Submitted date'),
   publishedDate: Joi.date().optional().description('Published date'),

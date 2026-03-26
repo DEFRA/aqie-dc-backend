@@ -18,17 +18,17 @@ export default {
   isVariant: false,
   existingAuthorisedAppliance: 'Old Model',
   nominalOutput: 10,
-  multiFuelAppliance: false,
+  //   multiFuelAppliance: false,
   allowedFuels: ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other'],
-  testReport: 'TR-001',
-  technicalDrawings: 'drawing.pdf',
-  ceMark: 'CE123',
   instructionManual: 'manual.pdf',
   instructionManualTitle: 'Manual X',
   instructionManualDate: '2026-02-03',
   instructionManualVersion: 'Version 1',
   instructionManualAdditionalInfo: 'Extra info',
+  declaration: true,
+  testReport: 'TR-001',
+  technicalDrawings: 'drawing.pdf',
+  ceMark: 'CE123',
   airControlModifications:
-    'Must be fitted with the supplied secondary air control limiters',
-  declaration: true
+    'Must be fitted with the supplied secondary air control limiters'
 }
