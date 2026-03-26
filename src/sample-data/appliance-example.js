@@ -30,21 +30,5 @@ export default {
   instructionManualAdditionalInfo: 'Extra info',
   airControlModifications:
     'Must be fitted with the supplied secondary air control limiters',
-  declaration: true,
-  submittedBy: 'Alice',
-  publishedDate: '2026-02-03',
-  submittedDate: '2026-02-01',
-  technicalApproval: 'Certified',
-  walesApproval: 'Certified',
-  nIrelandApproval: 'Certified',
-  scotlandApproval: 'Certified',
-  englandApproval: 'Certified',
-  walesApprovedBy: 'Bob',
-  nIrelandApprovedBy: 'Charlie',
-  scotlandApprovedBy: 'Dave',
-  englandApprovedBy: 'Eve',
-  walesDateFirstAuthorised: '2026-02-03',
-  nIrelandDateFirstAuthorised: '2026-02-03',
-  scotlandDateFirstAuthorised: '2026-02-03',
-  englandDateFirstAuthorised: '2026-02-03'
+  declaration: true
 }
