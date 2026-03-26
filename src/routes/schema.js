@@ -160,6 +160,39 @@ export const applianceSchema = Joi.object({
 export const fuelSchema = Joi.object({
   // Start of fuel application fields
   companyName: Joi.string().required().description('Manufacturer'),
+  isUkBased: Joi.boolean().required().description('Is the company UK based?'),
+  companyAddress: Joi.string()
+    .when('isUkBased', {
+      is: false,
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional()
+    })
+    .description('Manufacturer address for overseas non-UK-based companies'),
+  companyAddressLine1: Joi.string()
+    .when('isUkBased', {
+      is: true,
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional()
+    })
+    .description('Company address line 1'),
+  companyAddressLine2: Joi.string()
+    .optional()
+    .description('Company address line 2'),
+  companyAddressCity: Joi.string()
+    .when('isUkBased', {
+      is: true,
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional()
+    })
+    .description('Company city'),
+  companyAddressCounty: Joi.string().optional().description('Company county'),
+  companyAddressPostcode: Joi.string()
+    .when('isUkBased', {
+      is: true,
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional()
+    })
+    .description('Company postcode'),
   companyContactName: Joi.string()
     .required()
     .description('Manufacturer contact name'),
@@ -189,84 +222,107 @@ export const fuelSchema = Joi.object({
       [INVALID_PHONE_ERROR]: 'Invalid phone number'
     })
     .description('Validated and normalized with google-libphonenumber'),
-  isUkBased: Joi.boolean().required().description('Is the company UK based?'),
-  companyAddress: Joi.string()
-    .when('isUkBased', {
-      is: false,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Manufacturer address for non-UK-based companies'),
-  companyAddressLine1: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company address line 1'),
-  companyAddressLine2: Joi.string()
-    .optional()
-    .description('Company address line 2'),
-  companyAddressCity: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company city'),
-  companyAddressCounty: Joi.string().optional().description('Company county'),
-  companyAddressPostcode: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company postcode'),
   responsibleName: Joi.string().required().description('Responsible name'),
   responsibleEmailAddress: Joi.string()
     .optional()
     .description('Responsible email address'),
   customerComplaints: Joi.boolean()
     .required()
-    .description('Customer complaints'),
-  qualityControlSystem: Joi.string()
+    .description('System for customer complaints in place'),
+  fuelBagging: Joi.string()
     .required()
-    .description('Quality control system'),
+    .description('How do you sell this fuel, options provided'),
+  // baggedAtSource: Joi.boolean().required().description('Bagged at source'),
   manufacturerOrReseller: Joi.string()
     .valid('Manufacturer', 'Reseller')
     .required()
-    .description('Manufacturer or reseller'),
+    .description('Manufacturer or rebranded/reseller'),
+  fuelDescription: Joi.string().required().description('Fuel description'),
+  //If a reseller, these fields become required:
   originalFuelManufacturer: Joi.string()
-    .required()
+    .when('manufacturerOrReseller', {
+      is: 'Reseller',
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional()
+    })
     .description('Original fuel manufacturer'),
   originalFuelNameOrBrand: Joi.string()
-    .required()
+    .when('manufacturerOrReseller', {
+      is: 'Reseller',
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional()
+    })
     .description('Original fuel name or brand'),
   changedFromOriginalFuel: Joi.boolean()
-    .required()
-    .description('Changed from original fuel'),
+    .when('manufacturerOrReseller', {
+      is: 'Reseller',
+      then: Joi.boolean().required(),
+      otherwise: Joi.boolean().optional()
+    })
+    .description('Changes to original fuel: yes or no'),
   changesMade: Joi.string()
-    .required()
-    .description('Changes made to the original fuel'),
-  fuelBagging: Joi.string().required().description('Fuel bagging'),
-  baggedAtSource: Joi.boolean().required().description('Bagged at source'),
-  fuelDescription: Joi.string().required().description('Fuel description'),
-  fuelWeight: Joi.number().required().description('Fuel weight'),
-  fuelComposition: Joi.string().required().description('Fuel composition'),
-  sulphurContent: Joi.number().required().description('Sulphur content (%)'),
+    .optional()
+    .description('Explain changes made to the original fuel'),
+  resellBrandName: Joi.string()
+    .when('manufacturerOrReseller', {
+      is: 'Reseller',
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional()
+    })
+    .description('What brand name will you be reselling'), //new so needs to be added to cilent DB
+  //If a manufacturer, these fields become required:
+  fuelWeight: Joi.number()
+    .when('manufacturerOrReseller', {
+      is: 'Manufacturer',
+      then: Joi.number().required(),
+      otherwise: Joi.number().optional()
+    })
+    .description('Fuel weight'),
+  fuelComposition: Joi.string()
+    .when('manufacturerOrReseller', {
+      is: 'Manufacturer',
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional()
+    })
+    .description('Fuel composition'),
+  sulphurContent: Joi.number()
+    .when('manufacturerOrReseller', {
+      is: 'Manufacturer',
+      then: Joi.number().required(),
+      otherwise: Joi.number().optional()
+    })
+    .description('Sulphur content (%)'),
   manufacturingProcess: Joi.string()
-    .required()
+    .when('manufacturerOrReseller', {
+      is: 'Manufacturer',
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional()
+    })
     .description('Manufacturing process'),
-  brandNames: Joi.string().required().description('Brand name(s)'),
-  letterFromManufacturer: Joi.string()
-    .required()
-    .description('Letter from manufacturer'),
-  testReports: Joi.string().required().description('Test reports'),
-  fuelAdditionalDocuments: Joi.string()
-    .required()
-    .description('Fuel additional documents'),
+  qualityControlSystem: Joi.string()
+    .when('manufacturerOrReseller', {
+      is: 'Manufacturer',
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional()
+    })
+    .description('Quality manufactured system in place'),
+  brandNames: Joi.string()
+    .when('manufacturerOrReseller', {
+      is: 'Manufacturer',
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional()
+    })
+    .description('Brand name(s)'),
+  //End of manufacturer/reseller
   declaration: Joi.boolean().required().description('Declaration'),
   // End of fuel application fields
+  letterFromManufacturer: Joi.string()
+    .optional()
+    .description('Letter from manufacturer'),
+  testReports: Joi.string().optional().description('Test reports'),
+  fuelAdditionalDocuments: Joi.string()
+    .optional()
+    .description('Fuel additional documents'),
   submittedBy: Joi.string().optional().description('Submitted by'),
   publishedDate: Joi.date().optional().description('Published date'),
   submittedDate: Joi.date().optional().description('Submitted date'),
