@@ -111,7 +111,8 @@ export const main = async (server, queueUrl, abortSignal) => {
     // MULTIPLE MESSAGES
     // -------------------------------
     for (const message of Messages) {
-      logger.info(`Processing multi message:${message.Body}`)
+      logger.info(`Processing multi message:`)
+      logger.info(message.Body)
 
       let data
       try {
@@ -165,9 +166,9 @@ const createNewRecord = async (message, server) => {
     const apiResult = await callCreateAPI(server, type, payload)
     logger.info('Created item:', apiResult)
   } else {
-    const mappedData = splitRepeaterJson(data)
-    logger.info(`mappedData: ${mappedData}`)
+    const mappedData = splitRepeaterJson(data.data)
     mappedData.forEach(async (item) => {
+      logger.info(`mappedData item: ${item}`)
       const payload = mapKeys(item, 'appliance')
       logger.info(`payload: ${payload}`)
       const apiResult = await callCreateAPI(server, type, payload)
