@@ -150,7 +150,7 @@ export const main = async (server, queueUrl, abortSignal) => {
     logger.error('SQS error:', err)
   }
 }
-const createNewRecord = (message, server) => {
+const createNewRecord = async (message, server) => {
   const data = JSON.parse(message.Body)
   const type =
     data.formTitle ===
@@ -158,12 +158,20 @@ const createNewRecord = (message, server) => {
       ? 'fuel'
       : 'appliance'
 
-  const mappedData = type === 'fuel' ? [data] : splitRepeaterJson(data)
-  logger.info(`mappedData: ${mappedData}`)
-  mappedData.forEach(async (item) => {
-    const payload = mapKeys(item)
+  if (type === 'fuel') {
+    logger.info(`data: ${data}`)
+    const payload = mapKeys(data)
     logger.info(`payload: ${payload}`)
     const apiResult = await callCreateAPI(server, type, payload)
     logger.info('Created item:', apiResult)
-  })
+  } else {
+    const mappedData = splitRepeaterJson(data)
+    logger.info(`mappedData: ${mappedData}`)
+    mappedData.forEach(async (item) => {
+      const payload = mapKeys(item)
+      logger.info(`payload: ${payload}`)
+      const apiResult = await callCreateAPI(server, type, payload)
+      logger.info('Created item:', apiResult)
+    })
+  }
 }

@@ -3,17 +3,13 @@ export function splitRepeaterJson(input) {
   const repeaters = input.data.repeaters?.LbZxXf || []
 
   if (!Array.isArray(repeaters) || repeaters.length === 0) {
-    return [] // or return [input] depending on your needs
+    return {} // or return [input] depending on your needs
   }
 
   const outputs = repeaters.map((repeaterItem) => {
     return {
-      data: {
-        main: {
-          ...baseMain, // copy all main fields
-          ...repeaterItem // merge repeater fields into main
-        }
-      }
+      ...baseMain, // copy all main fields
+      ...repeaterItem // merge repeater fields into main
     }
   })
 
