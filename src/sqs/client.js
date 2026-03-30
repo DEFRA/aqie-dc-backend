@@ -111,12 +111,12 @@ export const main = async (server, queueUrl, abortSignal) => {
     // MULTIPLE MESSAGES
     // -------------------------------
     for (const message of Messages) {
-      logger.info('Processing multi message:', message.Body)
+      logger.info(`Processing multi message:${message.Body}`)
 
       let data
       try {
         data = JSON.parse(message.Body)
-        logger.info('Parsed JSON in SQS message:', data)
+        logger.info(`Parsed JSON in SQS message:${data}`)
       } catch {
         logger.error('Invalid JSON in SQS message:', message.Body)
         continue // Skip this one, do not break the loop
@@ -161,6 +161,7 @@ const createNewRecord = (message, server) => {
   const mappedData = type === 'fuel' ? [data] : splitRepeaterJson(data)
   mappedData.forEach(async (item) => {
     const payload = mapKeys(item)
+    logger.info(`payload: ${payload}`)
     const apiResult = await callCreateAPI(server, type, payload)
     logger.info('Created item:', apiResult)
   })
