@@ -153,14 +153,14 @@ export const main = async (server, queueUrl, abortSignal) => {
 const createNewRecord = async (message, server) => {
   const data = JSON.parse(message.Body)
   const type =
-    data.formTitle ===
-    'get a solid fuel certified for use in smoke control areas'
+    data.formSlug ===
+    'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
       ? 'fuel'
       : 'appliance'
 
   if (type === 'fuel') {
     logger.info(`data: ${data}`)
-    const payload = mapKeys(data)
+    const payload = mapKeys(data.data.main, 'fuel')
     logger.info(`payload: ${payload}`)
     const apiResult = await callCreateAPI(server, type, payload)
     logger.info('Created item:', apiResult)
@@ -168,7 +168,7 @@ const createNewRecord = async (message, server) => {
     const mappedData = splitRepeaterJson(data)
     logger.info(`mappedData: ${mappedData}`)
     mappedData.forEach(async (item) => {
-      const payload = mapKeys(item)
+      const payload = mapKeys(item, 'appliance')
       logger.info(`payload: ${payload}`)
       const apiResult = await callCreateAPI(server, type, payload)
       logger.info('Created item:', apiResult)
