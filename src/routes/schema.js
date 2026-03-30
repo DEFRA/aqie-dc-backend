@@ -129,6 +129,11 @@ export const applianceSchema = Joi.object({
   submittedDate: Joi.date().optional().description('Submitted date'),
   publishedDate: Joi.date().optional().description('Published date'),
   technicalApproval: approvalField.description('Technical approval'),
+  ratedOutput: Joi.number().optional().description('Rated Output'),
+  testedRatedOutput: Joi.number().optional().description('Tested Output - rated'),
+  testedLowOutput: Joi.number().optional().description('Tested Output - low'),
+  smokeEmissionRatedOutput: Joi.number().optional().description('Smoke emission output - rated'),
+  smokeEmissionLowOutput: Joi.number().optional().description('Smoke emission output - low'),
   walesApproval: approvalField.description('Wales approval status'),
   nIrelandApproval: approvalField.description(
     'Northern Ireland approval status'

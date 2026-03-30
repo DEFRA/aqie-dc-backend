@@ -30,5 +30,26 @@ export default {
   technicalDrawings: 'drawing.pdf',
   ceMark: 'CE123',
   airControlModifications:
-    'Must be fitted with the supplied secondary air control limiters'
+    'Must be fitted with the supplied secondary air control limiters',
+  submittedBy: 'John Doe',
+  submittedDate: '2026-02-01',
+  publishedDate: '2026-02-10',
+  technicalApproval: 'Certified',
+  ratedOutput: 10,
+  testedRatedOutput: 10.5,
+  testedLowOutput: 5.2,
+  smokeEmissionRatedOutput: 2.3,
+  smokeEmissionLowOutput: 1.1,
+  walesApproval: 'Certified',
+  nIrelandApproval: 'Certified',
+  scotlandApproval: 'Certified',
+  englandApproval: 'Certified',
+  walesApprovedBy: 'Wales Approver',
+  nIrelandApprovedBy: 'NI Approver',
+  scotlandApprovedBy: 'Scotland Approver',
+  englandApprovedBy: 'England Approver',
+  walesDateFirstAuthorised: '2026-02-01',
+  nIrelandDateFirstAuthorised: '2026-02-01',
+  scotlandDateFirstAuthorised: '2026-02-01',
+  englandDateFirstAuthorised: '2026-02-01'
 }
