@@ -8,6 +8,8 @@ import {
   vi
 } from 'vitest'
 import * as dbService from './db-service.js'
+import applianceExample from '../sample-data/appliance-example.js'
+import fuelExample from '../sample-data/fuel-example.js'
 
 // Mock db-service before server creation so routes use the mocks
 vi.mock('./db-service.js', () => ({
@@ -38,110 +40,8 @@ describe('api routes (generic)', () => {
     vi.resetAllMocks()
   })
 
-  const validAppliance = {
-    companyName: 'ACME',
-    companyAddress: '123 Street',
-    companyContactName: 'John Doe',
-    companyContactEmail: 'john@acme.com',
-    companyAlternateEmail: 'alt@acme.com',
-    companyPhone: '+447523456789',
-    isUkBased: true,
-    companyAddressLine1: '456 Factory Road',
-    companyAddressLine2: 'Unit 7',
-    companyAddressCity: 'Birmingham',
-    companyAddressCounty: 'West Midlands',
-    companyAddressPostcode: 'B1 2AB',
-    modelName: 'Model X',
-    modelNumber: 123,
-    applianceType: 'heat',
-    isVariant: false,
-    existingAuthorisedAppliance: 'Old Model',
-    nominalOutput: 10,
-    multiFuelAppliance: false,
-    allowedFuels: ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other'],
-    testReport: 'TR-001',
-    technicalDrawings: 'drawing.pdf',
-    ceMark: 'CE123',
-    instructionManual: 'manual.pdf',
-    instructionManualTitle: 'Manual X',
-    instructionManualDate: '2026-02-03',
-    instructionManualVersion: 'Version 1',
-    declaration: true,
-    instructionManualAdditionalInfo: 'Extra info',
-    airControlModifications:
-      'Must be fitted with the supplied secondary air control limiters',
-    submittedBy: 'Alice',
-    walesApprovedBy: 'Bob',
-    nIrelandApprovedBy: 'Charlie',
-    scotlandApprovedBy: 'Dave',
-    englandApprovedBy: 'Eve',
-    publishedDate: '2026-02-03',
-    submittedDate: '2026-02-01',
-    technicalApproval: 'Certified',
-    walesApproval: 'Certified',
-    nIrelandApproval: 'Certified',
-    scotlandApproval: 'Certified',
-    englandApproval: 'Certified',
-    walesDateFirstAuthorised: '2026-02-03',
-    nIrelandDateFirstAuthorised: '2026-02-03',
-    scotlandDateFirstAuthorised: '2026-02-03',
-    englandDateFirstAuthorised: '2026-02-03'
-  }
-  const validFuel = {
-    companyName: 'FuelCo',
-    companyAddress: 'Some address',
-    companyContactName: 'Fuel Person',
-    companyContactEmail: 'fuel@co.com',
-    companyAlternateEmail: 'alt@co.com',
-    companyPhone: '+447537328906',
-    isUkBased: true,
-    companyAddressLine1: '789 Industrial Estate',
-    companyAddressLine2: 'Building C',
-    companyAddressCity: 'Manchester',
-    companyAddressCounty: 'Greater Manchester',
-    companyAddressPostcode: 'M1 3CD',
-    responsibleName: 'Rep Name',
-    responsibleEmailAddress: 'rep@co.com',
-    customerComplaints: false,
-    qualityControlSystem: 'ISO certified',
-    manufacturerOrReseller: 'Manufacturer',
-    originalFuelManufacturer: 'Fuels LTD',
-    originalFuelNameOrBrand: 'FireFuel',
-    changedFromOriginalFuel: false,
-    changesMade: 'The fuels was turned into love hearts',
-    fuelBagging: 'Bagged',
-    baggedAtSource: true,
-    fuelDescription: 'Premium pellets',
-    fuelWeight: 20,
-    fuelComposition: 'Wood 100%',
-    sulphurContent: 0.7,
-    manufacturingProcess: 'Kiln-dried',
-    brandNames: 'PelletBrand',
-    letterFromManufacturer: 'Letter.pdf',
-    testReports: 'TR-F-122',
-    fuelAdditionalDocuments: 'Extra.pdf',
-    declaration: true,
-    submittedBy: 'Alice',
-    publishedDate: '2026-02-03',
-    submittedDate: '2026-02-01',
-    technicalApproval: 'Certified',
-    walesApproval: 'Certified',
-    nIrelandApproval: 'Certified',
-    scotlandApproval: 'Certified',
-    englandApproval: 'Certified',
-    walesApprovedBy: 'Bob',
-    nIrelandApprovedBy: 'Charlie',
-    scotlandApprovedBy: 'Dave',
-    englandApprovedBy: 'Eve',
-    walesDateFirstAuthorised: '2026-02-03',
-    nIrelandDateFirstAuthorised: '2026-02-03',
-    scotlandDateFirstAuthorised: '2026-02-03',
-    englandDateFirstAuthorised: '2026-02-03',
-    walesDateLastUpdated: '2025-11-21',
-    nIrelandDateLastUpdated: '2025-12-15',
-    scotlandDateLastUpdated: '2025-10-30',
-    englandDateLastUpdated: '2025-12-05'
-  }
+  const validAppliance = applianceExample
+  const validFuel = fuelExample
 
   test('GET /get-all/appliance -> OK (200) with data', async () => {
     dbService.findAllItems.mockResolvedValue([{ applianceId: 'APP-1' }])

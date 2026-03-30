@@ -1,60 +1,14 @@
 import { describe, test, expect } from 'vitest'
 import { applianceSchema, fuelSchema } from './schema.js'
-const TEST_DATE = '2026-02-03'
-const TEST_SUBMITTED_DATE = '2026-02-01'
-const TEST_COMPANY_ADDRESS = '123 Street'
-const TEST_COMPANY_EMAIL = 'john@acme.com'
-const TEST_COMPANY_ALT_EMAIL = 'alt@acme.com'
+import applianceExample from '../sample-data/appliance-example.js'
+import fuelExample from '../sample-data/fuel-example.js'
+
 const TEST_INVALID_PHONE_MSG = 'Invalid phone number'
 
 describe('applianceSchema - companyPhone', () => {
   const applianceBasePayload = {
-    companyName: 'ACME',
-    companyAddress: TEST_COMPANY_ADDRESS,
-    companyContactName: 'John',
-    companyContactEmail: TEST_COMPANY_EMAIL,
-    companyAlternateEmail: TEST_COMPANY_ALT_EMAIL,
-    companyPhone: undefined,
-    isUkBased: true,
-    companyAddressLine1: '456 Factory Road',
-    companyAddressLine2: 'Unit 7',
-    companyAddressCity: 'Birmingham',
-    companyAddressCounty: 'West Midlands',
-    companyAddressPostcode: 'B1 2AB',
-    modelName: 'X',
-    modelNumber: 1,
-    applianceType: 'heat',
-    isVariant: false,
-    existingAuthorisedAppliance: 'Old Model',
-    nominalOutput: 10,
-    multiFuelAppliance: false,
-    allowedFuels: ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other'],
-    testReport: 'TR',
-    technicalDrawings: 'drawing',
-    ceMark: 'CE',
-    instructionManual: 'manual.pdf',
-    instructionManualTitle: 'Manual',
-    instructionManualDate: TEST_DATE,
-    instructionManualVersion: 'IM-1',
-    instructionManualAdditionalInfo: 'Extra info',
-    airControlModifications: 'Mod info',
-    declaration: true,
-    submittedBy: 'Alice',
-    submittedDate: TEST_SUBMITTED_DATE,
-    publishedDate: TEST_DATE,
-    technicalApproval: 'Certified',
-    walesApproval: 'Certified',
-    nIrelandApproval: 'Certified',
-    scotlandApproval: 'Certified',
-    englandApproval: 'Certified',
-    walesApprovedBy: 'Bob',
-    nIrelandApprovedBy: 'Charlie',
-    scotlandApprovedBy: 'Dave',
-    englandApprovedBy: 'Eve',
-    walesDateFirstAuthorised: TEST_DATE,
-    nIrelandDateFirstAuthorised: TEST_DATE,
-    scotlandDateFirstAuthorised: TEST_DATE,
-    englandDateFirstAuthorised: TEST_DATE
+    ...applianceExample,
+    companyPhone: undefined
   }
   test('valid phone with country code -> normalizes to E164', () => {
     const payload = {
@@ -165,61 +119,7 @@ describe('applianceSchema - companyPhone', () => {
 })
 // Fuel schema tests - similar to appliance but with fuel-specific required fields
 describe('fuelSchema - companyPhone', () => {
-  const baseFuelPayload = {
-    companyName: 'FuelCo',
-    isUkBased: true,
-    companyAddressLine1: '789 Industrial Estate',
-    companyAddressLine2: 'Building C',
-    companyAddressCity: 'Manchester',
-    companyAddressCounty: 'Greater Manchester',
-    companyAddressPostcode: 'M1 3CD',
-    companyAddress: 'Addr',
-    companyContactName: 'Name',
-    companyContactEmail: 'a@b.com',
-    companyAlternateEmail: 'alt@b.com',
-    companyPhone: '+447537328906',
-    responsibleName: 'Rep',
-    responsibleEmailAddress: 'rep@b.com',
-    customerComplaints: false,
-    qualityControlSystem: 'ISO',
-    manufacturerOrReseller: 'Manufacturer',
-    originalFuelManufacturer: 'OriginalCo',
-    originalFuelNameOrBrand: 'BrandX',
-    changedFromOriginalFuel: false,
-    changesMade: 'The fuel was turned into love hearts',
-    fuelBagging: 'Bag',
-    baggedAtSource: true,
-    fuelDescription: 'Desc',
-    fuelWeight: 20,
-    fuelComposition: 'Wood',
-    sulphurContent: 0.7,
-    manufacturingProcess: 'Proc',
-    brandNames: 'Brand',
-    letterFromManufacturer: 'Letter',
-    testReports: 'TR',
-    fuelAdditionalDocuments: 'Doc',
-    declaration: true,
-    submittedBy: 'Alice',
-    publishedDate: TEST_DATE,
-    submittedDate: TEST_SUBMITTED_DATE,
-    technicalApproval: 'Certified',
-    walesApproval: 'Certified',
-    nIrelandApproval: 'Certified',
-    scotlandApproval: 'Certified',
-    englandApproval: 'Certified',
-    walesApprovedBy: 'Bob',
-    nIrelandApprovedBy: 'Charlie',
-    scotlandApprovedBy: 'Dave',
-    englandApprovedBy: 'Eve',
-    walesDateFirstAuthorised: TEST_DATE,
-    nIrelandDateFirstAuthorised: TEST_DATE,
-    scotlandDateFirstAuthorised: TEST_DATE,
-    englandDateFirstAuthorised: TEST_DATE,
-    walesDateLastUpdated: '2025-11-21',
-    nIrelandDateLastUpdated: '2025-12-15',
-    scotlandDateLastUpdated: '2025-10-30',
-    englandDateLastUpdated: '2025-12-05'
-  }
+  const baseFuelPayload = fuelExample
   test('changesMade field is accepted as string', () => {
     const payload = {
       ...baseFuelPayload,
