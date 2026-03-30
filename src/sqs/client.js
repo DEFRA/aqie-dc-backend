@@ -159,6 +159,7 @@ const createNewRecord = (message, server) => {
       : 'appliance'
 
   const mappedData = type === 'fuel' ? [data] : splitRepeaterJson(data)
+  logger.info(`mappedData: ${mappedData}`)
   mappedData.forEach(async (item) => {
     const payload = mapKeys(item)
     logger.info(`payload: ${payload}`)
