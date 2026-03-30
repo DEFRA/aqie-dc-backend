@@ -12,7 +12,7 @@ export default {
     const poll = async () => {
       while (!abortController.signal.aborted) {
         await main(server, undefined, abortController.signal)
-        await new Promise((resolve) => setTimeout(resolve, 500)) // small sleep
+        await new Promise((resolve) => setTimeout(resolve, 500)) // small sleep for 15 minute user wait time, adjust as needed- 15 * 60 * 1000
       }
     }
 

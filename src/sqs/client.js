@@ -2,12 +2,14 @@ import {
   SQSClient,
   GetQueueUrlCommand,
   ReceiveMessageCommand,
-  DeleteMessageCommand,
+  //DeleteMessageCommand,
   DeleteMessageBatchCommand
 } from '@aws-sdk/client-sqs'
 
 //import { config } from '../config.js'
 import { createLogger } from '../common/helpers/logging/logger.js'
+import { mapKeys } from './mapper.js'
+import { splitRepeaterJson } from './repeater.js'
 
 const logger = createLogger()
 
@@ -88,25 +90,22 @@ export const main = async (server, queueUrl, abortSignal) => {
     // -------------------------------
     // SINGLE MESSAGE
     // -------------------------------
-    if (Messages.length === 1) {
-      const message = Messages[0]
-      logger.info(`Processing message: ${message}`)
-      logger.info(`Processing message body: ${message.Body}`)
+    // if (Messages.length === 1) {
+    //   const message = Messages[0]
+    //   logger.info(`Processing message: ${JSON.parse(message)}`)
+    //   logger.info(`Processing message body: ${JSON.parse(message.Body)}`)
 
-      const data = JSON.parse(message.Body)
+    //   createNewRecord(message, server)
 
-      const apiResult = await callCreateAPI(server, data.type, data.payload)
-      logger.info('Created item:', apiResult)
+    //   await sqsClient.send(
+    //     new DeleteMessageCommand({
+    //       QueueUrl: queueUrl,
+    //       ReceiptHandle: message.ReceiptHandle
+    //     })
+    //   )
 
-      await sqsClient.send(
-        new DeleteMessageCommand({
-          QueueUrl: queueUrl,
-          ReceiptHandle: message.ReceiptHandle
-        })
-      )
-
-      return
-    }
+    //   return
+    // }
 
     // -------------------------------
     // MULTIPLE MESSAGES
@@ -117,14 +116,14 @@ export const main = async (server, queueUrl, abortSignal) => {
       let data
       try {
         data = JSON.parse(message.Body)
+        logger.info('Parsed JSON in SQS message:', data)
       } catch {
         logger.error('Invalid JSON in SQS message:', message.Body)
         continue // Skip this one, do not break the loop
       }
 
       try {
-        const apiResult = await callCreateAPI(server, data.type, data.payload)
-        logger.info('Created item:', apiResult)
+        createNewRecord(message, server)
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)
         logger.error(err)
@@ -150,4 +149,19 @@ export const main = async (server, queueUrl, abortSignal) => {
 
     logger.error('SQS error:', err)
   }
+}
+const createNewRecord = (message, server) => {
+  const data = JSON.parse(message.Body)
+  const type =
+    data.formTitle ===
+    'get a solid fuel certified for use in smoke control areas'
+      ? 'fuel'
+      : 'appliance'
+
+  const mappedData = type === 'fuel' ? [data] : splitRepeaterJson(data)
+  mappedData.forEach(async (item) => {
+    const payload = mapKeys(item)
+    const apiResult = await callCreateAPI(server, type, payload)
+    logger.info('Created item:', apiResult)
+  })
 }
