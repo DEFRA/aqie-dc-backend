@@ -1,11 +1,61 @@
 import { describe, test, expect } from 'vitest'
-import { generateSecureId, findCertified, findLastUpdatedDate } from './db-utils.js'
+import { generateSecureId, findCertified, findLastUpdatedDate, getFullAddress } from './db-utils.js'
+
+const ADDRESS_LINE_1 = '123 Main St';
+const ADDRESS_LINE_2 = 'Apt 4';
+const ADDRESS_CITY = 'London';
+const ADDRESS_COUNTY = 'Greater London';
+const ADDRESS_POSTCODE = 'SW1A 1AA';
+const SECURE_ID_LENGTH = 12;
+describe('getFullAddress', () => {
+  test('returns UK address lines array', () => {
+    const item = {
+      isUkBased: true,
+      companyAddressLine1: ADDRESS_LINE_1,
+      companyAddressLine2: ADDRESS_LINE_2,
+      companyAddressCity: ADDRESS_CITY,
+      companyAddressCounty: ADDRESS_COUNTY,
+      companyAddressPostcode: ADDRESS_POSTCODE
+    }
+    expect(getFullAddress(item)).toEqual([
+      ADDRESS_LINE_1,
+      ADDRESS_LINE_2,
+      ADDRESS_CITY,
+      ADDRESS_COUNTY,
+      ADDRESS_POSTCODE
+    ])
+  })
+
+  test('returns non-UK address as single-element array', () => {
+    const item = {
+      isUkBased: false,
+      companyAddress: '456 Rue de Paris, Paris, France'
+    }
+    expect(getFullAddress(item)).toEqual(['456 Rue de Paris, Paris, France'])
+  })
+
+  test('filters out empty or null address lines', () => {
+    const item = {
+      isUkBased: true,
+      companyAddressLine1: ADDRESS_LINE_1,
+      companyAddressLine2: '',
+      companyAddressCity: null,
+      companyAddressCounty: ADDRESS_COUNTY,
+      companyAddressPostcode: ADDRESS_POSTCODE
+    }
+    expect(getFullAddress(item)).toEqual([
+      ADDRESS_LINE_1,
+      ADDRESS_COUNTY,
+      ADDRESS_POSTCODE
+    ])
+  })
+})
 
 describe('db-utils', () => {
   test('generateSecureId returns a 12-character alphanumeric string', () => {
     const id = generateSecureId()
     expect(typeof id).toBe('string')
-    expect(id.length).toBe(12)
+    expect(id.length).toBe(SECURE_ID_LENGTH)
     expect(/^[a-zA-Z0-9]+$/.test(id)).toBe(true)
   })
 

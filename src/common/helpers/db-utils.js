@@ -51,3 +51,18 @@ export const findLastUpdatedDate = (
 
   return validDates.length > 0 ? validDates[0].toISOString() : null
 }
+
+
+// Returns the full address array for an item, handling UK and non-UK logic
+export const getFullAddress = (item) => {
+  const filterLines = (...lines) => lines.filter(line => typeof line === 'string' && line.trim() !== '')
+  return item.isUkBased === false
+    ? filterLines(item.companyAddress)
+    : filterLines(
+        item.companyAddressLine1,
+        item.companyAddressLine2,
+        item.companyAddressCity,
+        item.companyAddressCounty,
+        item.companyAddressPostcode
+      )
+}

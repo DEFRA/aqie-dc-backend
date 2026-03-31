@@ -67,39 +67,54 @@ describe('db-service', () => {
     expect(saved.manufacturer).toBe('ACME')
   })
 
-  test('findAllItems and findItem return expected data', async () => {
+  test('findAllItems and findItem for appliance include correct fullAddress', async () => {
     const a1 = await createItem(server.db, 'appliance', {
       manufacturer: 'A1',
-      technicalApproval: 'Approved',
-      walesApproval: 'Approved',
-      nIrelandApproval: 'Approved',
-      scotlandApproval: 'Approved',
-      englandApproval: 'Approved'
+      technicalApproval: 'Certified',
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified',
+      scotlandApproval: 'Certified',
+      englandApproval: 'Certified',
+      isUkBased: true,
+      companyAddressLine1: '123 Main St',
+      companyAddressLine2: '',
+      companyAddressCity: 'London',
+      companyAddressCounty: '',
+      companyAddressPostcode: 'SW1A 1AA'
     })
     const all = await findAllItems(server.db, 'appliance')
     expect(Array.isArray(all)).toBe(true)
+    expect(all[0].fullAddress).toBeUndefined()
 
     const found = await findItem(server.db, 'appliance', a1.applianceId)
     expect(found).not.toBeNull()
-    expect(found.manufacturer).toBe('A1')
+    expect(found.fullAddress).toEqual(['123 Main St', 'London', 'SW1A 1AA'])
   })
-  test('findAllFeuel and findItem return expected data', async () => {
+  test('findAllItems and findItem for fuel include correct fullAddress and lastUpdatedDate', async () => {
     const a1 = await createItem(server.db, 'fuel', {
       manufacturer: 'A1',
-      technicalApproval: 'Approved',
-      walesApproval: 'Approved',
-      nIrelandApproval: 'Approved',
-      scotlandApproval: 'Approved',
-      englandApproval: 'Approved'
+      technicalApproval: 'Certified',
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified',
+      scotlandApproval: 'Certified',
+      englandApproval: 'Certified',
+      isUkBased: false,
+      companyAddress: '456 Rue de Paris, Paris, France',
+      walesUpdatedDate: '2024-01-01T10:00:00Z',
+      nIrelandUpdatedDate: '2025-05-05T12:00:00Z',
+      scotlandUpdatedDate: '',
+      englandUpdatedDate: ''
     })
     const all = await findAllItems(server.db, 'fuel')
     expect(Array.isArray(all)).toBe(true)
+    expect(all[0].fullAddress).toBeUndefined()
+    expect(all[0].lastUpdatedDate).toBe('2025-05-05T12:00:00.000Z')
 
     const found = await findItem(server.db, 'fuel', a1.fuelId)
     expect(found).not.toBeNull()
-    expect(found.manufacturer).toBe('A1')
-      expect(found).toHaveProperty('lastUpdatedDate')
-    })
+    expect(found.fullAddress).toEqual(['456 Rue de Paris, Paris, France'])
+    expect(found.lastUpdatedDate).toBe('2025-05-05T12:00:00.000Z')
+  })
 
     test('findItem for fuel returns correct lastUpdatedDate', async () => {
       await createItem(server.db, 'fuel', {

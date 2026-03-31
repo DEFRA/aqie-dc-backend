@@ -1,4 +1,4 @@
-import { generateSecureId, findCertified, findLastUpdatedDate } from '../common/helpers/db-utils.js'
+import { generateSecureId, findCertified, findLastUpdatedDate, getFullAddress } from '../common/helpers/db-utils.js'
 
 // --- Create ---
 export async function createItem(db, type, item) {
@@ -117,7 +117,8 @@ function mapApplianceItem(item, detailed = false) {
         item.englandApproval
       ),
       name: item.modelName || '',
-      id: item.applianceId || ''
+      id: item.applianceId || '',
+      fullAddress: getFullAddress(item)
     }
   } else {
     return {
@@ -172,7 +173,8 @@ function mapFuelItem(item, detailed = false) {
         item.englandUpdatedDate
       ),
       name: item.brandNames || '',
-      id: item.fuelId
+      id: item.fuelId,
+      fullAddress: getFullAddress(item)
     }
   } else {
     return {
