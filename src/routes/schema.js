@@ -140,32 +140,32 @@ export const applianceSchema = Joi.object({
   smokeEmissionOutputLow: Joi.number()
     .optional()
     .description('Smoke emission output - low'),
+  englandApproval: approvalField.description('England approval status'),
+  scotlandApproval: approvalField.description('Scotland approval status'),
   walesApproval: approvalField.description('Wales approval status'),
   nIrelandApproval: approvalField.description(
     'Northern Ireland approval status'
   ),
-  scotlandApproval: approvalField.description('Scotland approval status'),
-  englandApproval: approvalField.description('England approval status'),
+  englandApprovedBy: Joi.string().optional().description('England approved by'),
+  scotlandApprovedBy: Joi.string()
+    .optional()
+    .description('Scotland approved by'),
   walesApprovedBy: Joi.string().optional().description('Wales approved by'),
   nIrelandApprovedBy: Joi.string()
     .optional()
     .description('Northern Ireland approved by'),
-  scotlandApprovedBy: Joi.string()
+  englandDateFirstAuthorised: Joi.date()
     .optional()
-    .description('Scotland approved by'),
-  englandApprovedBy: Joi.string().optional().description('England approved by'),
+    .description('England date first authorised'),
+  scotlandDateFirstAuthorised: Joi.date()
+    .optional()
+    .description('Scotland date first authorised'),
   walesDateFirstAuthorised: Joi.date()
     .optional()
     .description('Wales date first authorised'),
   nIrelandDateFirstAuthorised: Joi.date()
     .optional()
-    .description('Northern Ireland date first authorised'),
-  scotlandDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('Scotland date first authorised'),
-  englandDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('England date first authorised')
+    .description('Northern Ireland date first authorised')
 }).label('Appliance')
 
 export const fuelSchema = Joi.object({
@@ -338,32 +338,32 @@ export const fuelSchema = Joi.object({
   publishedDate: Joi.date().optional().description('Published date'),
   submittedDate: Joi.date().optional().description('Submitted date'),
   technicalApproval: approvalField.description('Technical approval'),
+  englandApproval: approvalField.description('England approval status'),
+  scotlandApproval: approvalField.description('Scotland approval status'),
   walesApproval: approvalField.description('Wales approval status'),
   nIrelandApproval: approvalField.description(
     'Northern Ireland approval status'
   ),
-  scotlandApproval: approvalField.description('Scotland approval status'),
-  englandApproval: approvalField.description('England approval status'),
+  englandApprovedBy: Joi.string().optional().description('England approved by'),
+  scotlandApprovedBy: Joi.string()
+    .optional()
+    .description('Scotland approved by'),
   walesApprovedBy: Joi.string().optional().description('Wales approved by'),
   nIrelandApprovedBy: Joi.string()
     .optional()
     .description('Northern Ireland approved by'),
-  scotlandApprovedBy: Joi.string()
+  englandDateFirstAuthorised: Joi.date()
     .optional()
-    .description('Scotland approved by'),
-  englandApprovedBy: Joi.string().optional().description('England approved by'),
+    .description('England date first authorised'),
+  scotlandDateFirstAuthorised: Joi.date()
+    .optional()
+    .description('Scotland date first authorised'),
   walesDateFirstAuthorised: Joi.date()
     .optional()
     .description('Wales date first authorised'),
   nIrelandDateFirstAuthorised: Joi.date()
     .optional()
     .description('Northern Ireland date first authorised'),
-  scotlandDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('Scotland date first authorised'),
-  englandDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('England date first authorised'),
   walesDateLastUpdated: Joi.date()
     .optional()
     .description('Wales date last updated (last certified or revoked)'),

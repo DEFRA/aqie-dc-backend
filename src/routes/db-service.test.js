@@ -71,10 +71,10 @@ describe('db-service', () => {
     const a1 = await createItem(server.db, 'appliance', {
       manufacturer: 'A1',
       technicalApproval: 'Certified',
+      englandApproval: 'Certified',
+      scotlandApproval: 'Certified',
       walesApproval: 'Certified',
       nIrelandApproval: 'Certified',
-      scotlandApproval: 'Certified',
-      englandApproval: 'Certified',
       isUkBased: true,
       companyAddressLine1: '123 Main St',
       companyAddressLine2: '',
@@ -94,16 +94,16 @@ describe('db-service', () => {
     const a1 = await createItem(server.db, 'fuel', {
       manufacturer: 'A1',
       technicalApproval: 'Certified',
+      englandApproval: 'Certified',
+      scotlandApproval: 'Certified',
       walesApproval: 'Certified',
       nIrelandApproval: 'Certified',
-      scotlandApproval: 'Certified',
-      englandApproval: 'Certified',
       isUkBased: false,
       companyAddress: '456 Rue de Paris, Paris, France',
-      walesUpdatedDate: '2024-01-01T10:00:00Z',
-      nIrelandUpdatedDate: '2025-05-05T12:00:00Z',
+      englandUpdatedDate: '',
       scotlandUpdatedDate: '',
-      englandUpdatedDate: ''
+      walesUpdatedDate: '2024-01-01T10:00:00Z',
+      nIrelandUpdatedDate: '2025-05-05T12:00:00Z'
     })
     const all = await findAllItems(server.db, 'fuel')
     expect(Array.isArray(all)).toBe(true)
@@ -116,45 +116,45 @@ describe('db-service', () => {
     expect(found.lastUpdatedDate).toBe('2025-05-05T12:00:00.000Z')
   })
 
-    test('findItem for fuel returns correct lastUpdatedDate', async () => {
-      await createItem(server.db, 'fuel', {
-        brandNames: 'FuelBrand X',
-        fuelId: 'FUEL-TEST-DATES',
-        walesUpdatedDate: '2024-01-01T10:00:00Z',
-        nIrelandUpdatedDate: '2025-05-05T12:00:00Z',
-        scotlandUpdatedDate: '2023-12-31T23:59:59Z',
-        englandUpdatedDate: '2022-06-15T08:30:00Z',
-        walesApproval: 'Certified',
-        nIrelandApproval: 'Certified',
-        scotlandApproval: 'Certified',
-        englandApproval: 'Certified',
-        technicalApproval: 'Certified'
-      })
-
-      const found = await findItem(server.db, 'fuel', 'FUEL-TEST-DATES')
-      expect(found).not.toBeNull()
-      expect(found.lastUpdatedDate).toBe('2025-05-05T12:00:00.000Z')
+  test('findItem for fuel returns correct lastUpdatedDate', async () => {
+    await createItem(server.db, 'fuel', {
+      brandNames: 'FuelBrand X',
+      fuelId: 'FUEL-TEST-DATES',
+      walesUpdatedDate: '2024-01-01T10:00:00Z',
+      nIrelandUpdatedDate: '2025-05-05T12:00:00Z',
+      scotlandUpdatedDate: '2023-12-31T23:59:59Z',
+      englandUpdatedDate: '2022-06-15T08:30:00Z',
+      englandApproval: 'Certified',
+      scotlandApproval: 'Certified',
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified',
+      technicalApproval: 'Certified'
     })
 
-    test('findAllItems for fuel returns correct lastUpdatedDate', async () => {
-      await createItem(server.db, 'fuel', {
-        brandNames: 'FuelBrand Y',
-        fuelId: 'FUEL-TEST-DATES2',
-        walesUpdatedDate: '2021-01-01T10:00:00Z',
-        nIrelandUpdatedDate: '2020-05-05T12:00:00Z',
-        scotlandUpdatedDate: '2022-12-31T23:59:59Z',
-        englandUpdatedDate: '2023-06-15T08:30:00Z',
-        walesApproval: 'Certified',
-        nIrelandApproval: 'Certified',
-        scotlandApproval: 'Certified',
-        englandApproval: 'Certified',
-        technicalApproval: 'Certified'
-      })
+    const found = await findItem(server.db, 'fuel', 'FUEL-TEST-DATES')
+    expect(found).not.toBeNull()
+    expect(found.lastUpdatedDate).toBe('2025-05-05T12:00:00.000Z')
+  })
 
-      const all = await findAllItems(server.db, 'fuel')
-      const found = all.find(f => f.id === 'FUEL-TEST-DATES2')
-      expect(found).not.toBeNull()
-      expect(found.lastUpdatedDate).toBe('2023-06-15T08:30:00.000Z')
+  test('findAllItems for fuel returns correct lastUpdatedDate', async () => {
+    await createItem(server.db, 'fuel', {
+      brandNames: 'FuelBrand Y',
+      fuelId: 'FUEL-TEST-DATES2',
+      walesUpdatedDate: '2021-01-01T10:00:00Z',
+      nIrelandUpdatedDate: '2020-05-05T12:00:00Z',
+      scotlandUpdatedDate: '2022-12-31T23:59:59Z',
+      englandUpdatedDate: '2023-06-15T08:30:00Z',
+      englandApproval: 'Certified',
+      scotlandApproval: 'Certified',
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified',
+      technicalApproval: 'Certified'
+    })
+
+    const all = await findAllItems(server.db, 'fuel')
+    const found = all.find((f) => f.id === 'FUEL-TEST-DATES2')
+    expect(found).not.toBeNull()
+    expect(found.lastUpdatedDate).toBe('2023-06-15T08:30:00.000Z')
   })
 
   test('updateItem updates document and returns updated document', async () => {
@@ -221,10 +221,10 @@ describe('db-service', () => {
       companyContactEmail: 'john@acme.com',
       companyAlternateEmail: 'john.doe@acme.com',
       companyPhone: '555-1234',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Uncertified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Uncertified'
     })
 
     const found = await findItem(server.db, 'appliance', 'APP-TEST-001')
@@ -250,10 +250,10 @@ describe('db-service', () => {
       companyContactEmail: 'jane@fuelco.com',
       companyAlternateEmail: 'jane.smith@fuelco.com',
       companyPhone: '555-5678',
-      walesApproval: 'Uncertified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Uncertified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Uncertified'
+      walesApproval: 'Uncertified',
+      nIrelandApproval: 'Certified'
     })
 
     const found = await findItem(server.db, 'fuel', 'FUEL-TEST-001')
@@ -290,29 +290,29 @@ describe('db-service', () => {
     await createItem(server.db, 'appliance', {
       modelName: 'Certified Model',
       technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     // Create appliance with missing technicalApproval
     await createItem(server.db, 'appliance', {
       modelName: 'Missing Technical Approval',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     // Create appliance with non-Certified regional approvals (no Certified region)
     await createItem(server.db, 'appliance', {
       modelName: 'No Regional Approval',
       technicalApproval: 'Certified',
-      walesApproval: 'Uncertified',
-      nIrelandApproval: 'Uncertified',
+      englandApproval: 'Uncertified',
       scotlandApproval: 'Uncertified',
-      englandApproval: 'Uncertified'
+      walesApproval: 'Uncertified',
+      nIrelandApproval: 'Uncertified'
     })
 
     const results = await findAllItems(server.db, 'appliance')
@@ -327,19 +327,19 @@ describe('db-service', () => {
     await createItem(server.db, 'fuel', {
       brandNames: 'Certified Fuel',
       technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     // Create fuel with missing technicalApproval
     await createItem(server.db, 'fuel', {
       brandNames: 'Missing Approval',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     const results = await findAllItems(server.db, 'fuel')
@@ -357,10 +357,10 @@ describe('db-service', () => {
       allowedFuels: ['Gas', 'Oil'],
       companyName: 'TestCorp',
       technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     const results = await findAllItems(server.db, 'appliance')
@@ -400,10 +400,10 @@ describe('db-service', () => {
     await createItem(server.db, 'appliance', {
       modelName: 'Regional Test',
       technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Uncertified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     const results = await findAllItems(server.db, 'appliance')
@@ -420,10 +420,10 @@ describe('db-service', () => {
       modelName: 'Regional Test 2',
       applianceId: 'APP-REGION-TEST',
       technicalApproval: 'Certified',
-      walesApproval: 'Uncertified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Uncertified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Uncertified'
+      walesApproval: 'Uncertified',
+      nIrelandApproval: 'Certified'
     })
 
     const found = await findItem(server.db, 'appliance', 'APP-REGION-TEST')
@@ -436,10 +436,10 @@ describe('db-service', () => {
       brandNames: 'Regional Fuel Test',
       fuelId: 'FUEL-REGION-TEST',
       technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Uncertified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Uncertified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Uncertified'
     })
 
     const found = await findItem(server.db, 'fuel', 'FUEL-REGION-TEST')

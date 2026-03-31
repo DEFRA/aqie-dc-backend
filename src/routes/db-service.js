@@ -1,4 +1,9 @@
-import { generateSecureId, findCertified, findLastUpdatedDate, getFullAddress } from '../common/helpers/db-utils.js'
+import {
+  generateSecureId,
+  findCertified,
+  findLastUpdatedDate,
+  getFullAddress
+} from '../common/helpers/db-utils.js'
 
 // --- Create ---
 export async function createItem(db, type, item) {
@@ -62,10 +67,10 @@ export async function findAllItems(db, type) {
     (item) =>
       item.technicalApproval === 'Certified' &&
       [
-        item.walesApproval,
-        item.nIrelandApproval,
+        item.englandApproval,
         item.scotlandApproval,
-        item.englandApproval
+        item.walesApproval,
+        item.nIrelandApproval
       ].includes('Certified')
   )
   if (type === 'appliance') {
@@ -111,10 +116,10 @@ function mapApplianceItem(item, detailed = false) {
       ...rest,
       ...manufacturerFields,
       authorisedIn: findCertified(
-        item.walesApproval,
-        item.nIrelandApproval,
+        item.englandApproval,
         item.scotlandApproval,
-        item.englandApproval
+        item.walesApproval,
+        item.nIrelandApproval
       ),
       name: item.modelName || '',
       id: item.applianceId || '',
@@ -131,10 +136,10 @@ function mapApplianceItem(item, detailed = false) {
       type: item.applianceType,
       modelNumber: item.modelNumber,
       authorisedIn: findCertified(
-        item.walesApproval,
-        item.nIrelandApproval,
+        item.englandApproval,
         item.scotlandApproval,
-        item.englandApproval
+        item.walesApproval,
+        item.nIrelandApproval
       )
     }
   }
@@ -161,16 +166,16 @@ function mapFuelItem(item, detailed = false) {
       ...rest,
       ...manufacturerFields,
       authorisedIn: findCertified(
-        item.walesApproval,
-        item.nIrelandApproval,
+        item.englandApproval,
         item.scotlandApproval,
-        item.englandApproval
+        item.walesApproval,
+        item.nIrelandApproval
       ),
       lastUpdatedDate: findLastUpdatedDate(
-        item.walesUpdatedDate,
-        item.nIrelandUpdatedDate,
+        item.englandUpdatedDate,
         item.scotlandUpdatedDate,
-        item.englandUpdatedDate
+        item.walesUpdatedDate,
+        item.nIrelandUpdatedDate
       ),
       name: item.brandNames || '',
       id: item.fuelId,
@@ -182,16 +187,16 @@ function mapFuelItem(item, detailed = false) {
       id: item.fuelId,
       manufacturer: item.companyName || '',
       authorisedIn: findCertified(
-        item.walesApproval,
-        item.nIrelandApproval,
+        item.englandApproval,
         item.scotlandApproval,
-        item.englandApproval
+        item.walesApproval,
+        item.nIrelandApproval
       ),
       lastUpdatedDate: findLastUpdatedDate(
-        item.walesUpdatedDate,
-        item.nIrelandUpdatedDate,
+        item.englandUpdatedDate,
         item.scotlandUpdatedDate,
-        item.englandUpdatedDate
+        item.walesUpdatedDate,
+        item.nIrelandUpdatedDate
       )
     }
   }

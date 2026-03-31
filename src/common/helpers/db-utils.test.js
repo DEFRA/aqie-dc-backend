@@ -1,12 +1,17 @@
 import { describe, test, expect } from 'vitest'
-import { generateSecureId, findCertified, findLastUpdatedDate, getFullAddress } from './db-utils.js'
+import {
+  generateSecureId,
+  findCertified,
+  findLastUpdatedDate,
+  getFullAddress
+} from './db-utils.js'
 
-const ADDRESS_LINE_1 = '123 Main St';
-const ADDRESS_LINE_2 = 'Apt 4';
-const ADDRESS_CITY = 'London';
-const ADDRESS_COUNTY = 'Greater London';
-const ADDRESS_POSTCODE = 'SW1A 1AA';
-const SECURE_ID_LENGTH = 12;
+const ADDRESS_LINE_1 = '123 Main St'
+const ADDRESS_LINE_2 = 'Apt 4'
+const ADDRESS_CITY = 'London'
+const ADDRESS_COUNTY = 'Greater London'
+const ADDRESS_POSTCODE = 'SW1A 1AA'
+const SECURE_ID_LENGTH = 12
 describe('getFullAddress', () => {
   test('returns UK address lines array', () => {
     const item = {
@@ -88,7 +93,9 @@ describe('db-utils', () => {
       const d2 = '2025-05-05T12:00:00Z'
       const d3 = '2023-12-31T23:59:59Z'
       const d4 = '2022-06-15T08:30:00Z'
-      expect(findLastUpdatedDate(d1, d2, d3, d4)).toBe('2025-05-05T12:00:00.000Z')
+      expect(findLastUpdatedDate(d1, d2, d3, d4)).toBe(
+        '2025-05-05T12:00:00.000Z'
+      )
     })
 
     test('returns null if all dates are invalid', () => {
@@ -100,7 +107,9 @@ describe('db-utils', () => {
       const d2 = '2022-01-01T00:00:00Z'
       const d3 = ''
       const d4 = '2021-12-31T23:59:59Z'
-      expect(findLastUpdatedDate(d1, d2, d3, d4)).toBe('2022-01-01T00:00:00.000Z')
+      expect(findLastUpdatedDate(d1, d2, d3, d4)).toBe(
+        '2022-01-01T00:00:00.000Z'
+      )
     })
 
     test('returns null if all arguments are missing', () => {

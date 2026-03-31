@@ -10,24 +10,24 @@ export const generateSecureId = () => {
 }
 
 export const findCertified = (
+  englandApproval,
+  scotlandApproval,
   walesApproval,
-  niApproval,
-  scotApproval,
-  engApproval
+  nIrelandApproval
 ) => {
   const approvedRegions = []
 
+  if (englandApproval === 'Certified') {
+    approvedRegions.push('England')
+  }
+  if (scotlandApproval === 'Certified') {
+    approvedRegions.push('Scotland')
+  }
   if (walesApproval === 'Certified') {
     approvedRegions.push('Wales')
   }
-  if (niApproval === 'Certified') {
+  if (nIrelandApproval === 'Certified') {
     approvedRegions.push('Northern Ireland')
-  }
-  if (scotApproval === 'Certified') {
-    approvedRegions.push('Scotland')
-  }
-  if (engApproval === 'Certified') {
-    approvedRegions.push('England')
   }
 
   return approvedRegions
@@ -35,15 +35,16 @@ export const findCertified = (
 
 // Finds the most recent updatedDate from the provided country date strings
 export const findLastUpdatedDate = (
+  englandDate,
+  scotlandDate,
   walesDate,
-  niDate,
-  scotDate,
-  engDate
+  nIrelandDate
 ) => {
-  const validDates = [walesDate, niDate, scotDate, engDate]
+  const validDates = [englandDate, scotlandDate, walesDate, nIrelandDate]
     .filter(
       (dateString) =>
-        typeof dateString === 'string' && dateString.trim() !== '' || dateString instanceof Date
+        (typeof dateString === 'string' && dateString.trim() !== '') ||
+        dateString instanceof Date
     )
     .map((dateString) => new Date(dateString))
     .filter((date) => !Number.isNaN(date.getTime()) && date.getTime() !== 0)
@@ -52,10 +53,10 @@ export const findLastUpdatedDate = (
   return validDates.length > 0 ? validDates[0].toISOString() : null
 }
 
-
 // Returns the full address array for an item, handling UK and non-UK logic
 export const getFullAddress = (item) => {
-  const filterLines = (...lines) => lines.filter(line => typeof line === 'string' && line.trim() !== '')
+  const filterLines = (...lines) =>
+    lines.filter((line) => typeof line === 'string' && line.trim() !== '')
   return item.isUkBased === false
     ? filterLines(item.companyAddress)
     : filterLines(
