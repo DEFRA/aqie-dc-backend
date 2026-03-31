@@ -32,3 +32,22 @@ export const findCertified = (
 
   return approvedRegions
 }
+
+// Finds the most recent updatedDate from the provided country date strings
+export const findLastUpdatedDate = (
+  walesDate,
+  niDate,
+  scotDate,
+  engDate
+) => {
+  const validDates = [walesDate, niDate, scotDate, engDate]
+    .filter(
+      (dateString) =>
+        typeof dateString === 'string' && dateString.trim() !== '' || dateString instanceof Date
+    )
+    .map((dateString) => new Date(dateString))
+    .filter((date) => !Number.isNaN(date.getTime()) && date.getTime() !== 0)
+    .sort((a, b) => b.getTime() - a.getTime())
+
+  return validDates.length > 0 ? validDates[0].toISOString() : null
+}

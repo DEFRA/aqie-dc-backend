@@ -98,6 +98,48 @@ describe('db-service', () => {
     const found = await findItem(server.db, 'fuel', a1.fuelId)
     expect(found).not.toBeNull()
     expect(found.manufacturer).toBe('A1')
+      expect(found).toHaveProperty('lastUpdatedDate')
+    })
+
+    test('findItem for fuel returns correct lastUpdatedDate', async () => {
+      await createItem(server.db, 'fuel', {
+        brandNames: 'FuelBrand X',
+        fuelId: 'FUEL-TEST-DATES',
+        walesUpdatedDate: '2024-01-01T10:00:00Z',
+        nIrelandUpdatedDate: '2025-05-05T12:00:00Z',
+        scotlandUpdatedDate: '2023-12-31T23:59:59Z',
+        englandUpdatedDate: '2022-06-15T08:30:00Z',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        englandApproval: 'Certified',
+        technicalApproval: 'Certified'
+      })
+
+      const found = await findItem(server.db, 'fuel', 'FUEL-TEST-DATES')
+      expect(found).not.toBeNull()
+      expect(found.lastUpdatedDate).toBe('2025-05-05T12:00:00.000Z')
+    })
+
+    test('findAllItems for fuel returns correct lastUpdatedDate', async () => {
+      await createItem(server.db, 'fuel', {
+        brandNames: 'FuelBrand Y',
+        fuelId: 'FUEL-TEST-DATES2',
+        walesUpdatedDate: '2021-01-01T10:00:00Z',
+        nIrelandUpdatedDate: '2020-05-05T12:00:00Z',
+        scotlandUpdatedDate: '2022-12-31T23:59:59Z',
+        englandUpdatedDate: '2023-06-15T08:30:00Z',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        englandApproval: 'Certified',
+        technicalApproval: 'Certified'
+      })
+
+      const all = await findAllItems(server.db, 'fuel')
+      const found = all.find(f => f.id === 'FUEL-TEST-DATES2')
+      expect(found).not.toBeNull()
+      expect(found.lastUpdatedDate).toBe('2023-06-15T08:30:00.000Z')
   })
 
   test('updateItem updates document and returns updated document', async () => {
