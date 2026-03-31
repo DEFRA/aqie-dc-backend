@@ -1,12 +1,15 @@
 // Utility functions for db-service.js
-import crypto from 'crypto'
 
+import crypto from 'crypto'
 export const generateSecureId = () => {
-  return crypto
-    .randomBytes(9)
-    .toString('base64') // 12 chars but includes +=/
-    .replace(/[^a-zA-Z0-9]/g, '') // remove symbols
-    .slice(0, 12)
+  let id = ''
+  while (id.length < 12) {
+    id += crypto
+      .randomBytes(9)
+      .toString('base64')
+      .replace(/[^a-zA-Z0-9]/g, '')
+  }
+  return id.slice(0, 12)
 }
 
 export const findCertified = (

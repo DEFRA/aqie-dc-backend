@@ -74,9 +74,9 @@ export async function findAllItems(db, type) {
       ].includes('Certified')
   )
   if (type === 'appliance') {
-    return items.map(mapApplianceItem)
+    return items.map((item) => mapApplianceItem(item, false))
   } else {
-    return items.map(mapFuelItem)
+    return items.map((item) => mapFuelItem(item, false))
   }
 }
 
@@ -94,27 +94,17 @@ export async function findItem(db, type, applicationId) {
 }
 
 // --- Mapping helpers ---
-//Will be removed when frontend is updated to use the same field names as the database, but for now we need to support both formats. The detailed flag indicates whether to include all manufacturer details (for single item view) or just the name (for list view).
-function mapApplianceItem(item, detailed = false) {
-  if (detailed) {
-    const {
-      companyName,
-      companyContactName,
-      companyContactEmail,
-      companyAlternateEmail,
-      companyPhone,
-      ...rest
-    } = item
-    const manufacturerFields = {
-      manufacturerName: companyName || '',
-      manufacturerContactName: companyContactName || '',
-      manufacturerContactEmail: companyContactEmail || '',
-      manufacturerAlternateEmail: companyAlternateEmail || '',
-      manufacturerPhone: companyPhone || ''
-    }
+// Returns either a full detail object (includeAllFields=true) or a summary for list views (includeAllFields=false)
+function mapApplianceItem(item, includeAllFields = false) {
+  //NEEDTO: Make sure front end removes:
+  //  manufacturerName: companyName || '',
+  //   manufacturerContactName: companyContactName || '',
+  //   manufacturerContactEmail: companyContactEmail || '',
+  //   manufacturerAlternateEmail: companyAlternateEmail || '',
+  //   manufacturerPhone: companyPhone ||
+  if (includeAllFields) {
     return {
-      ...rest,
-      ...manufacturerFields,
+      ...item,
       authorisedIn: findCertified(
         item.englandApproval,
         item.scotlandApproval,
@@ -145,26 +135,10 @@ function mapApplianceItem(item, detailed = false) {
   }
 }
 
-function mapFuelItem(item, detailed = false) {
-  if (detailed) {
-    const {
-      companyName,
-      companyContactName,
-      companyContactEmail,
-      companyAlternateEmail,
-      companyPhone,
-      ...rest
-    } = item
-    const manufacturerFields = {
-      manufacturerName: companyName || '',
-      manufacturerContactName: companyContactName || '',
-      manufacturerContactEmail: companyContactEmail || '',
-      manufacturerAlternateEmail: companyAlternateEmail || '',
-      manufacturerPhone: companyPhone || ''
-    }
+function mapFuelItem(item, includeAllFields = false) {
+  if (includeAllFields) {
     return {
-      ...rest,
-      ...manufacturerFields,
+      ...item,
       authorisedIn: findCertified(
         item.englandApproval,
         item.scotlandApproval,

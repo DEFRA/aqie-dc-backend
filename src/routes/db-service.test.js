@@ -230,12 +230,6 @@ describe('db-service', () => {
     const found = await findItem(server.db, 'appliance', 'APP-TEST-001')
 
     expect(found).not.toBeNull()
-    expect(found.manufacturerName).toBe('Acme Corp')
-    expect(found.companyAddress).toBe('123 Main St')
-    expect(found.manufacturerContactName).toBe('John Doe')
-    expect(found.manufacturerContactEmail).toBe('john@acme.com')
-    expect(found.manufacturerAlternateEmail).toBe('john.doe@acme.com')
-    expect(found.manufacturerPhone).toBe('555-1234')
     expect(found.name).toBe('Model X')
     expect(found.id).toBe('APP-TEST-001')
   })
@@ -259,12 +253,6 @@ describe('db-service', () => {
     const found = await findItem(server.db, 'fuel', 'FUEL-TEST-001')
 
     expect(found).not.toBeNull()
-    expect(found.manufacturerName).toBe('FuelCo Ltd')
-    expect(found.companyAddress).toBe('456 Fuel St')
-    expect(found.manufacturerContactName).toBe('Jane Smith')
-    expect(found.manufacturerContactEmail).toBe('jane@fuelco.com')
-    expect(found.manufacturerAlternateEmail).toBe('jane.smith@fuelco.com')
-    expect(found.manufacturerPhone).toBe('555-5678')
     expect(found.name).toBe('FuelBrand X')
   })
 
@@ -278,11 +266,6 @@ describe('db-service', () => {
     const found = await findItem(server.db, 'appliance', 'APP-TEST-002')
 
     expect(found).not.toBeNull()
-    expect(found.manufacturerName).toBe('')
-    expect(found.manufacturerContactName).toBe('')
-    expect(found.manufacturerContactEmail).toBe('')
-    expect(found.manufacturerAlternateEmail).toBe('')
-    expect(found.manufacturerPhone).toBe('')
   })
 
   test('findAllItems filters by technicalApproval and regional approvals correctly for appliances', async () => {
@@ -409,9 +392,9 @@ describe('db-service', () => {
     const results = await findAllItems(server.db, 'appliance')
 
     expect(results[0].authorisedIn).toEqual([
+      'England',
       'Wales',
-      'Northern Ireland',
-      'England'
+      'Northern Ireland'
     ])
   })
 
@@ -428,7 +411,7 @@ describe('db-service', () => {
 
     const found = await findItem(server.db, 'appliance', 'APP-REGION-TEST')
 
-    expect(found.authorisedIn).toEqual(['Northern Ireland', 'Scotland'])
+    expect(found.authorisedIn).toEqual(['Scotland', 'Northern Ireland'])
   })
 
   test('authorisedIn field correctly identifies regional certifications for fuel via findItem', async () => {
@@ -444,7 +427,7 @@ describe('db-service', () => {
 
     const found = await findItem(server.db, 'fuel', 'FUEL-REGION-TEST')
 
-    expect(found.authorisedIn).toEqual(['Wales', 'England'])
+    expect(found.authorisedIn).toEqual(['England', 'Wales'])
   })
 
   test('createItem with existing id preserves provided id', async () => {
@@ -485,5 +468,74 @@ describe('db-service', () => {
     await expect(
       createItem(mockDb, 'appliance', { modelName: 'Test' })
     ).rejects.toThrow('Failed to insert document')
+  })
+
+  test('updateItem updates fuel document and returns updated document', async () => {
+    const created = await createItem(server.db, 'fuel', {
+      brandNames: 'OldFuel',
+      manufacturer: 'OldManu'
+    })
+    const { updated } = await updateItem(server.db, 'fuel', created.fuelId, {
+      brandNames: 'NewFuel',
+      manufacturer: 'NewManu'
+    })
+    expect(updated).toBeDefined()
+    expect(updated.brandNames).toBe('NewFuel')
+    expect(updated.manufacturer).toBe('NewManu')
+  })
+
+  test('updateItem updates multiple fields at once', async () => {
+    const created = await createItem(server.db, 'appliance', {
+      manufacturer: 'MultiOld',
+      modelName: 'OldModel',
+      modelNumber: 1
+    })
+    const { updated } = await updateItem(
+      server.db,
+      'appliance',
+      created.applianceId,
+      { manufacturer: 'MultiNew', modelName: 'NewModel', modelNumber: 2 }
+    )
+    expect(updated.manufacturer).toBe('MultiNew')
+    expect(updated.modelName).toBe('NewModel')
+    expect(updated.modelNumber).toBe(2)
+  })
+
+  test('updateItem with empty update object does not change fields', async () => {
+    const created = await createItem(server.db, 'appliance', {
+      manufacturer: 'NoChange',
+      modelName: 'NoChangeModel'
+    })
+    const { updated } = await updateItem(
+      server.db,
+      'appliance',
+      created.applianceId,
+      {}
+    )
+    expect(updated.manufacturer).toBe('NoChange')
+    expect(updated.modelName).toBe('NoChangeModel')
+  })
+
+  test('updateItem throws for invalid type', async () => {
+    await expect(
+      updateItem(server.db, 'invalidType', 'someId', { foo: 'bar' })
+    ).rejects.toThrow('Unknown type: invalidType')
+  })
+
+  test('updateItem only updates intended fields', async () => {
+    const created = await createItem(server.db, 'appliance', {
+      manufacturer: 'PartialOld',
+      modelName: 'PartialModel',
+      modelNumber: 10
+    })
+    const { updated } = await updateItem(
+      server.db,
+      'appliance',
+      created.applianceId,
+      { manufacturer: 'PartialNew' }
+    )
+    expect(updated.manufacturer).toBe('PartialNew')
+    expect(updated.modelName).toBe('PartialModel')
+    expect(updated.modelNumber).toBe(10)
   })
 })

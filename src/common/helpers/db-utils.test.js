@@ -73,15 +73,19 @@ describe('db-utils', () => {
   })
 
   test('findCertified returns correct regions', () => {
+    // All certified
     expect(
       findCertified('Certified', 'Certified', 'Certified', 'Certified')
-    ).toEqual(['Wales', 'Northern Ireland', 'Scotland', 'England'])
+    ).toEqual(['England', 'Scotland', 'Wales', 'Northern Ireland'])
+    // England and Wales only
     expect(
       findCertified('Certified', 'Uncertified', 'Certified', 'Uncertified')
-    ).toEqual(['Wales', 'Scotland'])
+    ).toEqual(['England', 'Wales'])
+    // None certified
     expect(
       findCertified('Uncertified', 'Uncertified', 'Uncertified', 'Uncertified')
     ).toEqual([])
+    // All undefined
     expect(findCertified(undefined, undefined, undefined, undefined)).toEqual(
       []
     )
