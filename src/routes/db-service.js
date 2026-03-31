@@ -1,16 +1,23 @@
-import crypto from 'crypto'
+import crypto from 'node:crypto'
 
+const RANDOM_BYTES_LENGTH = 9;
+const SECURE_ID_LENGTH = 12;
+const NON_ALPHANUMERIC_REGEX = /[^a-zA-Z0-9]/g;
 const generateSecureId = () => {
   return crypto
-    .randomBytes(9)
+    .randomBytes(RANDOM_BYTES_LENGTH)
     .toString('base64') // 12 chars but includes +=/
-    .replace(/[^a-zA-Z0-9]/g, '') // remove symbols
-    .slice(0, 12)
+    .replaceAll(NON_ALPHANUMERIC_REGEX, '') // remove symbols
+    .slice(0, SECURE_ID_LENGTH);
 }
 
 export async function createItem(db, type, item) {
-  if (!db) throw new Error('db is required')
-  if (!type) throw new Error('type is required')
+  if (!db) {
+    throw new Error('db is required');
+  }
+  if (!type) {
+    throw new Error('type is required');
+  }
 
   let collectionName
   if (type === 'appliance') {
@@ -37,7 +44,7 @@ export async function createItem(db, type, item) {
 
   const result = await collection.insertOne(doc)
   if (!result.acknowledged) {
-    throw new Error('Failed to insert document')
+    throw new Error('Failed to insert document');
   }
 
   // Ensure the returned doc includes the generated _id
@@ -84,43 +91,42 @@ const findCertified = (
 export async function findAllItems(db, type) {
   const { collection } = getCollectionAndIdField(type, db)
   const items = (await collection.find({}).toArray()).filter(
-    //NEEDTO: change a to item for consistnecy
-    (a) =>
-      a.technicalApproval === 'Certified' &&
+    (item) =>
+      item.technicalApproval === 'Certified' &&
       [
-        a.walesApproval,
-        a.nIrelandApproval,
-        a.scotlandApproval,
-        a.englandApproval
+        item.walesApproval,
+        item.nIrelandApproval,
+        item.scotlandApproval,
+        item.englandApproval
       ].includes('Certified')
   )
   if (type === 'appliance') {
-    return items.map((a) => ({
-      name: a.modelName || '',
-      id: a.applianceId || '',
-      manufacturer: a.companyName || '',
-      fuels: Array.isArray(a.allowedFuels)
-        ? a.allowedFuels.join(', ')
-        : a.allowedFuels || '',
-      type: a.applianceType,
-      modelNumber: a.modelNumber,
+    return items.map((item) => ({
+      name: item.modelName || '',
+      id: item.applianceId || '',
+      manufacturer: item.companyName || '',
+      fuels: Array.isArray(item.allowedFuels)
+        ? item.allowedFuels.join(', ')
+        : item.allowedFuels || '',
+      type: item.applianceType,
+      modelNumber: item.modelNumber,
       authorisedIn: findCertified(
-        a.walesApproval,
-        a.nIrelandApproval,
-        a.scotlandApproval,
-        a.englandApproval
+        item.walesApproval,
+        item.nIrelandApproval,
+        item.scotlandApproval,
+        item.englandApproval
       )
     }))
   } else {
-    return items.map((a) => ({
-      name: a.brandNames || '',
-      id: a.fuelId,
-      manufacturer: a.companyName || '',
+    return items.map((item) => ({
+      name: item.brandNames || '',
+      id: item.fuelId,
+      manufacturer: item.companyName || '',
       authorisedIn: findCertified(
-        a.walesApproval,
-        a.nIrelandApproval,
-        a.scotlandApproval,
-        a.englandApproval
+        item.walesApproval,
+        item.nIrelandApproval,
+        item.scotlandApproval,
+        item.englandApproval
       )
     }))
   }
@@ -180,21 +186,27 @@ export async function findItem(db, type, applicationId) {
   }
 }
 
+
 export async function updateItem(db, type, applicationId, updates) {
-  const { collection, idField } = getCollectionAndIdField(type, db)
-  const now = new Date()
+  const { collection, idField } = getCollectionAndIdField(type, db);
+  const now = new Date();
   const result = await collection.updateOne(
     { [idField]: applicationId },
     { $set: { ...updates, updatedAt: now } }
-  )
-  if (result.matchedCount === 0) return { notFound: true }
-  const updated = await collection.findOne({ [idField]: applicationId })
-  return { updated }
+  );
+  if (result.matchedCount === 0) {
+    return { notFound: true };
+  }
+  const updated = await collection.findOne({ [idField]: applicationId });
+  return { updated };
 }
 
+
 export async function deleteItem(db, type, applicationId) {
-  const { collection, idField } = getCollectionAndIdField(type, db)
-  const result = await collection.deleteOne({ [idField]: applicationId })
-  if (result.deletedCount === 0) return { notFound: true }
-  return { deleted: true }
+  const { collection, idField } = getCollectionAndIdField(type, db);
+  const result = await collection.deleteOne({ [idField]: applicationId });
+  if (result.deletedCount === 0) {
+    return { notFound: true };
+  }
+  return { deleted: true };
 }
