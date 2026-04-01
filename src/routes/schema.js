@@ -109,24 +109,15 @@ export const applianceSchema = Joi.object({
   instructionManualAdditionalInfo: Joi.string()
     .optional()
     .description('Instruction manual additional information'),
-  //NEEDTO: awaiting confirmation
-  // multiFuelAppliance: Joi.boolean()
-  //   .required()
-  //   .description('Multifuel capability'),
   declaration: Joi.boolean().required().description('Declaration'),
-  // End of appliance application fields
-  //NEEDTO:is this added later - awaiting confirmation?
-  airControlModifications: Joi.string()
-    .optional()
-    .description('Air control modifications'),
+  //End of appliance application fields
+  //Files attached later
   instructionManual: Joi.string()
     .optional()
     .description('Instruction manual file'),
   testReport: Joi.string().optional().description('Test report'),
   technicalDrawings: Joi.string().optional().description('Technical drawings'),
   ceMark: Joi.string().optional().description('CE mark'),
-  //Files added later
-  //NEEDTO: Awaiting confirmation
   submittedBy: Joi.string().optional().description('Submitted by'),
   submittedDate: Joi.date().optional().description('Submitted date'),
   publishedDate: Joi.date().optional().description('Published date'),
@@ -245,8 +236,6 @@ export const fuelSchema = Joi.object({
   fuelBagging: Joi.string()
     .required()
     .description('How do you sell this fuel, options provided'),
-  // NEEDTO: awaiting confirmation on baggedAtSource field -
-  // //baggedAtSource: Joi.boolean().required().description('Bagged at source'),
   manufacturerOrReseller: Joi.string()
     .valid('Manufacturer', 'Reseller')
     .required()
