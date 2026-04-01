@@ -111,13 +111,6 @@ export const applianceSchema = Joi.object({
     .description('Instruction manual additional information'),
   declaration: Joi.boolean().required().description('Declaration'),
   //End of appliance application fields
-  //Files attached later
-  instructionManual: Joi.string()
-    .optional()
-    .description('Instruction manual file'),
-  testReport: Joi.string().optional().description('Test report'),
-  technicalDrawings: Joi.string().optional().description('Technical drawings'),
-  ceMark: Joi.string().optional().description('CE mark'),
   submittedBy: Joi.string().optional().description('Submitted by'),
   submittedDate: Joi.date().optional().description('Submitted date'),
   publishedDate: Joi.date().optional().description('Published date'),
@@ -319,13 +312,6 @@ export const fuelSchema = Joi.object({
   //End of manufacturer/reseller
   declaration: Joi.boolean().required().description('Declaration'),
   // End of fuel application fields
-  letterFromManufacturer: Joi.string()
-    .optional()
-    .description('Letter from manufacturer'),
-  testReports: Joi.string().optional().description('Test reports'),
-  fuelAdditionalDocuments: Joi.string()
-    .optional()
-    .description('Fuel additional documents'),
   submittedBy: Joi.string().optional().description('Submitted by'),
   publishedDate: Joi.date().optional().description('Published date'),
   submittedDate: Joi.date().optional().description('Submitted date'),
