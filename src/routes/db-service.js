@@ -74,9 +74,9 @@ export async function findAllItems(db, type) {
       ].includes('Certified')
   )
   if (type === 'appliance') {
-    return items.map((item) => mapApplianceItem(item, false))
+    return items.map((item) => mapApplianceSummary(item))
   } else {
-    return items.map((item) => mapFuelItem(item, false))
+    return items.map((item) => mapFuelSummary(item))
   }
 }
 
@@ -87,92 +87,89 @@ export async function findItem(db, type, applicationId) {
     return null
   }
   if (type === 'appliance') {
-    return mapApplianceItem(item, true)
+    return mapApplianceDetail(item)
   } else {
-    return mapFuelItem(item, true)
+    return mapFuelDetail(item)
   }
 }
 
 // --- Mapping helpers ---
-// Returns either a full detail object (includeAllFields=true) or a summary for list views (includeAllFields=false)
-function mapApplianceItem(item, includeAllFields = false) {
-  //NEEDTO: Make sure front end removes:
-  //  manufacturerName: companyName || '',
-  //   manufacturerContactName: companyContactName || '',
-  //   manufacturerContactEmail: companyContactEmail || '',
-  //   manufacturerAlternateEmail: companyAlternateEmail || '',
-  //   manufacturerPhone: companyPhone ||
-  if (includeAllFields) {
-    return {
-      ...item,
-      authorisedIn: findCertified(
-        item.englandApproval,
-        item.scotlandApproval,
-        item.walesApproval,
-        item.nIrelandApproval
-      ),
-      name: item.modelName || '',
-      id: item.applianceId || '',
-      fullAddress: getFullAddress(item)
-    }
-  } else {
-    return {
-      name: item.modelName || '',
-      id: item.applianceId || '',
-      manufacturer: item.companyName || '',
-      fuels: Array.isArray(item.allowedFuels)
-        ? item.allowedFuels.join(', ')
-        : item.allowedFuels || '',
-      type: item.applianceType,
-      modelNumber: item.modelNumber,
-      authorisedIn: findCertified(
-        item.englandApproval,
-        item.scotlandApproval,
-        item.walesApproval,
-        item.nIrelandApproval
-      )
-    }
+// Returns full detail object for single item views
+function mapApplianceDetail(item) {
+  return {
+    ...item,
+    authorisedIn: findCertified(
+      item.englandApproval,
+      item.scotlandApproval,
+      item.walesApproval,
+      item.nIrelandApproval
+    ),
+    name: item.modelName || '',
+    id: item.applianceId || '',
+    fullAddress: getFullAddress(item)
   }
 }
 
-function mapFuelItem(item, includeAllFields = false) {
-  if (includeAllFields) {
-    return {
-      ...item,
-      authorisedIn: findCertified(
-        item.englandApproval,
-        item.scotlandApproval,
-        item.walesApproval,
-        item.nIrelandApproval
-      ),
-      lastUpdatedDate: findLastUpdatedDate(
-        item.englandUpdatedDate,
-        item.scotlandUpdatedDate,
-        item.walesUpdatedDate,
-        item.nIrelandUpdatedDate
-      ),
-      name: item.brandNames || '',
-      id: item.fuelId,
-      fullAddress: getFullAddress(item)
-    }
-  } else {
-    return {
-      name: item.brandNames || '',
-      id: item.fuelId,
-      manufacturer: item.companyName || '',
-      authorisedIn: findCertified(
-        item.englandApproval,
-        item.scotlandApproval,
-        item.walesApproval,
-        item.nIrelandApproval
-      ),
-      lastUpdatedDate: findLastUpdatedDate(
-        item.englandUpdatedDate,
-        item.scotlandUpdatedDate,
-        item.walesUpdatedDate,
-        item.nIrelandUpdatedDate
-      )
-    }
+// Returns summary object for list views
+function mapApplianceSummary(item) {
+  return {
+    name: item.modelName || '',
+    id: item.applianceId || '',
+    manufacturer: item.companyName || '',
+    fuels: Array.isArray(item.allowedFuels)
+      ? item.allowedFuels.join(', ')
+      : item.allowedFuels || '',
+    type: item.applianceType,
+    modelNumber: item.modelNumber,
+    authorisedIn: findCertified(
+      item.englandApproval,
+      item.scotlandApproval,
+      item.walesApproval,
+      item.nIrelandApproval
+    )
+  }
+}
+
+// Returns full detail object for single item views
+function mapFuelDetail(item) {
+  return {
+    ...item,
+    authorisedIn: findCertified(
+      item.englandApproval,
+      item.scotlandApproval,
+      item.walesApproval,
+      item.nIrelandApproval
+    ),
+    lastUpdatedDate: findLastUpdatedDate(
+      item.englandUpdatedDate,
+      item.scotlandUpdatedDate,
+      item.walesUpdatedDate,
+      item.nIrelandUpdatedDate
+    ),
+    name: item.brandNames || '',
+    id: item.fuelId,
+    fullAddress: getFullAddress(item)
+  }
+}
+
+// Returns summary object for list views
+function mapFuelSummary(item) {
+  return {
+    name: item.brandNames || '',
+    id: item.fuelId,
+    manufacturer: item.companyName || '',
+    authorisedIn: findCertified(
+      item.englandApproval,
+      item.scotlandApproval,
+      item.walesApproval,
+      item.nIrelandApproval
+    ),
+    lastUpdatedDate: findLastUpdatedDate(
+      item.englandUpdatedDate,
+      item.scotlandUpdatedDate,
+      item.walesUpdatedDate,
+      item.nIrelandUpdatedDate
+    )
   }
 }
 

@@ -1,15 +1,20 @@
 // Utility functions for db-service.js
 
-import crypto from 'crypto'
+import crypto from 'node:crypto'
+
+const SECURE_ID_LENGTH = 12
+const RANDOM_BYTES_LENGTH = 9
+const NON_ALPHANUMERIC_REGEX = /[^a-zA-Z0-9]/g
+
 export const generateSecureId = () => {
   let id = ''
-  while (id.length < 12) {
+  while (id.length < SECURE_ID_LENGTH) {
     id += crypto
-      .randomBytes(9)
+      .randomBytes(RANDOM_BYTES_LENGTH)
       .toString('base64')
-      .replace(/[^a-zA-Z0-9]/g, '')
+      .replaceAll(NON_ALPHANUMERIC_REGEX, '')
   }
-  return id.slice(0, 12)
+  return id.slice(0, SECURE_ID_LENGTH)
 }
 
 export const findCertified = (

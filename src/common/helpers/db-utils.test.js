@@ -12,6 +12,17 @@ const ADDRESS_CITY = 'London'
 const ADDRESS_COUNTY = 'Greater London'
 const ADDRESS_POSTCODE = 'SW1A 1AA'
 const SECURE_ID_LENGTH = 12
+
+describe('db-utils constants', () => {
+  test('SECURE_ID_LENGTH constant is used for generateSecureId length', () => {
+    // This test verifies the constant is properly used by checking multiple IDs
+    for (let i = 0; i < 10; i++) {
+      const id = generateSecureId()
+      expect(id.length).toBe(SECURE_ID_LENGTH)
+    }
+  })
+})
+
 describe('getFullAddress', () => {
   test('returns UK address lines array', () => {
     const item = {
@@ -62,6 +73,17 @@ describe('db-utils', () => {
     expect(typeof id).toBe('string')
     expect(id.length).toBe(SECURE_ID_LENGTH)
     expect(/^[a-zA-Z0-9]+$/.test(id)).toBe(true)
+  })
+
+  test('generateSecureId removes all non-alphanumeric characters', () => {
+    // Generate many IDs to ensure replaceAll is properly removing all special characters
+    for (let i = 0; i < 50; i++) {
+      const id = generateSecureId()
+      // Should only contain letters and numbers
+      expect(/^[a-zA-Z0-9]+$/.test(id)).toBe(true)
+      // Should not contain any special characters, slashes, or plus signs from base64
+      expect(/[+/=_-]/.test(id)).toBe(false)
+    }
   })
 
   test('generateSecureId returns unique values', () => {
