@@ -114,7 +114,6 @@ export const main = async (server, queueUrl, abortSignal) => {
       logger.info(`Processing multi message:`)
       logger.info(message.Body)
       logger.info(`Processing multi message: ${message.Body}`)
-      
 
       let data
       try {
@@ -130,7 +129,6 @@ export const main = async (server, queueUrl, abortSignal) => {
       try {
         createNewRecord(message, server)
         logger.info(`Creating new record for message: ${message.MessageId}`)
-
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)
         logger.error(err)
@@ -164,7 +162,9 @@ const createNewRecord = async (message, server) => {
     'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
       ? 'fuel'
       : 'appliance'
-logger.info(`Creating new record of type: ${type} for message: ${message.MessageId}`)
+  logger.info(
+    `Creating new record of type: ${type} for message: ${message.MessageId}`
+  )
   if (type === 'fuel') {
     logger.info(`Processing fuel data for message: ${message.MessageId}`)
     logger.info(`data: ${JSON.stringify(data)}`)
