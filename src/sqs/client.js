@@ -113,11 +113,15 @@ export const main = async (server, queueUrl, abortSignal) => {
     for (const message of Messages) {
       logger.info(`Processing multi message:`)
       logger.info(message.Body)
+      logger.info(`Processing multi message: ${message.Body}`)
+      
 
       let data
       try {
         data = JSON.parse(message.Body)
         logger.info(`Parsed JSON in SQS message:${data}`)
+        logger.info(`Parsed JSON in SQS message:${JSON.stringify(data)}`)
+        //Parsed JSON in SQS message:[object Object] 
       } catch {
         logger.error('Invalid JSON in SQS message:', message.Body)
         continue // Skip this one, do not break the loop
@@ -125,6 +129,8 @@ export const main = async (server, queueUrl, abortSignal) => {
 
       try {
         createNewRecord(message, server)
+        logger.info(`Creating new record for message: ${message.MessageId}`)
+
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)
         logger.error(err)
@@ -158,19 +164,21 @@ const createNewRecord = async (message, server) => {
     'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
       ? 'fuel'
       : 'appliance'
-
+logger.info(`Creating new record of type: ${type} for message: ${message.MessageId}`)
   if (type === 'fuel') {
-    logger.info(`data: ${data}`)
+    logger.info(`Processing fuel data for message: ${message.MessageId}`)
+    logger.info(`data: ${JSON.stringify(data)}`)
     const payload = mapKeys(data.data.main, 'fuel')
-    logger.info(`payload: ${payload}`)
+    logger.info(`payload: ${JSON.stringify(payload)}`)
     const apiResult = await callCreateAPI(server, type, payload)
     logger.info('Created item:', apiResult)
   } else {
+    logger.info(`Processing appliance data for message: ${message.MessageId}`)
     const mappedData = splitRepeaterJson(data.data)
     mappedData.forEach(async (item) => {
-      logger.info(`mappedData item: ${item}`)
+      logger.info(`mappedData item: ${JSON.stringify(item)}`)
       const payload = mapKeys(item, 'appliance')
-      logger.info(`payload: ${payload}`)
+      logger.info(`payload: ${JSON.stringify(payload)}`)
       const apiResult = await callCreateAPI(server, type, payload)
       logger.info('Created item:', apiResult)
     })
