@@ -86,10 +86,10 @@ const keyMapFuel = {
 }
 // Mapper function
 export function mapKeys(input, type) {
-  const logger = require('../common/helpers/logging/logger.js').createLogger()
+  // const logger = require('../common/helpers/logging/logger.js').createLogger()
 
-  logger.debug(`Starting to map keys for type: ${type}`)
-  logger.debug(`Input keys to map: ${Object.keys(input).join(', ')}`)
+  // logger.debug(`Starting to map keys for type: ${type}`)
+  // logger.debug(`Input keys to map: ${Object.keys(input).join(', ')}`)
 
   const result = {}
   let mappedCount = 0
@@ -100,19 +100,18 @@ export function mapKeys(input, type) {
       type === 'appliance' ? keyMapAppliance[key] : keyMapFuel[key]
     if (mappedKey) {
       result[mappedKey] = value
-      logger.debug(`Mapped key: ${key} → ${mappedKey}`)
+      console.log(`Mapped key: ${key} → ${mappedKey}`)
       mappedCount++
     } else {
-      logger.debug(`Key not in mapping dictionary, skipped: ${key}`)
+      console.log(`Key not in mapping dictionary, skipped: ${key}`)
       skippedCount++
     }
     // keys mapped to null or missing are skipped
   }
 
-  logger.info(
+  console.log(
     `Key mapping completed for type ${type}: ${mappedCount} keys mapped, ${skippedCount} keys skipped`
   )
-  logger.debug(`Mapped result keys: ${Object.keys(result).join(', ')}`)
 
   return result
 }

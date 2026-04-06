@@ -48,6 +48,7 @@ const getQueueUrl = async () => {
 // INTERNAL API CALL (Hapi inject)
 // -------------------------------
 async function callCreateAPI(server, type, payload) {
+  console.log(`Calling internal API endpoint`)
   logger.info(`Calling internal API endpoint: POST /add-new/${type}`)
   logger.debug(`API payload: ${JSON.stringify(payload)}`)
   try {
@@ -70,10 +71,11 @@ async function callCreateAPI(server, type, payload) {
     logger.info(
       `API call successful, created item with ID: ${response.result?.id || 'unknown'}`
     )
-    logger.debug(`API result: ${JSON.stringify(response.result)}`)
+    console.log(`API result: ${JSON.stringify(response.result)}`)
+
     return response.result
   } catch (err) {
-    logger.error(`API call failed for type ${type}:`, err.message)
+    console.log(`API call failed for type ${type}:`, err.message)
     throw err
   }
 }
@@ -109,6 +111,14 @@ const receiveMessage = async (queueUrl, abortSignal) => {
 // -------------------------------
 export const main = async (server, queueUrl, abortSignal) => {
   logger.debug('Main SQS polling cycle starting...')
+  
+  // // DELETE THIS BLOCK WHEN DONE TESTING
+  // await createNewRecord({ MessageId: 'test-' + Date.now() }, server, {
+  //   "meta": { "formSlug": "get-a-stove-or-other-appliance-certified-for-use-in-smoke-control-areas" },
+  //   "data": { "main": { "CTGxGs": "TestCompany", "TbMaXV": true, "mwGItn": { "uprn": "100071384716" }, "CfdMSm": "Te", "gTshkc": "testemail@gmail.com", "eDOPFB": null, "JIeTGU": null, "tBhcJV": "ttiel", "PebAxQ": "12/01/1998", "ZvUEHQ": null, "DiJXuZ": null, "tiRhSf": "true" }, "repeaters": { "LbZxXf": [{ "cciwNV": "Test", "oSUxHw": "Pizza oven", "mVqdEy": true, "jxCIYY": 12, "Ltjqls": ["Wood logs"] }] }, "files": {} }
+  // })
+  // // END DELETE THIS BLOCK
+  
   try {
     if (!queueUrl) {
       logger.debug('Queue URL not provided, fetching from AWS...')
@@ -241,10 +251,13 @@ const createNewRecord = async (message, server, data) => {
     logger.info(`10. Message type determined: ${type}`)
 
     if (type === 'fuel') {
+      logger.info(data.main.CTGxGs)
       logger.info(
         `Processing fuel submission for message: ${message.MessageId}`
       )
       logger.debug(`Fuel data: ${JSON.stringify(data.data)}`)
+
+      console.log(data.main)
 
       // Map the main fuel data
       const payload = mapKeys(data.data.main, 'fuel')
@@ -262,7 +275,9 @@ const createNewRecord = async (message, server, data) => {
       logger.info(
         `9. Processing appliance submission for message: ${message.MessageId}`
       )
-
+      console.log(`data.data`)
+      console.log(data.data)
+      console.log(`Appliance data: ${JSON.stringify(data.data)}`)
       logger.debug(`Appliance data: ${JSON.stringify(data.data)}`)
 
       // Split repeater JSON for appliances
@@ -277,9 +292,10 @@ const createNewRecord = async (message, server, data) => {
         logger.info(
           `Processing appliance item ${i + 1}/${mappedData.length} for message: ${message.MessageId}`
         )
-        logger.debug(`Item data: ${JSON.stringify(item)}`)
+        console.log(`Item data: ${JSON.stringify(item)}`)
 
         // Map the appliance data
+        console.log(`Mapping keys for appliance item`)
         const payload = mapKeys(item, 'appliance')
         logger.info(
           `Successfully mapped appliance item ${i + 1} for message: ${message.MessageId}`
