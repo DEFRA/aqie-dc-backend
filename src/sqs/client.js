@@ -10,6 +10,7 @@ import {
 import { createLogger } from '../common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
+import { log } from 'console'
 
 const logger = createLogger()
 
@@ -28,64 +29,103 @@ export const sqsClient = new SQSClient({
 // GET QUEUE URL (Recommended)
 // -------------------------------
 const getQueueUrl = async () => {
-  const { QueueUrl } = await sqsClient.send(
-    new GetQueueUrlCommand({
-      QueueName: 'aqie-dc-queue'
-      //config.get('aws.queueName') // aqie-dc-queue
-    })
-  )
-
-  return QueueUrl
+  logger.info('Fetching SQS queue URL for queue: aqie-dc-queue')
+  try {
+    const { QueueUrl } = await sqsClient.send(
+      new GetQueueUrlCommand({
+        QueueName: 'aqie-dc-queue'
+        //config.get('aws.queueName') // aqie-dc-queue
+      })
+    )
+    logger.info(`Successfully retrieved queue URL: ${QueueUrl}`)
+    return QueueUrl
+  } catch (err) {
+    logger.error('Failed to retrieve queue URL:', err)
+    throw err
+  }
 }
 
 // -------------------------------
 // INTERNAL API CALL (Hapi inject)
 // -------------------------------
 async function callCreateAPI(server, type, payload) {
-  const response = await server.inject({
-    method: 'POST',
-    url: `/add-new/${type}`,
-    payload
-  })
+  logger.info(`Calling internal API endpoint: POST /add-new/${type}`)
+  logger.debug(`API payload: ${JSON.stringify(payload)}`)
+  try {
+    const response = await server.inject({
+      method: 'POST',
+      url: `/add-new/${type}`,
+      payload
+    })
 
-  if (response.statusCode >= 400) {
-    throw new Error(
-      `Internal API error: ${response.statusCode} - ${response.result?.msg}`
+    logger.info(`API responded with status code: ${response.statusCode}`)
+    if (response.statusCode >= 400) {
+      logger.error(
+        `API error response: ${response.statusCode} - ${response.result?.msg}`
+      )
+      throw new Error(
+        `Internal API error: ${response.statusCode} - ${response.result?.msg}`
+      )
+    }
+
+    logger.info(
+      `API call successful, created item with ID: ${response.result?.id || 'unknown'}`
     )
+    logger.debug(`API result: ${JSON.stringify(response.result)}`)
+    return response.result
+  } catch (err) {
+    logger.error(`API call failed for type ${type}:`, err.message)
+    throw err
   }
-
-  return response.result
 }
 
 // -------------------------------
 // SQS RECEIVE
 // -------------------------------
-const receiveMessage = (queueUrl, abortSignal) =>
-  sqsClient.send(
-    new ReceiveMessageCommand({
-      AttributeNames: ['SentTimestamp'],
-      MessageAttributeNames: ['All'],
-      MaxNumberOfMessages: 10, // supports batch
-      QueueUrl: queueUrl,
-      WaitTimeSeconds: 10 // long polling
-    }),
-    { abortSignal } // AbortSignal so polling can stop cleanly.
-  )
+const receiveMessage = async (queueUrl, abortSignal) => {
+  logger.debug('Receiving messages from SQS queue with long polling...')
+  try {
+    const result = await sqsClient.send(
+      new ReceiveMessageCommand({
+        AttributeNames: ['SentTimestamp'],
+        MessageAttributeNames: ['All'],
+        MaxNumberOfMessages: 10, // supports batch
+        QueueUrl: queueUrl,
+        WaitTimeSeconds: 10 // long polling
+      }),
+      { abortSignal } // AbortSignal so polling can stop cleanly.
+    )
+    logger.debug(
+      `receiveMessage() returned with ${result.Messages?.length || 0} messages`
+    )
+    return result
+  } catch (err) {
+    logger.error('Error receiving messages from SQS:', err.message)
+    throw err
+  }
+}
 
 // -------------------------------
 // MAIN POLLING FUNCTION
 // -------------------------------
 export const main = async (server, queueUrl, abortSignal) => {
+  logger.debug('Main SQS polling cycle starting...')
   try {
     if (!queueUrl) {
+      logger.debug('Queue URL not provided, fetching from AWS...')
       queueUrl = await getQueueUrl() // ★ Correct queue URL
+    } else {
+      logger.debug(`Using provided queue URL: ${queueUrl}`)
     }
 
     const { Messages } = await receiveMessage(queueUrl, abortSignal)
 
-    if (!Messages) return
+    if (!Messages) {
+      logger.debug('No messages received from SQS queue')
+      return
+    }
     logger.info(`Received ${Messages.length} message(s) from SQS`)
-    logger.debug('Messages:', Messages)
+    logger.debug('Messages:', Messages) // ?
 
     // -------------------------------
     // SINGLE MESSAGE
@@ -110,77 +150,190 @@ export const main = async (server, queueUrl, abortSignal) => {
     // -------------------------------
     // MULTIPLE MESSAGES
     // -------------------------------
+    let successCount = 0
+    let skipCount = 0
+
     for (const message of Messages) {
-      logger.info(`Processing multi message:`)
-      logger.info(message.Body)
-      logger.info(`Processing multi message: ${message.Body}`)
+      logger.info(`Processing message: ${message.MessageId}`)
+      logger.debug(`Message body: ${message.Body}`)
 
       let data
       try {
         data = JSON.parse(message.Body)
-        logger.info(`Parsed JSON in SQS message:${data}`)
-        logger.info(`Parsed JSON in SQS message:${JSON.stringify(data)}`)
-        //Parsed JSON in SQS message:[object Object] 
-      } catch {
-        logger.error('Invalid JSON in SQS message:', message.Body)
+        logger.info(
+          `Successfully parsed JSON from message: ${message.MessageId}`
+        )
+        logger.debug(`Parsed data: ${JSON.stringify(data)}`)
+      } catch (err) {
+        logger.error(
+          `Invalid JSON in SQS message (${message.MessageId}):`,
+          message.Body
+        )
+        skipCount++
         continue // Skip this one, do not break the loop
       }
 
       try {
-        createNewRecord(message, server)
-        logger.info(`Creating new record for message: ${message.MessageId}`)
+        await createNewRecord(message, server, data)
+        logger.info(`Successfully processed message: ${message.MessageId}`)
+        successCount++
       } catch (err) {
-        logger.error('API call failed. MessageId:', message.MessageId)
-        logger.error(err)
+        logger.error(
+          `Failed to process message (${message.MessageId}):`,
+          err.message
+        )
+        logger.error(`Error details:`, err)
+        skipCount++
         continue // Skip this one, do not break the loop
       }
     }
 
-    // Batch delete
-    await sqsClient.send(
-      new DeleteMessageBatchCommand({
-        QueueUrl: queueUrl,
-        Entries: Messages.map((msg) => ({
-          Id: msg.MessageId,
-          ReceiptHandle: msg.ReceiptHandle
-        }))
-      })
+    logger.info(
+      `Message processing summary - Success: ${successCount}, Skipped: ${skipCount}, Total: ${Messages.length}`
     )
+
+    // Batch delete
+    logger.info(`Attempting batch delete for ${Messages.length} messages`)
+    try {
+      const deleteResult = await sqsClient.send(
+        new DeleteMessageBatchCommand({
+          QueueUrl: queueUrl,
+          Entries: Messages.map((msg) => ({
+            Id: msg.MessageId,
+            ReceiptHandle: msg.ReceiptHandle
+          }))
+        })
+      )
+      logger.info(
+        `Batch delete completed successfully for ${Messages.length} messages`
+      )
+      if (deleteResult.Failed && deleteResult.Failed.length > 0) {
+        logger.warn(
+          `${deleteResult.Failed.length} messages failed to delete: ${JSON.stringify(deleteResult.Failed)}`
+        )
+      }
+    } catch (err) {
+      logger.error('Batch delete operation failed:', err.message)
+      throw err
+    }
   } catch (err) {
     if (err.name === 'AbortError') {
       logger.info('SQS polling aborted gracefully.')
       return
     }
 
-    logger.error('SQS error:', err)
+    logger.error('SQS error during main polling cycle:', err.message)
+    logger.error('Full error details:', err)
   }
 }
-const createNewRecord = async (message, server) => {
-  const data = JSON.parse(message.Body)
-  const type =
-    data.formSlug ===
-    'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
-      ? 'fuel'
-      : 'appliance'
-  logger.info(
-    `Creating new record of type: ${type} for message: ${message.MessageId}`
-  )
-  if (type === 'fuel') {
-    logger.info(`Processing fuel data for message: ${message.MessageId}`)
-    logger.info(`data: ${JSON.stringify(data)}`)
-    const payload = mapKeys(data.data.main, 'fuel')
-    logger.info(`payload: ${JSON.stringify(payload)}`)
-    const apiResult = await callCreateAPI(server, type, payload)
-    logger.info('Created item:', apiResult)
-  } else {
-    logger.info(`Processing appliance data for message: ${message.MessageId}`)
-    const mappedData = splitRepeaterJson(data.data)
-    mappedData.forEach(async (item) => {
-      logger.info(`mappedData item: ${JSON.stringify(item)}`)
-      const payload = mapKeys(item, 'appliance')
-      logger.info(`payload: ${JSON.stringify(payload)}`)
+
+const createNewRecord = async (message, server, data) => {
+  logger.info(`Creating new record for message: ${message.MessageId}`)
+  logger.debug(`Message data: ${JSON.stringify(data)}`)
+
+  try {
+    // Determine type based on form slug
+    const type =
+      data.formSlug ===
+      'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
+        ? 'fuel'
+        : 'appliance'
+    logger.info(`Message type determined: ${type}`)
+
+    if (type === 'fuel') {
+      logger.info(
+        `Processing fuel submission for message: ${message.MessageId}`
+      )
+      logger.debug(`Fuel data: ${JSON.stringify(data.data)}`)
+
+      // Map the main fuel data
+      const payload = mapKeys(data.data.main, 'fuel')
+      logger.info(
+        `Successfully mapped fuel data for message: ${message.MessageId}`
+      )
+      logger.debug(`Mapped fuel payload: ${JSON.stringify(payload)}`)
+
+      // Call API to create fuel record
       const apiResult = await callCreateAPI(server, type, payload)
-      logger.info('Created item:', apiResult)
-    })
+      logger.info(
+        `Fuel record created successfully for message: ${message.MessageId}, ID: ${apiResult?.id || 'unknown'}`
+      )
+    } else {
+      logger.info(
+        `Processing appliance submission for message: ${message.MessageId}`
+      )
+      logger.debug(`Appliance data: ${JSON.stringify(data.data)}`)
+
+      // Split repeater JSON for appliances
+      const mappedData = splitRepeaterJson(data.data)
+      logger.info(
+        `Split appliance data into ${mappedData.length} item(s) for message: ${message.MessageId}`
+      )
+
+      // Process each repeater item
+      for (let i = 0; i < mappedData.length; i++) {
+        const item = mappedData[i]
+        logger.info(
+          `Processing appliance item ${i + 1}/${mappedData.length} for message: ${message.MessageId}`
+        )
+        logger.debug(`Item data: ${JSON.stringify(item)}`)
+
+        // Map the appliance data
+        const payload = mapKeys(item, 'appliance')
+        logger.info(
+          `Successfully mapped appliance item ${i + 1} for message: ${message.MessageId}`
+        )
+        logger.debug(`Mapped appliance payload: ${JSON.stringify(payload)}`)
+
+        // Call API to create appliance record
+        const apiResult = await callCreateAPI(server, type, payload)
+        logger.info(
+          `Appliance item ${i + 1} created successfully for message: ${message.MessageId}, ID: ${apiResult?.id || 'unknown'}`
+        )
+      }
+
+      logger.info(
+        `All appliance items processed successfully for message: ${message.MessageId}`
+      )
+    }
+  } catch (err) {
+    logger.error(
+      `Error creating record for message ${message.MessageId}:`,
+      err.message
+    )
+    logger.error('Error stack:', err.stack)
+    throw err
   }
 }
+
+// const createNewRecord = async (message, server) => {
+
+//   //parsing the message body (AGAIN - we should ideally do this just once in the main loop and pass the data here?)
+//   const data = JSON.parse(message.Body)
+//   const type =
+//     data.formSlug ===
+//     'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
+//       ? 'fuel'
+//       : 'appliance'
+//   logger.info(
+//     `Creating new record of type: ${type} for message: ${message.MessageId}`
+//   )
+//   if (type === 'fuel') {
+//     logger.info(`Processing fuel data for message: ${message.MessageId}`)
+//     logger.info(`data: ${JSON.stringify(data)}`)
+//     const payload = mapKeys(data.data.main, 'fuel')
+//     logger.info(`payload: ${JSON.stringify(payload)}`)
+//     const apiResult = await callCreateAPI(server, type, payload)
+//     logger.info('Created item:', apiResult)
+//   } else {
+//     logger.info(`Processing appliance data for message: ${message.MessageId}`)
+//     const mappedData = splitRepeaterJson(data.data)
+//     mappedData.forEach(async (item) => {
+//       logger.info(`mappedData item: ${JSON.stringify(item)}`)
+//       const payload = mapKeys(item, 'appliance')
+//       logger.info(`payload: ${JSON.stringify(payload)}`)
+//       const apiResult = await callCreateAPI(server, type, payload)
+//       logger.info('Created item:', apiResult)
+//     })
+//   }
+// }
