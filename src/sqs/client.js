@@ -10,7 +10,6 @@ import {
 import { createLogger } from '../common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
-import { log } from 'console'
 
 const logger = createLogger()
 
@@ -37,7 +36,7 @@ const getQueueUrl = async () => {
         //config.get('aws.queueName') // aqie-dc-queue
       })
     )
-    logger.info(`Successfully retrieved queue URL: ${QueueUrl}`)
+    logger.info(`Successfully retrieved queue URL`)
     return QueueUrl
   } catch (err) {
     logger.error('Failed to retrieve queue URL:', err)
@@ -124,7 +123,7 @@ export const main = async (server, queueUrl, abortSignal) => {
       logger.debug('No messages received from SQS queue')
       return
     }
-    logger.info(`Received ${Messages.length} message(s) from SQS`)
+    logger.info(`2.Received ${Messages.length} message(s) from SQS`)
     logger.debug('Messages:', Messages) // ?
 
     // -------------------------------
@@ -154,8 +153,9 @@ export const main = async (server, queueUrl, abortSignal) => {
     let skipCount = 0
 
     for (const message of Messages) {
-      logger.info(`Processing message: ${message.MessageId}`)
+      logger.info(`1. Processing message: ${message.MessageId}`)
       logger.debug(`Message body: ${message.Body}`)
+      logger.info(message.Body)
 
       let data
       try {
@@ -179,21 +179,21 @@ export const main = async (server, queueUrl, abortSignal) => {
         successCount++
       } catch (err) {
         logger.error(
-          `Failed to process message (${message.MessageId}):`,
+          `6.Failed to process message (${message.MessageId}):`,
           err.message
         )
-        logger.error(`Error details:`, err)
+        logger.error(`5. Error details:`, err)
         skipCount++
         continue // Skip this one, do not break the loop
       }
     }
 
     logger.info(
-      `Message processing summary - Success: ${successCount}, Skipped: ${skipCount}, Total: ${Messages.length}`
+      `4. Message processing summary - Success: ${successCount}, Skipped: ${skipCount}, Total: ${Messages.length}`
     )
 
     // Batch delete
-    logger.info(`Attempting batch delete for ${Messages.length} messages`)
+    logger.info(`3. Attempting batch delete for ${Messages.length} messages`)
     try {
       const deleteResult = await sqsClient.send(
         new DeleteMessageBatchCommand({
@@ -205,7 +205,7 @@ export const main = async (server, queueUrl, abortSignal) => {
         })
       )
       logger.info(
-        `Batch delete completed successfully for ${Messages.length} messages`
+        `12. Batch delete completed successfully for ${Messages.length} messages`
       )
       if (deleteResult.Failed && deleteResult.Failed.length > 0) {
         logger.warn(
@@ -228,7 +228,7 @@ export const main = async (server, queueUrl, abortSignal) => {
 }
 
 const createNewRecord = async (message, server, data) => {
-  logger.info(`Creating new record for message: ${message.MessageId}`)
+  logger.info(`11. Creating new record for message: ${message.MessageId}`)
   logger.debug(`Message data: ${JSON.stringify(data)}`)
 
   try {
@@ -238,7 +238,7 @@ const createNewRecord = async (message, server, data) => {
       'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
         ? 'fuel'
         : 'appliance'
-    logger.info(`Message type determined: ${type}`)
+    logger.info(`10. Message type determined: ${type}`)
 
     if (type === 'fuel') {
       logger.info(
@@ -260,8 +260,9 @@ const createNewRecord = async (message, server, data) => {
       )
     } else {
       logger.info(
-        `Processing appliance submission for message: ${message.MessageId}`
+        `9. Processing appliance submission for message: ${message.MessageId}`
       )
+
       logger.debug(`Appliance data: ${JSON.stringify(data.data)}`)
 
       // Split repeater JSON for appliances
@@ -298,10 +299,10 @@ const createNewRecord = async (message, server, data) => {
     }
   } catch (err) {
     logger.error(
-      `Error creating record for message ${message.MessageId}:`,
+      `8. Error creating record for message ${message.MessageId}:`,
       err.message
     )
-    logger.error('Error stack:', err.stack)
+    logger.error('7. Error stack:', err.stack)
     throw err
   }
 }
