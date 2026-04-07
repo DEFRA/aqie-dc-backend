@@ -96,6 +96,33 @@ export function mapKeys(input, type) {
   let skippedCount = 0
 
   for (const [key, value] of Object.entries(input)) {
+    // Special handling for nested address object
+    if (key === 'mwGItn' && typeof value === 'object' && value !== null) {
+      // Extract values by position (skipping uprn)
+      const positionMapping = [
+        'companyAddressLine1', // position 0 (first value)
+        'companyAddressCity', // position 1 (second value)
+        'companyAddressPostcode' // position 2 (third value)
+      ]
+
+      // Get all keys except 'uprn' and map by position
+      const valueKeys = Object.keys(value).filter((k) => k !== 'uprn')
+
+      valueKeys.forEach((key, index) => {
+        if (index < positionMapping.length && value[key]) {
+          const mappedKey = positionMapping[index]
+          result[mappedKey] = value[key]
+          console.log(
+            `Mapped nested value at position ${index}: ${value[key]} → ${mappedKey}`
+          )
+          mappedCount++
+        }
+      })
+
+      console.log(`Processed nested object: ${key}`)
+      continue
+    }
+
     const mappedKey =
       type === 'appliance' ? keyMapAppliance[key] : keyMapFuel[key]
     if (mappedKey) {

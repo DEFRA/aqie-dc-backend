@@ -58,10 +58,14 @@ export const applianceSchema = Joi.object({
     .description('Company contact email'),
   companyAlternateEmail: Joi.string()
     .optional()
+    .allow(null)
+    .empty(null) // allow null to be treated as missing i.e optional
     .description('Company alternate contact email'),
   companyPhone: Joi.string()
     .trim()
     .optional()
+    .allow(null)
+    .empty(null)
     .custom((value, helpers) => {
       try {
         // If you know the user's country, pass it here (e.g., 'GB', 'US')
@@ -81,7 +85,7 @@ export const applianceSchema = Joi.object({
     .description('Validated and normalized with google-libphonenumber'),
 
   modelName: Joi.string().required().description('Model name'),
-  modelNumber: Joi.number().optional().description('Model number'),
+  modelNumber: Joi.string().optional().description('Model number'), //NEEDTO: change back to number?
   applianceType: Joi.string()
     .required()
     .description('Appliance type e.g. "heat"'),
@@ -201,6 +205,8 @@ export const fuelSchema = Joi.object({
     .description('Manufacturer contact email'),
   companyAlternateEmail: Joi.string()
     .optional()
+    .allow(null)
+    .empty(null) // allow null to be treated as missing
     .description('Manufacturer alternate email'),
   companyPhone: Joi.string()
     .trim()

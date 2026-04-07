@@ -14,6 +14,38 @@ import { splitRepeaterJson } from './repeater.js'
 const logger = createLogger()
 
 // -------------------------------
+// SANITIZE MALFORMED JSON
+// -------------------------------
+const sanitizeJsonString = (jsonString) => {
+  try {
+    // Try to parse as-is first
+    return JSON.parse(jsonString)
+  } catch (err) {
+    logger.warn('Initial JSON parse failed, attempting to sanitize...')
+    try {
+      // Fix bare strings in objects by converting them to indexed keys
+      let sanitized = jsonString
+      let fieldCounter = 0
+
+      // Match patterns like ,"string" where string is not a value (bare string)
+      sanitized = sanitized.replace(/,("(\\.|[^"\\])*")/g, (match) => {
+        // Check if this is a bare string (no key before it)
+        if (!match.includes(':')) {
+          return `,"field_${fieldCounter++}":${match.slice(1)}`
+        }
+        return match
+      })
+
+      logger.info('Sanitized JSON string')
+      return JSON.parse(sanitized)
+    } catch (sanitizeErr) {
+      logger.error('Failed to sanitize malformed JSON:', sanitizeErr.message)
+      throw sanitizeErr
+    }
+  }
+}
+
+// -------------------------------
 // SQS CLIENT
 // -------------------------------
 export const sqsClient = new SQSClient({
@@ -48,9 +80,12 @@ const getQueueUrl = async () => {
 // INTERNAL API CALL (Hapi inject)
 // -------------------------------
 async function callCreateAPI(server, type, payload) {
+  console.log(`Payload for API call: ${JSON.stringify(payload)}`)
   console.log(`Calling internal API endpoint`)
   logger.info(`Calling internal API endpoint: POST /add-new/${type}`)
   logger.debug(`API payload: ${JSON.stringify(payload)}`)
+  //print out payload and try add it to db and see what happens
+  console.log(`Payload for API call: ${JSON.stringify(payload)}`)
   try {
     const response = await server.inject({
       method: 'POST',
@@ -75,6 +110,7 @@ async function callCreateAPI(server, type, payload) {
 
     return response.result
   } catch (err) {
+    //here
     console.log(`API call failed for type ${type}:`, err.message)
     throw err
   }
@@ -111,14 +147,16 @@ const receiveMessage = async (queueUrl, abortSignal) => {
 // -------------------------------
 export const main = async (server, queueUrl, abortSignal) => {
   logger.debug('Main SQS polling cycle starting...')
-  
+
   // // DELETE THIS BLOCK WHEN DONE TESTING
-  // await createNewRecord({ MessageId: 'test-' + Date.now() }, server, {
-  //   "meta": { "formSlug": "get-a-stove-or-other-appliance-certified-for-use-in-smoke-control-areas" },
-  //   "data": { "main": { "CTGxGs": "TestCompany", "TbMaXV": true, "mwGItn": { "uprn": "100071384716" }, "CfdMSm": "Te", "gTshkc": "testemail@gmail.com", "eDOPFB": null, "JIeTGU": null, "tBhcJV": "ttiel", "PebAxQ": "12/01/1998", "ZvUEHQ": null, "DiJXuZ": null, "tiRhSf": "true" }, "repeaters": { "LbZxXf": [{ "cciwNV": "Test", "oSUxHw": "Pizza oven", "mVqdEy": true, "jxCIYY": 12, "Ltjqls": ["Wood logs"] }] }, "files": {} }
-  // })
+  // try {
+  //   const testData = sanitizeJsonString('{"meta": { "formSlug": "get-a-stove-or-other-appliance-certified-for-use-in-smoke-control-areas" }, "data": { "main": { "CTGxGs": "TestCompany", "TbMaXV": true, "mwGItn": {"uprn":"100071384716","******","************","******"}, "CfdMSm": "Te", "gTshkc": "testemail@gmail.com", "eDOPFB": null, "JIeTGU": null, "tBhcJV": "ttiel", "PebAxQ": "12/01/1998", "ZvUEHQ": null, "DiJXuZ": null, "tiRhSf": "true" }, "repeaters": { "LbZxXf": [{ "cciwNV": "Test", "oSUxHw": "Pizza oven", "mVqdEy": true, "jxCIYY": 12, "Ltjqls": ["Wood logs"] }] }, "files": {} }}')
+  //   await createNewRecord({ MessageId: 'test-' + Date.now() }, server, testData)
+  // } catch (testErr) {
+  //   console.error('❌ TEST ERROR:', testErr.message)
+  // }
   // // END DELETE THIS BLOCK
-  
+
   try {
     if (!queueUrl) {
       logger.debug('Queue URL not provided, fetching from AWS...')
@@ -169,9 +207,9 @@ export const main = async (server, queueUrl, abortSignal) => {
 
       let data
       try {
-        data = JSON.parse(message.Body)
+        data = sanitizeJsonString(message.Body)
         logger.info(
-          `Successfully parsed JSON from message: ${message.MessageId}`
+          `Successfully parsed and sanitized JSON from message: ${message.MessageId}`
         )
         logger.debug(`Parsed data: ${JSON.stringify(data)}`)
       } catch (err) {

@@ -14,7 +14,6 @@ export function splitRepeaterJson(input) {
   console.log(`Found ${repeaters.length} repeater item(s)`)
   console.log(`Repeaters items: ${JSON.stringify(repeaters)}`)
 
-
   if (!Array.isArray(repeaters) || repeaters.length === 0) {
     console.log('No repeater items found, returning empty array')
     return {} // or return [input] depending on your needs
@@ -22,9 +21,7 @@ export function splitRepeaterJson(input) {
 
   const outputs = repeaters.map((repeaterItem, index) => {
     console.log(`Processing repeater item ${index + 1}/${repeaters.length}`)
-    console.log(
-      `Repeater item fields: ${Object.keys(repeaterItem).join(', ')}`
-    )
+    console.log(`Repeater item fields: ${Object.keys(repeaterItem).join(', ')}`)
 
     const merged = {
       ...baseMain, // copy all main fields
