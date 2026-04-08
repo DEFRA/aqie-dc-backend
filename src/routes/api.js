@@ -4,7 +4,8 @@ import {
   findAllItems,
   findItem,
   updateItem,
-  deleteItem
+  deleteItem,
+  createQueueItem
 } from './db-service.js'
 import { applianceSchema, fuelSchema } from './schema.js'
 import applianceExample from '../sample-data/appliance-example.js'
@@ -77,6 +78,31 @@ export const api = [
       }
     }
   },
+  //Temporary route for testing SQS payloads, not for production use
+  {
+    method: 'POST',
+    path: '/add-new/queue',
+    options: {
+      tags: ['api', 'new'],
+      description:
+        'Add payload directly to mongodb for testing SQS payloads, not for production use',
+      validate: {
+        payload: Joi.object().unknown(true).required()
+      }
+    },
+    handler: async (request, h) => {
+      try {
+        const inserted = await createQueueItem(request.db, request.payload)
+        return h
+          .response({ msg: 'Added to queue', queueId: inserted.queueId })
+          .code(201)
+      } catch (err) {
+        request.server.logger?.error(err, 'Failed to add to queue')
+        return h.response({ msg: 'Failed to add to queue' }).code(500)
+      }
+    }
+  },
+
   // GET all
   {
     method: 'GET',

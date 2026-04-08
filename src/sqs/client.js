@@ -10,8 +10,8 @@ import {
 import { createLogger } from '../common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
-import { callCreateAPI } from './api-caller.js'
-import {} from './examples.js';
+import { callCreateAPI, callQueueAPI } from './api-caller.js'
+import {} from './examples.js'
 
 const logger = createLogger()
 
@@ -105,6 +105,14 @@ export const main = async (server, queueUrl, abortSignal) => {
         logger.error(message.Body)
         continue // Skip this one, do not break the loop
       }
+
+      //Temporary - delete later
+      try {
+        await callQueueAPI(server, message.Body)
+      } catch {
+        logger.error('Failed internal Queue API')
+      }
+      //
 
       try {
         await createNewRecord(messageBody, server)

@@ -24,3 +24,19 @@ export async function callCreateAPI(server, type, payload) {
 
   return response.result
 }
+
+export async function callQueueAPI(server, payload) {
+  const response = await server.inject({
+    method: 'POST',
+    url: `/add-new/queue`,
+    payload
+  })
+
+  if (response.statusCode >= 400) {
+    throw new Error(
+      `Internal API error: ${response.statusCode} - ${response.result?.msg}`
+    )
+  }
+
+  return response.result
+}

@@ -198,3 +198,20 @@ export async function deleteItem(db, type, applicationId) {
   if (result.deletedCount === 0) return { notFound: true }
   return { deleted: true }
 }
+//Temporary - delete later
+export async function createQueueItem(db, item) {
+  const collection = db.collection('Queue')
+
+  const now = new Date()
+  const doc = {
+    ...item,
+    queueId: `QUEUE-${generateSecureId()}`,
+    createdAt: item.createdAt || now,
+    updatedAt: now
+  }
+
+  const result = await collection.insertOne(doc)
+  if (!result.acknowledged) throw new Error('Failed to insert document')
+
+  return { ...doc, _id: result.insertedId }
+}
