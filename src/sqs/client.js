@@ -11,7 +11,7 @@ import { createLogger } from '../common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
 import { callCreateAPI, callQueueAPI } from './api-caller.js'
-import { exampleA } from './examples.js'
+import { exampleA } from './example.js'
 
 const logger = createLogger()
 
