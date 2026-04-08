@@ -10,6 +10,7 @@ import {
 import { createLogger } from '../common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
+import { callCreateAPI } from './api-caller.js'
 
 const logger = createLogger()
 
@@ -36,25 +37,6 @@ const getQueueUrl = async () => {
   )
 
   return QueueUrl
-}
-
-// -------------------------------
-// INTERNAL API CALL (Hapi inject)
-// -------------------------------
-async function callCreateAPI(server, type, payload) {
-  const response = await server.inject({
-    method: 'POST',
-    url: `/add-new/${type}`,
-    payload
-  })
-
-  if (response.statusCode >= 400) {
-    throw new Error(
-      `Internal API error: ${response.statusCode} - ${response.result?.msg}`
-    )
-  }
-
-  return response.result
 }
 
 // -------------------------------
@@ -111,20 +93,20 @@ export const main = async (server, queueUrl, abortSignal) => {
     // MULTIPLE MESSAGES
     // -------------------------------
     for (const message of Messages) {
-      logger.info(`Processing multi message:`)
-      logger.info(message.Body)
+      let messageBody
 
-      let data
       try {
-        data = JSON.parse(message.Body)
-        logger.info(`Parsed JSON in SQS message:${data}`)
+        // Validate JSON before processing
+        logger.info(message.Body)
+        messageBody = JSON.parse(message.Body)
       } catch {
         logger.error('Invalid JSON in SQS message:', message.Body)
+        logger.error(message.Body)
         continue // Skip this one, do not break the loop
       }
 
       try {
-        createNewRecord(message, server)
+        await createNewRecord(messageBody, server)
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)
         logger.error(err)
@@ -151,28 +133,21 @@ export const main = async (server, queueUrl, abortSignal) => {
     logger.error('SQS error:', err)
   }
 }
-const createNewRecord = async (message, server) => {
-  const data = JSON.parse(message.Body)
+const createNewRecord = async (messageBody, server) => {
   const type =
-    data.formSlug ===
+    messageBody.formSlug ===
     'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
       ? 'fuel'
       : 'appliance'
 
   if (type === 'fuel') {
-    logger.info(`data: ${data}`)
-    const payload = mapKeys(data.data.main, 'fuel')
-    logger.info(`payload: ${payload}`)
-    const apiResult = await callCreateAPI(server, type, payload)
-    logger.info('Created item:', apiResult)
+    const payload = mapKeys(messageBody.data.main, 'fuel')
+    await callCreateAPI(server, type, payload)
   } else {
-    const mappedData = splitRepeaterJson(data.data)
+    const mappedData = splitRepeaterJson(messageBody.data)
     mappedData.forEach(async (item) => {
-      logger.info(`mappedData item: ${item}`)
       const payload = mapKeys(item, 'appliance')
-      logger.info(`payload: ${payload}`)
-      const apiResult = await callCreateAPI(server, type, payload)
-      logger.info('Created item:', apiResult)
+      await callCreateAPI(server, type, payload)
     })
   }
 }

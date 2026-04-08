@@ -43,6 +43,7 @@ const keyMapFuel = {
   XpAWNK: 'companyName',
   IIQWii: 'isUkBased',
 
+  mwGItn: 'addressObject', //Address comes in this block
   addressLine1: 'companyAddressLine1',
   addressLine2: 'companyAddressLine2',
   town: 'companyAddressCity',
