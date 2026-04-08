@@ -11,7 +11,7 @@ import { createLogger } from '../common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
 import { callCreateAPI, callQueueAPI } from './api-caller.js'
-import {} from './examples.js'
+import { exampleA } from './examples.js'
 
 const logger = createLogger()
 
@@ -119,6 +119,7 @@ export const main = async (server, queueUrl, abortSignal) => {
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)
         logger.error(err)
+        console.log(exampleA) //temporary - delete later
         continue // Skip this one, do not break the loop
       }
     }
