@@ -1,16 +1,16 @@
-import { createLogger } from '../common/helpers/logging/logger.js'
+// import { createLogger } from '../common/helpers/logging/logger.js'
 
-const logger = createLogger()
+// const logger = createLogger()
 
 // -------------------------------
 // INTERNAL API CALL (Hapi inject)
 // -------------------------------
 export async function callCreateAPI(server, type, payload) {
   callQueueAPI(server, payload) // delelete later, just for testing
-  logger.info(
-    `Calling internal API for type: ${type} with payload: ${JSON.stringify(payload)}`
-  )
-  logger.info(`${JSON.stringify(payload)}`)
+  // logger.info(
+  //   `Calling internal API for type: ${type} with payload: ${JSON.stringify(payload)}`
+  // )
+  // logger.info(`${JSON.stringify(payload)}`)
   const response = await server.inject({
     method: 'POST',
     url: `/add-new/${type}`,

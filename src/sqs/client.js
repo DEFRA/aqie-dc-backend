@@ -67,8 +67,8 @@ export const main = async (server, queueUrl, abortSignal) => {
     const { Messages } = await receiveMessage(queueUrl, abortSignal)
 
     if (!Messages) return
-    logger.info(`Received ${Messages.length} message(s) from SQS`)
-    logger.debug('Messages:', Messages)
+    // logger.info(`Received ${Messages.length} message(s) from SQS`)
+    // logger.debug('Messages:', Messages)
 
     // -------------------------------
     // SINGLE MESSAGE
@@ -98,7 +98,7 @@ export const main = async (server, queueUrl, abortSignal) => {
 
       try {
         // Validate JSON before processing
-        logger.info(message.Body)
+        // logger.info(message.Body)
         messageBody = JSON.parse(message.Body)
       } catch {
         logger.error('Invalid JSON in SQS message:', message.Body)
@@ -136,7 +136,7 @@ export const main = async (server, queueUrl, abortSignal) => {
     )
   } catch (err) {
     if (err.name === 'AbortError') {
-      logger.info('SQS polling aborted gracefully.')
+      // logger.info('SQS polling aborted gracefully.')
       return
     }
 
