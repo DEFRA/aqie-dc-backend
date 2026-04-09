@@ -67,37 +67,94 @@ describe('db-service', () => {
     expect(saved.manufacturer).toBe('ACME')
   })
 
-  test('findAllItems and findItem return expected data', async () => {
+  test('findAllItems and findItem for appliance include correct fullAddress', async () => {
     const a1 = await createItem(server.db, 'appliance', {
       manufacturer: 'A1',
-      technicalApproval: 'Approved',
-      walesApproval: 'Approved',
-      nIrelandApproval: 'Approved',
-      scotlandApproval: 'Approved',
-      englandApproval: 'Approved'
+      technicalApproval: 'Certified',
+      englandApproval: 'Certified',
+      scotlandApproval: 'Certified',
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified',
+      isUkBased: true,
+      companyAddressLine1: '123 Main St',
+      companyAddressLine2: '',
+      companyAddressCity: 'London',
+      companyAddressCounty: '',
+      companyAddressPostcode: 'SW1A 1AA'
     })
     const all = await findAllItems(server.db, 'appliance')
     expect(Array.isArray(all)).toBe(true)
+    expect(all[0].fullAddress).toBeUndefined()
 
     const found = await findItem(server.db, 'appliance', a1.applianceId)
     expect(found).not.toBeNull()
-    expect(found.manufacturer).toBe('A1')
+    expect(found.fullAddress).toEqual(['123 Main St', 'London', 'SW1A 1AA'])
   })
-  test('findAllFeuel and findItem return expected data', async () => {
+  test('findAllItems and findItem for fuel include correct fullAddress and lastUpdatedDate', async () => {
     const a1 = await createItem(server.db, 'fuel', {
       manufacturer: 'A1',
-      technicalApproval: 'Approved',
-      walesApproval: 'Approved',
-      nIrelandApproval: 'Approved',
-      scotlandApproval: 'Approved',
-      englandApproval: 'Approved'
+      technicalApproval: 'Certified',
+      englandApproval: 'Certified',
+      scotlandApproval: 'Certified',
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified',
+      isUkBased: false,
+      companyAddress: '456 Rue de Paris, Paris, France',
+      englandUpdatedDate: '',
+      scotlandUpdatedDate: '',
+      walesUpdatedDate: '2024-01-01T10:00:00Z',
+      nIrelandUpdatedDate: '2025-05-05T12:00:00Z'
     })
     const all = await findAllItems(server.db, 'fuel')
     expect(Array.isArray(all)).toBe(true)
+    expect(all[0].fullAddress).toBeUndefined()
+    expect(all[0].lastUpdatedDate).toBe('2025-05-05T12:00:00.000Z')
 
     const found = await findItem(server.db, 'fuel', a1.fuelId)
     expect(found).not.toBeNull()
-    expect(found.manufacturer).toBe('A1')
+    expect(found.fullAddress).toEqual(['456 Rue de Paris, Paris, France'])
+    expect(found.lastUpdatedDate).toBe('2025-05-05T12:00:00.000Z')
+  })
+
+  test('findItem for fuel returns correct lastUpdatedDate', async () => {
+    await createItem(server.db, 'fuel', {
+      brandNames: 'FuelBrand X',
+      fuelId: 'FUEL-TEST-DATES',
+      walesUpdatedDate: '2024-01-01T10:00:00Z',
+      nIrelandUpdatedDate: '2025-05-05T12:00:00Z',
+      scotlandUpdatedDate: '2023-12-31T23:59:59Z',
+      englandUpdatedDate: '2022-06-15T08:30:00Z',
+      englandApproval: 'Certified',
+      scotlandApproval: 'Certified',
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified',
+      technicalApproval: 'Certified'
+    })
+
+    const found = await findItem(server.db, 'fuel', 'FUEL-TEST-DATES')
+    expect(found).not.toBeNull()
+    expect(found.lastUpdatedDate).toBe('2025-05-05T12:00:00.000Z')
+  })
+
+  test('findAllItems for fuel returns correct lastUpdatedDate', async () => {
+    await createItem(server.db, 'fuel', {
+      brandNames: 'FuelBrand Y',
+      fuelId: 'FUEL-TEST-DATES2',
+      walesUpdatedDate: '2021-01-01T10:00:00Z',
+      nIrelandUpdatedDate: '2020-05-05T12:00:00Z',
+      scotlandUpdatedDate: '2022-12-31T23:59:59Z',
+      englandUpdatedDate: '2023-06-15T08:30:00Z',
+      englandApproval: 'Certified',
+      scotlandApproval: 'Certified',
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified',
+      technicalApproval: 'Certified'
+    })
+
+    const all = await findAllItems(server.db, 'fuel')
+    const found = all.find((f) => f.id === 'FUEL-TEST-DATES2')
+    expect(found).not.toBeNull()
+    expect(found.lastUpdatedDate).toBe('2023-06-15T08:30:00.000Z')
   })
 
   test('updateItem updates document and returns updated document', async () => {
@@ -164,21 +221,15 @@ describe('db-service', () => {
       companyContactEmail: 'john@acme.com',
       companyAlternateEmail: 'john.doe@acme.com',
       companyPhone: '555-1234',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Uncertified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Uncertified'
     })
 
     const found = await findItem(server.db, 'appliance', 'APP-TEST-001')
 
     expect(found).not.toBeNull()
-    expect(found.manufacturerName).toBe('Acme Corp')
-    expect(found.companyAddress).toBe('123 Main St')
-    expect(found.manufacturerContactName).toBe('John Doe')
-    expect(found.manufacturerContactEmail).toBe('john@acme.com')
-    expect(found.manufacturerAlternateEmail).toBe('john.doe@acme.com')
-    expect(found.manufacturerPhone).toBe('555-1234')
     expect(found.name).toBe('Model X')
     expect(found.id).toBe('APP-TEST-001')
   })
@@ -193,21 +244,15 @@ describe('db-service', () => {
       companyContactEmail: 'jane@fuelco.com',
       companyAlternateEmail: 'jane.smith@fuelco.com',
       companyPhone: '555-5678',
-      walesApproval: 'Uncertified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Uncertified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Uncertified'
+      walesApproval: 'Uncertified',
+      nIrelandApproval: 'Certified'
     })
 
     const found = await findItem(server.db, 'fuel', 'FUEL-TEST-001')
 
     expect(found).not.toBeNull()
-    expect(found.manufacturerName).toBe('FuelCo Ltd')
-    expect(found.companyAddress).toBe('456 Fuel St')
-    expect(found.manufacturerContactName).toBe('Jane Smith')
-    expect(found.manufacturerContactEmail).toBe('jane@fuelco.com')
-    expect(found.manufacturerAlternateEmail).toBe('jane.smith@fuelco.com')
-    expect(found.manufacturerPhone).toBe('555-5678')
     expect(found.name).toBe('FuelBrand X')
   })
 
@@ -221,11 +266,6 @@ describe('db-service', () => {
     const found = await findItem(server.db, 'appliance', 'APP-TEST-002')
 
     expect(found).not.toBeNull()
-    expect(found.manufacturerName).toBe('')
-    expect(found.manufacturerContactName).toBe('')
-    expect(found.manufacturerContactEmail).toBe('')
-    expect(found.manufacturerAlternateEmail).toBe('')
-    expect(found.manufacturerPhone).toBe('')
   })
 
   test('findAllItems filters by technicalApproval and regional approvals correctly for appliances', async () => {
@@ -233,29 +273,29 @@ describe('db-service', () => {
     await createItem(server.db, 'appliance', {
       modelName: 'Certified Model',
       technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     // Create appliance with missing technicalApproval
     await createItem(server.db, 'appliance', {
       modelName: 'Missing Technical Approval',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     // Create appliance with non-Certified regional approvals (no Certified region)
     await createItem(server.db, 'appliance', {
       modelName: 'No Regional Approval',
       technicalApproval: 'Certified',
-      walesApproval: 'Uncertified',
-      nIrelandApproval: 'Uncertified',
+      englandApproval: 'Uncertified',
       scotlandApproval: 'Uncertified',
-      englandApproval: 'Uncertified'
+      walesApproval: 'Uncertified',
+      nIrelandApproval: 'Uncertified'
     })
 
     const results = await findAllItems(server.db, 'appliance')
@@ -270,19 +310,19 @@ describe('db-service', () => {
     await createItem(server.db, 'fuel', {
       brandNames: 'Certified Fuel',
       technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     // Create fuel with missing technicalApproval
     await createItem(server.db, 'fuel', {
       brandNames: 'Missing Approval',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     const results = await findAllItems(server.db, 'fuel')
@@ -300,10 +340,10 @@ describe('db-service', () => {
       allowedFuels: ['Gas', 'Oil'],
       companyName: 'TestCorp',
       technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     const results = await findAllItems(server.db, 'appliance')
@@ -343,18 +383,18 @@ describe('db-service', () => {
     await createItem(server.db, 'appliance', {
       modelName: 'Regional Test',
       technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Uncertified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Certified'
     })
 
     const results = await findAllItems(server.db, 'appliance')
 
     expect(results[0].authorisedIn).toEqual([
+      'England',
       'Wales',
-      'Northern Ireland',
-      'England'
+      'Northern Ireland'
     ])
   })
 
@@ -363,15 +403,15 @@ describe('db-service', () => {
       modelName: 'Regional Test 2',
       applianceId: 'APP-REGION-TEST',
       technicalApproval: 'Certified',
-      walesApproval: 'Uncertified',
-      nIrelandApproval: 'Certified',
+      englandApproval: 'Uncertified',
       scotlandApproval: 'Certified',
-      englandApproval: 'Uncertified'
+      walesApproval: 'Uncertified',
+      nIrelandApproval: 'Certified'
     })
 
     const found = await findItem(server.db, 'appliance', 'APP-REGION-TEST')
 
-    expect(found.authorisedIn).toEqual(['Northern Ireland', 'Scotland'])
+    expect(found.authorisedIn).toEqual(['Scotland', 'Northern Ireland'])
   })
 
   test('authorisedIn field correctly identifies regional certifications for fuel via findItem', async () => {
@@ -379,15 +419,15 @@ describe('db-service', () => {
       brandNames: 'Regional Fuel Test',
       fuelId: 'FUEL-REGION-TEST',
       technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Uncertified',
+      englandApproval: 'Certified',
       scotlandApproval: 'Uncertified',
-      englandApproval: 'Certified'
+      walesApproval: 'Certified',
+      nIrelandApproval: 'Uncertified'
     })
 
     const found = await findItem(server.db, 'fuel', 'FUEL-REGION-TEST')
 
-    expect(found.authorisedIn).toEqual(['Wales', 'England'])
+    expect(found.authorisedIn).toEqual(['England', 'Wales'])
   })
 
   test('createItem with existing id preserves provided id', async () => {
@@ -428,5 +468,363 @@ describe('db-service', () => {
     await expect(
       createItem(mockDb, 'appliance', { modelName: 'Test' })
     ).rejects.toThrow('Failed to insert document')
+  })
+
+  test('updateItem updates fuel document and returns updated document', async () => {
+    const created = await createItem(server.db, 'fuel', {
+      brandNames: 'OldFuel',
+      manufacturer: 'OldManu'
+    })
+    const { updated } = await updateItem(server.db, 'fuel', created.fuelId, {
+      brandNames: 'NewFuel',
+      manufacturer: 'NewManu'
+    })
+    expect(updated).toBeDefined()
+    expect(updated.brandNames).toBe('NewFuel')
+    expect(updated.manufacturer).toBe('NewManu')
+  })
+
+  test('updateItem updates multiple fields at once', async () => {
+    const created = await createItem(server.db, 'appliance', {
+      manufacturer: 'MultiOld',
+      modelName: 'OldModel',
+      modelNumber: 1
+    })
+    const { updated } = await updateItem(
+      server.db,
+      'appliance',
+      created.applianceId,
+      { manufacturer: 'MultiNew', modelName: 'NewModel', modelNumber: 2 }
+    )
+    expect(updated.manufacturer).toBe('MultiNew')
+    expect(updated.modelName).toBe('NewModel')
+    expect(updated.modelNumber).toBe(2)
+  })
+
+  test('updateItem with empty update object does not change fields', async () => {
+    const created = await createItem(server.db, 'appliance', {
+      manufacturer: 'NoChange',
+      modelName: 'NoChangeModel'
+    })
+    const { updated } = await updateItem(
+      server.db,
+      'appliance',
+      created.applianceId,
+      {}
+    )
+    expect(updated.manufacturer).toBe('NoChange')
+    expect(updated.modelName).toBe('NoChangeModel')
+  })
+
+  test('updateItem throws for invalid type', async () => {
+    await expect(
+      updateItem(server.db, 'invalidType', 'someId', { foo: 'bar' })
+    ).rejects.toThrow('Unknown type: invalidType')
+  })
+
+  test('updateItem only updates intended fields', async () => {
+    const created = await createItem(server.db, 'appliance', {
+      manufacturer: 'PartialOld',
+      modelName: 'PartialModel',
+      modelNumber: 10
+    })
+    const { updated } = await updateItem(
+      server.db,
+      'appliance',
+      created.applianceId,
+      { manufacturer: 'PartialNew' }
+    )
+    expect(updated.manufacturer).toBe('PartialNew')
+    expect(updated.modelName).toBe('PartialModel')
+    expect(updated.modelNumber).toBe(10)
+  })
+
+  // Tests for mapping function behavior differences (summary vs detail)
+  describe('appliance summary vs detail mappings', () => {
+    test('findAllItems returns appliance summary objects without fullAddress', async () => {
+      await createItem(server.db, 'appliance', {
+        modelName: 'Summary Test Model',
+        companyName: 'TestCorp',
+        applianceType: 'Boiler',
+        modelNumber: 'MOD-123',
+        allowedFuels: ['Gas', 'Oil'],
+        technicalApproval: 'Certified',
+        englandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        isUkBased: true,
+        companyAddressLine1: '123 Main St',
+        companyAddressCity: 'London',
+        companyAddressPostcode: 'SW1A 1AA'
+      })
+
+      const results = await findAllItems(server.db, 'appliance')
+      expect(results.length).toBe(1)
+      const summary = results[0]
+
+      // Summary should have these fields
+      expect(summary).toHaveProperty('name', 'Summary Test Model')
+      expect(summary).toHaveProperty('id')
+      expect(summary).toHaveProperty('manufacturer', 'TestCorp')
+      expect(summary).toHaveProperty('fuels', 'Gas, Oil')
+      expect(summary).toHaveProperty('type', 'Boiler')
+      expect(summary).toHaveProperty('modelNumber', 'MOD-123')
+      expect(summary).toHaveProperty('authorisedIn')
+
+      // Summary should NOT have these detail fields
+      expect(summary).not.toHaveProperty('fullAddress')
+    })
+
+    test('findItem returns appliance detail object with fullAddress', async () => {
+      await createItem(server.db, 'appliance', {
+        modelName: 'Detail Test Model',
+        applianceId: 'APP-DETAIL-TEST',
+        companyName: 'DetailCorp',
+        applianceType: 'Stove',
+        modelNumber: 'DET-456',
+        allowedFuels: ['Solid'],
+        technicalApproval: 'Certified',
+        englandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        isUkBased: true,
+        companyAddressLine1: '456 Oak Ave',
+        companyAddressLine2: 'Suite 100',
+        companyAddressCity: 'Manchester',
+        companyAddressCounty: 'Greater Manchester',
+        companyAddressPostcode: 'M1 1AA'
+      })
+
+      const detail = await findItem(server.db, 'appliance', 'APP-DETAIL-TEST')
+      expect(detail).not.toBeNull()
+
+      // Detail should have summary fields
+      expect(detail).toHaveProperty('name', 'Detail Test Model')
+      expect(detail).toHaveProperty('id', 'APP-DETAIL-TEST')
+      expect(detail).toHaveProperty('authorisedIn')
+
+      // Detail should have additional fields
+      expect(detail).toHaveProperty('fullAddress')
+      expect(detail.fullAddress).toEqual([
+        '456 Oak Ave',
+        'Suite 100',
+        'Manchester',
+        'Greater Manchester',
+        'M1 1AA'
+      ])
+      expect(detail).toHaveProperty('companyName', 'DetailCorp')
+    })
+
+    test('findAllItems returns appliance summary with single fuel as string', async () => {
+      await createItem(server.db, 'appliance', {
+        modelName: 'Single Fuel Model',
+        allowedFuels: 'Gas',
+        technicalApproval: 'Certified',
+        englandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified'
+      })
+
+      const results = await findAllItems(server.db, 'appliance')
+      expect(results[0].fuels).toBe('Gas')
+    })
+
+    test('findAllItems returns appliance summary with multiple fuels joined', async () => {
+      await createItem(server.db, 'appliance', {
+        modelName: 'Multi Fuel Model',
+        allowedFuels: ['Gas', 'Oil', 'LPG'],
+        technicalApproval: 'Certified',
+        englandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified'
+      })
+
+      const results = await findAllItems(server.db, 'appliance')
+      expect(results[0].fuels).toBe('Gas, Oil, LPG')
+    })
+  })
+
+  describe('fuel summary vs detail mappings', () => {
+    test('findAllItems returns fuel summary objects without fullAddress', async () => {
+      await createItem(server.db, 'fuel', {
+        brandNames: 'Premium Fuel',
+        companyName: 'FuelCo',
+        technicalApproval: 'Certified',
+        englandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        englandUpdatedDate: '2026-01-01T10:00:00Z',
+        scotlandUpdatedDate: '2026-01-02T10:00:00Z',
+        walesUpdatedDate: '2026-01-03T10:00:00Z',
+        nIrelandUpdatedDate: '2026-01-04T10:00:00Z',
+        isUkBased: true,
+        companyAddressLine1: '789 Fuel St',
+        companyAddressCity: 'Birmingham',
+        companyAddressPostcode: 'B1 1AA'
+      })
+
+      const results = await findAllItems(server.db, 'fuel')
+      expect(results.length).toBe(1)
+      const summary = results[0]
+
+      // Summary should have these fields
+      expect(summary).toHaveProperty('name', 'Premium Fuel')
+      expect(summary).toHaveProperty('id')
+      expect(summary).toHaveProperty('manufacturer', 'FuelCo')
+      expect(summary).toHaveProperty('authorisedIn')
+      expect(summary).toHaveProperty('lastUpdatedDate')
+
+      // Summary should NOT have these detail fields
+      expect(summary).not.toHaveProperty('fullAddress')
+    })
+
+    test('findItem returns fuel detail object with fullAddress', async () => {
+      await createItem(server.db, 'fuel', {
+        brandNames: 'Premium Fuel Detail',
+        fuelId: 'FUEL-DETAIL-TEST',
+        companyName: 'DetailFuelCo',
+        technicalApproval: 'Certified',
+        englandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        englandUpdatedDate: '2026-01-01T10:00:00Z',
+        scotlandUpdatedDate: '2026-01-02T10:00:00Z',
+        walesUpdatedDate: '2026-01-03T10:00:00Z',
+        nIrelandUpdatedDate: '2026-01-04T10:00:00Z',
+        isUkBased: true,
+        companyAddressLine1: '999 Fuel Ave',
+        companyAddressLine2: 'Floor 5',
+        companyAddressCity: 'Bristol',
+        companyAddressCounty: 'Bristol',
+        companyAddressPostcode: 'BS1 1AA'
+      })
+
+      const detail = await findItem(server.db, 'fuel', 'FUEL-DETAIL-TEST')
+      expect(detail).not.toBeNull()
+
+      // Detail should have summary fields
+      expect(detail).toHaveProperty('name', 'Premium Fuel Detail')
+      expect(detail).toHaveProperty('id', 'FUEL-DETAIL-TEST')
+      expect(detail).toHaveProperty('authorisedIn')
+      expect(detail).toHaveProperty('lastUpdatedDate')
+
+      // Detail should have additional fields
+      expect(detail).toHaveProperty('fullAddress')
+      expect(detail.fullAddress).toEqual([
+        '999 Fuel Ave',
+        'Floor 5',
+        'Bristol',
+        'Bristol',
+        'BS1 1AA'
+      ])
+      expect(detail).toHaveProperty('companyName', 'DetailFuelCo')
+    })
+
+    test('findItem for fuel with non-UK address returns detail with correct fullAddress', async () => {
+      await createItem(server.db, 'fuel', {
+        brandNames: 'International Fuel',
+        fuelId: 'FUEL-INTL-TEST',
+        companyName: 'IntlFuelCorp',
+        isUkBased: false,
+        companyAddress: '123 Rue de France, 75001 Paris',
+        technicalApproval: 'Certified',
+        englandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        englandUpdatedDate: '2026-01-01T10:00:00Z'
+      })
+
+      const detail = await findItem(server.db, 'fuel', 'FUEL-INTL-TEST')
+      expect(detail.fullAddress).toEqual(['123 Rue de France, 75001 Paris'])
+    })
+  })
+
+  describe('appliance detail field completeness', () => {
+    test('findItem appliance includes all original item fields plus mapped fields', async () => {
+      await createItem(server.db, 'appliance', {
+        applianceId: 'APP-COMPLETE-TEST',
+        modelName: 'Complete Test',
+        modelNumber: 'COMP-001',
+        companyName: 'CompleteCorp',
+        companyContactName: 'John Doe',
+        companyContactEmail: 'john@complete.com',
+        phoneNumber: '555-1234',
+        technicalApproval: 'Certified',
+        englandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        isUkBased: true,
+        companyAddressLine1: '100 Test St',
+        companyAddressCity: 'TestCity'
+      })
+
+      const detail = await findItem(server.db, 'appliance', 'APP-COMPLETE-TEST')
+
+      // Original fields should be preserved
+      expect(detail).toHaveProperty('modelName', 'Complete Test')
+      expect(detail).toHaveProperty('modelNumber', 'COMP-001')
+      expect(detail).toHaveProperty('companyName', 'CompleteCorp')
+      expect(detail).toHaveProperty('companyContactName', 'John Doe')
+
+      // Mapped fields should be added
+      expect(detail).toHaveProperty('name', 'Complete Test')
+      expect(detail).toHaveProperty('id', 'APP-COMPLETE-TEST')
+      expect(detail).toHaveProperty('authorisedIn', [
+        'England',
+        'Scotland',
+        'Wales',
+        'Northern Ireland'
+      ])
+      expect(detail).toHaveProperty('fullAddress')
+    })
+
+    test('findItem fuel includes all original item fields plus mapped fields', async () => {
+      await createItem(server.db, 'fuel', {
+        fuelId: 'FUEL-COMPLETE-TEST',
+        brandNames: 'Complete Fuel',
+        companyName: 'CompleteFuelCorp',
+        technicalApproval: 'Certified',
+        englandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        englandUpdatedDate: '2026-01-01T10:00:00Z',
+        scotlandUpdatedDate: '2026-01-02T10:00:00Z',
+        walesUpdatedDate: '2026-01-03T10:00:00Z',
+        nIrelandUpdatedDate: '2026-01-04T10:00:00Z',
+        isUkBased: true,
+        companyAddressLine1: '100 Fuel St',
+        companyAddressCity: 'FuelCity'
+      })
+
+      const detail = await findItem(server.db, 'fuel', 'FUEL-COMPLETE-TEST')
+
+      // Original fields should be preserved
+      expect(detail).toHaveProperty('brandNames', 'Complete Fuel')
+      expect(detail).toHaveProperty('companyName', 'CompleteFuelCorp')
+
+      // Mapped fields should be added
+      expect(detail).toHaveProperty('name', 'Complete Fuel')
+      expect(detail).toHaveProperty('id', 'FUEL-COMPLETE-TEST')
+      expect(detail).toHaveProperty('authorisedIn', [
+        'England',
+        'Scotland',
+        'Wales',
+        'Northern Ireland'
+      ])
+      expect(detail).toHaveProperty(
+        'lastUpdatedDate',
+        '2026-01-04T10:00:00.000Z'
+      )
+      expect(detail).toHaveProperty('fullAddress')
+    })
   })
 })
