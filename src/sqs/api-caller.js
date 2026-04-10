@@ -6,6 +6,7 @@
 // INTERNAL API CALL (Hapi inject)
 // -------------------------------
 export async function callCreateAPI(server, type, payload) {
+  console.log(payload)
   callQueueAPI(server, payload) // delelete later, just for testing
   // logger.info(
   //   `Calling internal API for type: ${type} with payload: ${JSON.stringify(payload)}`
@@ -35,7 +36,7 @@ export async function callQueueAPI(server, payload) {
 
   if (response.statusCode >= 400) {
     throw new Error(
-      `Internal API error: ${response.statusCode} - ${response.result?.msg}`
+      `Internal Queue API error: ${response.statusCode} - ${response.result?.msg}`
     )
   }
 

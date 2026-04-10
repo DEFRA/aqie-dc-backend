@@ -3,6 +3,7 @@ const keyMapAppliance = {
   CTGxGs: 'companyName',
   TbMaXV: 'isUkBased',
 
+  mwGItn: 'addressObject', //Address comes in this block
   addressLine1: 'companyAddressLine1',
   addressLine2: 'companyAddressLine2',
   town: 'companyAddressCity',
@@ -27,8 +28,8 @@ const keyMapAppliance = {
   GFREno: 'existingAuthorisedAppliance',
   jxCIYY: 'nominalOutput',
   Ltjqls: 'allowedFuels',
+  NGfXVf: 'otherFuelDetails', //schema change needed
 
-  NGfXVf: 'instructionManualTitle',
   tBhcJV: 'instructionManualTitle',
   PebAxQ: 'instructionManualDate',
   ZvUEHQ: 'instructionManualVersion',
@@ -88,12 +89,22 @@ const keyMapFuel = {
 // Mapper function
 export function mapKeys(input, type) {
   const result = {}
+  const keyMap = type === 'appliance' ? keyMapAppliance : keyMapFuel
 
   for (const [key, value] of Object.entries(input)) {
-    const mappedKey =
-      type === 'appliance' ? keyMapAppliance[key] : keyMapFuel[key]
+    const mappedKey = keyMap[key]
+
     if (mappedKey) {
-      result[mappedKey] = value
+      // If value is an object (but not null or array), recursively map it
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        !Array.isArray(value)
+      ) {
+        result[mappedKey] = mapKeys(value, type)
+      } else {
+        result[mappedKey] = value
+      }
     }
     // keys mapped to null or missing are skipped
   }

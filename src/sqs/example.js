@@ -2,38 +2,33 @@
 export const exampleA = {
   meta: {
     schemaVersion: 1,
-    timestamp: '2026-04-08T16:30:23.308Z',
-    referenceNumber: '72Y-K88-ZAD',
-    form: '****** or other appliance certified for use in smoke control areas',
+    timestamp: '2026-04-08T21:33:06.160Z',
+    referenceNumber: 'CT9-YB2-8B3',
+    formName:
+      'Get a stove or other appliance certified for use in smoke control areas',
     formId: '69a80de205ec1896e96af1c6',
     formSlug:
       'get-a-stove-or-other-appliance-certified-for-use-in-smoke-control-areas',
     status: 'draft',
     isPreview: true,
-    notificationEmail: 'tasha.symons@defra.gov.uk',
-    versionMetadata: {
-      versionNumber: 3,
-      createdAt: '2026-03-04T10:48:34.590Z'
-    }
+    notificationEmail: 'person@abc.com',
+    versionMetadata: { versionNumber: 3, createdAt: '2026-03-04T10:48:34.590Z' }
   },
   data: {
     main: {
-      CTGxGs: {
-        label: 'Company ******',
-        value: true
-      },
+      CTGxGs: 'Hello',
+      TbMaXV: true,
       mwGItn: {
-        uprn: '100071384716',
-        addressLine1: '******',
-        addressLine2: '************',
-        postcode: '******'
+        uprn: '38002618',
+        addressLine1: 'Coopers Coffee Shop 362',
+        addressLine2: 'Aigburth Road',
+        town: 'Liverpool',
+        postcode: 'L17 6AE'
       },
-      CfdMSm: {
-        label: 'Main Contact ******',
-        value: 'testemail@gmail.com'
-      },
-      eDOPFB: 'alternate1@email.com',
-      JIeTGU: '******',
+      CfdMSm: 'test',
+      gTshkc: 'etes@gmail.com',
+      eDOPFB: null,
+      JIeTGU: null,
       tBhcJV: 'InstructionalManualDetailsTitleTest1',
       PebAxQ: '12/01/1998',
       ZvUEHQ: '1111',
@@ -43,15 +38,12 @@ export const exampleA = {
     repeaters: {
       LbZxXf: [
         {
-          cciwNV: {
-            label: 'App details Model ******',
-            value: '1111'
-          },
+          cciwNV: 'ModelName',
+          oSUxHw: '2121',
           LkASfn: 'Stove',
           xlcDZp: 'other type',
           mVqdEy: true,
           GFREno: 'certified app test 1',
-          jxCIYY: 12,
           Ltjqls: ['Wood logs'],
           NGfXVf:
             'If other, what fuel types will the appliance be certified to burn? (optional) test 1'
@@ -62,10 +54,8 @@ export const exampleA = {
   },
   result: {
     files: {
-      main: 'aa055313-2ccf-4f03-a9ae-e30fdf38610f',
-      repeaters: {
-        LbZxXf: 'd534ff01-36e2-4ace-a2e6-c365d6fb49b1'
-      }
+      main: '35f4d1da-b60b-42b5-bbc5-13d9867c527c',
+      repeaters: { LbZxXf: 'e7ae84d9-13f3-4f00-8c58-5ef2b8fe548d' }
     }
   }
 }
@@ -113,7 +103,7 @@ export const exampleB = {
       'get-a-stove-or-other-appliance-certified-for-use-in-smoke-control-areas',
     status: 'draft',
     isPreview: true,
-    notificationEmail: 'tasha.symons@defra.gov.uk',
+    notificationEmail: 'person@abc.com',
     versionMetadata: {
       versionNumber: 3,
       createdAt: '2026-03-04T10:48:34.590Z'

@@ -60,6 +60,9 @@ const receiveMessage = (queueUrl, abortSignal) =>
 // -------------------------------
 export const main = async (server, queueUrl, abortSignal) => {
   try {
+    //testing - delete later
+    createNewRecord(exampleA, server)
+    //
     if (!queueUrl) {
       queueUrl = await getQueueUrl() // ★ Correct queue URL
     }
@@ -107,15 +110,15 @@ export const main = async (server, queueUrl, abortSignal) => {
       }
 
       //Temporary - delete later
-      try {
-        await callQueueAPI(server, message.Body)
-      } catch {
-        logger.error('Failed internal Queue API')
-      }
+      // try {
+      //   await callQueueAPI(server, message.Body)
+      // } catch {
+      //   logger.error('Failed internal Queue API')
+      // }
       //
 
       try {
-        await createNewRecord(messageBody, server)
+        await createNewRecord(messageBody, server) //change to message =.body
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)
         logger.error(err)
