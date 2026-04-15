@@ -189,7 +189,7 @@ const config = convict({
     sqsEndpoint: {
       doc: 'SQS endpoint URL',
       format: String,
-      default: 'https://sqs.eu-west-2.amazonaws.com/756547862786/aqie-dc-queue',
+      default: 'http://localhost:4566',
       env: 'SQS_ENDPOINT'
     }
   }

@@ -6,11 +6,12 @@ import {
   DeleteMessageBatchCommand
 } from '@aws-sdk/client-sqs'
 
-//import { config } from '../config.js'
+import { config } from '../config.js'
 import { createLogger } from '../common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
-import { callCreateAPI, callQueueAPI } from './api-caller.js'
+import { callCreateAPI } from './api-caller.js'
+// import { callQueueAPI } from './api-caller.js'
 import { exampleA } from './example.js'
 
 const logger = createLogger()
@@ -19,10 +20,8 @@ const logger = createLogger()
 // SQS CLIENT
 // -------------------------------
 export const sqsClient = new SQSClient({
-  region: 'eu-west-2',
-  //config.get('aws.region'), // eu-west-2
-  endpoint: 'https://sqs.eu-west-2.amazonaws.com'
-  //config.get('aws.sqsEndpoint') // https://sqs.eu-west-2.amazonaws.com
+  region: config.get('aws.region'),
+  endpoint: config.get('aws.sqsEndpoint')
   // credentials automatically loaded from env / IAM if running on EC2 / Lambda
 })
 
