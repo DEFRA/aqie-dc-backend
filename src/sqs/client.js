@@ -60,7 +60,9 @@ const receiveMessage = (queueUrl, abortSignal) =>
 export const main = async (server, queueUrl, abortSignal) => {
   try {
     //testing - delete later
-    createNewRecord(exampleA, server)
+    if (process.env.ENVIRONMENT === 'local') {
+      createNewRecord(exampleA, server)
+    }
     //
     if (!queueUrl) {
       queueUrl = await getQueueUrl() // ★ Correct queue URL
