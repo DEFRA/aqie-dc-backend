@@ -119,7 +119,7 @@ export const main = async (server, queueUrl, abortSignal) => {
       //
 
       try {
-        await createNewRecord(messageBody, server) //change to message =.body
+        await createNewRecord(message.body, server)
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)
         logger.error(err)
