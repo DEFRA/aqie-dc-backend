@@ -10,8 +10,7 @@ import { config } from '../config.js'
 import { createLogger } from '../common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
-import { callCreateAPI } from './api-caller.js'
-// import { callQueueAPI } from './api-caller.js'
+import { callCreateAPI, callQueueAPI } from './api-caller.js'
 import { exampleA } from './example.js'
 
 const logger = createLogger()
@@ -59,11 +58,13 @@ const receiveMessage = (queueUrl, abortSignal) =>
 // -------------------------------
 export const main = async (server, queueUrl, abortSignal) => {
   try {
-    //testing - delete later
+    //This is for exploring mapping - delete later
     if (process.env.ENVIRONMENT === 'local') {
       createNewRecord(exampleA, server)
+      console.log(exampleA)
     }
-    //
+    //end of exploring mapping - delete later
+
     if (!queueUrl) {
       queueUrl = await getQueueUrl() // ★ Correct queue URL
     }
@@ -71,59 +72,35 @@ export const main = async (server, queueUrl, abortSignal) => {
     const { Messages } = await receiveMessage(queueUrl, abortSignal)
 
     if (!Messages) return
-    // logger.info(`Received ${Messages.length} message(s) from SQS`)
-    // logger.debug('Messages:', Messages)
-
-    // -------------------------------
-    // SINGLE MESSAGE
-    // -------------------------------
-    // if (Messages.length === 1) {
-    //   const message = Messages[0]
-    //   logger.info(`Processing message: ${JSON.parse(message)}`)
-    //   logger.info(`Processing message body: ${JSON.parse(message.Body)}`)
-
-    //   createNewRecord(message, server)
-
-    //   await sqsClient.send(
-    //     new DeleteMessageCommand({
-    //       QueueUrl: queueUrl,
-    //       ReceiptHandle: message.ReceiptHandle
-    //     })
-    //   )
-
-    //   return
-    // }
+    logger.info(`Received ${Messages.length} message(s) from SQS`)
 
     // -------------------------------
     // MULTIPLE MESSAGES
     // -------------------------------
     for (const message of Messages) {
-      let messageBody
-
       try {
         // Validate JSON before processing
-        // logger.info(message.Body)
-        messageBody = JSON.parse(message.Body)
+        JSON.parse(message.Body)
       } catch {
         logger.error('Invalid JSON in SQS message:', message.Body)
         logger.error(message.Body)
         continue // Skip this one, do not break the loop
       }
 
-      //Temporary - delete later
-      // try {
-      //   await callQueueAPI(server, message.Body)
-      // } catch {
-      //   logger.error('Failed internal Queue API')
-      // }
-      //
+      //This is for exploring mapping - delete or extract later
+      try {
+        await callQueueAPI(server, message.Body)
+      } catch {
+        logger.error('Failed internal Queue API')
+      }
+      //end
 
       try {
         await createNewRecord(message.body, server)
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)
         logger.error(err)
-        console.log(exampleA) //temporary - delete later
+
         continue // Skip this one, do not break the loop
       }
     }
