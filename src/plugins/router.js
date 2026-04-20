@@ -6,6 +6,7 @@ import {
   initiateImportController,
   checkUploadStatusController
 } from '../routes/admin-import.js'
+import { createApplication } from '../routes/applications/create-application.js'
 import { getAllApplications } from '../routes/applications/get-all-applications.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
@@ -91,7 +92,7 @@ const router = {
       })
 
       // Application API routes
-      server.route([getAllApplications])
+      server.route([createApplication, getAllApplications])
 
       // Appliance API routes
       server.route([

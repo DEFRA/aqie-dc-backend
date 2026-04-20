@@ -28,7 +28,7 @@ const applicationsValidator = {
       },
       status: {
         bsonType: 'string',
-        enum: ['draft', 'submitted', 'under_review', 'approved', 'rejected'],
+        enum: ['new', 'inprogress', 'complete'],
         description: 'Application status - required'
       },
       applicationType: {

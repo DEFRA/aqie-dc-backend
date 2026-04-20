@@ -1,19 +1,20 @@
 /**
- * Get all applications with pagination
+ * Search applications by status or reviewer
  */
 
 import Joi from 'joi'
 import * as applicationsController from '../../controllers/applications-controller.js'
 
-export const getAllApplications = {
+export const searchApplications = {
   method: 'GET',
-  path: '/api/applications',
+  path: '/api/applications/search',
   options: {
     tags: ['api', 'applications'],
-    description: 'Get all applications',
-    notes: 'Returns a paginated list of all applications',
+    description: 'Search applications',
+    notes: 'Search applications by status or reviewer',
     validate: {
       query: Joi.object({
+        q: Joi.string().min(2).required().description('Search query'),
         page: Joi.number()
           .integer()
           .min(1)
@@ -29,12 +30,12 @@ export const getAllApplications = {
     }
   },
   handler: async (request, h) => {
-    const { page, limit } = request.query
+    const { q, page, limit } = request.query
 
     try {
-      const result = await applicationsController.getAllApplications(
+      const result = await applicationsController.searchApplications(
         request.db,
-        { page, limit },
+        { query: q, page, limit },
         request.logger
       )
 
@@ -43,7 +44,7 @@ export const getAllApplications = {
       return h
         .response({
           success: false,
-          message: 'Failed to fetch applications',
+          message: 'Failed to search applications',
           error: error.message
         })
         .code(500)
