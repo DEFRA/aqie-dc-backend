@@ -1,13 +1,13 @@
 /**
- * Get all users with pagination
+ * Get all applications with pagination
  */
 
 import Joi from 'joi'
-import * as usersController from '../../controllers/users-controller.js'
+import * as applicationsController from '../../controllers/applications-controller.js'
 
-export const getAllUsers = {
+export const getAllApplications = {
   method: 'GET',
-  path: '/api/users',
+  path: '/api/applications',
   options: {
     validate: {
       query: Joi.object({
@@ -20,7 +20,7 @@ export const getAllUsers = {
     const { page, limit } = request.query
 
     try {
-      const result = await usersController.getAllUsers(
+      const result = await applicationsController.getAllApplications(
         request.db,
         { page, limit },
         request.logger
@@ -31,7 +31,7 @@ export const getAllUsers = {
       return h
         .response({
           success: false,
-          message: 'Failed to fetch users',
+          message: 'Failed to fetch applications',
           error: error.message
         })
         .code(500)
