@@ -170,9 +170,47 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
   }
 }
 
+/**
+ * Get count of applications with 'in progress' status
+ */
+async function getInProgressCount(db, logger) {
+  try {
+    const collection = db.collection('Applications')
+    const count = await collection.countDocuments({ status: 'in progress' })
+
+    return {
+      success: true,
+      count
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to get in-progress application count')
+    throw error
+  }
+}
+
+/**
+ * Get count of applications with 'new' status
+ */
+async function getNewCount(db, logger) {
+  try {
+    const collection = db.collection('Applications')
+    const count = await collection.countDocuments({ status: 'new' })
+
+    return {
+      success: true,
+      count
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to get new application count')
+    throw error
+  }
+}
+
 export {
   createApplication,
   getAllApplications,
   getApplicationById,
-  searchApplications
+  searchApplications,
+  getInProgressCount,
+  getNewCount
 }

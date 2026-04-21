@@ -8,6 +8,10 @@ import {
 } from '../routes/admin-import.js'
 import { createApplication } from '../routes/applications/create-application.js'
 import { getAllApplications } from '../routes/applications/get-all-applications.js'
+import {
+  getInProgressApplicationCount,
+  getNewApplicationCount
+} from '../routes/applications/get-application-count.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { searchAppliances } from '../routes/appliances/search-appliances.js'
@@ -92,7 +96,12 @@ const router = {
       })
 
       // Application API routes
-      server.route([createApplication, getAllApplications])
+      server.route([
+        createApplication,
+        getAllApplications,
+        getInProgressApplicationCount,
+        getNewApplicationCount
+      ])
 
       // Appliance API routes
       server.route([
