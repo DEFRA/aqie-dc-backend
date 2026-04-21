@@ -3,8 +3,8 @@
  * POST /api/applications
  */
 
-import Joi from 'joi'
 import * as applicationsController from '../../controllers/applications-controller.js'
+import { applicationsSchema } from '../schema.js'
 
 export const createApplication = {
   method: 'POST',
@@ -14,18 +14,7 @@ export const createApplication = {
     description: 'Create a new application',
     notes: 'Creates a new appliance or fuel application in the system',
     validate: {
-      payload: Joi.object({
-        applicationType: Joi.string()
-          .valid('appliance', 'fuel')
-          .required()
-          .description('Type of application'),
-        submittedAt: Joi.date()
-          .optional()
-          .description('When the application was created at (from form)'),
-        additionalMetadata: Joi.object()
-          .optional()
-          .description('Optional additional metadata')
-      }).unknown(false)
+      payload: applicationsSchema
     }
   },
   handler: async (request, h) => {

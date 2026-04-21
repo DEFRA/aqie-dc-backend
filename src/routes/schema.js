@@ -374,3 +374,18 @@ export const fuelSchema = Joi.object({
     .optional()
     .description('England date last updated (last certified or revoked)')
 }).label('Fuel')
+
+export const applicationsSchema = Joi.object({
+  applicationType: Joi.string()
+    .valid('appliance', 'fuel')
+    .required()
+    .description('Type of application'),
+  submittedAt: Joi.date()
+    .optional()
+    .description('When the application was submitted'),
+  additionalMetadata: Joi.object()
+    .optional()
+    .description('Optional additional metadata')
+})
+  .unknown(false)
+  .label('Application')
