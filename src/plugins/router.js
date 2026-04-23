@@ -12,6 +12,7 @@ import {
   getInProgressApplicationCount,
   getNewApplicationCount
 } from '../routes/applications/get-application-count.js'
+import { createAppliance } from '../routes/appliances/create-appliance.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { searchAppliances } from '../routes/appliances/search-appliances.js'
@@ -105,6 +106,7 @@ const router = {
 
       // Appliance API routes
       server.route([
+        createAppliance,
         getAllAppliances,
         searchAppliances, // Must come before getApplianceById to avoid route conflict
         getApplianceById
