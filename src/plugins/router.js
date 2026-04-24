@@ -1,22 +1,24 @@
 import { health } from '../routes/health.js'
 import { example } from '../routes/example.js'
 import { uploadCallback } from '../routes/upload-callback.js'
-import { api } from '../routes/api.js'
+import { api } from '../routes/api.js' //TODO: needs removing after all refactoring
 import {
   initiateImportController,
   checkUploadStatusController
 } from '../routes/admin-import.js'
-import { getAllUsers } from '../routes/users/get-all-users.js'
-import { getUserById } from '../routes/users/get-user-by-id.js'
-import { getUserWithRelations } from '../routes/users/get-user-with-relations.js'
-import { searchUsers } from '../routes/users/search-users.js'
+import { createApplication } from '../routes/applications/create-application.js'
+import { getAllApplications } from '../routes/applications/get-all-applications.js'
+import {
+  getInProgressApplicationCount,
+  getNewApplicationCount
+} from '../routes/applications/get-application-count.js'
+import { createAppliance } from '../routes/appliances/create-appliance.js'
+import { getAllAppliance } from '../routes/appliances/get-all-appliance.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
-import { getApplianceWithUsers } from '../routes/appliances/get-appliance-with-users.js'
 import { searchAppliances } from '../routes/appliances/search-appliances.js'
 import { getAllFuels } from '../routes/fuels/get-all-fuels.js'
 import { getFuelById } from '../routes/fuels/get-fuel-by-id.js'
-import { getFuelWithUsers } from '../routes/fuels/get-fuel-with-users.js'
 import { searchFuels } from '../routes/fuels/search-fuels.js'
 import { test } from '../dc/routes/test.js'
 import Inert from '@hapi/inert'
@@ -95,28 +97,28 @@ const router = {
         }
       })
 
-      // User API routes
+      // Application API routes
       server.route([
-        getAllUsers,
-        searchUsers, // Must come before getUserById to avoid route conflict
-        getUserById,
-        getUserWithRelations
+        createApplication,
+        getAllApplications,
+        getInProgressApplicationCount,
+        getNewApplicationCount
       ])
 
       // Appliance API routes
       server.route([
+        createAppliance,
+        getAllAppliance,
         getAllAppliances,
         searchAppliances, // Must come before getApplianceById to avoid route conflict
-        getApplianceById,
-        getApplianceWithUsers
+        getApplianceById
       ])
 
       // Fuel API routes
       server.route([
         getAllFuels,
         searchFuels, // Must come before getFuelById to avoid route conflict
-        getFuelById,
-        getFuelWithUsers
+        getFuelById
       ])
     }
   }

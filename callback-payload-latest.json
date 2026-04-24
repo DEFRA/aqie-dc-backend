@@ -2,11 +2,7 @@
   "uploadId": "172fc2bc-ad86-4f21-a802-b1aeace4c9bf",
   "uploadStatus": "ready",
   "metadata": {
-    "entities": [
-      { "type": "appliances" },
-      { "type": "fuels" },
-      { "type": "users" }
-    ]
+    "entities": [{ "type": "appliances" }, { "type": "fuels" }]
   },
   "form": {
     "file": {

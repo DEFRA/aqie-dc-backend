@@ -13,6 +13,7 @@ import fuelExample from '../sample-data/fuel-example.js'
 
 export const api = [
   {
+    //the appliance part of this is moved
     method: 'POST',
     path: '/add-new/{type}',
     options: {
@@ -105,6 +106,7 @@ export const api = [
 
   // GET all
   {
+    //the appliance part of this has been moved
     method: 'GET',
     path: '/get-all/{type}',
     options: {
