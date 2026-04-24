@@ -3,6 +3,7 @@ import * as applianceController from '../../controllers/appliance-controller.js'
 import { applianceSchema } from '../schema.js'
 import applianceExample from '../../sample-data/appliance-example.js'
 
+//Note: this code has been moved from api, needs refactoring
 export const createAppliance = {
   method: 'POST',
   path: '/add-new/appliance',

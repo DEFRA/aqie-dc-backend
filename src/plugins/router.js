@@ -1,7 +1,7 @@
 import { health } from '../routes/health.js'
 import { example } from '../routes/example.js'
 import { uploadCallback } from '../routes/upload-callback.js'
-import { api } from '../routes/api.js'
+import { api } from '../routes/api.js' //TODO: needs removing after all refactoring
 import {
   initiateImportController,
   checkUploadStatusController
@@ -13,6 +13,7 @@ import {
   getNewApplicationCount
 } from '../routes/applications/get-application-count.js'
 import { createAppliance } from '../routes/appliances/create-appliance.js'
+import { getAllAppliance } from '../routes/appliances/get-all-appliance.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { searchAppliances } from '../routes/appliances/search-appliances.js'
@@ -107,6 +108,7 @@ const router = {
       // Appliance API routes
       server.route([
         createAppliance,
+        getAllAppliance,
         getAllAppliances,
         searchAppliances, // Must come before getApplianceById to avoid route conflict
         getApplianceById

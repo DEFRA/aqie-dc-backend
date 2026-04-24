@@ -1,5 +1,5 @@
-import crypto from 'crypto'
 import { createLogger } from '../common/helpers/logging/logger.js'
+import { generateSecureId, findCertified } from '../common/helpers/db-utils.js'
 /**
  * Appliances Controller
  * Business logic for appliance-related operations
@@ -7,13 +7,6 @@ import { createLogger } from '../common/helpers/logging/logger.js'
 
 //NOTE: this code has been moved from db-service, needs refactoring
 const logger = createLogger()
-const generateSecureId = () => {
-  return crypto
-    .randomBytes(9)
-    .toString('base64') // 12 chars but includes +=/
-    .replace(/[^a-zA-Z0-9]/g, '') // remove symbols
-    .slice(0, 12)
-}
 
 /**
  * Create a new appliance
@@ -68,4 +61,57 @@ async function createAppliance(db, type, item) {
   }
 }
 
-export { createAppliance }
+// --- Mapping helpers ---
+// Returns full detail object for single item views
+// function mapApplianceDetail(item) {
+//   return {
+//     ...item,
+//     authorisedIn: findCertified(
+//       item.englandApproval,
+//       item.scotlandApproval,
+//       item.walesApproval,
+//       item.nIrelandApproval
+//     ),
+//     name: item.modelName || '',
+//     id: item.applianceId || '',
+//     fullAddress: getFullAddress(item)
+//   }
+// }
+
+// Returns summary object for list views
+function mapApplianceSummary(item) {
+  return {
+    name: item.modelName || '',
+    id: item.applianceId || '',
+    manufacturer: item.companyName || '',
+    fuels: Array.isArray(item.allowedFuels)
+      ? item.allowedFuels.join(', ')
+      : item.allowedFuels || '',
+    type: item.applianceType,
+    modelNumber: item.modelNumber,
+    authorisedIn: findCertified(
+      item.englandApproval,
+      item.scotlandApproval,
+      item.walesApproval,
+      item.nIrelandApproval
+    )
+  }
+}
+
+//async function getAllAppliance(db, type) {
+async function findAllAppliance(db, type) {
+  const collection = db.collection('Appliance') //TODOD: Change once refactor all
+  const items = (await collection.find({}).toArray()).filter(
+    (item) =>
+      item.technicalApproval === 'Certified' &&
+      [
+        item.englandApproval,
+        item.scotlandApproval,
+        item.walesApproval,
+        item.nIrelandApproval
+      ].includes('Certified')
+  )
+  return items.map((item) => mapApplianceSummary(item))
+}
+
+export { createAppliance, findAllAppliance }
