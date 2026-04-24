@@ -1,9 +1,11 @@
 import crypto from 'crypto'
-import { createLogger } from './common/helpers/logging/logger.js'
+import { createLogger } from '../common/helpers/logging/logger.js'
 /**
  * Appliances Controller
  * Business logic for appliance-related operations
  */
+
+//NOTE: this code has been moved from db-service, needs refactoring
 const logger = createLogger()
 const generateSecureId = () => {
   return crypto
