@@ -15,6 +15,7 @@ const fuelOptions = ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other']
 const INVALID_PHONE_ERROR = 'any.invalid'
 
 export const applianceSchema = Joi.object({
+    applicationId: Joi.string().optional().description('Application ID (foreign key)'),
   // Start of appliance application fields
   companyName: Joi.string().required().description('Company name'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
@@ -374,7 +375,11 @@ export const applicationsSchema = Joi.object({
     .description('When the application was submitted'),
   additionalMetadata: Joi.object()
     .optional()
-    .description('Optional additional metadata')
+    .description('Optional additional metadata'),
+  reviewerEmail: Joi.string()
+    .optional()
+    .description('Email of the reviewer assigned to this application'),
+  appliances: Joi.array().items(applianceSchema).optional()
 })
   .unknown(false)
   .label('Application')
