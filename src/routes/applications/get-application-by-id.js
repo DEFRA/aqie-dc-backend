@@ -7,7 +7,7 @@ import * as applicationsController from '../../controllers/applications-controll
 
 export const getApplicationById = {
   method: 'GET',
-  path: '/api/applications/{applicationId}',
+  path: '/applications/{applicationId}',
   options: {
     tags: ['api', 'applications'],
     description: 'Get application by ID',

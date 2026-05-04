@@ -8,8 +8,15 @@ export const getCounts = {
   method: 'GET',
   path: '/applications/counts',
   handler: async (request, h) => {
-    const { db, logger } = request.server.app
-    const result = await getCountsController(db, logger)
-    return h.response(result).code(200)
+    try {
+      const result = await getCountsController(request.db, request.logger)
+      return h.response(result).code(200)
+    } catch (error) {
+      return h.response({
+        success: false,
+        message: 'Failed to fetch counts',
+        error: error.message
+      }).code(500)
+    }
   }
 }

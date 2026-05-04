@@ -11,7 +11,7 @@ import applicationExample from '../../sample-data/application-example.js'
 //This doesnt have items (appliances in it)
 export const createApplication = {
   method: 'POST',
-  path: '/api/applications',
+  path: '/applications',
   options: {
     tags: ['api', 'applications'],
     description: 'Create a new application',
@@ -41,7 +41,7 @@ export const createApplication = {
           }
         ]
   },
-  
+
   handler: async (request, h) => {
     try {
       const result = await applicationsController.createApplication(
