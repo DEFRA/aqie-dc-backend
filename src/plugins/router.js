@@ -9,9 +9,8 @@ import {
 import { createApplication } from '../routes/applications/create-application.js'
 import { getAllApplications } from '../routes/applications/get-all-applications.js'
 import {
-  getInProgressApplicationCount,
-  getNewApplicationCount
-} from '../routes/applications/get-application-count.js'
+  getCounts
+} from '../routes/applications/get-counts.js'
 import { createAppliance } from '../routes/appliances/create-appliance.js'
 import { getAllAppliance } from '../routes/appliances/get-all-appliance.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
@@ -101,8 +100,7 @@ const router = {
       server.route([
         createApplication,
         getAllApplications,
-        getInProgressApplicationCount,
-        getNewApplicationCount
+        getCounts
       ])
 
       // Appliance API routes

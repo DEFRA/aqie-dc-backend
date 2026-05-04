@@ -94,7 +94,7 @@ async function createApplication(db, payload, logger) {
     const now = new Date()
 
     const application = {
-      ID: applicationId, // The primary identifier
+      ID: applicationId,
       applicationType: applicationData.applicationType,
       status: 'new',
       reviewer: null,
@@ -121,11 +121,11 @@ async function createApplication(db, payload, logger) {
       // Map the newly created applicationId to each appliance
       const itemsToInsert = appliances.map((appliance) => ({
         ...appliance,
-          createdAt: appliance.createdAt || now,
-          updatedAt: now,
-          applicationId: applicationId, // The Foreign Key link
-          applianceId:
-            appliance.applianceId || `APP-${generateSecureId()}` //not sure this is neccessary 
+        createdAt: appliance.createdAt || now,
+        updatedAt: now,
+        applicationId: applicationId, // The Foreign Key link
+        applianceId:
+          appliance.applianceId || `APP-${generateSecureId()}` //not sure this is neccessary
       }))
 
       // Insert all appliances into the Items collection
@@ -272,37 +272,37 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
 }
 
 /**
- * Get count of applications with 'in progress' status
+ * Get count of applications with all status and types as required by dashboard
  */
-async function getInProgressCount(db, logger) {
+async function getCounts(db, logger) {
   try {
-    const collection = db.collection('Applications')
-    const count = await collection.countDocuments({ status: 'in progress' })
+    const applicationCounts = await db.collection('Applications').aggregate([
+      {
+        $group: {
+          _id: { type: '$applicationType', status: '$status' },
+          count: { $sum: 1 }
+        }
+      }
+    ]).toArray()
 
-    return {
-      success: true,
-      count
+    const summary = {
+      appliance: { new: 0, inProgress: 0, records: 0 },
+      fuel: { new: 0, inProgress: 0, records: 0 }
     }
-  } catch (error) {
-    logger.error(error, 'Failed to get in-progress application count')
-    throw error
-  }
-}
 
-/**
- * Get count of applications with 'new' status
- */
-async function getNewCount(db, logger) {
-  try {
-    const collection = db.collection('Applications')
-    const count = await collection.countDocuments({ status: 'new' })
-
-    return {
-      success: true,
-      count
+    for (const row of applicationCounts) {
+      const { type, status } = row._id
+      if (!summary[type]) continue
+      if (status === 'new') summary[type].new = row.count
+      else if (status === 'in_progress') summary[type].inProgress = row.count
     }
+
+    //records count from published appliances and fuels
+    summary.appliance.records = await db.collection('Appliance').countDocuments()
+    summary.fuel.records = await db.collection('Fuel').countDocuments()
+    return summary
   } catch (error) {
-    logger.error(error, 'Failed to get new application count')
+    logger.error(error, 'Failed to fetch counts')
     throw error
   }
 }
@@ -318,7 +318,7 @@ async function getAllApplicationsWithAppliances(db, logger) {
     // 2. Fetch all appliances that belong to these applications
     // We get all applicationIds first to limit the appliances query
     const applicationIds = applications.map(app => app.applicationId);
-    
+
     const allAppliances = await itemCollection
       .find({ applicationId: { $in: applicationIds } })
       .toArray();
@@ -333,7 +333,7 @@ async function getAllApplicationsWithAppliances(db, logger) {
     });
 
     logger.info(`Retrieved ${combinedData.length} applications with nested appliances`);
-    
+
     return combinedData;
 
   } catch (error) {
@@ -357,7 +357,7 @@ async function getCertainApplicationsWithAppliances(db, logger, status = 'new') 
 
     // 2. Extract the IDs of only the 'new' applications
     const applicationIds = newApplications.map(app => app.applicationId);
-    
+
     // 3. Fetch all appliances linked to those specific application IDs
     const associatedAppliances = await itemCollection
       .find({ applicationId: { $in: applicationIds } })
@@ -383,8 +383,7 @@ export {
   getAllApplications,
   getApplicationById,
   searchApplications,
-  getInProgressCount,
-  getNewCount,
+  getCounts,
   getAllApplicationsWithAppliances,
   getCertainApplicationsWithAppliances
 
