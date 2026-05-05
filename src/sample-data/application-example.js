@@ -35,7 +35,7 @@ export default {
       declaration: true
     },
     {
-      applicationId: appID,
+      applicationId: 'APP-EXAMPLE-001',
       companyName: 'Beta Heating',
       companyContactName: 'Jane Smith',
       companyContactEmail: 'jane@beta.com',
