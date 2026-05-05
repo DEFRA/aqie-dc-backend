@@ -1,5 +1,3 @@
-import { applicationsSchema } from '../routes/schema.js'
-
 // Example application payload for tests and API documentation
 export default {
   applicationId: 'APP-EXAMPLE-001',
