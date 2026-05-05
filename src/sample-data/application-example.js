@@ -1,5 +1,5 @@
 // Example application payload for tests and API documentation
-const appID ='APP-EXAMPLE-001'
+const appID = 'APP-EXAMPLE-001'
 export default {
   applicationId: appID,
   applicationType: 'appliance',
