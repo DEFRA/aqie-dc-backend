@@ -12,11 +12,13 @@ export const getCounts = {
       const result = await getCountsController(request.db, request.logger)
       return h.response(result).code(200)
     } catch (error) {
-      return h.response({
-        success: false,
-        message: 'Failed to fetch counts',
-        error: error.message
-      }).code(500)
+      return h
+        .response({
+          success: false,
+          message: 'Failed to fetch counts',
+          error: error.message
+        })
+        .code(500)
     }
   }
 }

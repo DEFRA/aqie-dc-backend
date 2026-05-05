@@ -18,28 +18,31 @@ export const createApplication = {
     notes: 'Creates a new appliance or fuel application in the system',
     validate: {
       payload: Joi.object()
-          .example(applicationExample)
-          .description('Payload for application creation')
+        .example(applicationExample)
+        .description('Payload for application creation')
     },
     pre: [
-          {
-            assign: 'validatedPayload',
-            method: (request, h) => {
-              const { value, error } = applicationsSchema.validate(request.payload, {
-                abortEarly: false
-              })
-              if (error) throw error
-              return value
-            },
-            failAction: (request, h, error) => {
-              // Return 400 with validation details
-              return h
-                .response({ msg: 'Validation failed', details: error.details })
-                .code(400)
-                .takeover()
+      {
+        assign: 'validatedPayload',
+        method: (request, h) => {
+          const { value, error } = applicationsSchema.validate(
+            request.payload,
+            {
+              abortEarly: false
             }
-          }
-        ]
+          )
+          if (error) throw error
+          return value
+        },
+        failAction: (request, h, error) => {
+          // Return 400 with validation details
+          return h
+            .response({ msg: 'Validation failed', details: error.details })
+            .code(400)
+            .takeover()
+        }
+      }
+    ]
   },
 
   handler: async (request, h) => {

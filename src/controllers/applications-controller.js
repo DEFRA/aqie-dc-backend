@@ -124,8 +124,7 @@ async function createApplication(db, payload, logger) {
         createdAt: appliance.createdAt || now,
         updatedAt: now,
         applicationId: applicationId, // The Foreign Key link
-        applianceId:
-          appliance.applianceId || `APP-${generateSecureId()}` //not sure this is neccessary
+        applianceId: appliance.applianceId || `APP-${generateSecureId()}` //not sure this is neccessary
       }))
 
       // Insert all appliances into the Items collection
@@ -276,14 +275,17 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
  */
 async function getCounts(db, logger) {
   try {
-    const applicationCounts = await db.collection('Applications').aggregate([
-      {
-        $group: {
-          _id: { type: '$applicationType', status: '$status' },
-          count: { $sum: 1 }
+    const applicationCounts = await db
+      .collection('Applications')
+      .aggregate([
+        {
+          $group: {
+            _id: { type: '$applicationType', status: '$status' },
+            count: { $sum: 1 }
+          }
         }
-      }
-    ]).toArray()
+      ])
+      .toArray()
 
     const summary = {
       appliance: { new: 0, inProgress: 0, records: 0 },
@@ -298,7 +300,9 @@ async function getCounts(db, logger) {
     }
 
     //records count from published appliances and fuels
-    summary.appliance.records = await db.collection('Appliance').countDocuments()
+    summary.appliance.records = await db
+      .collection('Appliance')
+      .countDocuments()
     summary.fuel.records = await db.collection('Fuel').countDocuments()
     return summary
   } catch (error) {
@@ -309,72 +313,82 @@ async function getCounts(db, logger) {
 
 async function getAllApplicationsWithAppliances(db, logger) {
   try {
-    const appCollection = db.collection('Applications');
-    const itemCollection = db.collection('Appliance');
+    const appCollection = db.collection('Applications')
+    const itemCollection = db.collection('Appliance')
 
     // 1. Fetch all applications
-    const applications = await appCollection.find({}).toArray();
+    const applications = await appCollection.find({}).toArray()
 
     // 2. Fetch all appliances that belong to these applications
     // We get all applicationIds first to limit the appliances query
-    const applicationIds = applications.map(app => app.applicationId);
+    const applicationIds = applications.map((app) => app.applicationId)
 
     const allAppliances = await itemCollection
       .find({ applicationId: { $in: applicationIds } })
-      .toArray();
+      .toArray()
 
     // 3. Stitch them together
     // We map through the applications and filter the appliances array for matches
-    const combinedData = applications.map(app => {
+    const combinedData = applications.map((app) => {
       return {
         ...app,
-        appliances: allAppliances.filter(appliance => appliance.applicationId === app.applicationId)
-      };
-    });
+        appliances: allAppliances.filter(
+          (appliance) => appliance.applicationId === app.applicationId
+        )
+      }
+    })
 
-    logger.info(`Retrieved ${combinedData.length} applications with nested appliances`);
+    logger.info(
+      `Retrieved ${combinedData.length} applications with nested appliances`
+    )
 
-    return combinedData;
-
+    return combinedData
   } catch (error) {
-    logger.error(error, 'Failed to retrieve all applications with appliances');
-    throw error;
+    logger.error(error, 'Failed to retrieve all applications with appliances')
+    throw error
   }
 }
 
-async function getCertainApplicationsWithAppliances(db, logger, status = 'new') {
+async function getCertainApplicationsWithAppliances(
+  db,
+  logger,
+  status = 'new'
+) {
   try {
-    const appCollection = db.collection('Applications');
-    const itemCollection = db.collection('Appliance');
+    const appCollection = db.collection('Applications')
+    const itemCollection = db.collection('Appliance')
 
     // 1. Fetch only applications where status is 'new'
-    const newApplications = await appCollection.find({ status: status }).toArray();
+    const newApplications = await appCollection
+      .find({ status: status })
+      .toArray()
 
     // If no new applications found, return an empty array early
     if (newApplications.length === 0) {
-      return [];
+      return []
     }
 
     // 2. Extract the IDs of only the 'new' applications
-    const applicationIds = newApplications.map(app => app.applicationId);
+    const applicationIds = newApplications.map((app) => app.applicationId)
 
     // 3. Fetch all appliances linked to those specific application IDs
     const associatedAppliances = await itemCollection
       .find({ applicationId: { $in: applicationIds } })
-      .toArray();
+      .toArray()
 
     // 4. Stitch the appliances into their respective applications
-    const result = newApplications.map(app => ({
+    const result = newApplications.map((app) => ({
       ...app,
-      appliances: associatedAppliances.filter(appliance => appliance.applicationId === app.applicationId)
-    }));
+      appliances: associatedAppliances.filter(
+        (appliance) => appliance.applicationId === app.applicationId
+      )
+    }))
 
-    logger.info(`Found ${result.length} new applications.`);
-    return result;
-
+    logger.info(`Found ${result.length} new applications.`)
+    return result
   } catch (error) {
-    logger.error(error, 'Failed to fetch new applications');
-    throw error;
+    logger.error(error, 'Failed to fetch new applications')
+    throw error
   }
 }
 
@@ -386,5 +400,4 @@ export {
   getCounts,
   getAllApplicationsWithAppliances,
   getCertainApplicationsWithAppliances
-
 }
