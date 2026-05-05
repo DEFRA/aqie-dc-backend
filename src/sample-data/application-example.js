@@ -1,13 +1,14 @@
 // Example application payload for tests and API documentation
+const appID ='APP-EXAMPLE-001'
 export default {
-  applicationId: 'APP-EXAMPLE-001',
+  applicationId: appID,
   applicationType: 'appliance',
   submittedAt: '2026-04-24T12:00:00Z',
   status: 'New',
   reviewerEmail: 'reviewer@person.co.uk',
   appliances: [
     {
-      applicationId: 'APP-EXAMPLE-001',
+      applicationId: appID,
       companyName: 'ACME',
       companyContactName: 'John Doe',
       companyContactEmail: 'john@acme.com',
@@ -34,7 +35,7 @@ export default {
       declaration: true
     },
     {
-      applicationId: 'APP-EXAMPLE-001',
+      applicationId: 'appID',
       companyName: 'Beta Heating',
       companyContactName: 'Jane Smith',
       companyContactEmail: 'jane@beta.com',
