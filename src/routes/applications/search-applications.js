@@ -7,7 +7,7 @@ import * as applicationsController from '../../controllers/applications-controll
 
 export const searchApplications = {
   method: 'GET',
-  path: '/api/applications/search',
+  path: '/applications/search',
   options: {
     tags: ['api', 'applications'],
     description: 'Search applications',

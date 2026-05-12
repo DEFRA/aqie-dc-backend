@@ -7,7 +7,7 @@ import * as applicationsController from '../../controllers/applications-controll
 
 export const getAllApplications = {
   method: 'GET',
-  path: '/api/applications',
+  path: '/applications',
   options: {
     tags: ['api', 'applications'],
     description: 'Get all applications',
