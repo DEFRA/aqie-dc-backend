@@ -1,6 +1,6 @@
 /**
  * Generate Excel files with 100 random dummy entries for each entity
- * Supports: Appliances, Fuels, Users
+ * Supports: Appliances, Fuels
  *
  * Usage:
  * node src/migrations/generate-dummy-data-v2.js
@@ -120,19 +120,6 @@ const lastNames = [
   'Harris',
   'Martin'
 ]
-
-const organizations = [
-  'DEFRA',
-  'Environment Agency',
-  'Local Council',
-  'Energy UK',
-  'Heating Association',
-  'Green Alliance',
-  'Building Control',
-  'Fire Safety Ltd'
-]
-
-const userRoles = ['admin', 'user', 'installer', 'inspector', 'manufacturer']
 
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min
@@ -303,43 +290,6 @@ function generateFuels(count) {
   return fuels
 }
 
-function generateUsers(count) {
-  const users = []
-  const usedEmails = new Set()
-
-  for (let i = 1; i <= count; i++) {
-    const firstName = randomChoice(firstNames)
-    const lastName = randomChoice(lastNames)
-    let email = randomEmail(firstName, lastName)
-
-    // Ensure unique emails
-    while (usedEmails.has(email)) {
-      email = randomEmail(firstName, `${lastName}${randomInt(1, 999)}`)
-    }
-    usedEmails.add(email)
-
-    const city = randomChoice(cities)
-    const postcode = randomPostcode()
-
-    users.push({
-      userId: `USER${String(i).padStart(3, '0')}`,
-      firstName,
-      lastName,
-      email,
-      phone: randomPhone(),
-      role: randomChoice(userRoles),
-      organization: randomChoice(organizations),
-      address: `${randomInt(1, 999)} ${randomChoice(['High Street', 'Main Road', 'Park Lane', 'Oak Avenue', 'Queens Road'])} ${city}`,
-      city,
-      postcode,
-      isActive: randomChoice(['Yes', 'No']),
-      registrationDate: randomDate(new Date(2023, 0, 1), new Date(2025, 11, 31))
-    })
-  }
-
-  return users
-}
-
 function saveToExcel(data, sheetName, filename) {
   const templatesDir = join(process.cwd(), 'templates')
   if (!existsSync(templatesDir)) {
@@ -376,9 +326,6 @@ function generateDummyData() {
   console.log('📊 Generating 100 fuels...')
   const fuels = generateFuels(100)
 
-  console.log('📊 Generating 100 users...')
-  const users = generateUsers(100)
-
   // Save individual files
   console.log('\n💾 Saving individual files...')
 
@@ -392,9 +339,6 @@ function generateDummyData() {
   const fuelPath = saveToExcel(fuels, 'Fuels', 'fuels-template.xlsx')
   console.log(`✅ Fuels: ${fuelPath}`)
 
-  const userPath = saveToExcel(users, 'Users', 'users-template.xlsx')
-  console.log(`✅ Users: ${userPath}`)
-
   // Save combined file
   console.log('\n💾 Creating combined file...')
   const combinedWorkbook = xlsx.utils.book_new()
@@ -407,10 +351,6 @@ function generateDummyData() {
   fuelSheet['!cols'] = Array(Object.keys(fuels[0]).length).fill({ wch: 20 })
   xlsx.utils.book_append_sheet(combinedWorkbook, fuelSheet, 'Fuels')
 
-  const userSheet = xlsx.utils.json_to_sheet(users)
-  userSheet['!cols'] = Array(Object.keys(users[0]).length).fill({ wch: 20 })
-  xlsx.utils.book_append_sheet(combinedWorkbook, userSheet, 'Users')
-
   const combinedPath = join(templatesDir, 'combined-template.xlsx')
   xlsx.writeFile(combinedWorkbook, combinedPath)
   console.log(`✅ Combined: ${combinedPath}`)
@@ -419,7 +359,6 @@ function generateDummyData() {
   console.log('\n📋 Summary:')
   console.log(`  - 100 unique appliances`)
   console.log(`  - 100 unique fuels`)
-  console.log(`  - 100 unique users`)
   console.log('\n🚀 You can now use these files for testing imports!')
 }
 

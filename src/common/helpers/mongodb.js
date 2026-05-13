@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb'
 import { LockManager } from 'mongo-locks'
 import { setupAppliancesAndFuels } from '../../migrations/setup-appliances-fuels.js'
-import { setupUsersAndRelationships } from '../../migrations/setup-users-relationships.js'
+import { setupApplications } from '../../migrations/setup-applications.js'
 
 export const mongoDb = {
   plugin: {
@@ -48,6 +48,8 @@ async function createIndexes(db, logger) {
 
   // Setup Appliances and Fuels collections if they don't exist
   await ensureAppliancesAndFuelsCollections(db, logger)
+
+  //
 }
 
 async function ensureAppliancesAndFuelsCollections(db, logger) {
@@ -57,9 +59,7 @@ async function ensureAppliancesAndFuelsCollections(db, logger) {
 
     const hasAppliances = collectionNames.includes('Appliances')
     const hasFuels = collectionNames.includes('Fuels')
-    const hasUsers = collectionNames.includes('Users')
-    const hasUserAppliances = collectionNames.includes('UserAppliances')
-    const hasUserFuels = collectionNames.includes('UserFuels')
+    const hasApplications = collectionNames.includes('Applications')
 
     // Setup Appliances and Fuels
     if (!hasAppliances || !hasFuels) {
@@ -73,15 +73,15 @@ async function ensureAppliancesAndFuelsCollections(db, logger) {
       logger.info('Appliances and Fuels collections already exist')
     }
 
-    // Setup Users and Relationships
-    if (!hasUsers || !hasUserAppliances || !hasUserFuels) {
-      logger.info('Setting up Users and Relationships collections...')
-      await setupUsersAndRelationships(db, {
+    // Setup Applications
+    if (!hasApplications) {
+      logger.info('Setting up Applications collection...')
+      await setupApplications(db, {
         dropExisting: false
       })
-      logger.info('Users and Relationships collections setup complete')
+      logger.info('Applications collection setup complete')
     } else {
-      logger.info('Users and Relationships collections already exist')
+      logger.info('Applications collection already exists')
     }
   } catch (error) {
     logger.error(error, 'Failed to setup collections')

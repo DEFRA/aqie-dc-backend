@@ -49,10 +49,19 @@ async function createServer() {
       version: '1.0.0',
       description: 'Simple CRUD API for items'
     },
+    documentationPath: '/documentation',
     tags: [
       {
-        name: 'Api',
-        description: 'CRUD operations'
+        name: 'applications',
+        description: 'Application management endpoints'
+      },
+      {
+        name: 'appliances',
+        description: 'Appliance data endpoints'
+      },
+      {
+        name: 'fuels',
+        description: 'Fuel data endpoints'
       }
     ]
   }

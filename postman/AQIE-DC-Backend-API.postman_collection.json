@@ -1,16 +1,16 @@
 {
   "info": {
     "name": "AQIE DC Backend API",
-    "description": "REST API endpoints for accessing users, appliances, and fuels data from MongoDB",
+    "description": "REST API endpoints for accessing applications, appliances, and fuels data from MongoDB",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "12345678"
   },
   "item": [
     {
-      "name": "Users",
+      "name": "Applications",
       "item": [
         {
-          "name": "Get All Users",
+          "name": "Get All Applications",
           "request": {
             "method": "GET",
             "header": [
@@ -21,9 +21,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/users?page=1&limit=20",
+              "raw": "{{base_url}}/api/applications?page=1&limit=20",
               "host": ["{{base_url}}"],
-              "path": ["api", "users"],
+              "path": ["api", "applications"],
               "query": [
                 {
                   "key": "page",
@@ -37,12 +37,12 @@
                 }
               ]
             },
-            "description": "Retrieve all users with pagination support"
+            "description": "Retrieve all applications with pagination support"
           },
           "response": []
         },
         {
-          "name": "Search Users",
+          "name": "Search Applications",
           "request": {
             "method": "GET",
             "header": [
@@ -53,13 +53,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/users/search?q=john&page=1&limit=20",
+              "raw": "{{base_url}}/api/applications/search?q=submitted&page=1&limit=20",
               "host": ["{{base_url}}"],
-              "path": ["api", "users", "search"],
+              "path": ["api", "applications", "search"],
               "query": [
                 {
                   "key": "q",
-                  "value": "john",
+                  "value": "submitted",
                   "description": "Search query (min 2 characters)"
                 },
                 {
@@ -74,12 +74,12 @@
                 }
               ]
             },
-            "description": "Search users by name or email"
+            "description": "Search applications by status or reviewer"
           },
           "response": []
         },
         {
-          "name": "Get User By ID",
+          "name": "Get Application By ID",
           "request": {
             "method": "GET",
             "header": [
@@ -90,45 +90,18 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/users/:userId",
+              "raw": "{{base_url}}/api/applications/:applicationId",
               "host": ["{{base_url}}"],
-              "path": ["api", "users", ":userId"],
+              "path": ["api", "applications", ":applicationId"],
               "variable": [
                 {
-                  "key": "userId",
-                  "value": "USR001",
-                  "description": "User ID"
+                  "key": "applicationId",
+                  "value": "APP001",
+                  "description": "Application ID"
                 }
               ]
             },
-            "description": "Get a single user by their ID"
-          },
-          "response": []
-        },
-        {
-          "name": "Get User With Relations",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/users/:userId/details",
-              "host": ["{{base_url}}"],
-              "path": ["api", "users", ":userId", "details"],
-              "variable": [
-                {
-                  "key": "userId",
-                  "value": "USR001",
-                  "description": "User ID"
-                }
-              ]
-            },
-            "description": "Get user with their appliances and fuels"
+            "description": "Get a single application by its ID with linked items"
           },
           "response": []
         }
@@ -232,33 +205,6 @@
             "description": "Get a single appliance by its ID"
           },
           "response": []
-        },
-        {
-          "name": "Get Appliance With Users",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/appliances/:applianceId/users",
-              "host": ["{{base_url}}"],
-              "path": ["api", "appliances", ":applianceId", "users"],
-              "variable": [
-                {
-                  "key": "applianceId",
-                  "value": "APP001",
-                  "description": "Appliance ID"
-                }
-              ]
-            },
-            "description": "Get appliance with all users who have it"
-          },
-          "response": []
         }
       ]
     },
@@ -360,33 +306,6 @@
             "description": "Get a single fuel by its ID"
           },
           "response": []
-        },
-        {
-          "name": "Get Fuel With Users",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/fuels/:fuelId/users",
-              "host": ["{{base_url}}"],
-              "path": ["api", "fuels", ":fuelId", "users"],
-              "variable": [
-                {
-                  "key": "fuelId",
-                  "value": "FUL001",
-                  "description": "Fuel ID"
-                }
-              ]
-            },
-            "description": "Get fuel with all users who use it"
-          },
-          "response": []
         }
       ]
     },
@@ -410,7 +329,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"entities\": [\"users\", \"appliances\", \"fuels\"]\n}"
+              "raw": "{\n  \"entities\": [\"appliances\", \"fuels\"]\n}"
             },
             "url": {
               "raw": "{{base_url}}/admin/import/initiate",
