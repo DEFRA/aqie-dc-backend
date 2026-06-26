@@ -4,6 +4,7 @@ import { applianceSchema } from '../schema.js'
 import applianceExample from '../../sample-data/appliance-example.js'
 
 //Note: this code has been moved from api, needs refactoring
+//Needto: can this be replaced by the addition of a new appliance in the application creation flow?
 export const createAppliance = {
   method: 'POST',
   path: '/add-new/appliance',
@@ -57,7 +58,7 @@ export const createAppliance = {
         String(inserted.data?._id)
       return h.response({ msg: 'Created', applicationId }).code(201)
     } catch (err) {
-      request.server.logger?.error(err, 'Failed to create item')
+      request.logger.error(err, 'Failed to create item')
       return h.response({ msg: 'Failed to create item' }).code(500)
     }
   }

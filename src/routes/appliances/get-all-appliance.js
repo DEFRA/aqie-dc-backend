@@ -18,7 +18,7 @@ export const getAllAppliance = {
       )
       return h.response({ msg: 'OK', data: items }).code(200)
     } catch (err) {
-      request.server.logger?.error(err, 'Failed to fetch items')
+      request.logger.error(err, 'Failed to fetch items')
       return h.response({ msg: 'Failed to fetch items' }).code(500)
     }
   }

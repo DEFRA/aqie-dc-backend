@@ -74,7 +74,7 @@ export const api = [
           inserted.applianceId || inserted.fuelId || String(inserted._id)
         return h.response({ msg: 'Created', applicationId }).code(201)
       } catch (err) {
-        request.server.logger?.error(err, 'Failed to create item')
+        request.logger.error(err, 'Failed to create item')
         return h.response({ msg: 'Failed to create item' }).code(500)
       }
     }
@@ -98,7 +98,7 @@ export const api = [
           .response({ msg: 'Added to queue', queueId: inserted.queueId })
           .code(201)
       } catch (err) {
-        request.server.logger?.error(err, 'Failed to add to queue')
+        request.logger.error(err, 'Failed to add to queue')
         return h.response({ msg: 'Failed to add to queue' }).code(500)
       }
     }
@@ -123,7 +123,7 @@ export const api = [
         const items = await findAllItems(request.db, request.params.type)
         return h.response({ msg: 'OK', data: items }).code(200)
       } catch (err) {
-        request.server.logger?.error(err, 'Failed to fetch items')
+        request.logger.error(err, 'Failed to fetch items')
         return h.response({ msg: 'Failed to fetch items' }).code(500)
       }
     }
@@ -151,7 +151,7 @@ export const api = [
         if (!item) return h.response({ msg: 'Not found' }).code(404)
         return h.response({ msg: 'OK', data: item }).code(200)
       } catch (err) {
-        request.server.logger?.error(err, 'Failed to fetch item')
+        request.logger.error(err, 'Failed to fetch item')
         return h.response({ msg: 'Failed to fetch item' }).code(500)
       }
     }
@@ -184,7 +184,7 @@ export const api = [
         if (notFound) return h.response({ msg: 'Not found' }).code(404)
         return h.response({ msg: 'Updated', data: updated }).code(200)
       } catch (err) {
-        request.server.logger?.error(err, 'Failed to update item')
+        request.logger.error(err, 'Failed to update item')
         return h.response({ msg: 'Failed to update item' }).code(500)
       }
     }
@@ -211,7 +211,7 @@ export const api = [
         if (notFound) return h.response({ msg: 'Not found' }).code(404)
         return h.response({ msg: 'Deleted', applicationId }).code(200)
       } catch (err) {
-        request.server.logger?.error(err, 'Failed to delete item')
+        request.logger.error(err, 'Failed to delete item')
         return h.response({ msg: 'Failed to delete item' }).code(500)
       }
     }
