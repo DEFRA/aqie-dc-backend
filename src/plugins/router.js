@@ -1,7 +1,7 @@
 import { health } from '../routes/health.js'
 import { example } from '../routes/example.js'
 import { uploadCallback } from '../routes/upload-callback.js'
-import { api } from '../routes/api.js' //TODO: needs removing after all refactoring
+//import { api } from '../routes/api.js' //TODO: needs removing after all refactoring
 import {
   initiateImportController,
   checkUploadStatusController
@@ -17,6 +17,8 @@ import { searchAppliances } from '../routes/appliances/search-appliances.js'
 import { getAllFuels } from '../routes/fuels/get-all-fuels.js'
 import { getFuelById } from '../routes/fuels/get-fuel-by-id.js'
 import { searchFuels } from '../routes/fuels/search-fuels.js'
+import { createFuel } from '../routes/fuels/create-fuel.js'
+import { getAllFuel } from '../routes/fuels/get-all-fuel.js'
 import { test } from '../dc/routes/test.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
@@ -34,7 +36,7 @@ const router = {
 
       // Health check, example, and test routes
       const testRoutes = [test]
-      const baseRoutes = [health].concat(example).concat(testRoutes).concat(api)
+      const baseRoutes = [health].concat(example).concat(testRoutes)
       server.route(baseRoutes)
 
       // CDP Uploader callback route
@@ -100,7 +102,7 @@ const router = {
       // Appliance API routes
       server.route([
         createAppliance,
-        getAllAppliance,
+        getAllAppliance, //mine
         getAllAppliances,
         searchAppliances, // Must come before getApplianceById to avoid route conflict
         getApplianceById
@@ -108,6 +110,8 @@ const router = {
 
       // Fuel API routes
       server.route([
+        createFuel,
+        getAllFuel,
         getAllFuels,
         searchFuels, // Must come before getFuelById to avoid route conflict
         getFuelById

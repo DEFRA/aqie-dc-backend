@@ -4,7 +4,7 @@
 
 import Joi from 'joi'
 import * as appliancesController from '../../controllers/appliances-controller.js'
-
+//keeping to use for inspiration for my code refactor - will replace after
 export const getAllAppliances = {
   method: 'GET',
   path: '/api/appliances',

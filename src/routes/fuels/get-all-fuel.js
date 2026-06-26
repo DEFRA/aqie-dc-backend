@@ -1,18 +1,18 @@
-import * as applianceController from '../../controllers/appliance-controller.js'
+import * as fuelController from '../../controllers/fuel-controller.js'
 
 //Note: this code has been moved from api, needs refactoring
-export const getAllAppliance = {
-  //change to getAllAppliances after refactor
+export const getAllFuel = {
+  //change to getAllFuels after refactor, duplicate of getAllAppliances so after refactored that file then need to refactor this one too
   // GET all
   method: 'GET',
-  path: '/appliances',
+  path: '/fuels',
   options: {
-    tags: ['api', 'appliances'],
-    description: 'Get all appliances'
+    tags: ['api', 'fuels'],
+    description: 'Get all fuels'
   },
   handler: async (request, h) => {
     try {
-      const items = await applianceController.findAllAppliance(
+      const items = await fuelController.findAllFuel(
         request.db,
         request.params.type
       )

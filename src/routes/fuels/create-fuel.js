@@ -1,23 +1,22 @@
 import Joi from 'joi'
-import * as applianceController from '../../controllers/appliance-controller.js'
-import { applianceSchema } from '../schema.js'
-import applianceExample from '../../sample-data/appliance-example.js'
+import * as fuelController from '../../controllers/fuel-controller.js'
+import { fuelSchema } from '../schema.js'
+import fuelExample from '../../sample-data/fuel-example.js'
 
-//Note: this code has been moved from api, needs refactoring
-//Needto: can this be replaced by the addition of a new appliance in the application creation flow?
-export const createAppliance = {
+//Note: this is a duplicate of applicance so after refactored that file then need to refactor this one too
+export const createFuel = {
   method: 'POST',
-  path: '/appliances',
+  path: '/fuels',
   options: {
-    tags: ['api', 'appliances'],
-    description: 'Create new appliance',
+    tags: ['api', 'fuels'],
+    description: 'Create new fuel',
 
     validate: {
       // SHOW correct JSON example in Swagger, but do NOT validate here
       payload: Joi.object()
-        .meta({ className: 'ApplianceInput' })
-        .example(applianceExample)
-        .description('Payload for appliance creation')
+        .meta({ className: 'FuelInput' })
+        .example(fuelExample)
+        .description('Payload for fuel creation')
         .unknown(true) // allow anything, since real validation is in pre
     },
 
@@ -25,7 +24,7 @@ export const createAppliance = {
       {
         assign: 'validatedPayload',
         method: (request, h) => {
-          const { value, error } = applianceSchema.validate(request.payload, {
+          const { value, error } = fuelSchema.validate(request.payload, {
             abortEarly: false
           })
           if (error) throw error
@@ -47,13 +46,12 @@ export const createAppliance = {
       ...request.pre.validatedPayload
     }
     try {
-      const inserted = await applianceController.createAppliance(
+      const inserted = await fuelController.createFuel(
         request.db,
-        'appliance',
+        'fuel',
         newItem
       )
       const applicationId =
-        inserted.data?.applianceId ||
         inserted.data?.fuelId ||
         String(inserted.data?._id)
       return h.response({ msg: 'Created', applicationId }).code(201)
