@@ -8,22 +8,22 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const getFuelById = {
   method: 'GET',
-  path: '/fuels/{id}',
+  path: '/fuels/{fuelId}',
   options: {
     tags: ['api', 'read'],
     description: 'Fetch fuel fields for the given fuel ID',
     validate: {
       params: Joi.object({
         //type: Joi.string().valid('appliance', 'fuel').required(),
-        id: Joi.string().required()
+        fuelId: Joi.string().required()
       })
     }
   },
   handler: async (request, h) => {
-    const { id } = request.params
+    const { fuelId } = request.params
 
     try {
-      const result = await fuelController.findFuel(request.db, id)
+      const result = await fuelController.findFuel(request.db, fuelId)
       if (!result) {
         return h
           .response({ message: 'Fuel not found' })
