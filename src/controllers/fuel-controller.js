@@ -1,5 +1,10 @@
 import { createLogger } from '../common/helpers/logging/logger.js'
-import { generateSecureId, findCertified } from '../common/helpers/db-utils.js'
+import {
+  generateSecureId,
+  findCertified,
+  findLastUpdatedDate,
+  getFullAddress
+} from '../common/helpers/db-utils.js'
 /**
  * Fuels Controller
  * Business logic for fuel-related operations
@@ -36,8 +41,7 @@ async function createFuel(db, type, item) {
 
     // Generate unique fuelId (UUID)
     if (type === 'appliance') {
-      fuel.applianceId =
-        fuel.applianceId || `APP-${generateSecureId()}`
+      fuel.applianceId = fuel.applianceId || `APP-${generateSecureId()}`
     } else {
       fuel.fuelId = fuel.fuelId || `FUEL-${generateSecureId()}`
     }
@@ -63,37 +67,45 @@ async function createFuel(db, type, item) {
 
 // --- Mapping helpers ---
 // Returns full detail object for single item views
-// function mapFuelDetail(item) {
-//   return {
-//     ...item,
-//     authorisedIn: findCertified(
-//       item.englandApproval,
-//       item.scotlandApproval,
-//       item.walesApproval,
-//       item.nIrelandApproval
-//     ),
-//     name: item.modelName || '',
-//     id: item.fuelId || '',
-//     fullAddress: getFullAddress(item)
-//   }
-// }
-
-// Returns summary object for list views
-function mapFuelSummary(item) {
+function mapFuelDetail(item) {
   return {
-    name: item.modelName || '',
-    id: item.fuelId || '',
-    manufacturer: item.companyName || '',
-    fuels: Array.isArray(item.allowedFuels)
-      ? item.allowedFuels.join(', ')
-      : item.allowedFuels || '',
-    type: item.applianceType,
-    modelNumber: item.modelNumber,
+    ...item,
     authorisedIn: findCertified(
       item.englandApproval,
       item.scotlandApproval,
       item.walesApproval,
       item.nIrelandApproval
+    ),
+    lastUpdatedDate: findLastUpdatedDate(
+      item.englandUpdatedDate,
+      item.scotlandUpdatedDate,
+      item.walesUpdatedDate,
+      item.nIrelandUpdatedDate
+    ),
+    name: item.brandNames || '',
+    id: item.fuelId,
+    manufacturer: item.companyName || '',
+    fullAddress: getFullAddress(item)
+  }
+}
+
+// Returns summary object for list views
+function mapFuelSummary(item) {
+  return {
+    name: item.brandNames || '',
+    id: item.fuelId,
+    manufacturer: item.companyName || '',
+    authorisedIn: findCertified(
+      item.englandApproval,
+      item.scotlandApproval,
+      item.walesApproval,
+      item.nIrelandApproval
+    ),
+    lastUpdatedDate: findLastUpdatedDate(
+      item.englandUpdatedDate,
+      item.scotlandUpdatedDate,
+      item.walesUpdatedDate,
+      item.nIrelandUpdatedDate
     )
   }
 }
@@ -114,4 +126,55 @@ async function findAllFuel(db, type) {
   return items.map((item) => mapFuelSummary(item))
 }
 
-export { createFuel, findAllFuel }
+/**
+ * Find a single fuel by ID
+ */
+async function findFuel(db, fuelId) {
+  const collection = db.collection('Fuel')
+  const item = await collection.findOne({ fuelId })
+  if (!item) {
+    return null
+  }
+  return mapFuelDetail(item)
+}
+
+/**
+ * Update a fuel
+ */
+async function updateFuel(db, fuelId, updates) {
+  try {
+    const collection = db.collection('Fuel')
+    const now = new Date()
+    const result = await collection.updateOne(
+      { fuelId },
+      { $set: { ...updates, updatedAt: now } }
+    )
+    if (result.matchedCount === 0) {
+      return { notFound: true }
+    }
+    const updated = await collection.findOne({ fuelId })
+    return { updated }
+  } catch (error) {
+    logger.error(error, 'Failed to update fuel')
+    throw error
+  }
+}
+
+/**
+ * Delete a fuel
+ */
+async function deleteFuel(db, fuelId) {
+  try {
+    const collection = db.collection('Fuel')
+    const result = await collection.deleteOne({ fuelId })
+    if (result.deletedCount === 0) {
+      return { notFound: true }
+    }
+    return { deleted: true }
+  } catch (error) {
+    logger.error(error, 'Failed to delete fuel')
+    throw error
+  }
+}
+
+export { createFuel, findAllFuel, findFuel, updateFuel, deleteFuel }

@@ -51,9 +51,7 @@ export const createFuel = {
         'fuel',
         newItem
       )
-      const applicationId =
-        inserted.data?.fuelId ||
-        String(inserted.data?._id)
+      const applicationId = inserted.data?.fuelId || String(inserted.data?._id)
       return h.response({ msg: 'Created', applicationId }).code(201)
     } catch (err) {
       request.logger.error(err, 'Failed to create item')

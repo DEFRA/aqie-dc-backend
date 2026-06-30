@@ -12,10 +12,7 @@ export const getAllFuel = {
   },
   handler: async (request, h) => {
     try {
-      const items = await fuelController.findAllFuel(
-        request.db,
-        request.params.type
-      )
+      const items = await fuelController.findAllFuel(request.db)
       return h.response({ msg: 'OK', data: items }).code(200)
     } catch (err) {
       request.logger.error(err, 'Failed to fetch items')
