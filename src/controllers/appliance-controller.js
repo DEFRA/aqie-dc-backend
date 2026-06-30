@@ -2,7 +2,6 @@ import { createLogger } from '../common/helpers/logging/logger.js'
 import {
   generateSecureId,
   findCertified,
-  findLastUpdatedDate,
   getFullAddress
 } from '../common/helpers/db-utils.js'
 /**
@@ -71,6 +70,7 @@ function mapApplianceDetail(item) {
     ),
     name: item.modelName || '',
     id: item.applianceId || '',
+    manufacturer: item.companyName || '',
     fullAddress: getFullAddress(item)
   }
 }
@@ -96,7 +96,7 @@ function mapApplianceSummary(item) {
 }
 
 //async function getAllAppliance(db, type) {
-async function findAllAppliance(db, type) {
+async function findAllAppliance(db) {
   const collection = db.collection('Appliance') //TODOD: Change once refactor all
   const items = (await collection.find({}).toArray()).filter(
     (item) =>
