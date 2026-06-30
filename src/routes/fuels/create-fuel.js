@@ -48,14 +48,13 @@ export const createFuel = {
     try {
       const inserted = await fuelController.createFuel(
         request.db,
-        'fuel',
         newItem
       )
-      const applicationId = inserted.data?.fuelId || String(inserted.data?._id)
+      const applicationId = inserted.fuelId || String(inserted._id)
       return h.response({ msg: 'Created', applicationId }).code(201)
     } catch (err) {
-      request.logger.error(err, 'Failed to create item')
-      return h.response({ msg: 'Failed to create item' }).code(500)
+      request.logger.error(err, 'Failed to create fuel')
+      return h.response({ msg: 'Failed to create fuel' }).code(500)
     }
   }
 }

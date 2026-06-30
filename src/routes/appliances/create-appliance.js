@@ -49,17 +49,13 @@ export const createAppliance = {
     try {
       const inserted = await applianceController.createAppliance(
         request.db,
-        'appliance',
         newItem
       )
-      const applicationId =
-        inserted.data?.applianceId ||
-        inserted.data?.fuelId ||
-        String(inserted.data?._id)
+      const applicationId = inserted.applianceId || String(inserted._id)
       return h.response({ msg: 'Created', applicationId }).code(201)
     } catch (err) {
-      request.logger.error(err, 'Failed to create item')
-      return h.response({ msg: 'Failed to create item' }).code(500)
+      request.logger.error(err, 'Failed to create appliance')
+      return h.response({ msg: 'Failed to create appliance' }).code(500)
     }
   }
 }

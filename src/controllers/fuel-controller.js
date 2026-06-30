@@ -16,39 +16,31 @@ const logger = createLogger()
 /**
  * Create a new fuel
  */
-//async function createFuel(db, payload, logger) {
-async function createFuel(db, type, item) {
-  let collectionName
-  if (type === 'appliance') {
-    collectionName = 'Appliance' //TODO need to change once refactor all
-  } else if (type === 'fuel') {
-    collectionName = 'Fuel' //TODO need to change  once refactor all
-  } else {
-    throw new Error(`Unknown type: ${type}`)
+async function createFuel(db, item) {
+  if (!db) {
+    throw new Error('db is required')
+  }
+  if (!item) {
+    throw new Error('item is required')
   }
 
   try {
-    const collection = db.collection(collectionName)
+    const collection = db.collection('Fuel')
 
     const now = new Date()
 
     // Build fuel document
     const fuel = {
       ...item,
+      fuelId: item.fuelId || `FUEL-${generateSecureId()}`,
       createdAt: item.createdAt || now,
       updatedAt: now
     }
 
-    // Generate unique fuelId (UUID)
-    if (type === 'appliance') {
-      fuel.applianceId = fuel.applianceId || `APP-${generateSecureId()}`
-    } else {
-      fuel.fuelId = fuel.fuelId || `FUEL-${generateSecureId()}`
-    }
     // Insert into database
     const result = await collection.insertOne(fuel)
 
-    if (!result.insertedId) {
+    if (!result.acknowledged) {
       throw new Error('Failed to insert fuel')
     }
 
@@ -57,7 +49,8 @@ async function createFuel(db, type, item) {
     return {
       success: true,
       message: 'Fuel created successfully',
-      data: fuel
+      data: fuel,
+      _id: result.insertedId
     }
   } catch (error) {
     logger.error(error, 'Failed to create fuel')

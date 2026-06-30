@@ -1,5 +1,10 @@
 import { createLogger } from '../common/helpers/logging/logger.js'
-import { generateSecureId, findCertified } from '../common/helpers/db-utils.js'
+import {
+  generateSecureId,
+  findCertified,
+  findLastUpdatedDate,
+  getFullAddress
+} from '../common/helpers/db-utils.js'
 /**
  * Appliances Controller
  * Business logic for appliance-related operations
@@ -11,40 +16,31 @@ const logger = createLogger()
 /**
  * Create a new appliance
  */
-//async function createAppliance(db, payload, logger) {
-async function createAppliance(db, type, item) {
-  let collectionName
-  if (type === 'appliance') {
-    collectionName = 'Appliance' //TODO need to change once refactor all
-  } else if (type === 'fuel') {
-    collectionName = 'Fuel' //TODO need to change  once refactor all
-  } else {
-    throw new Error(`Unknown type: ${type}`)
+async function createAppliance(db, item) {
+  if (!db) {
+    throw new Error('db is required')
+  }
+  if (!item) {
+    throw new Error('item is required')
   }
 
   try {
-    const collection = db.collection(collectionName)
+    const collection = db.collection('Appliance')
 
     const now = new Date()
 
     // Build appliance document
     const appliance = {
       ...item,
+      applianceId: item.applianceId || `APP-${generateSecureId()}`,
       createdAt: item.createdAt || now,
       updatedAt: now
     }
 
-    // Generate unique applianceId (UUID)
-    if (type === 'appliance') {
-      appliance.applianceId =
-        appliance.applianceId || `APP-${generateSecureId()}`
-    } else {
-      appliance.fuelId = appliance.fuelId || `FUEL-${generateSecureId()}`
-    }
     // Insert into database
     const result = await collection.insertOne(appliance)
 
-    if (!result.insertedId) {
+    if (!result.acknowledged) {
       throw new Error('Failed to insert appliance')
     }
 
@@ -53,7 +49,8 @@ async function createAppliance(db, type, item) {
     return {
       success: true,
       message: 'Appliance created successfully',
-      data: appliance
+      data: appliance,
+      _id: result.insertedId
     }
   } catch (error) {
     logger.error(error, 'Failed to create appliance')
@@ -63,20 +60,20 @@ async function createAppliance(db, type, item) {
 
 // --- Mapping helpers ---
 // Returns full detail object for single item views
-// function mapApplianceDetail(item) {
-//   return {
-//     ...item,
-//     authorisedIn: findCertified(
-//       item.englandApproval,
-//       item.scotlandApproval,
-//       item.walesApproval,
-//       item.nIrelandApproval
-//     ),
-//     name: item.modelName || '',
-//     id: item.applianceId || '',
-//     fullAddress: getFullAddress(item)
-//   }
-// }
+function mapApplianceDetail(item) {
+  return {
+    ...item,
+    authorisedIn: findCertified(
+      item.englandApproval,
+      item.scotlandApproval,
+      item.walesApproval,
+      item.nIrelandApproval
+    ),
+    name: item.modelName || '',
+    id: item.applianceId || '',
+    fullAddress: getFullAddress(item)
+  }
+}
 
 // Returns summary object for list views
 function mapApplianceSummary(item) {
@@ -114,4 +111,61 @@ async function findAllAppliance(db, type) {
   return items.map((item) => mapApplianceSummary(item))
 }
 
-export { createAppliance, findAllAppliance }
+/**
+ * Find a single appliance by ID
+ */
+async function findAppliance(db, applianceId) {
+  const collection = db.collection('Appliance')
+  const item = await collection.findOne({ applianceId })
+  if (!item) {
+    return null
+  }
+  return mapApplianceDetail(item)
+}
+
+/**
+ * Update an appliance
+ */
+async function updateAppliance(db, applianceId, updates) {
+  try {
+    const collection = db.collection('Appliance')
+    const now = new Date()
+    const result = await collection.updateOne(
+      { applianceId },
+      { $set: { ...updates, updatedAt: now } }
+    )
+    if (result.matchedCount === 0) {
+      return { notFound: true }
+    }
+    const updated = await collection.findOne({ applianceId })
+    return { updated }
+  } catch (error) {
+    logger.error(error, 'Failed to update appliance')
+    throw error
+  }
+}
+
+/**
+ * Delete an appliance
+ */
+async function deleteAppliance(db, applianceId) {
+  try {
+    const collection = db.collection('Appliance')
+    const result = await collection.deleteOne({ applianceId })
+    if (result.deletedCount === 0) {
+      return { notFound: true }
+    }
+    return { deleted: true }
+  } catch (error) {
+    logger.error(error, 'Failed to delete appliance')
+    throw error
+  }
+}
+
+export {
+  createAppliance,
+  findAllAppliance,
+  findAppliance,
+  updateAppliance,
+  deleteAppliance
+}
