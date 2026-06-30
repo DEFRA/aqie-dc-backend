@@ -1,6 +1,7 @@
 import Joi from 'joi'
 import * as fuelController from '../../controllers/fuel-controller.js'
 import { fuelSchema } from '../schema.js'
+import { statusCodes } from '../../common/constants/status-codes.js'
 import fuelExample from '../../sample-data/fuel-example.js'
 
 //Note: this is a duplicate of applicance so after refactored that file then need to refactor this one too
@@ -34,7 +35,7 @@ export const createFuel = {
           // Return 400 with validation details
           return h
             .response({ msg: 'Validation failed', details: error.details })
-            .code(400)
+            .code(statusCodes.badRequest)
             .takeover()
         }
       }
@@ -51,10 +52,10 @@ export const createFuel = {
         newItem
       )
       const applicationId = inserted.fuelId || String(inserted._id)
-      return h.response({ msg: 'Created', applicationId }).code(201)
+      return h.response({ msg: 'Created', applicationId }).code(statusCodes.created)
     } catch (err) {
       request.logger.error(err, 'Failed to create fuel')
-      return h.response({ msg: 'Failed to create fuel' }).code(500)
+      return h.response({ msg: 'Failed to create fuel' }).code(statusCodes.internalServerError)
     }
   }
 }

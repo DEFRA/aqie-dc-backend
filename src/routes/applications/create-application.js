@@ -5,6 +5,7 @@
 
 import * as applicationsController from '../../controllers/applications-controller.js'
 import { applicationsSchema } from '../schema.js'
+import { statusCodes } from '../../common/constants/status-codes.js'
 import Joi from 'joi'
 import applicationExample from '../../sample-data/application-example.js'
 
@@ -38,7 +39,7 @@ export const createApplication = {
           // Return 400 with validation details
           return h
             .response({ msg: 'Validation failed', details: error.details })
-            .code(400)
+            .code(statusCodes.badRequest)
             .takeover()
         }
       }
@@ -53,7 +54,7 @@ export const createApplication = {
         request.logger
       )
 
-      return h.response(result).code(201)
+      return h.response(result).code(statusCodes.created)
     } catch (error) {
       return h
         .response({
@@ -61,7 +62,7 @@ export const createApplication = {
           message: 'Failed to create application',
           error: error.message
         })
-        .code(500)
+        .code(statusCodes.internalServerError)
     }
   }
 }

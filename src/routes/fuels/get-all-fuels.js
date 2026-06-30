@@ -4,6 +4,7 @@
 
 import Joi from 'joi'
 import * as fuelsController from '../../controllers/fuels-controller.js'
+import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const getAllFuels = {
   method: 'GET',
@@ -26,7 +27,7 @@ export const getAllFuels = {
         request.logger
       )
 
-      return h.response(result).code(200)
+      return h.response(result).code(statusCodes.ok)
     } catch (error) {
       return h
         .response({
@@ -34,7 +35,7 @@ export const getAllFuels = {
           message: 'Failed to fetch fuels',
           error: error.message
         })
-        .code(500)
+        .code(statusCodes.internalServerError)
     }
   }
 }

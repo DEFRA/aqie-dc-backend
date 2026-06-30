@@ -4,6 +4,7 @@
 
 import Joi from 'joi'
 import * as appliancesController from '../../controllers/appliances-controller.js'
+import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const searchAppliances = {
   method: 'GET',
@@ -27,7 +28,7 @@ export const searchAppliances = {
         request.logger
       )
 
-      return h.response(result).code(200)
+      return h.response(result).code(statusCodes.ok)
     } catch (error) {
       return h
         .response({
@@ -35,7 +36,7 @@ export const searchAppliances = {
           message: 'Failed to search appliances',
           error: error.message
         })
-        .code(500)
+        .code(statusCodes.internalServerError)
     }
   }
 }

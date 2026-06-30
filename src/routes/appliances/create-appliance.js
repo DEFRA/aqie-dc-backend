@@ -1,6 +1,7 @@
 import Joi from 'joi'
 import * as applianceController from '../../controllers/appliance-controller.js'
 import { applianceSchema } from '../schema.js'
+import { statusCodes } from '../../common/constants/status-codes.js'
 import applianceExample from '../../sample-data/appliance-example.js'
 
 //Note: this code has been moved from api, needs refactoring
@@ -35,7 +36,7 @@ export const createAppliance = {
           // Return 400 with validation details
           return h
             .response({ msg: 'Validation failed', details: error.details })
-            .code(400)
+            .code(statusCodes.badRequest)
             .takeover()
         }
       }
@@ -52,10 +53,10 @@ export const createAppliance = {
         newItem
       )
       const applicationId = inserted.applianceId || String(inserted._id)
-      return h.response({ msg: 'Created', applicationId }).code(201)
+      return h.response({ msg: 'Created', applicationId }).code(statusCodes.created)
     } catch (err) {
       request.logger.error(err, 'Failed to create appliance')
-      return h.response({ msg: 'Failed to create appliance' }).code(500)
+      return h.response({ msg: 'Failed to create appliance' }).code(statusCodes.internalServerError)
     }
   }
 }

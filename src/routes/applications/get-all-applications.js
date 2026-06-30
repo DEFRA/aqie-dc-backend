@@ -4,6 +4,7 @@
 
 import Joi from 'joi'
 import * as applicationsController from '../../controllers/applications-controller.js'
+import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const getAllApplications = {
   method: 'GET',
@@ -38,7 +39,7 @@ export const getAllApplications = {
         request.logger
       )
 
-      return h.response(result).code(200)
+      return h.response(result).code(statusCodes.ok)
     } catch (error) {
       return h
         .response({
@@ -46,7 +47,7 @@ export const getAllApplications = {
           message: 'Failed to fetch applications',
           error: error.message
         })
-        .code(500)
+        .code(statusCodes.internalServerError)
     }
   }
 }

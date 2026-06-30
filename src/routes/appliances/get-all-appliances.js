@@ -4,6 +4,7 @@
 
 import Joi from 'joi'
 import * as appliancesController from '../../controllers/appliances-controller.js'
+import { statusCodes } from '../../common/constants/status-codes.js'
 //keeping to use for inspiration for my code refactor - will replace after
 export const getAllAppliances = {
   method: 'GET',
@@ -26,7 +27,7 @@ export const getAllAppliances = {
         request.logger
       )
 
-      return h.response(result).code(200)
+      return h.response(result).code(statusCodes.ok)
     } catch (error) {
       return h
         .response({
@@ -34,7 +35,7 @@ export const getAllAppliances = {
           message: 'Failed to fetch appliances',
           error: error.message
         })
-        .code(500)
+        .code(statusCodes.internalServerError)
     }
   }
 }

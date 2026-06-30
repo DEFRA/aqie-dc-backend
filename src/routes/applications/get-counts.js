@@ -3,6 +3,7 @@
  */
 
 import { getCounts as getCountsController } from '../../controllers/applications-controller.js'
+import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const getCounts = {
   method: 'GET',
@@ -10,7 +11,7 @@ export const getCounts = {
   handler: async (request, h) => {
     try {
       const result = await getCountsController(request.db, request.logger)
-      return h.response(result).code(200)
+      return h.response(result).code(statusCodes.ok)
     } catch (error) {
       return h
         .response({
@@ -18,7 +19,7 @@ export const getCounts = {
           message: 'Failed to fetch counts',
           error: error.message
         })
-        .code(500)
+        .code(statusCodes.internalServerError)
     }
   }
 }
