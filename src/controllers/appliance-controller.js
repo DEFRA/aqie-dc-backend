@@ -33,9 +33,9 @@ async function createAppliance(db, item) {
       ...item,
       applianceId: item.applianceId || `APP-${generateSecureId()}`,
       createdAt: item.createdAt || now,
-      updatedAt: now
+      updatedAt: now,
+      applicationId: item.applicationId || null // Link to application so can add this in for testing
     }
-
     // Insert into database
     const result = await collection.insertOne(appliance)
 
@@ -45,6 +45,10 @@ async function createAppliance(db, item) {
 
     logger.info(`Appliance created: ${appliance.applianceId}`)
 
+    // TODO: DECISION REQUIRED - Keep or remove _id in response?
+    // Currently returning MongoDB _id alongside applianceId
+    // Pros: Allows _id-based lookups, standard REST pattern, flexibility
+    // Cons: Redundant if only applianceId is used throughout API
     return {
       success: true,
       message: 'Appliance created successfully',

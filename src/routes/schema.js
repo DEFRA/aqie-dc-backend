@@ -367,6 +367,7 @@ export const fuelSchema = Joi.object({
     .description('England date last updated (last certified or revoked)')
 }).label('Fuel')
 
+//appliances
 export const applicationsSchema = Joi.object({
   applicationType: Joi.string()
     .valid('appliance', 'fuel')
@@ -381,7 +382,11 @@ export const applicationsSchema = Joi.object({
   reviewerEmail: Joi.string()
     .optional()
     .description('Email of the reviewer assigned to this application'),
+  reviewerName: Joi.string()
+    .optional()
+    .description('Name of the reviewer assigned to this application'),
   appliances: Joi.array().items(applianceSchema).optional()
+  //items: Joi.array().items(itemSchema).optional()
 })
   .unknown(false)
   .label('Application')

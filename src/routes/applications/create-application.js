@@ -9,7 +9,7 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 import Joi from 'joi'
 import applicationExample from '../../sample-data/application-example.js'
 
-//This doesnt have items (appliances in it)
+//This doesnt have items (appliances/fuels in it)
 export const createApplication = {
   method: 'POST',
   path: '/applications',

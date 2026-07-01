@@ -9,145 +9,97 @@ import { generateSecureId } from '../common/helpers/db-utils.js'
 /**
  * Create a new application
  */
-//this uses session logic - look into
-// async function createApplication(db, payload, logger) {
-//   // 1. Destructure items out of the payload so they don't get
-//   // saved directly into the Application document
-//   const { items, ...applicationData } = payload;
-
-//   // We use a Session for the transaction to ensure atomicity
-//   const session = db.client ? db.client.startSession() : null;
-
-//   try {
-//     if (session) { session.startTransaction(); }
-
-//     const appCollection = db.collection('Applications');
-//     const itemCollection = db.collection('Items');
-
-//     // 2. Build the Application document
-//     const applicationId = randomUUID();
-//     const now = new Date();
-
-//     const application = {
-//       applicationId, // This is our link (Foreign Key)
-//       applicationType: applicationData.applicationType,
-//       status: 'new',
-//       reviewer: null,
-//       reviewNotes: null,
-//       createdAt: applicationData.createdAt ? new Date(applicationData.createdAt) : now,
-//       updatedAt: now,
-//       submittedAt: applicationData.submittedAt ? new Date(applicationData.submittedAt) : null,
-//       reviewedAt: null
-//     };
-
-//     // 3. Insert Application
-//     const appResult = await appCollection.insertOne(application, { session });
-//     if (!appResult.insertedId) throw new Error('Failed to insert application');
-
-//     // 4. Handle Items (The "Many" part)
-//     let savedItems = [];
-//     if (Array.isArray(items) && items.length > 0) {
-//       const itemsToInsert = items.map(item => ({
-//         ...item,
-//         itemId: randomUUID(), // Give each item its own ID
-//         applicationId: applicationId, // The link to the parent
-//         createdAt: now
-//       }));
-
-//       await itemCollection.insertMany(itemsToInsert, { session });
-//       savedItems = itemsToInsert;
-//     }
-
-//     // 5. Add the changes
-//     if (session) {await session.commitTransaction(); }
-
-//     logger.info(`Application and ${savedItems.length} items created: ${applicationId}`);
-
-//     return {
-//       success: true,
-//       message: 'Application and items created successfully',
-//       data: {
-//         ...application,
-//         items: savedItems
-//       }
-//     };
-
-//   } catch (error) {
-//     if (session) {await session.abortTransaction(); }
-//     logger.error(error, 'Failed to create application with items');
-//     throw error;
-//   } finally {
-//     if (session) {await session.endSession(); }
-//   }
-// }
-
 async function createApplication(db, payload, logger) {
-  // 1. Separate appliances from the main application metadata
-  const { appliances, ...applicationData } = payload
+  const { appliances, ...applicationData } = payload;
+
+  // 1. Start a MongoDB session for transaction
+  const session = db.getMongo().startSession();
 
   try {
-    const appCollection = db.collection('Applications')
-    const itemCollection = db.collection('Appliance') //TODO: need to change
+    return await session.withTransaction(async () => {
+      const appCollection = db.collection('Applications');
+      const applianceCollection = db.collection('Appliance'); //todo: check the name
 
-    // 2. Build the Application document
-    const applicationId = randomUUID()
-    const now = new Date()
+      // 2. Build and insert Application
+      const applicationId = randomUUID();
+      const now = new Date();
 
-    const application = {
-      ID: applicationId,
-      applicationType: applicationData.applicationType,
-      status: 'new',
-      reviewer: null,
-      reviewNotes: null,
-      createdAt: applicationData.createdAt
-        ? new Date(applicationData.createdAt)
-        : now,
-      updatedAt: now,
-      submittedAt: applicationData.submittedAt
-        ? new Date(applicationData.submittedAt)
-        : null,
-      reviewedAt: null
-    }
-
-    // 3. Insert Application into the Applications collection
-    const appResult = await appCollection.insertOne(application)
-    if (!appResult.insertedId) {
-      throw new Error('Failed to insert application')
-    }
-
-    // 4. Handle Items (The "Many" part)
-    let savedItems = []
-    if (Array.isArray(appliances) && appliances.length > 0) {
-      // Map the newly created applicationId to each appliance
-      const itemsToInsert = appliances.map((appliance) => ({
-        ...appliance,
-        createdAt: appliance.createdAt || now,
+      //following the schema in the applicationSchema.js file
+      const application = {
+        ID: applicationId,
+        applicationType: applicationData.applicationType,
+        status: 'new',
+        reviewerEmail: applicationData.reviewerEmail || null,
+        reviewerName: applicationData.reviewerName || null,
+        additionalMetadata: applicationData.additionalMetadata || {},
+        createdAt: applicationData.createdAt
+          ? new Date(applicationData.createdAt)
+          : now,
         updatedAt: now,
-        applicationId: applicationId, // The Foreign Key link
-        applianceId: appliance.applianceId || `APP-${generateSecureId()}` //not sure this is neccessary
-      }))
+        submittedAt: applicationData.submittedAt
+          ? new Date(applicationData.submittedAt)
+          : null,
+        reviewedAt: null
+      };
 
-      // Insert all appliances into the Items collection
-      await itemCollection.insertMany(itemsToInsert)
-      savedItems = itemsToInsert
-    }
-
-    logger.info(
-      `Application created: ${applicationId} with ${savedItems.length} appliances`
-    )
-
-    // 5. Return the combined object to the API handler
-    return {
-      success: true,
-      message: 'Application and appliances created successfully',
-      data: {
-        ...application,
-        appliances: savedItems
+      const appResult = await appCollection.insertOne(application, { session });
+      if (!appResult.insertedId) {
+        throw new Error('Failed to insert application');
       }
-    }
+
+      // 3. Insert appliances with applicationId link
+      let savedAppliances = [];
+      if (Array.isArray(appliances) && appliances.length > 0) {
+        const appliancesToInsert = appliances.map((appliance) => ({
+          ...appliance,
+          applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
+          applicationId: applicationId, // Foreign key link
+          // createdAt: now, //not sure i need these
+          // updatedAt: now
+        }));
+
+        const applianceResult = await applianceCollection.insertMany(
+          appliancesToInsert,
+          { session }
+        );
+
+        if (
+          !applianceResult.acknowledged ||
+          applianceResult.insertedIds.length !== appliancesToInsert.length
+        ) {
+          throw new Error('Failed to insert some appliances');
+        }
+
+        // TODO: DECISION REQUIRED - Keep or remove _id mapping?
+        // Currently returning MongoDB _id for each appliance alongside applianceId
+        // Pros: Allows _id-based lookups, standard REST pattern, flexibility
+        // Cons: Redundant if only applianceId is used throughout API
+        // Map insertedIds back to appliances for response
+        savedAppliances = appliancesToInsert.map((appliance, index) => ({
+          ...appliance,
+          _id: applianceResult.insertedIds[index]
+        }));
+      }
+
+      logger.info(
+        `Application created: ${applicationId} with ${savedAppliances.length} appliances`
+      );
+
+      // 4. Return detailed response with success message
+      return {
+        success: true,
+        message: 'Application and appliances created successfully',
+        data: {
+          ...application,
+          appliances: savedAppliances
+        }
+      };
+    });
   } catch (error) {
-    logger.error(error, 'Failed to create application and appliances')
-    throw error
+    logger.error(error, 'Failed to create application and appliances');
+    throw error;
+  } finally {
+    await session.endSession();
   }
 }
 /**
