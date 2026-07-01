@@ -10,7 +10,7 @@ import { getAllApplications } from '../routes/applications/get-all-applications.
 import { getCounts } from '../routes/applications/get-counts.js'
 import { createAppliance } from '../routes/appliances/create-appliance.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
-import { getApplianceById } from '../routes/appliances/get-appliance.js'
+import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { searchAppliances } from '../routes/appliances/search-appliances.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
