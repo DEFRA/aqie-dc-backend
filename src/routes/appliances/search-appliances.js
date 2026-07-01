@@ -3,7 +3,7 @@
  */
 
 import Joi from 'joi'
-import * as appliancesController from '../../controllers/appliances-controller.js'
+import * as applianceController from '../../controllers/appliance-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const searchAppliances = {
@@ -22,7 +22,7 @@ export const searchAppliances = {
     const { q, page, limit } = request.query
 
     try {
-      const result = await appliancesController.searchAppliances(
+      const result = await applianceController.searchAppliances(
         request.db,
         { query: q, page, limit },
         request.logger

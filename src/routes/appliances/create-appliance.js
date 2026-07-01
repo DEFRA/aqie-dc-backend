@@ -4,8 +4,7 @@ import { applianceSchema } from '../schema.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 import applianceExample from '../../sample-data/appliance-example.js'
 
-//Note: This is the orginal code extracted, needs to be compared to Ulys code and refactored/reviewed
-//Needto: can this be replaced by the addition of a new appliance in the application creation flow?
+//This is only used for creating appliances using Swagger, will keep incase it is needed in migration
 export const createAppliance = {
   method: 'POST',
   path: '/appliances',
@@ -48,15 +47,19 @@ export const createAppliance = {
       ...request.pre.validatedPayload
     }
     try {
-      const inserted = await applianceController.createAppliance(
+      const { data } = await applianceController.createAppliance(
         request.db,
-        newItem
+        newItem,
+        request.logger
       )
-      const applicationId = inserted.applianceId || String(inserted._id)
-      return h.response({ msg: 'Created', applicationId }).code(statusCodes.created)
+      return h
+        .response({ msg: 'Created', applianceId: data.applianceId })
+        .code(statusCodes.created)
     } catch (err) {
       request.logger.error(err, 'Failed to create appliance')
-      return h.response({ msg: 'Failed to create appliance' }).code(statusCodes.internalServerError)
+      return h
+        .response({ msg: 'Failed to create appliance' })
+        .code(statusCodes.internalServerError)
     }
   }
 }

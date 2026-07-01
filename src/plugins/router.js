@@ -9,8 +9,7 @@ import { createApplication } from '../routes/applications/create-application.js'
 import { getAllApplications } from '../routes/applications/get-all-applications.js'
 import { getCounts } from '../routes/applications/get-counts.js'
 import { createAppliance } from '../routes/appliances/create-appliance.js'
-import { getAllAppliance } from '../routes/appliances/get-all-appliance.js'
-import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
+import { getAllAppliances } from '../routes/appliances/get-all-appliance.js'
 import { getApplianceById } from '../routes/appliances/get-appliance.js'
 import { searchAppliances } from '../routes/appliances/search-appliances.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
@@ -105,7 +104,6 @@ const router = {
       // Appliance API routes
       server.route([
         createAppliance,
-        getAllAppliance, //mine
         getAllAppliances,
         searchAppliances, // Must come before getApplianceById to avoid route conflict
         getApplianceById,

@@ -16,31 +16,35 @@ import { applianceSchema } from '../routes/schema.js'
  * @param {Object} logger - Logger instance
  */
 async function createApplication(client, db, payload, logger) {
-  const { appliances, ...applicationData } = payload;
+  const { appliances, ...applicationData } = payload
 
   // Try to use transactions if client supports it, otherwise fall back to direct operations
-  const session = client.startSession();
-  let useTransaction = false;
+  const session = client.startSession()
+  let useTransaction = false
 
   try {
     // Check if transaction is supported by attempting to start one
     try {
-      useTransaction = true;
+      useTransaction = true
       return await session.withTransaction(async () => {
-        return await performApplicationInsert(db, payload, logger, session);
-      });
+        return await performApplicationInsert(db, payload, logger, session)
+      })
     } catch (transactionError) {
       // If transaction fails (e.g., standalone MongoDB), fall back to direct operations
-      if (transactionError.message.includes('Transaction') || 
-          transactionError.message.includes('replica set')) {
-        logger.warn('Transactions not supported, falling back to direct operations');
-        useTransaction = false;
-        return await performApplicationInsert(db, payload, logger, null);
+      if (
+        transactionError.message.includes('Transaction') ||
+        transactionError.message.includes('replica set')
+      ) {
+        logger.warn(
+          'Transactions not supported, falling back to direct operations'
+        )
+        useTransaction = false
+        return await performApplicationInsert(db, payload, logger, null)
       }
-      throw transactionError;
+      throw transactionError
     }
   } finally {
-    await session.endSession();
+    await session.endSession()
   }
 }
 
@@ -52,14 +56,14 @@ async function createApplication(client, db, payload, logger) {
  * @param {ClientSession|null} session - MongoDB session for transactions (null if not available)
  */
 async function performApplicationInsert(db, payload, logger, session) {
-  const { appliances, ...applicationData } = payload;
-  
-  const appCollection = db.collection('Applications');
-  const applianceCollection = db.collection('Appliance');
+  const { appliances, ...applicationData } = payload
+
+  const appCollection = db.collection('Applications')
+  const applianceCollection = db.collection('Appliance')
 
   // Build and insert Application
-  const applicationId = randomUUID();
-  const now = new Date();
+  const applicationId = randomUUID()
+  const now = new Date()
 
   //following the schema in the applicationSchema.js file (MongoDB validator)
   const application = {
@@ -77,68 +81,73 @@ async function performApplicationInsert(db, payload, logger, session) {
       ? new Date(applicationData.createdAt)
       : now,
     updatedAt: now
-  };
+  }
 
-  const insertOptions = session ? { session } : {};
-  const appResult = await appCollection.insertOne(application, insertOptions);
+  const insertOptions = session ? { session } : {}
+  const appResult = await appCollection.insertOne(application, insertOptions)
   if (!appResult.insertedId) {
-    throw new Error('Failed to insert application');
+    throw new Error('Failed to insert application')
   }
 
   // Insert appliances with applicationId link
-  let savedAppliances = [];
+  let savedAppliances = []
   if (Array.isArray(appliances) && appliances.length > 0) {
     const appliancesToInsert = appliances.map((appliance) => {
       // Validate each appliance through schema to apply defaults
-      const { value, error } = applianceSchema.validate({
-        ...appliance,
-        applicationId: applicationId // Add applicationId to payload for validation
-      }, {
-        abortEarly: false
-      });
+      const { value, error } = applianceSchema.validate(
+        {
+          ...appliance,
+          applicationId: applicationId // Add applicationId to payload for validation
+        },
+        {
+          abortEarly: false
+        }
+      )
 
       if (error) {
-        throw new Error(`Appliance validation failed: ${error.details.map(d => d.message).join(', ')}`);
+        throw new Error(
+          `Appliance validation failed: ${error.details.map((d) => d.message).join(', ')}`
+        )
       }
 
       return {
         ...value,
         applianceId: value.applianceId || `APP-${generateSecureId()}`,
         applicationId: applicationId // Ensure applicationId is set
-      };
-    });
+      }
+    })
 
     const applianceResult = await applianceCollection.insertMany(
       appliancesToInsert,
       insertOptions
-    );
+    )
 
     logger.info(
-      { 
+      {
         acknowledged: applianceResult.acknowledged,
         insertedIdCount: Object.keys(applianceResult.insertedIds || {}).length
       },
       'Appliance insertMany result'
-    );
+    )
 
     if (!applianceResult.acknowledged) {
-      throw new Error('MongoDB did not acknowledge appliance insert');
+      throw new Error('MongoDB did not acknowledge appliance insert')
     }
 
     // Map appliances with their inserted _ids (if available)
     savedAppliances = appliancesToInsert.map((appliance, index) => {
-      const result = { ...appliance };
+      const result = { ...appliance }
       // insertedIds may be undefined if collection was auto-created
       if (applianceResult.insertedIds && applianceResult.insertedIds[index]) {
-        result._id = applianceResult.insertedIds[index];
+        result._id = applianceResult.insertedIds[index]
       }
-      return result;
-    });
+      return result
+    })
   }
 
   logger.info(
     `Application created: ${applicationId} with ${savedAppliances.length} appliances`
-  );
+  )
 
   // Return detailed response with success message
   return {
@@ -148,7 +157,7 @@ async function performApplicationInsert(db, payload, logger, session) {
       ...application,
       appliances: savedAppliances
     }
-  };
+  }
 }
 
 /**
@@ -157,14 +166,19 @@ async function performApplicationInsert(db, payload, logger, session) {
 async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
   try {
     const collection = db.collection('Applications')
-    const skip = (page - 1) * limit
+    // TODO: DECISION REQUIRED - Should we implement pagination for applications?
+    // Currently disabled to return all applications. Enable pagination by uncommenting below:
+    // const skip = (page - 1) * limit
+    // .skip(skip)
+    // .limit(limit)
+    // And uncomment pagination object in return statement
 
-    // Get applications with pagination
+    // Get all applications (pagination disabled)
     const applications = await collection
       .find({})
       .sort({ submittedAt: -1, createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
+      // .skip(skip)        // PAGINATION: Uncomment if needed
+      // .limit(limit)      // PAGINATION: Uncomment if needed
       .toArray()
 
     // Get total count
@@ -172,13 +186,14 @@ async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
 
     return {
       success: true,
-      data: applications,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
+      data: applications
+      // TODO: Pagination info - uncomment when pagination is decided
+      // pagination: {
+      //   page,
+      //   limit,
+      //   total,
+      //   totalPages: Math.ceil(total / limit)
+      // }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch applications')

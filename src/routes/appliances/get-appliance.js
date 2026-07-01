@@ -23,14 +23,19 @@ export const getApplianceById = {
     const { applianceId } = request.params
 
     try {
-      const result = await applianceController.findAppliance(request.db, applianceId)
-      if (!result) {
+      const result = await applianceController.getApplianceById(
+        request.db,
+        applianceId,
+        request.logger
+      )
+
+      if (result.notFound) {
         return h
           .response({ message: 'Appliance not found' })
           .code(statusCodes.notFound)
       }
 
-      return h.response({ msg: 'OK', data: result }).code(statusCodes.ok)
+      return h.response({ msg: 'OK', data: result.data }).code(statusCodes.ok)
     } catch (error) {
       request.logger.error(error, 'Failed to fetch appliance')
       return h

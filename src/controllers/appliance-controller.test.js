@@ -1,5 +1,11 @@
 import { beforeEach, describe, test, expect } from 'vitest'
-import { createAppliance, findAllAppliance } from './appliance-controller.js'
+import { createAppliance, getAllAppliances } from './appliance-controller.js'
+
+// Mock logger for testing
+const mockLogger = {
+  info: () => {},
+  error: () {}
+}
 
 // Mock/fake DB setup helpers would be needed for real tests
 
@@ -13,11 +19,19 @@ describe('appliance-controller', () => {
     collection = {
       insertOne: async (doc) => {
         docs.push(doc)
-        return { insertedId: doc.applianceId || doc.fuelId || 'mock-id' }
+        return { insertedId: doc.applianceId || doc.fuelId || 'mock-id', acknowledged: true }
       },
       find: () => ({
+        sort: () => ({
+          skip: () => ({
+            limit: () => ({
+              toArray: async () => docs
+            })
+          })
+        }),
         toArray: async () => docs
-      })
+      }),
+      countDocuments: async () => docs.length
     }
     db = {
       collection: () => collection
@@ -25,42 +39,56 @@ describe('appliance-controller', () => {
   })
 
   test('createAppliance inserts appliance and returns success', async () => {
-    const result = await createAppliance(db, 'appliance', {
-      companyName: 'ACME',
-      technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
-      scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
-    })
+    const result = await createAppliance(
+      db,
+      {
+        companyName: 'ACME',
+        technicalApproval: 'Certified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        englandApproval: 'Certified'
+      },
+      mockLogger
+    )
     expect(result.success).toBe(true)
     expect(result.data.applianceId).toMatch(/^APP-/)
     expect(result.data.createdAt).toBeInstanceOf(Date)
     expect(result.data.updatedAt).toBeInstanceOf(Date)
   })
 
-  test('findAllAppliance returns certified appliances', async () => {
-    await createAppliance(db, 'appliance', {
-      modelName: 'Certified Model',
-      companyName: 'TestCorp',
-      technicalApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
-      scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
-    })
-    await createAppliance(db, 'appliance', {
-      modelName: 'Uncertified Model',
-      companyName: 'TestCorp',
-      technicalApproval: 'Uncertified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified',
-      scotlandApproval: 'Certified',
-      englandApproval: 'Certified'
-    })
-    const results = await findAllAppliance(db, 'appliance')
-    expect(results.length).toBe(1)
-    expect(results[0].name).toBe('Certified Model')
-    expect(results[0].manufacturer).toBe('TestCorp')
+  test('getAllAppliances returns certified appliances with pagination', async () => {
+    await createAppliance(
+      db,
+      {
+        modelName: 'Certified Model',
+        companyName: 'TestCorp',
+        technicalApproval: 'Certified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        englandApproval: 'Certified'
+      },
+      mockLogger
+    )
+    await createAppliance(
+      db,
+      {
+        modelName: 'Uncertified Model',
+        companyName: 'TestCorp',
+        technicalApproval: 'Uncertified',
+        walesApproval: 'Certified',
+        nIrelandApproval: 'Certified',
+        scotlandApproval: 'Certified',
+        englandApproval: 'Certified'
+      },
+      mockLogger
+    )
+    const result = await getAllAppliances(db, { page: 1, limit: 20 }, mockLogger)
+    expect(result.success).toBe(true)
+    expect(result.data.length).toBe(1)
+    expect(result.data[0].name).toBe('Certified Model')
+    expect(result.data[0].manufacturer).toBe('TestCorp')
+    expect(result.pagination.total).toBe(1)
   })
 })

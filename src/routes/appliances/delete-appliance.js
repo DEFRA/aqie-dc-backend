@@ -22,12 +22,19 @@ export const deleteAppliance = {
     const { applianceId } = request.params
 
     try {
-      const { notFound } = await applianceController.deleteAppliance(request.db, applianceId)
-      if (notFound) return h.response({ msg: 'Not found' }).code(statusCodes.notFound)
+      const { notFound } = await applianceController.deleteAppliance(
+        request.db,
+        applianceId,
+        request.logger
+      )
+      if (notFound)
+        return h.response({ msg: 'Not found' }).code(statusCodes.notFound)
       return h.response({ msg: 'Deleted', applianceId }).code(statusCodes.ok)
     } catch (err) {
       request.logger.error(err, 'Failed to delete appliance')
-      return h.response({ msg: 'Failed to delete appliance' }).code(statusCodes.internalServerError)
+      return h
+        .response({ msg: 'Failed to delete appliance' })
+        .code(statusCodes.internalServerError)
     }
   }
 }
