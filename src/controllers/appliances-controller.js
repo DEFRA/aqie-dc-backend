@@ -131,7 +131,7 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
 
     return {
       success: true,
-      data: appliances.map((item) => mapApplianceSummary(item)),
+      data: appliances.map((item) => mapApplianceSummary(item))
       // TODO: Pagination info - uncomment when pagination is decided
       // pagination: {
       //   page,

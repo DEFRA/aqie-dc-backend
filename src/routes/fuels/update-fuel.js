@@ -29,11 +29,14 @@ export const updateFuel = {
         fuelId,
         request.payload
       )
-      if (notFound) return h.response({ msg: 'Not found' }).code(statusCodes.notFound)
+      if (notFound)
+        return h.response({ msg: 'Not found' }).code(statusCodes.notFound)
       return h.response({ msg: 'Updated', data: updated }).code(statusCodes.ok)
     } catch (err) {
       request.logger.error(err, 'Failed to update fuel')
-      return h.response({ msg: 'Failed to update fuel' }).code(statusCodes.internalServerError)
+      return h
+        .response({ msg: 'Failed to update fuel' })
+        .code(statusCodes.internalServerError)
     }
   }
 }

@@ -47,15 +47,16 @@ export const createFuel = {
       ...request.pre.validatedPayload
     }
     try {
-      const inserted = await fuelController.createFuel(
-        request.db,
-        newItem
-      )
+      const inserted = await fuelController.createFuel(request.db, newItem)
       const applicationId = inserted.fuelId || String(inserted._id)
-      return h.response({ msg: 'Created', applicationId }).code(statusCodes.created)
+      return h
+        .response({ msg: 'Created', applicationId })
+        .code(statusCodes.created)
     } catch (err) {
       request.logger.error(err, 'Failed to create fuel')
-      return h.response({ msg: 'Failed to create fuel' }).code(statusCodes.internalServerError)
+      return h
+        .response({ msg: 'Failed to create fuel' })
+        .code(statusCodes.internalServerError)
     }
   }
 }

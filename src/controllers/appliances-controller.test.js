@@ -4,7 +4,7 @@ import { createAppliance, getAllAppliances } from './appliances-controller.js'
 // Mock logger for testing
 const mockLogger = {
   info: () => {},
-  error: () {}
+  error: () => {},
 }
 
 // Mock/fake DB setup helpers would be needed for real tests

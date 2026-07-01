@@ -23,11 +23,14 @@ export const deleteFuel = {
 
     try {
       const { notFound } = await fuelController.deleteFuel(request.db, fuelId)
-      if (notFound) return h.response({ msg: 'Not found' }).code(statusCodes.notFound)
+      if (notFound)
+        return h.response({ msg: 'Not found' }).code(statusCodes.notFound)
       return h.response({ msg: 'Deleted', fuelId }).code(statusCodes.ok)
     } catch (err) {
       request.logger.error(err, 'Failed to delete fuel')
-      return h.response({ msg: 'Failed to delete fuel' }).code(statusCodes.internalServerError)
+      return h
+        .response({ msg: 'Failed to delete fuel' })
+        .code(statusCodes.internalServerError)
     }
   }
 }

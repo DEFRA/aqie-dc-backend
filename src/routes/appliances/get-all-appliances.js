@@ -18,7 +18,7 @@ export const getAllAppliances = {
   options: {
     tags: ['api', 'appliances'],
     description: 'Get all appliances',
-    notes: 'Returns all certified appliances',
+    notes: 'Returns all certified appliances'
     // TODO: PAGINATION - Uncomment validation below if pagination is re-enabled
     // validate: {
     //   query: Joi.object({

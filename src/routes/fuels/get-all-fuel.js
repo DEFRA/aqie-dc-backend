@@ -17,7 +17,9 @@ export const getAllFuel = {
       return h.response({ msg: 'OK', data: items }).code(statusCodes.ok)
     } catch (err) {
       request.logger.error(err, 'Failed to fetch items')
-      return h.response({ msg: 'Failed to fetch items' }).code(statusCodes.internalServerError)
+      return h
+        .response({ msg: 'Failed to fetch items' })
+        .code(statusCodes.internalServerError)
     }
   }
 }

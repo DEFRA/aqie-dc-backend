@@ -384,7 +384,7 @@ export const applicationsSchema = Joi.object({
     .description('Record creation timestamp (server-generated)'),
   //Are the above both needed - check defra forms payload
   status: Joi.string()
-    .valid('new', 'in_progress', 'approved', 'rejected',) //think this should be completed (instead of approved/rejected)- because there may be appliances that are rejected or approved but the application is still completed
+    .valid('new', 'in_progress', 'approved', 'rejected') //think this should be completed (instead of approved/rejected)- because there may be appliances that are rejected or approved but the application is still completed
     .optional()
     .description('Application status (server-generated, defaults to "new")'),
   appliances: Joi.array().items(applianceSchema).optional(),
@@ -396,16 +396,14 @@ export const applicationsSchema = Joi.object({
   reviewer: Joi.string()
     .optional()
     .description('Name/ID of the reviewer assigned to this application'),
-  reviewNotes: Joi.string()
-    .optional()
-    .description('Notes from the reviewer'),
+  reviewNotes: Joi.string().optional().description('Notes from the reviewer'),
   reviewedAt: Joi.date()
     .optional()
     .allow(null)
     .description('When the application was reviewed (server-managed)'),
   updatedAt: Joi.date()
     .optional()
-    .description('Record last update timestamp (server-generated)'),
+    .description('Record last update timestamp (server-generated)')
 })
   .unknown(false)
   .label('Application')

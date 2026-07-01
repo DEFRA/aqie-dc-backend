@@ -12,7 +12,7 @@ export default {
   reviewNotes: 'Initial submission',
   // reviewedAt: null,
   // updatedAt: new Date('2026-07-01T10:00:00Z'),
-  
+
   appliances: [
     {
       // NOTE: These fields are auto-generated/set by server
@@ -20,7 +20,7 @@ export default {
       // applianceId: 'APP-abc123def456',
       // createdAt: new Date('2026-07-01T10:00:00Z'),
       // updatedAt: new Date('2026-07-01T10:00:00Z'),
-      
+
       companyName: 'ACME',
       companyContactName: 'John Doe',
       companyContactEmail: 'john@acme.com',
@@ -59,7 +59,7 @@ export default {
       // applianceId: 'APP-xyz789uvw012',
       // createdAt: new Date('2026-07-01T10:00:00Z'),
       // updatedAt: new Date('2026-07-01T10:00:00Z'),
-      
+
       companyName: 'Beta Heating',
       companyContactName: 'Jane Smith',
       companyContactEmail: 'jane@beta.com',

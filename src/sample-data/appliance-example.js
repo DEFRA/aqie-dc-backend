@@ -1,5 +1,5 @@
 // Example appliance payload for tests and API documentation
-export default { 
+export default {
   // Auto-generated fields
   // applianceId: 'APP-abc123def456',
   // applicationId: 'app-uuid-12345',
