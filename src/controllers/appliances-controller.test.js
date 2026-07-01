@@ -1,5 +1,5 @@
 import { beforeEach, describe, test, expect } from 'vitest'
-import { createAppliance, getAllAppliances } from './appliance-controller.js'
+import { createAppliance, getAllAppliances } from './appliances-controller.js'
 
 // Mock logger for testing
 const mockLogger = {
@@ -9,7 +9,7 @@ const mockLogger = {
 
 // Mock/fake DB setup helpers would be needed for real tests
 
-describe('appliance-controller', () => {
+describe('appliances-controller', () => {
   let db
   let collection
 

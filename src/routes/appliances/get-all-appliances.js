@@ -9,7 +9,7 @@
  * 5. Include pagination metadata in response
  */
 
-import * as applianceController from '../../controllers/appliance-controller.js'
+import * as applianceController from '../../controllers/appliances-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const getAllAppliances = {

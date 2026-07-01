@@ -3,7 +3,7 @@
  */
 
 import Joi from 'joi'
-import * as applianceController from '../../controllers/appliance-controller.js'
+import * as applianceController from '../../controllers/appliances-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const searchAppliances = {
