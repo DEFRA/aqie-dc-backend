@@ -4,7 +4,7 @@ import { applianceSchema } from '../schema.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 import applianceExample from '../../sample-data/appliance-example.js'
 
-//Note: this code has been moved from api, needs refactoring
+//Note: This is the orginal code extracted, needs to be compared to Ulys code and refactored/reviewed
 //Needto: can this be replaced by the addition of a new appliance in the application creation flow?
 export const createAppliance = {
   method: 'POST',

@@ -1,7 +1,6 @@
 import { health } from '../routes/health.js'
 import { example } from '../routes/example.js'
 import { uploadCallback } from '../routes/upload-callback.js'
-//import { api } from '../routes/api.js' //TODO: needs removing after all refactoring
 import {
   initiateImportController,
   checkUploadStatusController
@@ -14,11 +13,15 @@ import { getAllAppliance } from '../routes/appliances/get-all-appliance.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance.js'
 import { searchAppliances } from '../routes/appliances/search-appliances.js'
+import { updateAppliance } from '../routes/appliances/update-appliance.js'
+import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
 import { getAllFuels } from '../routes/fuels/get-all-fuels.js'
 import { getFuelById } from '../routes/fuels/get-fuel.js'
 import { searchFuels } from '../routes/fuels/search-fuels.js'
 import { createFuel } from '../routes/fuels/create-fuel.js'
 import { getAllFuel } from '../routes/fuels/get-all-fuel.js'
+import { updateFuel } from '../routes/fuels/update-fuel.js'
+import { deleteFuel } from '../routes/fuels/delete-fuel.js'
 import { test } from '../dc/routes/test.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
@@ -105,7 +108,9 @@ const router = {
         getAllAppliance, //mine
         getAllAppliances,
         searchAppliances, // Must come before getApplianceById to avoid route conflict
-        getApplianceById
+        getApplianceById,
+        updateAppliance,
+        deleteAppliance
       ])
 
       // Fuel API routes
@@ -113,6 +118,8 @@ const router = {
         createFuel,
         getAllFuel,
         getAllFuels,
+        updateFuel,
+        deleteFuel,
         searchFuels, // Must come before getFuelById to avoid route conflict
         getFuelById
       ])

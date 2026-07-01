@@ -4,13 +4,13 @@ import {
   findCertified,
   findLastUpdatedDate,
   getFullAddress
-} from '../common/helpers/db-utils.js'
+} from '../common/helpers/data-transformer.js'
 /**
  * Fuels Controller
  * Business logic for fuel-related operations
  */
 
-//NOTE: this code has been moved from db-service, needs refactoring
+//Note: This is the orginal code extracted, needs to be compared to Ulys code and refactored/reviewed
 const logger = createLogger()
 
 /**
@@ -104,7 +104,7 @@ function mapFuelSummary(item) {
 }
 
 //async function getAllFuel(db, type) {
-async function findAllFuel(db, type) {
+async function findAllFuel(db) {
   const collection = db.collection('Fuel') //TODOD: Change once refactor all
   const items = (await collection.find({}).toArray()).filter(
     (item) =>

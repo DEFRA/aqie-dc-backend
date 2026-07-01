@@ -4,7 +4,7 @@
  */
 
 import { randomUUID } from 'crypto'
-import { generateSecureId } from '../common/helpers/db-utils.js'
+import { generateSecureId } from '../common/helpers/data-transformer.js'
 import { applianceSchema } from '../routes/schema.js'
 
 /**

@@ -3,13 +3,13 @@ import {
   generateSecureId,
   findCertified,
   getFullAddress
-} from '../common/helpers/db-utils.js'
+} from '../common/helpers/data-transformer.js'
 /**
  * Appliances Controller
  * Business logic for appliance-related operations
  */
 
-//NOTE: this code has been moved from db-service, needs refactoring
+//Note: This is the original code extracted, needs to be compared to Ulys code and refactored/reviewed
 const logger = createLogger()
 
 /**
@@ -100,7 +100,7 @@ function mapApplianceSummary(item) {
 }
 
 //async function getAllAppliance(db, type) {
-async function findAllAppliance(db) {
+async function findAllAppliance(db) { //NEEDTO: rename to findAllAppliances once refactor all
   const collection = db.collection('Appliance') //TODOD: Change once refactor all
   const items = (await collection.find({}).toArray()).filter(
     (item) =>
