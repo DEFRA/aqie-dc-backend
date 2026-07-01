@@ -53,9 +53,9 @@ export async function setupAppliancesAndFuels(
       const collections = await db.listCollections().toArray()
       const collectionNames = collections.map((c) => c.name)
 
-      if (collectionNames.includes('Appliances')) {
-        await db.collection('Appliances').drop()
-        console.log('   ✓ Dropped Appliances')
+      if (collectionNames.includes('Appliance')) {
+        await db.collection('Appliance').drop()
+        console.log('   ✓ Dropped Appliance')
       }
       if (collectionNames.includes('Fuels')) {
         await db.collection('Fuels').drop()
@@ -63,19 +63,19 @@ export async function setupAppliancesAndFuels(
       }
     }
 
-    // Create Appliances collection
-    console.log('📦 Creating Appliances collection...')
-    await db.createCollection('Appliances')
+    // Create Appliance collection
+    console.log('📦 Creating Appliance collection...')
+    await db.createCollection('Appliance')
     console.log('   ✓ Collection created')
 
-    // Create indexes for Appliances
+    // Create indexes for Appliance
     await db
-      .collection('Appliances')
+      .collection('Appliance')
       .createIndex({ applianceId: 1 }, { unique: true })
-    await db.collection('Appliances').createIndex({ manufacturer: 1 })
-    await db.collection('Appliances').createIndex({ modelName: 1 })
-    await db.collection('Appliances').createIndex({ applianceType: 1 })
-    await db.collection('Appliances').createIndex({ publishedDate: -1 })
+    await db.collection('Appliance').createIndex({ manufacturer: 1 })
+    await db.collection('Appliance').createIndex({ modelName: 1 })
+    await db.collection('Appliance').createIndex({ applianceType: 1 })
+    await db.collection('Appliance').createIndex({ publishedDate: -1 })
     console.log('   ✓ Indexes created')
 
     // Create Fuels collection
@@ -96,7 +96,7 @@ export async function setupAppliancesAndFuels(
       console.log('📝 Inserting sample data...')
 
       const validatedAppliance = validateWithJoi(applianceExample, 'appliance')
-      await db.collection('Appliances').insertOne(validatedAppliance)
+      await db.collection('Appliance').insertOne(validatedAppliance)
       console.log('   ✓ Sample appliance inserted')
 
       const validatedFuel = validateWithJoi(fuelExample, 'fuel')
@@ -105,7 +105,7 @@ export async function setupAppliancesAndFuels(
     }
 
     // Verification
-    const appliancesCount = await db.collection('Appliances').countDocuments()
+    const appliancesCount = await db.collection('Appliance').countDocuments()
     const fuelsCount = await db.collection('Fuels').countDocuments()
 
     console.log('\n✅ Migration completed successfully!')

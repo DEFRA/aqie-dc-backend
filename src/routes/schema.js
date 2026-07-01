@@ -376,15 +376,32 @@ export const applicationsSchema = Joi.object({
   submittedAt: Joi.date()
     .optional()
     .description('When the application was submitted'),
+  reviewer: Joi.string()
+    .optional()
+    .description('Name/ID of the reviewer assigned to this application'),
+  reviewNotes: Joi.string()
+    .optional()
+    .description('Notes from the reviewer'),
   additionalMetadata: Joi.object()
     .optional()
     .description('Optional additional metadata'),
-  reviewerEmail: Joi.string()
+  status: Joi.string()
+    .valid('new', 'in_progress', 'approved', 'rejected')
     .optional()
-    .description('Email of the reviewer assigned to this application'),
-  reviewerName: Joi.string()
+    .description('Application status (server-generated, defaults to "new")'),
+  reviewedAt: Joi.date()
     .optional()
-    .description('Name of the reviewer assigned to this application'),
+    .allow(null)
+    .description('When the application was reviewed (server-managed)'),
+  applicationId: Joi.string()
+    .optional()
+    .description('Unique application identifier (server-generated)'),
+  createdAt: Joi.date()
+    .optional()
+    .description('Record creation timestamp (server-generated)'),
+  updatedAt: Joi.date()
+    .optional()
+    .description('Record last update timestamp (server-generated)'),
   appliances: Joi.array().items(applianceSchema).optional()
   //items: Joi.array().items(itemSchema).optional()
 })

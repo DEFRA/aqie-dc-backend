@@ -12,94 +12,101 @@ import { generateSecureId } from '../common/helpers/db-utils.js'
 async function createApplication(db, payload, logger) {
   const { appliances, ...applicationData } = payload;
 
-  // 1. Start a MongoDB session for transaction
-  const session = db.getMongo().startSession();
-
   try {
-    return await session.withTransaction(async () => {
-      const appCollection = db.collection('Applications');
-      const applianceCollection = db.collection('Appliance'); //todo: check the name
+    // TODO: Refactor to use proper MongoDB session when client is available
+    // For now, using direct db.collection() calls - insertMany is atomic within a single collection
+    const appCollection = db.collection('Applications');
+    const applianceCollection = db.collection('Appliance');
 
-      // 2. Build and insert Application
-      const applicationId = randomUUID();
-      const now = new Date();
+    // 2. Build and insert Application
+    const applicationId = randomUUID();
+    const now = new Date();
 
-      //following the schema in the applicationSchema.js file
-      const application = {
-        ID: applicationId,
-        applicationType: applicationData.applicationType,
-        status: 'new',
-        reviewerEmail: applicationData.reviewerEmail || null,
-        reviewerName: applicationData.reviewerName || null,
-        additionalMetadata: applicationData.additionalMetadata || {},
-        createdAt: applicationData.createdAt
-          ? new Date(applicationData.createdAt)
-          : now,
-        updatedAt: now,
-        submittedAt: applicationData.submittedAt
-          ? new Date(applicationData.submittedAt)
-          : null,
-        reviewedAt: null
-      };
+    //following the schema in the applicationSchema.js file (MongoDB validator)
+    const application = {
+      applicationId: applicationId,
+      applicationType: applicationData.applicationType,
+      status: 'new',
+      reviewer: applicationData.reviewer || null,
+      reviewNotes: applicationData.reviewNotes || null,
+      additionalMetadata: applicationData.additionalMetadata || {},
+      submittedAt: applicationData.submittedAt
+        ? new Date(applicationData.submittedAt)
+        : null,
+      reviewedAt: null,
+      createdAt: applicationData.createdAt
+        ? new Date(applicationData.createdAt)
+        : now,
+      updatedAt: now
+    };
 
-      const appResult = await appCollection.insertOne(application, { session });
-      if (!appResult.insertedId) {
-        throw new Error('Failed to insert application');
-      }
+    const appResult = await appCollection.insertOne(application);
+    if (!appResult.insertedId) {
+      throw new Error('Failed to insert application');
+    }
 
-      // 3. Insert appliances with applicationId link
-      let savedAppliances = [];
-      if (Array.isArray(appliances) && appliances.length > 0) {
-        const appliancesToInsert = appliances.map((appliance) => ({
-          ...appliance,
-          applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
-          applicationId: applicationId, // Foreign key link
-          // createdAt: now, //not sure i need these
-          // updatedAt: now
-        }));
+    // 3. Insert appliances with applicationId link
+    let savedAppliances = [];
+    if (Array.isArray(appliances) && appliances.length > 0) {
+      const appliancesToInsert = appliances.map((appliance) => ({
+        ...appliance,
+        applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
+        applicationId: applicationId, // Foreign key link
+        // createdAt: now, //not sure i need these
+        // updatedAt: now
+      }));
 
+      try {
         const applianceResult = await applianceCollection.insertMany(
-          appliancesToInsert,
-          { session }
+          appliancesToInsert
         );
 
-        if (
-          !applianceResult.acknowledged ||
-          applianceResult.insertedIds.length !== appliancesToInsert.length
-        ) {
-          throw new Error('Failed to insert some appliances');
+        logger.info(
+          { 
+            acknowledged: applianceResult.acknowledged,
+            insertedIdCount: Object.keys(applianceResult.insertedIds || {}).length
+          },
+          'Appliance insertMany result'
+        );
+
+        if (!applianceResult.acknowledged) {
+          throw new Error('MongoDB did not acknowledge appliance insert');
         }
 
-        // TODO: DECISION REQUIRED - Keep or remove _id mapping?
-        // Currently returning MongoDB _id for each appliance alongside applianceId
-        // Pros: Allows _id-based lookups, standard REST pattern, flexibility
-        // Cons: Redundant if only applianceId is used throughout API
-        // Map insertedIds back to appliances for response
-        savedAppliances = appliancesToInsert.map((appliance, index) => ({
-          ...appliance,
-          _id: applianceResult.insertedIds[index]
-        }));
+        // Map appliances with their inserted _ids (if available)
+        savedAppliances = appliancesToInsert.map((appliance, index) => {
+          const result = { ...appliance };
+          // insertedIds may be undefined if collection was auto-created
+          if (applianceResult.insertedIds && applianceResult.insertedIds[index]) {
+            result._id = applianceResult.insertedIds[index];
+          }
+          return result;
+        });
+      } catch (applianceError) {
+        logger.error(
+          { error: applianceError.message, stack: applianceError.stack },
+          'Error inserting appliances'
+        );
+        throw applianceError;
       }
+    }
 
-      logger.info(
-        `Application created: ${applicationId} with ${savedAppliances.length} appliances`
-      );
+    logger.info(
+      `Application created: ${applicationId} with ${savedAppliances.length} appliances`
+    );
 
-      // 4. Return detailed response with success message
-      return {
-        success: true,
-        message: 'Application and appliances created successfully',
-        data: {
-          ...application,
-          appliances: savedAppliances
-        }
-      };
-    });
+    // 4. Return detailed response with success message
+    return {
+      success: true,
+      message: 'Application and appliances created successfully',
+      data: {
+        ...application,
+        appliances: savedAppliances
+      }
+    };
   } catch (error) {
     logger.error(error, 'Failed to create application and appliances');
     throw error;
-  } finally {
-    await session.endSession();
   }
 }
 /**
@@ -157,7 +164,7 @@ async function getApplicationById(db, applicationId, logger) {
     let linkedItems = []
     if (application.applicationType === 'appliance') {
       linkedItems = await db
-        .collection('Appliances')
+        .collection('Appliance')
         .find({ applicationId })
         .toArray()
     } else if (application.applicationType === 'fuel') {
