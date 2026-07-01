@@ -5,110 +5,152 @@
 
 import { randomUUID } from 'crypto'
 import { generateSecureId } from '../common/helpers/db-utils.js'
+import { applianceSchema } from '../routes/schema.js'
 
 /**
- * Create a new application
+ * Create a new application with appliances using MongoDB transactions (if available)
+ * Falls back to direct operations for standalone MongoDB instances
+ * @param {MongoClient} client - MongoDB client for transaction support
+ * @param {Db} db - MongoDB database instance
+ * @param {Object} payload - Application payload with appliances array
+ * @param {Object} logger - Logger instance
  */
-async function createApplication(db, payload, logger) {
+async function createApplication(client, db, payload, logger) {
   const { appliances, ...applicationData } = payload;
 
+  // Try to use transactions if client supports it, otherwise fall back to direct operations
+  const session = client.startSession();
+  let useTransaction = false;
+
   try {
-    // TODO: Refactor to use proper MongoDB session when client is available
-    // For now, using direct db.collection() calls - insertMany is atomic within a single collection
-    const appCollection = db.collection('Applications');
-    const applianceCollection = db.collection('Appliance');
-
-    // 2. Build and insert Application
-    const applicationId = randomUUID();
-    const now = new Date();
-
-    //following the schema in the applicationSchema.js file (MongoDB validator)
-    const application = {
-      applicationId: applicationId,
-      applicationType: applicationData.applicationType,
-      status: 'new',
-      reviewer: applicationData.reviewer || null,
-      reviewNotes: applicationData.reviewNotes || null,
-      additionalMetadata: applicationData.additionalMetadata || {},
-      submittedAt: applicationData.submittedAt
-        ? new Date(applicationData.submittedAt)
-        : null,
-      reviewedAt: null,
-      createdAt: applicationData.createdAt
-        ? new Date(applicationData.createdAt)
-        : now,
-      updatedAt: now
-    };
-
-    const appResult = await appCollection.insertOne(application);
-    if (!appResult.insertedId) {
-      throw new Error('Failed to insert application');
-    }
-
-    // 3. Insert appliances with applicationId link
-    let savedAppliances = [];
-    if (Array.isArray(appliances) && appliances.length > 0) {
-      const appliancesToInsert = appliances.map((appliance) => ({
-        ...appliance,
-        applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
-        applicationId: applicationId, // Foreign key link
-        // createdAt: now, //not sure i need these
-        // updatedAt: now
-      }));
-
-      try {
-        const applianceResult = await applianceCollection.insertMany(
-          appliancesToInsert
-        );
-
-        logger.info(
-          { 
-            acknowledged: applianceResult.acknowledged,
-            insertedIdCount: Object.keys(applianceResult.insertedIds || {}).length
-          },
-          'Appliance insertMany result'
-        );
-
-        if (!applianceResult.acknowledged) {
-          throw new Error('MongoDB did not acknowledge appliance insert');
-        }
-
-        // Map appliances with their inserted _ids (if available)
-        savedAppliances = appliancesToInsert.map((appliance, index) => {
-          const result = { ...appliance };
-          // insertedIds may be undefined if collection was auto-created
-          if (applianceResult.insertedIds && applianceResult.insertedIds[index]) {
-            result._id = applianceResult.insertedIds[index];
-          }
-          return result;
-        });
-      } catch (applianceError) {
-        logger.error(
-          { error: applianceError.message, stack: applianceError.stack },
-          'Error inserting appliances'
-        );
-        throw applianceError;
+    // Check if transaction is supported by attempting to start one
+    try {
+      useTransaction = true;
+      return await session.withTransaction(async () => {
+        return await performApplicationInsert(db, payload, logger, session);
+      });
+    } catch (transactionError) {
+      // If transaction fails (e.g., standalone MongoDB), fall back to direct operations
+      if (transactionError.message.includes('Transaction') || 
+          transactionError.message.includes('replica set')) {
+        logger.warn('Transactions not supported, falling back to direct operations');
+        useTransaction = false;
+        return await performApplicationInsert(db, payload, logger, null);
       }
+      throw transactionError;
     }
-
-    logger.info(
-      `Application created: ${applicationId} with ${savedAppliances.length} appliances`
-    );
-
-    // 4. Return detailed response with success message
-    return {
-      success: true,
-      message: 'Application and appliances created successfully',
-      data: {
-        ...application,
-        appliances: savedAppliances
-      }
-    };
-  } catch (error) {
-    logger.error(error, 'Failed to create application and appliances');
-    throw error;
+  } finally {
+    await session.endSession();
   }
 }
+
+/**
+ * Perform the application and appliance insert
+ * @param {Db} db - Database instance
+ * @param {Object} payload - Application payload
+ * @param {Object} logger - Logger
+ * @param {ClientSession|null} session - MongoDB session for transactions (null if not available)
+ */
+async function performApplicationInsert(db, payload, logger, session) {
+  const { appliances, ...applicationData } = payload;
+  
+  const appCollection = db.collection('Applications');
+  const applianceCollection = db.collection('Appliance');
+
+  // Build and insert Application
+  const applicationId = randomUUID();
+  const now = new Date();
+
+  //following the schema in the applicationSchema.js file (MongoDB validator)
+  const application = {
+    applicationId: applicationId,
+    applicationType: applicationData.applicationType,
+    status: 'new',
+    reviewer: applicationData.reviewer || null,
+    reviewNotes: applicationData.reviewNotes || null,
+    additionalMetadata: applicationData.additionalMetadata || {},
+    submittedAt: applicationData.submittedAt
+      ? new Date(applicationData.submittedAt)
+      : null,
+    reviewedAt: null,
+    createdAt: applicationData.createdAt
+      ? new Date(applicationData.createdAt)
+      : now,
+    updatedAt: now
+  };
+
+  const insertOptions = session ? { session } : {};
+  const appResult = await appCollection.insertOne(application, insertOptions);
+  if (!appResult.insertedId) {
+    throw new Error('Failed to insert application');
+  }
+
+  // Insert appliances with applicationId link
+  let savedAppliances = [];
+  if (Array.isArray(appliances) && appliances.length > 0) {
+    const appliancesToInsert = appliances.map((appliance) => {
+      // Validate each appliance through schema to apply defaults
+      const { value, error } = applianceSchema.validate({
+        ...appliance,
+        applicationId: applicationId // Add applicationId to payload for validation
+      }, {
+        abortEarly: false
+      });
+
+      if (error) {
+        throw new Error(`Appliance validation failed: ${error.details.map(d => d.message).join(', ')}`);
+      }
+
+      return {
+        ...value,
+        applianceId: value.applianceId || `APP-${generateSecureId()}`,
+        applicationId: applicationId // Ensure applicationId is set
+      };
+    });
+
+    const applianceResult = await applianceCollection.insertMany(
+      appliancesToInsert,
+      insertOptions
+    );
+
+    logger.info(
+      { 
+        acknowledged: applianceResult.acknowledged,
+        insertedIdCount: Object.keys(applianceResult.insertedIds || {}).length
+      },
+      'Appliance insertMany result'
+    );
+
+    if (!applianceResult.acknowledged) {
+      throw new Error('MongoDB did not acknowledge appliance insert');
+    }
+
+    // Map appliances with their inserted _ids (if available)
+    savedAppliances = appliancesToInsert.map((appliance, index) => {
+      const result = { ...appliance };
+      // insertedIds may be undefined if collection was auto-created
+      if (applianceResult.insertedIds && applianceResult.insertedIds[index]) {
+        result._id = applianceResult.insertedIds[index];
+      }
+      return result;
+    });
+  }
+
+  logger.info(
+    `Application created: ${applicationId} with ${savedAppliances.length} appliances`
+  );
+
+  // Return detailed response with success message
+  return {
+    success: true,
+    message: 'Application and appliances created successfully',
+    data: {
+      ...application,
+      appliances: savedAppliances
+    }
+  };
+}
+
 /**
  * Get all applications with pagination
  */
@@ -164,7 +206,7 @@ async function getApplicationById(db, applicationId, logger) {
     let linkedItems = []
     if (application.applicationType === 'appliance') {
       linkedItems = await db
-        .collection('Appliance')
+        .collection('Appliances')
         .find({ applicationId })
         .toArray()
     } else if (application.applicationType === 'fuel') {
@@ -273,7 +315,7 @@ async function getCounts(db, logger) {
 async function getAllApplicationsWithAppliances(db, logger) {
   try {
     const appCollection = db.collection('Applications')
-    const itemCollection = db.collection('Appliance')
+    const itemCollection = db.collection('Appliances')
 
     // 1. Fetch all applications
     const applications = await appCollection.find({}).toArray()
@@ -315,7 +357,7 @@ async function getCertainApplicationsWithAppliances(
 ) {
   try {
     const appCollection = db.collection('Applications')
-    const itemCollection = db.collection('Appliance')
+    const itemCollection = db.collection('Appliances')
 
     // 1. Fetch only applications where status is 'new'
     const newApplications = await appCollection

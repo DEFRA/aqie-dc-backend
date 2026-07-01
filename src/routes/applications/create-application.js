@@ -49,6 +49,7 @@ export const createApplication = {
   handler: async (request, h) => {
     try {
       const result = await applicationsController.createApplication(
+        request.server.mongoClient,
         request.db,
         request.payload,
         request.logger
