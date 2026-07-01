@@ -364,7 +364,7 @@ async function getAllApplicationsWithAppliances(db, logger) {
     throw error
   }
 }
-
+//is this being used?
 async function getCertainApplicationsWithAppliances(
   db,
   logger,
@@ -408,6 +408,81 @@ async function getCertainApplicationsWithAppliances(
   }
 }
 
+/**
+ * Get (uncomplete) applications grouped by status and with summary (returns only appliance names)
+ */
+async function getApplicationsWithSummary(db, logger, statuses = ['new', 'in_progress']) {
+  try {
+    const appCollection = db.collection('Applications')
+    const applianceCollection = db.collection('Appliance')
+
+    // 1. Fetch all applications with specified statuses
+    const applications = await appCollection
+      .find({ status: { $in: statuses } })
+      .sort({ submittedAt: -1, createdAt: -1 })
+      .toArray()
+
+    // If no applications found, return early
+    if (applications.length === 0) {
+      return {
+        success: true,
+        data: {
+          new: [],
+          in_progress: []
+        }
+      }
+    }
+
+    // 2. Extract application IDs
+    const applicationIds = applications.map((app) => app.applicationId)
+
+    // 3. Fetch appliances and project only modelName field
+    const appliances = await applianceCollection
+      .find({ applicationId: { $in: applicationIds } })
+      .project({ applicationId: 1, modelName: 1 })
+      .toArray()
+
+    // 4. Build result organized by status
+    const result = {
+      new: [],
+      in_progress: []
+    }
+
+    for (const app of applications) {
+      const appData = {
+        applicationId: app.applicationId,
+        applicationType: app.applicationType,
+        status: app.status,
+        submittedAt: app.submittedAt,
+        appliances: appliances
+          .filter((appliance) => appliance.applicationId === app.applicationId)
+          .map((appliance) => ({
+            applianceId: appliance._id,
+            modelName: appliance.modelName
+          }))
+      }
+
+      if (app.status === 'new') {
+        result.new.push(appData)
+      } else if (app.status === 'in_progress') {
+        result.in_progress.push(appData)
+      }
+    }
+
+    logger.info(
+      `Found ${result.new.length} new and ${result.in_progress.length} in-progress applications with model names`
+    )
+
+    return {
+      success: true,
+      data: result
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to fetch applications with model names')
+    throw error
+  }
+}
+
 export {
   createApplication,
   getAllApplications,
@@ -415,5 +490,6 @@ export {
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getCertainApplicationsWithAppliances
+  getCertainApplicationsWithAppliances,
+  getApplicationsWithSummary
 }
