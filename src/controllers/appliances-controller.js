@@ -5,7 +5,7 @@ import {
 } from '../common/helpers/data-transformer.js'
 
 /**
- * Appliance Controller
+ * Appliances Controller
  * Business logic for appliance-related operations
  * Refactored to match appliances-controller patterns: parameter-based logger, consistent responses, pagination
  */
