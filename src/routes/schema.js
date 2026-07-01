@@ -367,43 +367,45 @@ export const fuelSchema = Joi.object({
     .description('England date last updated (last certified or revoked)')
 }).label('Fuel')
 
-//appliances
+//appliances application schema
 export const applicationsSchema = Joi.object({
   applicationType: Joi.string()
     .valid('appliance', 'fuel')
     .required()
     .description('Type of application'),
+  applicationId: Joi.string()
+    .optional()
+    .description('Unique application identifier (server-generated)'),
   submittedAt: Joi.date()
     .optional()
     .description('When the application was submitted'),
+  createdAt: Joi.date()
+    .optional()
+    .description('Record creation timestamp (server-generated)'),
+  //Are the above both needed - check defra forms payload
+  status: Joi.string()
+    .valid('new', 'in_progress', 'approved', 'rejected',) //think this should be completed (instead of approved/rejected)- because there may be appliances that are rejected or approved but the application is still completed
+    .optional()
+    .description('Application status (server-generated, defaults to "new")'),
+  appliances: Joi.array().items(applianceSchema).optional(),
+  //items: Joi.array().items(itemSchema).optional()
+  additionalMetadata: Joi.object()
+    .optional()
+    .description('Optional additional metadata'),
+  //later in the applicaiton flow:
   reviewer: Joi.string()
     .optional()
     .description('Name/ID of the reviewer assigned to this application'),
   reviewNotes: Joi.string()
     .optional()
     .description('Notes from the reviewer'),
-  additionalMetadata: Joi.object()
-    .optional()
-    .description('Optional additional metadata'),
-  status: Joi.string()
-    .valid('new', 'in_progress', 'approved', 'rejected')
-    .optional()
-    .description('Application status (server-generated, defaults to "new")'),
   reviewedAt: Joi.date()
     .optional()
     .allow(null)
     .description('When the application was reviewed (server-managed)'),
-  applicationId: Joi.string()
-    .optional()
-    .description('Unique application identifier (server-generated)'),
-  createdAt: Joi.date()
-    .optional()
-    .description('Record creation timestamp (server-generated)'),
   updatedAt: Joi.date()
     .optional()
     .description('Record last update timestamp (server-generated)'),
-  appliances: Joi.array().items(applianceSchema).optional()
-  //items: Joi.array().items(itemSchema).optional()
 })
   .unknown(false)
   .label('Application')

@@ -65,7 +65,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   const application = {
     applicationId: applicationId,
     applicationType: applicationData.applicationType,
-    status: 'new',
+    status: applicationData.status || 'new',
     reviewer: applicationData.reviewer || null,
     reviewNotes: applicationData.reviewNotes || null,
     additionalMetadata: applicationData.additionalMetadata || {},

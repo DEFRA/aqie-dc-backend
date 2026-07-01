@@ -52,6 +52,10 @@ const applicationsValidator = {
         bsonType: ['date', 'null'],
         description: 'When the application was reviewed - optional'
       },
+      additionalMetadata: {
+        bsonType: ['object', 'null'],
+        description: 'Optional additional metadata - optional'
+      },
       createdAt: {
         bsonType: 'date',
         description: 'Record creation timestamp'
