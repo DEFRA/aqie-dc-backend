@@ -1,4 +1,3 @@
-import { createLogger } from '../common/helpers/logging/logger.js'
 import {
   generateSecureId,
   findCertified,
@@ -10,19 +9,18 @@ import {
  * Business logic for appliance-related operations
  */
 
-const logger = createLogger()
-
 /**
  * Create a new appliance
  */
-async function createAppliance(db, item) {
+async function createAppliance(db, item, logger) {
   if (!db) {
     throw new Error('db is required')
   }
   if (!item) {
     throw new Error('item is required')
+  }  if (!logger) {
+    throw new Error('logger is required')
   }
-
   try {
     const collection = db.collection('Appliance')
 
@@ -100,7 +98,10 @@ function mapApplianceSummary(item) {
  * Get all appliances with pagination
  * Returns only certified appliances per business requirements
  */
-async function getAllAppliances(db, { page = 1, limit = 20 } = {}) {
+async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
+  if (!logger) {
+    throw new Error('logger is required')
+  }
   try {
     const collection = db.collection('Appliance')
     // TODO: DECISION REQUIRED - Should we implement pagination for appliances?
@@ -150,7 +151,10 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}) {
 /**
  * Get a single appliance by ID
  */
-async function getApplianceById(db, applianceId) {
+async function getApplianceById(db, applianceId, logger) {
+  if (!logger) {
+    throw new Error('logger is required')
+  }
   try {
     const collection = db.collection('Appliance')
     const item = await collection.findOne({ applianceId })
@@ -176,7 +180,10 @@ async function getApplianceById(db, applianceId) {
 /**
  * Update an appliance
  */
-async function updateAppliance(db, applianceId, updates) {
+async function updateAppliance(db, applianceId, updates, logger) {
+  if (!logger) {
+    throw new Error('logger is required')
+  }
   try {
     const collection = db.collection('Appliance')
     const now = new Date()
@@ -203,7 +210,10 @@ async function updateAppliance(db, applianceId, updates) {
 /**
  * Delete an appliance
  */
-async function deleteAppliance(db, applianceId) {
+async function deleteAppliance(db, applianceId, logger) {
+  if (!logger) {
+    throw new Error('logger is required')
+  }
   try {
     const collection = db.collection('Appliance')
     const result = await collection.deleteOne({ applianceId })
@@ -224,7 +234,10 @@ async function deleteAppliance(db, applianceId) {
 /**
  * Search appliances by name, model number, or type with pagination
  */
-async function searchAppliances(db, { query, page = 1, limit = 20 } = {}) {
+async function searchAppliances(db, { query, page = 1, limit = 20 } = {}, logger) {
+  if (!logger) {
+    throw new Error('logger is required')
+  }
   try {
     const collection = db.collection('Appliance')
     const skip = (page - 1) * limit
@@ -267,7 +280,10 @@ async function searchAppliances(db, { query, page = 1, limit = 20 } = {}) {
  * Get appliance with all related items (applications, etc.)
  * @deprecated Relationship queries may need review for current schema
  */
-async function getApplianceWithRelatedItems(db, applianceId) {
+async function getApplianceWithRelatedItems(db, applianceId, logger) {
+  if (!logger) {
+    throw new Error('logger is required')
+  }
   try {
     const appliance = await db.collection('Appliance').findOne({ applianceId })
 
