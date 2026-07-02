@@ -28,14 +28,11 @@ export const getApplianceById = {
       )
 
       if (result.notFound) {
-        return h
-          .response({ message: 'Appliance not found' })
-          .code(statusCodes.notFound)
+        return h.response(result).code(statusCodes.notFound)
       }
 
-      return h.response({ msg: 'OK', data: result.data }).code(statusCodes.ok)
+      return h.response(result).code(statusCodes.ok)
     } catch (error) {
-      request.logger.error(error, 'Failed to fetch appliance')
       return h
         .response({
           success: false,
