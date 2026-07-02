@@ -24,19 +24,25 @@ export const updateAppliance = {
     const { applianceId } = request.params
 
     try {
-      const { notFound, updated } = await applianceController.updateAppliance(
+      const result = await applianceController.updateAppliance(
         request.db,
         applianceId,
         request.payload,
         request.logger
       )
-      if (notFound)
-        return h.response({ msg: 'Not found' }).code(statusCodes.notFound)
-      return h.response({ msg: 'Updated', data: updated }).code(statusCodes.ok)
+      
+      if (result.notFound) {
+        return h.response(result).code(statusCodes.notFound)
+      }
+
+      return h.response(result).code(statusCodes.ok)
     } catch (err) {
-      request.logger.error(err, 'Failed to update appliance')
       return h
-        .response({ msg: 'Failed to update appliance' })
+        .response({
+          success: false,
+          message: 'Failed to update appliance',
+          error: err.message
+        })
         .code(statusCodes.internalServerError)
     }
   }

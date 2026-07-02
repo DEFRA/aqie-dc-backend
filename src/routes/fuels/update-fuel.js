@@ -24,18 +24,25 @@ export const updateFuel = {
     const { fuelId } = request.params
 
     try {
-      const { notFound, updated } = await fuelController.updateFuel(
+      const result = await fuelController.updateFuel(
         request.db,
         fuelId,
-        request.payload
+        request.payload,
+        request.logger
       )
-      if (notFound)
-        return h.response({ msg: 'Not found' }).code(statusCodes.notFound)
-      return h.response({ msg: 'Updated', data: updated }).code(statusCodes.ok)
+      
+      if (result.notFound) {
+        return h.response(result).code(statusCodes.notFound)
+      }
+
+      return h.response(result).code(statusCodes.ok)
     } catch (err) {
-      request.logger.error(err, 'Failed to update fuel')
       return h
-        .response({ msg: 'Failed to update fuel' })
+        .response({
+          success: false,
+          message: 'Failed to update fuel',
+          error: err.message
+        })
         .code(statusCodes.internalServerError)
     }
   }
