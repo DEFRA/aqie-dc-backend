@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import * as fuelController from '../../controllers/fuel-controller.js'
+import * as fuelController from '../../controllers/fuels-controller.js'
 import { fuelSchema } from '../schema.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 import fuelExample from '../../sample-data/fuel-example.js'

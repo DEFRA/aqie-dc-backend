@@ -3,7 +3,7 @@
  */
 //will change to -by-id after refactor
 import Joi from 'joi'
-import * as fuelController from '../../controllers/fuel-controller.js'
+import * as fuelController from '../../controllers/fuels-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const getFuelById = {
@@ -23,8 +23,8 @@ export const getFuelById = {
     const { fuelId } = request.params
 
     try {
-      const result = await fuelController.findFuel(request.db, fuelId)
-      if (!result) {
+      const result = await fuelController.getFuelById(request.db, fuelId)
+      if (!result.success) {
         return h
           .response({ message: 'Fuel not found' })
           .code(statusCodes.notFound)

@@ -1,4 +1,4 @@
-import * as fuelController from '../../controllers/fuel-controller.js'
+import * as fuelController from '../../controllers/fuels-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
 //Note: This is the orginal code extracted, needs to be compared to Ulys code and refactored/reviewed
@@ -13,8 +13,8 @@ export const getAllFuel = {
   },
   handler: async (request, h) => {
     try {
-      const items = await fuelController.findAllFuel(request.db)
-      return h.response({ msg: 'OK', data: items }).code(statusCodes.ok)
+      const result = await fuelController.getAllFuels(request.db)
+      return h.response(result).code(statusCodes.ok)
     } catch (err) {
       request.logger.error(err, 'Failed to fetch items')
       return h
