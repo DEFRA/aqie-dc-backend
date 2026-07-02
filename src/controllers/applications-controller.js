@@ -186,6 +186,7 @@ async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
 
     return {
       success: true,
+      message: 'Applications retrieved successfully',
       data: applications
       // TODO: Pagination info - uncomment when pagination is decided
       // pagination: {
@@ -233,6 +234,7 @@ async function getApplicationById(db, applicationId, logger) {
 
     return {
       success: true,
+      message: 'Application retrieved successfully',
       data: {
         ...application,
         linkedItems
@@ -272,6 +274,7 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
 
     return {
       success: true,
+      message: 'Applications search completed successfully',
       data: applications,
       pagination: {
         page,
@@ -320,7 +323,11 @@ async function getCounts(db, logger) {
       .collection('Appliance')
       .countDocuments()
     summary.fuel.records = await db.collection('Fuel').countDocuments()
-    return summary
+    return {
+      success: true,
+      message: 'Application counts retrieved successfully',
+      data: summary
+    }
   } catch (error) {
     logger.error(error, 'Failed to fetch counts')
     throw error

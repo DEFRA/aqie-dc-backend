@@ -38,7 +38,11 @@ export const createApplication = {
         failAction: (request, h, error) => {
           // Return 400 with validation details
           return h
-            .response({ msg: 'Validation failed', details: error.details })
+            .response({
+              success: false,
+              message: 'Validation failed',
+              details: error.details
+            })
             .code(statusCodes.badRequest)
             .takeover()
         }
