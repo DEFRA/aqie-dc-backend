@@ -4,7 +4,6 @@ import { fuelSchema } from '../schema.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 import fuelExample from '../../sample-data/fuel-example.js'
 
-//Note: this is a duplicate of applicance so after refactored that file then need to refactor this one too
 export const createFuel = {
   method: 'POST',
   path: '/fuels',
@@ -18,7 +17,7 @@ export const createFuel = {
         .meta({ className: 'FuelInput' })
         .example(fuelExample)
         .description('Payload for fuel creation')
-        .unknown(true) // allow anything, since real validation is in pre
+        .unknown(true) // allow anything, since real validation is below (in pre:)
     },
 
     pre: [
@@ -32,9 +31,13 @@ export const createFuel = {
           return value
         },
         failAction: (request, h, error) => {
-          // Return 400 with validation details
+          request.logger.warn(error, 'Fuel validation failed')
           return h
-            .response({ msg: 'Validation failed', details: error.details })
+            .response({
+              success: false,
+              message: 'Validation failed',
+              details: error.details
+            })
             .code(statusCodes.badRequest)
             .takeover()
         }
@@ -47,15 +50,22 @@ export const createFuel = {
       ...request.pre.validatedPayload
     }
     try {
-      const inserted = await fuelController.createFuel(request.db, newItem)
-      const applicationId = inserted.fuelId || String(inserted._id)
+      const { data, message } = await fuelController.createFuel(request.db, newItem, request.logger)
       return h
-        .response({ msg: 'Created', applicationId })
+        .response({
+          success: true,
+          message,
+          data: { fuelId: data.fuelId }
+        })
         .code(statusCodes.created)
     } catch (err) {
       request.logger.error(err, 'Failed to create fuel')
       return h
-        .response({ msg: 'Failed to create fuel' })
+        .response({
+          success: false,
+          message: 'Failed to create fuel',
+          error: err.message
+        })
         .code(statusCodes.internalServerError)
     }
   }

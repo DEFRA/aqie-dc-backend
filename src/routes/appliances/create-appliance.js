@@ -4,7 +4,6 @@ import { applianceSchema } from '../schema.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 import applianceExample from '../../sample-data/appliance-example.js'
 
-//This is only used for creating appliances using Swagger, will keep incase it is needed in migration
 export const createAppliance = {
   method: 'POST',
   path: '/appliances',
@@ -32,9 +31,14 @@ export const createAppliance = {
           return value
         },
         failAction: (request, h, error) => {
+          request.logger.warn(error, 'Appliance validation failed')
           // Return 400 with validation details
           return h
-            .response({ msg: 'Validation failed', details: error.details })
+            .response({
+              success: false,
+              message: 'Validation failed',
+              details: error.details
+            })
             .code(statusCodes.badRequest)
             .takeover()
         }
@@ -47,18 +51,26 @@ export const createAppliance = {
       ...request.pre.validatedPayload
     }
     try {
-      const { data } = await applianceController.createAppliance(
+      const { data, message } = await applianceController.createAppliance(
         request.db,
         newItem,
         request.logger
       )
       return h
-        .response({ msg: 'Created', applianceId: data.applianceId })
+        .response({
+          success: true,
+          message,
+          data: { applianceId: data.applianceId }
+        })
         .code(statusCodes.created)
     } catch (err) {
       request.logger.error(err, 'Failed to create appliance')
       return h
-        .response({ msg: 'Failed to create appliance' })
+        .response({
+          success: false,
+          message: 'Failed to create appliance',
+          error: err.message
+        })
         .code(statusCodes.internalServerError)
     }
   }
