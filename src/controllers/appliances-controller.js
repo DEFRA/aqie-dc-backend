@@ -1,3 +1,4 @@
+import { createLogger } from '../common/helpers/logging/logger.js'
 import {
   generateSecureId,
   findCertified,
@@ -7,21 +8,19 @@ import {
 /**
  * Appliances Controller
  * Business logic for appliance-related operations
- * Refactored to match appliances-controller patterns: parameter-based logger, consistent responses, pagination
  */
+
+const logger = createLogger()
 
 /**
  * Create a new appliance
  */
-async function createAppliance(db, item, logger) {
+async function createAppliance(db, item) {
   if (!db) {
     throw new Error('db is required')
   }
   if (!item) {
     throw new Error('item is required')
-  }
-  if (!logger) {
-    throw new Error('logger is required')
   }
 
   try {
@@ -49,7 +48,9 @@ async function createAppliance(db, item, logger) {
 
     return {
       success: true,
-      data: appliance
+      message: 'Appliance created successfully',
+      data: appliance,
+      _id: result.insertedId
     }
   } catch (error) {
     logger.error(error, 'Failed to create appliance')
@@ -99,7 +100,7 @@ function mapApplianceSummary(item) {
  * Get all appliances with pagination
  * Returns only certified appliances per business requirements
  */
-async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
+async function getAllAppliances(db, { page = 1, limit = 20 } = {}) {
   try {
     const collection = db.collection('Appliance')
     // TODO: DECISION REQUIRED - Should we implement pagination for appliances?
@@ -141,9 +142,7 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
       // }
     }
   } catch (error) {
-    if (logger) {
-      logger.error(error, 'Failed to fetch appliances')
-    }
+    logger.error(error, 'Failed to fetch appliances')
     throw error
   }
 }
@@ -151,7 +150,7 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
 /**
  * Get a single appliance by ID
  */
-async function getApplianceById(db, applianceId, logger) {
+async function getApplianceById(db, applianceId) {
   try {
     const collection = db.collection('Appliance')
     const item = await collection.findOne({ applianceId })
@@ -169,9 +168,7 @@ async function getApplianceById(db, applianceId, logger) {
       data: mapApplianceDetail(item)
     }
   } catch (error) {
-    if (logger) {
-      logger.error(error, 'Failed to fetch appliance')
-    }
+    logger.error(error, 'Failed to fetch appliance')
     throw error
   }
 }
@@ -179,7 +176,7 @@ async function getApplianceById(db, applianceId, logger) {
 /**
  * Update an appliance
  */
-async function updateAppliance(db, applianceId, updates, logger) {
+async function updateAppliance(db, applianceId, updates) {
   try {
     const collection = db.collection('Appliance')
     const now = new Date()
@@ -194,15 +191,11 @@ async function updateAppliance(db, applianceId, updates, logger) {
     }
 
     const updated = await collection.findOne({ applianceId })
-    if (logger) {
-      logger.info(`Appliance updated: ${applianceId}`)
-    }
+    logger.info(`Appliance updated: ${applianceId}`)
 
     return { updated }
   } catch (error) {
-    if (logger) {
-      logger.error(error, 'Failed to update appliance')
-    }
+    logger.error(error, 'Failed to update appliance')
     throw error
   }
 }
@@ -210,7 +203,7 @@ async function updateAppliance(db, applianceId, updates, logger) {
 /**
  * Delete an appliance
  */
-async function deleteAppliance(db, applianceId, logger) {
+async function deleteAppliance(db, applianceId) {
   try {
     const collection = db.collection('Appliance')
     const result = await collection.deleteOne({ applianceId })
@@ -219,123 +212,96 @@ async function deleteAppliance(db, applianceId, logger) {
       return { notFound: true }
     }
 
-    if (logger) {
-      logger.info(`Appliance deleted: ${applianceId}`)
-    }
+    logger.info(`Appliance deleted: ${applianceId}`)
 
     return { deleted: true }
   } catch (error) {
-    if (logger) {
-      logger.error(error, 'Failed to delete appliance')
-    }
+    logger.error(error, 'Failed to delete appliance')
     throw error
   }
 }
 
-// /**
-//  * Get appliance with all applications? dont think this is needed, will be other way around?
-//  */
-// async function getApplianceWithUsers(db, applianceId, logger) {
-//   try {
-//     const appliance = await db.collection('Appliances').findOne({ applianceId })
+/**
+ * Search appliances by name, model number, or type with pagination
+ */
+async function searchAppliances(db, { query, page = 1, limit = 20 } = {}) {
+  try {
+    const collection = db.collection('Appliance')
+    const skip = (page - 1) * limit
 
-//     if (!appliance) {
-//       return {
-//         success: false,
-//         message: 'Appliance not found',
-//         notFound: true
-//       }
-//     }
+    const searchQuery = {
+      $or: [
+        { modelName: { $regex: query, $options: 'i' } },
+        { companyName: { $regex: query, $options: 'i' } },
+        { modelNumber: { $regex: query, $options: 'i' } },
+        { applianceType: { $regex: query, $options: 'i' } }
+      ]
+    }
 
-//     // Get all users who have this appliance
-//     const userAppliances = await db
-//       .collection('UserAppliances')
-//       .find({ applianceId })
-//       .toArray()
+    const appliances = await collection
+      .find(searchQuery)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray()
 
-//     const userIds = userAppliances.map((ua) => ua.userId)
-//     const users =
-//       userIds.length > 0
-//         ? await db
-//             .collection('Users')
-//             .find({ userId: { $in: userIds } })
-//             .toArray()
-//         : []
+    const total = await collection.countDocuments(searchQuery)
 
-//     // Combine user data with user-appliance relationships
-//     const usersWithRelations = users.map((user) => {
-//       const userAppliance = userAppliances.find(
-//         (ua) => ua.userId === user.userId
-//       )
-//       return {
-//         ...user,
-//         ...userAppliance
-//       }
-//     })
+    return {
+      success: true,
+      data: appliances.map((item) => mapApplianceSummary(item)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to search appliances')
+    throw error
+  }
+}
 
-//     return {
-//       success: true,
-//       data: {
-//         appliance,
-//         users: usersWithRelations
-//       }
-//     }
-//   } catch (error) {
-//     if (logger) {
-//       logger.error(error, 'Failed to fetch appliance with users')
-//     }
-//     throw error
-//   }
-// }
+/**
+ * Get appliance with all related items (applications, etc.)
+ * @deprecated Relationship queries may need review for current schema
+ */
+async function getApplianceWithRelatedItems(db, applianceId) {
+  try {
+    const appliance = await db.collection('Appliance').findOne({ applianceId })
 
-// /**
-//  * Search appliances by name or type
-//  */
-// async function searchAppliances(db, { query, page = 1, limit = 20 }, logger) {
-//   try {
-//     const collection = db.collection('Appliances')
-//     const skip = (page - 1) * limit
+    if (!appliance) {
+      return {
+        success: false,
+        message: 'Appliance not found',
+        notFound: true
+      }
+    }
 
-//     const searchQuery = {
-//       $or: [
-//         { name: { $regex: query, $options: 'i' } },
-//         { type: { $regex: query, $options: 'i' } }
-//       ]
-//     }
+    // TODO: Get related items (currently commented pending review)
+    // const applianceApplications = await db.collection('ApplianceApplications').find({ applianceId }).toArray()
+    // const applicationIds = applianceApplications.map((aa) => aa.applicationId)
+    // const applications = applicationIds.length > 0
+    //   ? await db.collection('Applications').find({ applicationId: { $in: applicationIds } }).toArray()
+    //   : []
 
-//     const appliances = await collection
-//       .find(searchQuery)
-//       .sort({ createdAt: -1 })
-//       .skip(skip)
-//       .limit(limit)
-//       .toArray()
-
-//     const total = await collection.countDocuments(searchQuery)
-
-//     return {
-//       success: true,
-//       data: appliances,
-//       pagination: {
-//         page,
-//         limit,
-//         total,
-//         totalPages: Math.ceil(total / limit)
-//       }
-//     }
-//   } catch (error) {
-//     if (logger) {
-//       logger.error(error, 'Failed to search appliances')
-//     }
-//     throw error
-//   }
-// }
+    return {
+      success: true,
+      data: mapApplianceDetail(appliance)
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to fetch appliance with related items')
+    throw error
+  }
+}
 
 export {
   createAppliance,
   getAllAppliances,
   getApplianceById,
   updateAppliance,
-  deleteAppliance
-  //getApplianceWithApplications,
-  //searchAppliances
+  deleteAppliance,
+  searchAppliances,
+  getApplianceWithRelatedItems
 }
