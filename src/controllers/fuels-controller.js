@@ -301,7 +301,7 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
 }
 //not sure this is needed - maybe for future admin
 /**
- * Get fuel with all users/applications that use it
+ * Get fuel with all applications that use it
  * @deprecated Relationship queries may need review for current schema
  */
 async function getFuelWithRelatedItems(db, fuelId, logger) {
@@ -320,12 +320,10 @@ async function getFuelWithRelatedItems(db, fuelId, logger) {
       }
     }
 
-    // TODO: Get related items (currently commented pending schema review) - now its applications not users
-    // const userFuels = await db.collection('UserFuels').find({ fuelId }).toArray()
-    // const userIds = userFuels.map((uf) => uf.userId)
-    // const users = userIds.length > 0
-    //   ? await db.collection('Users').find({ userId: { $in: userIds } }).toArray()
-    //   : []
+    // TODO: Get related items (currently commented pending schema review)
+    // Query applications that reference this fuel via applicationId
+    // const applications = await db.collection('Applications').find({ applicationType: 'fuel' }).toArray()
+    // Then filter by which applications include this fuelId in their data
 
     return {
       success: true,

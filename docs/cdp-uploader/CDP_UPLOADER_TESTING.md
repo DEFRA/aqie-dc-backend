@@ -22,10 +22,7 @@ curl -X POST \
   -d '{
   "entities": [
     { "type": "appliances", "sheetName": "Appliances" },
-    { "type": "fuels", "sheetName": "Fuels" },
-    { "type": "users", "sheetName": "Users" },
-    { "type": "userAppliances", "sheetName": "UserAppliances" },
-    { "type": "userFuels", "sheetName": "UserFuels" }
+    { "type": "fuels", "sheetName": "Fuels" }
   ]
 }'
 ```
@@ -101,10 +98,7 @@ RESPONSE=$(curl -s -X POST \
   -d '{
   "entities": [
     { "type": "appliances", "sheetName": "Appliances" },
-    { "type": "fuels", "sheetName": "Fuels" },
-    { "type": "users", "sheetName": "Users" },
-    { "type": "userAppliances", "sheetName": "UserAppliances" },
-    { "type": "userFuels", "sheetName": "UserFuels" }
+    { "type": "fuels", "sheetName": "Fuels" }
   ]
 }')
 
@@ -146,14 +140,10 @@ mongosh
 show collections
 
 // Count documents in each collection
-db.users.countDocuments()
 db.appliances.countDocuments()
 db.fuels.countDocuments()
-db.userAppliances.countDocuments()
-db.userFuels.countDocuments()
 
 // View sample data
-db.users.find().limit(5)
 db.appliances.find().limit(5)
 ```
 
@@ -162,12 +152,8 @@ db.appliances.find().limit(5)
 The following Excel templates are available in the `templates/` directory:
 
 - `combined-template.xlsx` - All entities in one file (recommended for testing)
-- `users-template.xlsx` - Users only
 - `appliances-template.xlsx` - Appliances only
 - `fuels-template.xlsx` - Fuels only
-- `user-appliances-template.xlsx` - User-Appliance relationships
-- `user-fuels-template.xlsx` - User-Fuel relationships
-- `relationships-template.xlsx` - All relationships
 
 ## Troubleshooting
 
