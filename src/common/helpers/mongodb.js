@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb'
 import { LockManager } from 'mongo-locks'
-import { setupAppliancesAndFuels } from '../../migrations/setup-appliances-fuels.js'
-import { setupApplications } from '../../migrations/setup-applications.js'
+import { setupAppliancesAndFuels } from './db/setup-appliances-fuels.js'
+import { setupApplications } from './db/setup-applications.js'
 
 export const mongoDb = {
   plugin: {
