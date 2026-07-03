@@ -59,7 +59,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   const { appliances, ...applicationData } = payload
 
   const appCollection = db.collection('Applications')
-  const applianceCollection = db.collection('Appliance')
+  const applianceCollection = db.collection('Appliances')
 
   // Build and insert Application
   const applicationId = randomUUID()
@@ -320,9 +320,9 @@ async function getCounts(db, logger) {
 
     //records count from published appliances and fuels
     summary.appliance.records = await db
-      .collection('Appliance')
+      .collection('Appliances')
       .countDocuments()
-    summary.fuel.records = await db.collection('Fuel').countDocuments()
+    summary.fuel.records = await db.collection('Fuels').countDocuments()
     return {
       success: true,
       message: 'Application counts retrieved successfully',
@@ -421,7 +421,7 @@ async function getCertainApplicationsWithAppliances(
 async function getApplicationsWithSummary(db, logger, statuses = ['new', 'in_progress']) {
   try {
     const appCollection = db.collection('Applications')
-    const applianceCollection = db.collection('Appliance')
+    const applianceCollection = db.collection('Appliances')
 
     // 1. Fetch all applications with specified statuses
     const applications = await appCollection
