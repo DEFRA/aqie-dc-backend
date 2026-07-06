@@ -80,7 +80,10 @@ describe('POST /fuels', () => {
       expect(result.success).toBe(false)
       expect(result.message).toBe('Failed to create fuel')
       expect(result.error).toBe('Database error')
-      expect(mockRequest.logger.error).toHaveBeenCalledWith(error, 'Failed to create fuel')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to create fuel'
+      )
     })
 
     test('returns request.pre.validatedPayload as newItem', async () => {

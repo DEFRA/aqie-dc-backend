@@ -65,7 +65,9 @@ describe('POST /applications', () => {
       const result = await createApplication.handler(mockRequest, h)
 
       expect(result.success).toBe(true)
-      expect(result.message).toBe('Application and appliances created successfully')
+      expect(result.message).toBe(
+        'Application and appliances created successfully'
+      )
       expect(result.data.applicationId).toBe('uuid-123')
       expect(applicationsController.createApplication).toHaveBeenCalledWith(
         mockRequest.server.mongoClient,

@@ -18,7 +18,8 @@ async function createAppliance(db, item, logger) {
   }
   if (!item) {
     throw new Error('item is required')
-  }  if (!logger) {
+  }
+  if (!logger) {
     throw new Error('logger is required')
   }
   try {
@@ -234,7 +235,11 @@ async function deleteAppliance(db, applianceId, logger) {
 /**
  * Search appliances by name, model number, or type with pagination
  */
-async function searchAppliances(db, { query, page = 1, limit = 20 } = {}, logger) {
+async function searchAppliances(
+  db,
+  { query, page = 1, limit = 20 } = {},
+  logger
+) {
   if (!logger) {
     throw new Error('logger is required')
   }

@@ -41,7 +41,10 @@ export const getAllFuels = {
     // const { page, limit } = request.query
 
     try {
-      const result = await fuelController.getAllFuels(request.db, request.logger)
+      const result = await fuelController.getAllFuels(
+        request.db,
+        request.logger
+      )
       return h.response(result).code(statusCodes.ok)
     } catch (err) {
       return h

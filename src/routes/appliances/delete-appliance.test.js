@@ -126,7 +126,9 @@ describe('DELETE /appliances/{applianceId}', () => {
   describe('options.description', () => {
     test('has description for delete operation', () => {
       expect(deleteAppliance.options.description).toBeDefined()
-      expect(deleteAppliance.options.description.toLowerCase()).toContain('delete')
+      expect(deleteAppliance.options.description.toLowerCase()).toContain(
+        'delete'
+      )
     })
   })
 

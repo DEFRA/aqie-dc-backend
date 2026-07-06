@@ -418,7 +418,11 @@ async function getCertainApplicationsWithAppliances(
 /**
  * Get (uncomplete) applications grouped by status and with summary (returns only appliance names)
  */
-async function getApplicationsWithSummary(db, logger, statuses = ['new', 'in_progress']) {
+async function getApplicationsWithSummary(
+  db,
+  logger,
+  statuses = ['new', 'in_progress']
+) {
   try {
     const appCollection = db.collection('Applications')
     const applianceCollection = db.collection('Appliance')
