@@ -2,7 +2,7 @@
  * Database setup helper - Creates Appliances and Fuels collections
  * with schema validation and indexes
  *
- * This runs automatically on application startup. 
+ * This runs automatically on application startup.
  *
  * Usage:
  * import { setupAppliancesAndFuels } from './common/helpers/db/setup-appliances-fuels.js'
