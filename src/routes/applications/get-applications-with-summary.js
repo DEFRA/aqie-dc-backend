@@ -10,8 +10,10 @@ export const getApplicationsWithSummary = {
   path: '/applications/summary',
   options: {
     tags: ['api', 'applications'],
-    description: 'Get summary of (uncomplete) applications by status with appliance names',
-    notes: 'Returns (uncomplete) applications grouped by status ("new", "in_progress") along with their appliances summary (names only)'
+    description:
+      'Get summary of (uncomplete) applications by status with appliance names',
+    notes:
+      'Returns (uncomplete) applications grouped by status ("new", "in_progress") along with their appliances summary (names only)'
   },
   handler: async (request, h) => {
     try {
@@ -22,10 +24,7 @@ export const getApplicationsWithSummary = {
 
       return h.response(result).code(statusCodes.ok)
     } catch (error) {
-      request.logger.error(
-        error,
-        'Failed to fetch applications summary'
-      )
+      request.logger.error(error, 'Failed to fetch applications summary')
       return h
         .response({
           success: false,

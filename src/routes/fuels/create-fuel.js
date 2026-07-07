@@ -50,7 +50,11 @@ export const createFuel = {
       ...request.pre.validatedPayload
     }
     try {
-      const { data, message } = await fuelController.createFuel(request.db, newItem, request.logger)
+      const { data, message } = await fuelController.createFuel(
+        request.db,
+        newItem,
+        request.logger
+      )
       return h
         .response({
           success: true,

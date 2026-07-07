@@ -30,7 +30,7 @@ export const updateAppliance = {
         request.payload,
         request.logger
       )
-      
+
       if (result.notFound) {
         return h.response(result).code(statusCodes.notFound)
       }

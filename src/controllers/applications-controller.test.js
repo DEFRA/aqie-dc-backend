@@ -199,7 +199,8 @@ describe('applications-controller', () => {
     db = {
       collection: vi.fn((name) => {
         if (name === 'Applications') return collection
-        if (name === 'Appliance' || name === 'Appliances') return applianceCollection
+        if (name === 'Appliance' || name === 'Appliances')
+          return applianceCollection
         if (name === 'Fuel' || name === 'Fuels') {
           // Return a fuel collection mock with same structure as appliance
           return {
@@ -263,7 +264,9 @@ describe('applications-controller', () => {
       const result = await createApplication(client, db, payload, mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.message).toBe('Application and appliances created successfully')
+      expect(result.message).toBe(
+        'Application and appliances created successfully'
+      )
       expect(result.data.applicationId).toBeDefined()
       expect(result.data.appliances).toHaveLength(1)
       expect(collection.insertOne).toHaveBeenCalled()
@@ -315,7 +318,9 @@ describe('applications-controller', () => {
     })
 
     test('handles transaction fallback for standalone MongoDB', async () => {
-      const sessionError = new Error('Transactions are not allowed on this replset')
+      const sessionError = new Error(
+        'Transactions are not allowed on this replset'
+      )
       const fallbackClient = {
         startSession: vi.fn(() => ({
           withTransaction: vi.fn(async () => {
@@ -387,9 +392,9 @@ describe('applications-controller', () => {
         throw new Error('Database connection failed')
       })
 
-      await expect(
-        getAllApplications(db, {}, mockLogger)
-      ).rejects.toThrow('Database connection failed')
+      await expect(getAllApplications(db, {}, mockLogger)).rejects.toThrow(
+        'Database connection failed'
+      )
       expect(mockLogger.error).toHaveBeenCalled()
     })
   })
@@ -409,7 +414,9 @@ describe('applications-controller', () => {
       expect(result.success).toBe(true)
       expect(result.message).toBe('Application retrieved successfully')
       expect(result.data.applicationId).toBe('app-123')
-      expect(collection.findOne).toHaveBeenCalledWith({ applicationId: 'app-123' })
+      expect(collection.findOne).toHaveBeenCalledWith({
+        applicationId: 'app-123'
+      })
     })
 
     test('returns notFound when application does not exist', async () => {
@@ -460,7 +467,11 @@ describe('applications-controller', () => {
         reviewer: 'Jane'
       })
 
-      const result = await searchApplications(db, { query: 'John', page: 1, limit: 20 }, mockLogger)
+      const result = await searchApplications(
+        db,
+        { query: 'John', page: 1, limit: 20 },
+        mockLogger
+      )
 
       expect(result.success).toBe(true)
       expect(result.message).toBe('Applications search completed successfully')
@@ -505,7 +516,11 @@ describe('applications-controller', () => {
       })
 
       await expect(
-        searchApplications(db, { query: 'test', page: 1, limit: 20 }, mockLogger)
+        searchApplications(
+          db,
+          { query: 'test', page: 1, limit: 20 },
+          mockLogger
+        )
       ).rejects.toThrow('Search failed')
     })
   })
@@ -552,7 +567,9 @@ describe('applications-controller', () => {
         throw new Error('Aggregation failed')
       })
 
-      await expect(getCounts(db, mockLogger)).rejects.toThrow('Aggregation failed')
+      await expect(getCounts(db, mockLogger)).rejects.toThrow(
+        'Aggregation failed'
+      )
       expect(mockLogger.error).toHaveBeenCalled()
     })
   })
@@ -640,13 +657,21 @@ describe('applications-controller', () => {
         }
       )
 
-      const result = await getCertainApplicationsWithAppliances(db, mockLogger, 'new')
+      const result = await getCertainApplicationsWithAppliances(
+        db,
+        mockLogger,
+        'new'
+      )
 
       expect(Array.isArray(result)).toBe(true)
     })
 
     test('returns empty array when no applications with status found', async () => {
-      const result = await getCertainApplicationsWithAppliances(db, mockLogger, 'nonexistent')
+      const result = await getCertainApplicationsWithAppliances(
+        db,
+        mockLogger,
+        'nonexistent'
+      )
 
       expect(Array.isArray(result)).toBe(true)
       expect(result).toEqual([])
@@ -676,7 +701,11 @@ describe('applications-controller', () => {
         }
       )
 
-      const result = await getCertainApplicationsWithAppliances(db, mockLogger, 'new')
+      const result = await getCertainApplicationsWithAppliances(
+        db,
+        mockLogger,
+        'new'
+      )
 
       expect(Array.isArray(result)).toBe(true)
     })

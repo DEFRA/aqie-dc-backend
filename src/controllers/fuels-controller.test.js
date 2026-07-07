@@ -36,14 +36,20 @@ describe('fuels-controller', () => {
         const filterDocs = (docsToFilter) => {
           if (!query) return docsToFilter
           return docsToFilter.filter((doc) => {
-            if (query.technicalApproval && doc.technicalApproval !== query.technicalApproval) {
+            if (
+              query.technicalApproval &&
+              doc.technicalApproval !== query.technicalApproval
+            ) {
               return false
             }
             if (query.$or) {
               return query.$or.some((condition) => {
                 const field = Object.keys(condition)[0]
                 if (condition[field]?.$regex) {
-                  const regex = new RegExp(condition[field].$regex, condition[field].$options || '')
+                  const regex = new RegExp(
+                    condition[field].$regex,
+                    condition[field].$options || ''
+                  )
                   return regex.test(doc[field])
                 }
                 return doc[field] === condition[field]
@@ -106,7 +112,10 @@ describe('fuels-controller', () => {
       countDocuments: vi.fn(async (query) => {
         if (!query) return docs.length
         return docs.filter((doc) => {
-          if (query.technicalApproval && doc.technicalApproval !== query.technicalApproval) {
+          if (
+            query.technicalApproval &&
+            doc.technicalApproval !== query.technicalApproval
+          ) {
             return false
           }
           if (query.$or) {
@@ -142,7 +151,9 @@ describe('fuels-controller', () => {
       expect(result.data.createdAt).toBeInstanceOf(Date)
       expect(result.data.updatedAt).toBeInstanceOf(Date)
       expect(collection.insertOne).toHaveBeenCalled()
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Fuel created'))
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Fuel created')
+      )
     })
 
     test('uses provided fuelId if supplied', async () => {
@@ -158,28 +169,40 @@ describe('fuels-controller', () => {
     })
 
     test('throws error when db is missing', async () => {
-      await expect(createFuel(null, fuelExample, mockLogger)).rejects.toThrow('db is required')
+      await expect(createFuel(null, fuelExample, mockLogger)).rejects.toThrow(
+        'db is required'
+      )
     })
 
     test('throws error when item is missing', async () => {
-      await expect(createFuel(db, null, mockLogger)).rejects.toThrow('item is required')
+      await expect(createFuel(db, null, mockLogger)).rejects.toThrow(
+        'item is required'
+      )
     })
 
     test('throws error when logger is missing', async () => {
-      await expect(createFuel(db, fuelExample, null)).rejects.toThrow('logger is required')
+      await expect(createFuel(db, fuelExample, null)).rejects.toThrow(
+        'logger is required'
+      )
     })
 
     test('throws error when insertOne fails', async () => {
-      collection.insertOne = vi.fn().mockRejectedValueOnce(new Error('DB error'))
+      collection.insertOne = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('DB error'))
 
-      await expect(createFuel(db, fuelExample, mockLogger)).rejects.toThrow('DB error')
+      await expect(createFuel(db, fuelExample, mockLogger)).rejects.toThrow(
+        'DB error'
+      )
       expect(mockLogger.error).toHaveBeenCalled()
     })
 
     test('throws error when result is not acknowledged', async () => {
       collection.insertOne = vi.fn(async () => ({ acknowledged: false }))
 
-      await expect(createFuel(db, fuelExample, mockLogger)).rejects.toThrow('Failed to insert fuel')
+      await expect(createFuel(db, fuelExample, mockLogger)).rejects.toThrow(
+        'Failed to insert fuel'
+      )
     })
   })
 
@@ -323,13 +346,17 @@ describe('fuels-controller', () => {
     })
 
     test('throws error when logger is missing', async () => {
-      await expect(getFuelById(db, 'FUEL-001', null)).rejects.toThrow('logger is required')
+      await expect(getFuelById(db, 'FUEL-001', null)).rejects.toThrow(
+        'logger is required'
+      )
     })
 
     test('throws error on database failure', async () => {
       collection.findOne = vi.fn().mockRejectedValueOnce(new Error('DB error'))
 
-      await expect(getFuelById(db, 'FUEL-001', mockLogger)).rejects.toThrow('DB error')
+      await expect(getFuelById(db, 'FUEL-001', mockLogger)).rejects.toThrow(
+        'DB error'
+      )
       expect(mockLogger.error).toHaveBeenCalled()
     })
   })
@@ -368,19 +395,30 @@ describe('fuels-controller', () => {
     })
 
     test('returns notFound when fuel does not exist', async () => {
-      const result = await updateFuel(db, 'FUEL-NONEXISTENT', { brandNames: 'Test' }, mockLogger)
+      const result = await updateFuel(
+        db,
+        'FUEL-NONEXISTENT',
+        { brandNames: 'Test' },
+        mockLogger
+      )
 
       expect(result.notFound).toBe(true)
     })
 
     test('throws error when logger is missing', async () => {
-      await expect(updateFuel(db, 'FUEL-001', {}, null)).rejects.toThrow('logger is required')
+      await expect(updateFuel(db, 'FUEL-001', {}, null)).rejects.toThrow(
+        'logger is required'
+      )
     })
 
     test('throws error on database failure', async () => {
-      collection.updateOne = vi.fn().mockRejectedValueOnce(new Error('DB error'))
+      collection.updateOne = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('DB error'))
 
-      await expect(updateFuel(db, 'FUEL-001', {}, mockLogger)).rejects.toThrow('DB error')
+      await expect(updateFuel(db, 'FUEL-001', {}, mockLogger)).rejects.toThrow(
+        'DB error'
+      )
     })
   })
 
@@ -417,13 +455,19 @@ describe('fuels-controller', () => {
     })
 
     test('throws error when logger is missing', async () => {
-      await expect(deleteFuel(db, 'FUEL-001', null)).rejects.toThrow('logger is required')
+      await expect(deleteFuel(db, 'FUEL-001', null)).rejects.toThrow(
+        'logger is required'
+      )
     })
 
     test('throws error on database failure', async () => {
-      collection.deleteOne = vi.fn().mockRejectedValueOnce(new Error('DB error'))
+      collection.deleteOne = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('DB error'))
 
-      await expect(deleteFuel(db, 'FUEL-001', mockLogger)).rejects.toThrow('DB error')
+      await expect(deleteFuel(db, 'FUEL-001', mockLogger)).rejects.toThrow(
+        'DB error'
+      )
     })
   })
 
@@ -496,9 +540,9 @@ describe('fuels-controller', () => {
     })
 
     test('throws error when logger is missing', async () => {
-      await expect(
-        searchFuels(db, { query: 'test' }, null)
-      ).rejects.toThrow('logger is required')
+      await expect(searchFuels(db, { query: 'test' }, null)).rejects.toThrow(
+        'logger is required'
+      )
     })
 
     test('throws error on database failure', async () => {

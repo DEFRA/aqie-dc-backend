@@ -21,8 +21,12 @@ export const getFuelById = {
     const { fuelId } = request.params
 
     try {
-      const result = await fuelController.getFuelById(request.db, fuelId, request.logger)
-      
+      const result = await fuelController.getFuelById(
+        request.db,
+        fuelId,
+        request.logger
+      )
+
       if (!result.success) {
         return h.response(result).code(statusCodes.notFound)
       }

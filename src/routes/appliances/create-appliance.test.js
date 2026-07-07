@@ -80,7 +80,10 @@ describe('POST /appliances', () => {
       expect(result.success).toBe(false)
       expect(result.message).toBe('Failed to create appliance')
       expect(result.error).toBe('Database error')
-      expect(mockRequest.logger.error).toHaveBeenCalledWith(error, 'Failed to create appliance')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to create appliance'
+      )
     })
 
     test('returns request.pre.validatedPayload as newItem', async () => {
