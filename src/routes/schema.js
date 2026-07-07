@@ -142,6 +142,12 @@ export const applianceSchema = Joi.object({
     .description('Instruction manual additional information'),
   declaration: Joi.boolean().required().description('Declaration'),
   //End of appliance application fields
+  //is this airControlModifications field come from the applications defra form? //how was it referenced in public frontend if it didnt exist before?
+  airControlModifications: Joi.boolean()
+    .optional()
+    .description(
+      'Air control modifications. For records coming from DB migration this is "Additional Condition Comments"'
+    ),
   submittedBy: Joi.string()
     .optional()
     .description(

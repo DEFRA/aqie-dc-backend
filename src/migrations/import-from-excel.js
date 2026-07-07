@@ -109,19 +109,22 @@ function transformToAppliance(row) {
   }
 
   const appliance = {
-    applicationId: row['Application Number'],
+    applicationId: row['Application Number'], //unsure
     applianceId: row['Appliance ID'],
     modelName: row['Appliance Name (Title)'],
-    companyName: row['Manufacturer Name'],
-    companyAddress: row['Manufacturer Address'],
+    companyName: row['Manufacturer Name'], 
+    companyAddress: row['Manufacturer Address'], //connection not mentitoned on cilent schema
     applianceType: row['Appliance Types'],
     allowedFuels: parseArrayField(row['Permitted Fuels']),
     nominalOutput: parseFloat(row['Output Value'] || 0),
     instructionManualTitle: row['Instructions Manual Title'],
     instructionManualVersion: row['Instructions Manual Reference'],
     instructionManualDate: parseDate(row['Instructions Manual Date']),
+    instructionManualAdditionalInfo: row['Additional Comments'],
+    additionalConditionComments: row['Additional Condition Comments'],
     submittedBy: row['Submitted By (User)'],
-    publishedDate: parseDate(row['WP Published Date']),
+    submittedDate: parseDate(row['Reviewer Assign Date']),
+    publishedDate: parseDate(row['WP Published Date']), //ask about this field
     technicalApproval,
     technicalApprovalDate,
     reviewedBy: row['Reviewed By (User)'],
@@ -131,10 +134,10 @@ function transformToAppliance(row) {
     //englandApproval: status field in csv doesnt match
     englandApprovedBy: row['England User'],
     englandDateFirstAuthorised: parseDate(row['England Approve Date']),
-    //scotlandApproval: status field in csv doesnt match
+    //scotlandApproval: status field in csv doesnt match //correct fields mapping but need to change the statuses
     scotlandApprovedBy: row['Scotland User'],
     scotlandDateFirstAuthorised: parseDate(row['Scotland Approve Date']),
-    //walesApproval: status field in csv doesnt match
+    //walesApproval: status field in csv doesnt match 
     walesApprovedBy: row['Wales User'],
     walesDateFirstAuthorised: parseDate(row['Wales Approve Date']),
     //nIrelandApproval: status field in csv doesnt match
@@ -147,6 +150,7 @@ function transformToAppliance(row) {
     scotlandStatus: row['Scotland Status'],
     walesStatus: row['Wales Status'],
     nIrelandStatus: row['N Ireland Status'],
+
     fuelTypes: row['Fuel Types'],
     postId: row['Post ID'],
     wpPostStatus: row['WP Post Status'],
@@ -156,7 +160,7 @@ function transformToAppliance(row) {
     servicingManualReference: row['Servicing Manual Reference'],
     servicingManualDate: row['Servicing Manual Date'],
     additionalConditionIds: row['Additional Condition IDs'],
-    additionalConditionComments: row['Additional Condition Comments'],
+    //additionalConditionComments: row['Additional Condition Comments'],
     additionalComments: row['Additional Comments'],
     linkedApplications: row['Linked Applications'],
     commentToDA: row['Comment to DA'],
@@ -189,54 +193,10 @@ function transformToAppliance(row) {
  */
 function transformToFuel(row) {
   const fuel = {
-    fuelId: row.fuelId || row.FuelID || row.ID,
-    manufacturerName: row.manufacturerName || row['Manufacturer Name'],
-    manufacturerAddress: row.manufacturerAddress || row['Manufacturer Address'],
-    manufacturerContactName: row.manufacturerContactName || row['Contact Name'],
-    manufacturerContactEmail:
-      row.manufacturerContactEmail || row['Contact Email'],
-    manufacturerPhone: row.manufacturerPhone || row['Contact Phone'],
-    representativeName: row.representativeName || row['Representative Name'],
-    representativeEmail: row.representativeEmail || row['Representative Email'],
-    hasCustomerComplaints: parseBoolean(
-      row.hasCustomerComplaints || row['Has Complaints']
-    ),
-    qualityControlSystem:
-      row.qualityControlSystem || row['Quality Control System'],
-    certificationScheme: row.certificationScheme || row['Certification Scheme'],
-    fuelName: row.fuelName || row['Fuel Name'],
-    fuelBagging: row.fuelBagging || row['Fuel Bagging'],
-    isBaggedAtSource: parseBoolean(
-      row.isBaggedAtSource || row['Bagged at Source']
-    ),
-    fuelDescription: row.fuelDescription || row['Fuel Description'],
-    fuelWeight: row.fuelWeight || row['Fuel Weight'],
-    fuelComposition: row.fuelComposition || row['Fuel Composition'],
-    sulphurContent: parseFloat(
-      row.sulphurContent || row['Sulphur Content (%)'] || 0
-    ),
-    manufacturingProcess:
-      row.manufacturingProcess || row['Manufacturing Process'],
-    isRebrandedProduct: parseBoolean(
-      row.isRebrandedProduct || row['Is Rebranded']
-    ),
-    hasChangedFromOriginal: parseBoolean(
-      row.hasChangedFromOriginal || row['Changed from Original']
-    ),
+    
     updatedAt: new Date()
   }
 
-  // Optional fields
-  if (row.manufacturerAlternateEmail || row['Alternate Email']) {
-    fuel.manufacturerAlternateEmail =
-      row.manufacturerAlternateEmail || row['Alternate Email']
-  }
-
-  if (row.brandNames || row['Brand Names']) {
-    fuel.brandNames = row.brandNames || row['Brand Names']
-  }
-
-  // Set createdAt only for new documents
   fuel.createdAt = new Date()
 
   return fuel
