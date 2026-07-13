@@ -14,11 +14,20 @@ const fuelOptions = ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other']
 
 const INVALID_PHONE_ERROR = 'any.invalid'
 
+// ============================================================================
+// APPLIANCE SCHEMA
+// ============================================================================
+
 export const applianceSchema = Joi.object({
   applicationId: Joi.string()
     .optional()
     .description(
       'Application ID (foreign key). For records coming from DB migration this is "Application Number"'
+    ),
+  applianceId: Joi.string()
+    .optional()
+    .description(
+      'Appliance ID (primary key). For records coming from DB migration this is "Appliance ID", server generated for new appliances'
     ),
   // Start of appliance application fields
   companyName: Joi.string()
@@ -54,6 +63,7 @@ export const applianceSchema = Joi.object({
     })
     .description('Company city'),
   companyAddressCounty: Joi.string().optional().description('Company county'),
+  //is country missing from defra forms (doesnt come in the migration script as comes as just address, so not missing there)
   companyAddressPostcode: Joi.string()
     .when('isUkBased', {
       is: true,
@@ -220,7 +230,21 @@ export const applianceSchema = Joi.object({
   //status of appliance through approval process
 }).label('Appliance')
 
+// ============================================================================
+// FUEL SCHEMA
+// ============================================================================
+
 export const fuelSchema = Joi.object({
+  fuelId: Joi.string()
+    .optional()
+    .description(
+      'Fuel ID (primary key/surrogate key). Server-generated, strictly internal and immutable once assigned. Assigned to new fuels and also to records coming from DB migration, ("Fuel ID" will be migrated to packagingID).'
+    ),
+  packagingId: Joi.string()
+    .optional()
+    .description(
+      'Packaging ID (natural key). This is the id that is applied to packaging. For records coming from DB migration this is "Fuel ID". There may be errors in this field so that why it is not the primary key. This is a natural key that is used to identify the fuel in the packaging. It is not guaranteed to be unique, but it should be unique for each fuel.'
+    ),
   // Start of fuel application fields
   companyName: Joi.string().required().description('Manufacturer'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
@@ -249,6 +273,7 @@ export const fuelSchema = Joi.object({
     })
     .description('Company city'),
   companyAddressCounty: Joi.string().optional().description('Company county'),
+  companyAddressCountry: Joi.string().optional().description('Company country'),
   companyAddressPostcode: Joi.string()
     .when('isUkBased', {
       is: true,
@@ -426,7 +451,10 @@ export const fuelSchema = Joi.object({
     .description('England date last updated (last certified or revoked)')
 }).label('Fuel')
 
-//appliances application schema
+// ============================================================================
+// APPLICATIONS SCHEMA
+// ============================================================================
+
 export const applicationsSchema = Joi.object({
   applicationType: Joi.string()
     .valid('appliance', 'fuel')

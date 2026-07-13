@@ -1,7 +1,8 @@
 import { MongoClient } from 'mongodb'
 import { LockManager } from 'mongo-locks'
-import { setupAppliancesAndFuels } from './db/setup-appliances-fuels.js'
+import { performS3DataImport } from '../../routes/s3-import.js'
 import { setupApplications } from './db/setup-applications.js'
+import { config } from '../../config.js'
 
 export const mongoDb = {
   plugin: {
@@ -63,12 +64,22 @@ async function ensureAppliancesAndFuelsCollections(db, logger) {
 
     // Setup Appliances and Fuels
     if (!hasAppliances || !hasFuels) {
-      logger.info('Setting up Appliances and Fuels collections...')
-      await setupAppliancesAndFuels(db, {
-        dropExisting: false,
-        insertSamples: false
-      })
-      logger.info('Appliances and Fuels collections setup complete')
+      logger.info('Appliances and/or Fuels collections missing - importing from S3...')
+
+      try {
+        const s3Bucket = config.get('cdpUploader.s3Bucket')
+        const s3Key = config.get('cdpUploader.s3Prefix') + '/data.xlsx'
+        const entities = ['appliances', 'fuels']
+
+        await performS3DataImport(db, s3Bucket, s3Key, entities, logger)
+
+        logger.info('Appliances and Fuels collections imported successfully')
+      } catch (importError) {
+        logger.warn(
+          importError,
+          'Failed to import from S3 - Trigger import manually via POST /import'
+        )
+      }
     } else {
       logger.info('Appliances and Fuels collections already exist')
     }

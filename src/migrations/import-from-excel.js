@@ -13,8 +13,8 @@
 import xlsx from 'xlsx'
 import { MongoClient } from 'mongodb'
 import { config } from '../config.js'
-import { parse, isValid } from 'date-fns'
-import fs from 'fs'
+import fs from 'node:fs'
+import { ENTITY_CONFIG, ENTITY_TYPES } from '../common/helpers/entity-config.js'
 import { applianceSchema, fuelSchema } from '../routes/schema.js'
 
 /**
@@ -45,11 +45,6 @@ function parseExcelFile(filePath, sheetName) {
 }
 
 /**
- * Transform Excel row to Appliance document
- * Maps CSV columns to schema fields (no fallbacks - single CSV format)
- */
-
-/**
  * Create a proxy to track which CSV columns are accessed during transformation
  */
 function createRowProxy(row, accessedColumns) {
@@ -76,185 +71,12 @@ function getUnmappedColumns(sampleRow, transformFn) {
   return allColumns.filter((col) => !accessedColumns.has(col))
 }
 
-function transformToAppliance(row) {
-  // Determine technicalApproval based on Reviewer dates
-  // Read both columns upfront so the Proxy tracks them both
-  const reviewerApproveDate = row['Reviewer Approve Date']
-  const reviewerRejectDate = row['Reviewer Reject Date']
-
-  let technicalApproval = 'Uncertified'
-  let technicalApprovalDate = null
-
-  // Parse both dates for comparison
-  const approveDate = reviewerApproveDate
-    ? parseDate(reviewerApproveDate)
-    : null
-  const rejectDate = reviewerRejectDate ? parseDate(reviewerRejectDate) : null
-
-  if (approveDate && rejectDate) {
-    // Both dates exist - use the later one
-    if (approveDate >= rejectDate) {
-      technicalApproval = 'Certified'
-      technicalApprovalDate = approveDate
-    } else {
-      technicalApproval = 'Revoked'
-      technicalApprovalDate = rejectDate
-    }
-  } else if (approveDate) {
-    technicalApproval = 'Certified'
-    technicalApprovalDate = approveDate
-  } else if (rejectDate) {
-    technicalApproval = 'Revoked'
-    technicalApprovalDate = rejectDate
-  }
-
-  const appliance = {
-    applicationId: row['Application Number'], //unsure
-    applianceId: row['Appliance ID'],
-    modelName: row['Appliance Name (Title)'],
-    companyName: row['Manufacturer Name'], 
-    companyAddress: row['Manufacturer Address'], //connection not mentitoned on cilent schema
-    applianceType: row['Appliance Types'],
-    allowedFuels: parseArrayField(row['Permitted Fuels']),
-    nominalOutput: parseFloat(row['Output Value'] || 0),
-    instructionManualTitle: row['Instructions Manual Title'],
-    instructionManualVersion: row['Instructions Manual Reference'],
-    instructionManualDate: parseDate(row['Instructions Manual Date']),
-    instructionManualAdditionalInfo: row['Additional Comments'],
-    additionalConditionComments: row['Additional Condition Comments'],
-    submittedBy: row['Submitted By (User)'],
-    submittedDate: parseDate(row['Reviewer Assign Date']),
-    publishedDate: parseDate(row['WP Published Date']), //ask about this field
-    technicalApproval,
-    technicalApprovalDate,
-    reviewedBy: row['Reviewed By (User)'],
-    reviewerAssignDate: row['Reviewer Assign Date']
-      ? parseDate(row['Reviewer Assign Date'])
-      : null,
-    //englandApproval: status field in csv doesnt match
-    englandApprovedBy: row['England User'],
-    englandDateFirstAuthorised: parseDate(row['England Approve Date']),
-    //scotlandApproval: status field in csv doesnt match //correct fields mapping but need to change the statuses
-    scotlandApprovedBy: row['Scotland User'],
-    scotlandDateFirstAuthorised: parseDate(row['Scotland Approve Date']),
-    //walesApproval: status field in csv doesnt match 
-    walesApprovedBy: row['Wales User'],
-    walesDateFirstAuthorised: parseDate(row['Wales Approve Date']),
-    //nIrelandApproval: status field in csv doesnt match
-    nIrelandApprovedBy: row['N Ireland User'],
-    nIrelandDateFirstAuthorised: parseDate(row['N Ireland Approve Date']),
-    updatedAt: new Date(),
-
-    //legacy fields (not in schema)
-    englandStatus: row['England Status'],
-    scotlandStatus: row['Scotland Status'],
-    walesStatus: row['Wales Status'],
-    nIrelandStatus: row['N Ireland Status'],
-
-    fuelTypes: row['Fuel Types'],
-    postId: row['Post ID'],
-    wpPostStatus: row['WP Post Status'],
-    manufacturerPostId: row['Manufacturer Post ID'],
-    outputUnitId: row['Output Unit ID'],
-    servicingManualTitle: row['Servicing Manual Title'],
-    servicingManualReference: row['Servicing Manual Reference'],
-    servicingManualDate: row['Servicing Manual Date'],
-    additionalConditionIds: row['Additional Condition IDs'],
-    //additionalConditionComments: row['Additional Condition Comments'],
-    additionalComments: row['Additional Comments'],
-    linkedApplications: row['Linked Applications'],
-    commentToDA: row['Comment to DA'],
-    userComment: row['User Comment'],
-    comments: row['Comments'],
-    englandAssignedDate: row['England Assigned Date'],
-    englandPublishDate: row['England Publish Date'],
-    englandStatutoryInstruments: row['England Statutory Instruments'],
-    walesAssignedDate: row['Wales Assigned Date'],
-    walesPublishDate: row['Wales Publish Date'],
-    walesStatutoryInstruments: row['Wales Statutory Instruments'],
-    scotlandAssignedDate: row['Scotland Assigned Date'],
-    scotlandPublishDate: row['Scotland Publish Date'],
-    scotlandStatutoryInstruments: row['Scotland Statutory Instruments'],
-    nIrelandAssignedDate: row['N Ireland Assigned Date'],
-    nIrelandPublishDate: row['N Ireland Publish Date'],
-    nIrelandStatutoryInstruments: row['N Ireland Statutory Instruments']
-
-    //new and introduced fields in DEFRA forms schema but not in csv
-    // isUkBased - needs default
-    //isVariant - needs default
-    //declaration - needs default
-  }
-
-  return appliance
-}
-
 /**
- * Transform Excel row to Fuel document
+ * Use centralized transforms from ENTITY_CONFIG to ensure consistency
+ * between CLI imports and CDP production imports
  */
-function transformToFuel(row) {
-  const fuel = {
-    
-    updatedAt: new Date()
-  }
-
-  fuel.createdAt = new Date()
-
-  return fuel
-}
-
-/**
- * Parse boolean values from Excel
- */
-function parseBoolean(value) {
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'string') {
-    const lower = value.toLowerCase().trim()
-    if (['true', 'yes', '1', 'y'].includes(lower)) return true
-    if (['false', 'no', '0', 'n'].includes(lower)) return false
-  }
-  return Boolean(value)
-}
-
-/**
- * Parse array/list values from Excel (comma-separated strings)
- */
-function parseArrayField(value) {
-  if (!value) return []
-  if (Array.isArray(value)) return value
-  if (typeof value === 'string') {
-    return value
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean)
-  }
-  return [value]
-}
-
-/**
- * Parse date values from Excel
- */
-function parseDate(value) {
-  if (!value) return new Date()
-  if (value instanceof Date) return value
-
-  // Try parsing common date formats
-  const formats = [
-    'dd/MM/yyyy',
-    'MM/dd/yyyy',
-    'yyyy-MM-dd',
-    'dd-MM-yyyy',
-    'MM-dd-yyyy'
-  ]
-
-  for (const format of formats) {
-    const date = parse(value, format, new Date())
-    if (isValid(date)) return date
-  }
-
-  // Fallback to native Date parsing
-  const date = new Date(value)
-  return isValid(date) ? date : new Date()
-}
+const transformToAppliance = ENTITY_CONFIG[ENTITY_TYPES.APPLIANCES].transform
+const transformToFuel = ENTITY_CONFIG[ENTITY_TYPES.FUELS].transform
 
 /**
  * Import appliances with upsert logic
@@ -413,6 +235,42 @@ async function importFuels(db, data, options = {}) {
   console.log(`   ↻ Updated: ${updated}`)
   console.log(`   ✗ Failed: ${failed}`)
 
+  // Report on unmapped CSV columns and unfilled schema fields
+  if (data.length > 0) {
+    // Dynamically detect unmapped columns by tracking which ones are accessed
+    const unmappedColumns = getUnmappedColumns(data[0], transformToFuel)
+
+    if (unmappedColumns.length > 0) {
+      console.log(
+        `\n⚠️  CSV columns NOT mapped to DB fields (${unmappedColumns.length}):`
+      )
+      unmappedColumns.forEach((col) => console.log(`   - "${col}"`))
+    }
+
+    // Get schema fields from Joi schema
+    const schemaFields = Object.keys(fuelSchema.describe().keys)
+
+    // Get fields that are being set in transform (check first row)
+    const sampleFuel = transformToFuel(data[0])
+    const filledFields = Object.keys(sampleFuel).filter(
+      (key) =>
+        sampleFuel[key] !== null &&
+        sampleFuel[key] !== undefined &&
+        sampleFuel[key] !== ''
+    )
+
+    const unfilledSchemaFields = schemaFields.filter(
+      (field) => !filledFields.includes(field) && field !== 'createdAt' // createdAt is set on insert
+    )
+
+    if (unfilledSchemaFields.length > 0) {
+      console.log(
+        `\n⚠️  Schema fields NOT filled from CSV (${unfilledSchemaFields.length}):`
+      )
+      unfilledSchemaFields.forEach((field) => console.log(`   - ${field}`))
+    }
+  }
+
   return { inserted, updated, failed, errors }
 }
 
@@ -478,7 +336,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const type =
     typeIndex !== -1 && args[typeIndex + 1] ? args[typeIndex + 1] : 'both'
 
-  const mongoUrl = config.get('mongo.mongoUrl')
+  const mongoUrl = config.get('mongo.uri')
   const databaseName = config.get('mongo.databaseName')
 
   console.log(`Connecting to MongoDB: ${databaseName}`)

@@ -12,6 +12,40 @@ import {
 } from '../common/helpers/s3-download.js'
 
 /**
+ * Perform S3 import - reusable function for both API endpoint and startup initialization
+ * @param {Db} db - MongoDB database instance
+ * @param {string} s3Bucket - S3 bucket name
+ * @param {string} s3Key - S3 object key
+ * @param {Array} entities - Entity types to import ['appliances', 'fuels']
+ * @param {object} logger - Logger instance
+ * @returns {Promise<object>} Import results
+ */
+export async function performS3DataImport(db, s3Bucket, s3Key, entities, logger) {
+  let tempFilePath
+
+  try {
+    logger.info({ s3Bucket, s3Key }, 'Downloading file from S3')
+    tempFilePath = await downloadFromS3(s3Bucket, s3Key, logger)
+
+    logger.info({ entities, tempFilePath }, 'Processing Excel import')
+
+    const results = await importFromExcel(db, tempFilePath, entities, {
+      verbose: false
+    })
+
+    logger.info({ results }, 'Import completed successfully')
+    return results
+  } catch (error) {
+    logger.error(error, 'Import failed')
+    throw error
+  } finally {
+    if (tempFilePath) {
+      await cleanupTempFile(tempFilePath, logger)
+    }
+  }
+}
+
+/**
  * S3 import controller
  * Downloads file from S3 and imports data
  */
@@ -116,27 +150,8 @@ const s3ImportController = {
     const entities = ['appliances', 'fuels']
     // ===== END: Hardcoded values =====
 
-    let tempFilePath
-
     try {
-      // Download file from S3
-      request.logger.info(
-        { s3Bucket, s3Key },
-        'Downloading file from S3'
-      )
-      tempFilePath = await downloadFromS3(s3Bucket, s3Key, request.logger)
-
-      // Import data for each entity
-      request.logger.info(
-        { entities, tempFilePath },
-        'Processing Excel import'
-      )
-
-      const results = await importFromExcel(db, tempFilePath, entities, {
-        verbose: false
-      })
-
-      request.logger.info({ results }, 'Import completed successfully')
+      const results = await performS3DataImport(db, s3Bucket, s3Key, entities, request.logger)
 
       return h
         .response({
@@ -153,18 +168,13 @@ const s3ImportController = {
           message: error.message || 'Import processing failed'
         })
         .code(500)
-    } finally {
-      // Cleanup temp file
-      if (tempFilePath) {
-        await cleanupTempFile(tempFilePath, request.logger)
-      }
     }
   }
 }
 
 const s3Import = {
   method: 'POST',
-  path: '/upload-callback',
+  path: '/import',
   ...s3ImportController
 }
 
