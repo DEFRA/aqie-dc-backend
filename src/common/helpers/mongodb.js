@@ -67,11 +67,13 @@ async function ensureAppliancesAndFuelsCollections(db, logger) {
       logger.info('Appliances and/or Fuels collections missing - importing from S3...')
 
       try {
-        const s3Bucket = config.get('cdpUploader.s3Bucket')
-        const s3Key = config.get('cdpUploader.s3Prefix') + '/data.xlsx'
-        const entities = ['appliances', 'fuels']
+        // Excel file should have 2 sheets: 'Appliances' and 'Fuels'
+        const entities = [
+          { type: 'appliances' },
+          { type: 'fuels' }
+        ]
 
-        await performS3DataImport(db, s3Bucket, s3Key, entities, logger)
+        await performS3DataImport(db, entities, logger)
 
         logger.info('Appliances and Fuels collections imported successfully')
       } catch (importError) {

@@ -16,9 +16,11 @@ import { config } from '../../config.js'
  * @param {object} logger Logger instance
  * @returns {Promise<string>} Path to downloaded file
  */
-export async function downloadFromS3(s3Bucket, s3Key, logger) {
+export async function downloadFromS3(logger) {
   const region = config.get('aws.region')
   const cdpEnvironment = config.get('cdpEnvironment')
+  const s3Bucket = config.get('cdpUploader.s3Bucket')
+  const s3Key = config.get('cdpUploader.s3Prefix') + '/MasterList.xlsx'
 
   // Configure S3 client based on environment
   const s3ClientConfig = {

@@ -110,10 +110,12 @@ const s3ImportController = {
     // }
     // ===== END: Commented out validation logic =====
 
-    // ===== START: Hardcoded S3 values for testing flow =====
-    const s3Bucket = 'tobeconfirmed'
-    const s3Key = 'tobeconfirmed'
-    const entities = ['appliances', 'fuels']
+    // ===== START =====
+    // Excel file should have 2 sheets: 'Appliances' and 'Fuels'
+    const entities = [
+      { type: 'appliances' },
+      { type: 'fuels' }
+    ]
     // ===== END: Hardcoded values =====
 
     let tempFilePath
@@ -121,10 +123,9 @@ const s3ImportController = {
     try {
       // Download file from S3
       request.logger.info(
-        { s3Bucket, s3Key },
         'Downloading file from S3'
       )
-      tempFilePath = await downloadFromS3(s3Bucket, s3Key, request.logger)
+      tempFilePath = await downloadFromS3(request.logger)
 
       // Import data for each entity
       request.logger.info(

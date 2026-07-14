@@ -14,18 +14,16 @@ import {
 /**
  * Perform S3 import - reusable function for both API endpoint and startup initialization
  * @param {Db} db - MongoDB database instance
- * @param {string} s3Bucket - S3 bucket name
- * @param {string} s3Key - S3 object key
  * @param {Array} entities - Entity types to import ['appliances', 'fuels']
  * @param {object} logger - Logger instance
  * @returns {Promise<object>} Import results
  */
-export async function performS3DataImport(db, s3Bucket, s3Key, entities, logger) {
+export async function performS3DataImport(db, entities, logger) {
   let tempFilePath
 
   try {
-    logger.info({ s3Bucket, s3Key }, 'Downloading file from S3')
-    tempFilePath = await downloadFromS3(s3Bucket, s3Key, logger)
+    logger.info('Downloading file from S3')
+    tempFilePath = await downloadFromS3(logger)
 
     logger.info({ entities, tempFilePath }, 'Processing Excel import')
 
@@ -144,14 +142,15 @@ const s3ImportController = {
     // }
     // ===== END: Commented out validation logic =====
 
-    // ===== START: Hardcoded S3 values for testing flow =====
-    const s3Bucket = 'tobeconfirmed'
-    const s3Key = 'tobeconfirmed'
-    const entities = ['appliances', 'fuels']
-    // ===== END: Hardcoded values =====
+    // ===== START: ======
+    // Excel file should have 2 sheets: 'Appliances' and 'Fuels'
+    const entities = [
+      { type: 'appliances' },
+      { type: 'fuels' }
+    ]
 
     try {
-      const results = await performS3DataImport(db, s3Bucket, s3Key, entities, request.logger)
+      const results = await performS3DataImport(db, entities, request.logger)
 
       return h
         .response({

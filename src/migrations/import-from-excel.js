@@ -21,18 +21,29 @@ import { applianceSchema, fuelSchema } from '../routes/schema.js'
  * Parse Excel file and return data
  */
 function parseExcelFile(filePath, sheetName) {
-  console.log(`📖 Reading Excel file: ${filePath}`)
+  const fileExtension = filePath.toLowerCase().endsWith('.csv') ? 'csv' : 'xlsx'
+  console.log(`📖 Reading ${fileExtension.toUpperCase()} file: ${filePath}`)
 
   // Read file using fs and pass buffer to xlsx for better compatibility
   const fileBuffer = fs.readFileSync(filePath)
   const workbook = xlsx.read(fileBuffer, { type: 'buffer' })
 
-  const sheet = sheetName
-    ? workbook.Sheets[sheetName]
-    : workbook.Sheets[workbook.SheetNames[0]]
+  // If sheet name is provided, try to find it. Otherwise, use first sheet.
+  // For CSV files uploaded with .xlsx extension, sheetName will be null and we use the first sheet.
+  let sheet
+  if (sheetName && workbook.Sheets[sheetName]) {
+    sheet = workbook.Sheets[sheetName]
+  } else if (sheetName) {
+    // Sheet name was requested but not found - likely a CSV file, use first sheet
+    console.log(`   ⚠️  Sheet "${sheetName}" not found, using first available sheet`)
+    sheet = workbook.Sheets[workbook.SheetNames[0]]
+  } else {
+    // No sheet name provided, use first sheet
+    sheet = workbook.Sheets[workbook.SheetNames[0]]
+  }
 
   if (!sheet) {
-    throw new Error(`Sheet "${sheetName}" not found in Excel file`)
+    throw new Error(`No data found in file`)
   }
 
   const data = xlsx.utils.sheet_to_json(sheet, {
@@ -283,21 +294,22 @@ export async function importFromExcel(db, filePath, type, options = {}) {
 
   const results = {}
 
-  // For CSV files, don't use sheet names (they only have one sheet)
-  const isCSV = filePath.toLowerCase().endsWith('.csv')
-  if (isCSV) {
-    console.log(`   📄 Detected CSV file - using first sheet`)
-  }
+  // // For CSV files, don't use sheet names (they only have one sheet)
+  // const isCSV = filePath.toLowerCase().endsWith('.csv')
+  // // NOTE: CSV support commented out - using Excel format with named sheets only
+  // if (isCSV) {
+  //   console.log(`   📄 Detected CSV file - using first sheet`)
+  // }
 
   try {
     if (type === 'appliances' || type === 'both') {
-      const sheetName = isCSV ? null : options.appliancesSheet || 'Appliances'
+      const sheetName = options.appliancesSheet || 'Appliances'
       const data = parseExcelFile(filePath, sheetName)
       results.appliances = await importAppliances(db, data, options)
     }
 
     if (type === 'fuels' || type === 'both') {
-      const sheetName = isCSV ? null : options.fuelsSheet || 'Fuels'
+      const sheetName = options.fuelsSheet || 'Fuels'
       const data = parseExcelFile(filePath, sheetName)
       results.fuels = await importFuels(db, data, options)
     }
@@ -336,7 +348,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const type =
     typeIndex !== -1 && args[typeIndex + 1] ? args[typeIndex + 1] : 'both'
 
-  const mongoUrl = config.get('mongo.uri')
+  const mongoUrl = config.get('mongo.mongoUrl')
   const databaseName = config.get('mongo.databaseName')
 
   console.log(`Connecting to MongoDB: ${databaseName}`)
