@@ -439,7 +439,7 @@ async function getApplicationsWithSummary(
         success: true,
         data: {
           new: [],
-          in_progress: []
+          inProgress: []
         }
       }
     }
@@ -456,7 +456,7 @@ async function getApplicationsWithSummary(
     // 4. Build result organized by status
     const result = {
       new: [],
-      in_progress: []
+      inProgress: []
     }
 
     for (const app of applications) {
@@ -476,12 +476,12 @@ async function getApplicationsWithSummary(
       if (app.status === 'new') {
         result.new.push(appData)
       } else if (app.status === 'in_progress') {
-        result.in_progress.push(appData)
+        result.inProgress.push(appData)
       }
     }
 
     logger.info(
-      `Found ${result.new.length} new and ${result.in_progress.length} in-progress applications with model names`
+      `Found ${result.new.length} new and ${result.inProgress.length} in-progress applications with model names`
     )
 
     return {

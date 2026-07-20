@@ -6,7 +6,8 @@ import {
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getCertainApplicationsWithAppliances
+  getCertainApplicationsWithAppliances,
+  getApplicationsWithSummary
 } from './applications-controller.js'
 import applicationExample from '../sample-data/application-example.js'
 
@@ -64,6 +65,9 @@ describe('applications-controller', () => {
           toArray: vi.fn(async () => {
             return applianceDocs
           })
+        })),
+        project: vi.fn(() => ({
+          toArray: vi.fn(async () => applianceDocs)
         })),
         toArray: vi.fn(async () => {
           if (!query) return applianceDocs
@@ -708,6 +712,36 @@ describe('applications-controller', () => {
       )
 
       expect(Array.isArray(result)).toBe(true)
+    })
+  })
+
+  describe('getApplicationsWithSummary', () => {
+    test('returns in-progress applications under inProgress key', async () => {
+      docs.push(
+        {
+          applicationId: 'app-1',
+          applicationType: 'appliance',
+          status: 'new',
+          submittedAt: new Date('2024-01-01')
+        },
+        {
+          applicationId: 'app-2',
+          applicationType: 'appliance',
+          status: 'in_progress',
+          submittedAt: new Date('2024-01-02')
+        }
+      )
+      applianceDocs.push({
+        applicationId: 'app-2',
+        modelName: 'Model Y'
+      })
+
+      const result = await getApplicationsWithSummary(db, mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.new).toHaveLength(1)
+      expect(result.data.inProgress).toHaveLength(1)
+      expect(result.data.in_progress).toBeUndefined()
     })
   })
 })
