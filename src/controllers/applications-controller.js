@@ -461,7 +461,7 @@ async function getApplicationsWithSummary(
 
     for (const app of applications) {
       const appData = {
-        applicationId: app.applicationId,
+        id: app.applicationId,
         applicationType: app.applicationType,
         status: app.status,
         submittedAt: app.submittedAt,
