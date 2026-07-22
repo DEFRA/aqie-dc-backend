@@ -118,6 +118,11 @@ export const applianceSchema = Joi.object({
     .description('Instruction manual additional information'),
   declaration: Joi.boolean().required().description('Declaration'),
   //End of appliance application fields
+  legacyRecord: Joi.boolean()
+    .optional()
+    .description(
+      'Records that have been migrated to the DB are deemed as legacy records'
+    ),
   submittedBy: Joi.string().optional().description('Submitted by'),
   submittedDate: Joi.date().optional().description('Submitted date'),
   publishedDate: Joi.date().optional().description('Published date'),

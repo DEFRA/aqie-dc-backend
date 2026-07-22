@@ -341,9 +341,14 @@ async function getCounts(db, logger) {
       db.collection('Fuels').countDocuments(filter)
     ])
 
-    applicationCounts.appliance.records = applianceRecordCount
-    applicationCounts.fuel.records = fuelRecordCount
+    // Count all legacy appliance records where legacyRecord is true.
+    const legacyApplianceRecordCount = await db
+      .collection('Appliances')
+      .countDocuments({ legacyRecord: true })
 
+    applicationCounts.appliance.records =
+      applianceRecordCount + legacyApplianceRecordCount
+    applicationCounts.fuel.records = fuelRecordCount
 
     return {
       success: true,
