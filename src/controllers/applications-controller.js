@@ -306,27 +306,36 @@ async function getCounts(db, logger) {
       ])
       .toArray()
 
-    const summary = {
-      appliance: { new: 0, inProgress: 0, records: 0 },
-      fuel: { new: 0, inProgress: 0, records: 0 }
+    const statusCounts = {
+      appliance: { new: 0, inProgress: 0, complete: 0 },
+      fuel: { new: 0, inProgress: 0, complete: 0 }
     }
 
     for (const row of applicationCounts) {
-      const { type, status } = row._id
-      if (!summary[type]) continue
-      if (status === 'new') summary[type].new = row.count
-      else if (status === 'in_progress') summary[type].inProgress = row.count
+      const { type: applicationType, status } = row._id
+      if (!statusCounts[applicationType]) {
+        continue
+      }
+
+      switch (status) {
+        case 'new':
+          statusCounts[applicationType].new = row.count
+          break
+        case 'in_progress':
+          statusCounts[applicationType].inProgress = row.count
+          break
+        case 'complete':
+          statusCounts[applicationType].complete = row.count
+          break
+        default:
+          break
+      }
     }
 
-    //records count from published appliances and fuels
-    summary.appliance.records = await db
-      .collection('Appliance')
-      .countDocuments()
-    summary.fuel.records = await db.collection('Fuel').countDocuments()
     return {
       success: true,
       message: 'Application counts retrieved successfully',
-      data: summary
+      data: statusCounts
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch counts')
