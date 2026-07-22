@@ -6,6 +6,7 @@
 import { randomUUID } from 'crypto'
 import { generateSecureId } from '../common/helpers/data-transformer.js'
 import { applianceSchema } from '../routes/schema.js'
+import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
 
 /**
  * Create a new application with appliances using MongoDB transactions (if available)
@@ -294,7 +295,7 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
  */
 async function getCounts(db, logger) {
   try {
-    const applicationCounts = await db
+    const applicationStatusCounts = await db
       .collection('Applications')
       .aggregate([
         {
@@ -306,36 +307,48 @@ async function getCounts(db, logger) {
       ])
       .toArray()
 
-    const statusCounts = {
-      appliance: { new: 0, inProgress: 0, complete: 0 },
-      fuel: { new: 0, inProgress: 0, complete: 0 }
+    const applicationCounts = {
+      appliance: { new: 0, inProgress: 0, records: 0 },
+      fuel: { new: 0, inProgress: 0, records: 0 }
     }
 
-    for (const row of applicationCounts) {
+    // This sets appliance/fuel counts for new and in_progress applications.
+    for (const row of applicationStatusCounts) {
       const { type: applicationType, status } = row._id
-      if (!statusCounts[applicationType]) {
+      if (!applicationCounts[applicationType]) {
         continue
       }
 
       switch (status) {
         case 'new':
-          statusCounts[applicationType].new = row.count
+          applicationCounts[applicationType].new = row.count
           break
         case 'in_progress':
-          statusCounts[applicationType].inProgress = row.count
-          break
-        case 'complete':
-          statusCounts[applicationType].complete = row.count
+          applicationCounts[applicationType].inProgress = row.count
           break
         default:
           break
       }
     }
 
+    // This sets appliance/fuel counts for records of complete applications.
+    // note: its not the count of complete applications, but rather the count of all appliance/fuel records belonging to complete applications
+
+    const filter = await getCompleteApplicationRecordsFilter(db)
+
+    const [applianceRecordCount, fuelRecordCount] = await Promise.all([
+      db.collection('Appliances').countDocuments(filter),
+      db.collection('Fuels').countDocuments(filter)
+    ])
+
+    applicationCounts.appliance.records = applianceRecordCount
+    applicationCounts.fuel.records = fuelRecordCount
+
+
     return {
       success: true,
       message: 'Application counts retrieved successfully',
-      data: statusCounts
+      data: applicationCounts
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch counts')
