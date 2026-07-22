@@ -295,6 +295,12 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
  */
 async function getCounts(db, logger) {
   try {
+    const applicationCounts = {
+      appliance: { new: 0, inProgress: 0, records: 0 },
+      fuel: { new: 0, inProgress: 0, records: 0 }
+    }
+
+    // This sets appliance/fuel counts for applications with new and in_progress statuses.
     const applicationStatusCounts = await db
       .collection('Applications')
       .aggregate([
@@ -307,12 +313,6 @@ async function getCounts(db, logger) {
       ])
       .toArray()
 
-    const applicationCounts = {
-      appliance: { new: 0, inProgress: 0, records: 0 },
-      fuel: { new: 0, inProgress: 0, records: 0 }
-    }
-
-    // This sets appliance/fuel counts for new and in_progress applications.
     for (const row of applicationStatusCounts) {
       const { type: applicationType, status } = row._id
       if (!applicationCounts[applicationType]) {
