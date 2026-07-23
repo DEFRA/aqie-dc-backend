@@ -1,14 +1,13 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { searchFuels } from './search-fuels.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
+import * as fuelsController from '../../controllers/fuels-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/fuels-controller.js', () => ({
   default: {},
   searchFuels: vi.fn()
 }))
-
-import * as fuelsController from '../../controllers/fuels-controller.js'
 
 describe('GET /api/fuels/search', () => {
   let mockRequest
@@ -63,6 +62,7 @@ describe('GET /api/fuels/search', () => {
 
       expect(result.success).toBe(true)
       expect(result.data).toEqual(results)
+      expect(result.statusCode).toBe(statusCodes.ok)
       expect(fuelsController.searchFuels).toHaveBeenCalledWith(
         mockRequest.db,
         { query: 'pellets', page: 1, limit: 20 },

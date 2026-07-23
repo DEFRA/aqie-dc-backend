@@ -1,14 +1,13 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { updateAppliance } from './update-appliance.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
+import * as applianceController from '../../controllers/appliances-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/appliances-controller.js', () => ({
   default: {},
   updateAppliance: vi.fn()
 }))
-
-import * as applianceController from '../../controllers/appliances-controller.js'
 
 describe('PATCH /appliances/{applianceId}', () => {
   let mockRequest
@@ -54,6 +53,7 @@ describe('PATCH /appliances/{applianceId}', () => {
       const result = await updateAppliance.handler(mockRequest, h)
 
       expect(result.updated).toEqual(updatedAppliance)
+      expect(result.statusCode).toBe(statusCodes.ok)
       expect(applianceController.updateAppliance).toHaveBeenCalledWith(
         mockRequest.db,
         'APP-123',

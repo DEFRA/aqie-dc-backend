@@ -1,14 +1,13 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { getApplianceById } from './get-appliance-by-id.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
+import * as applianceController from '../../controllers/appliances-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/appliances-controller.js', () => ({
   default: {},
   getApplianceById: vi.fn()
 }))
-
-import * as applianceController from '../../controllers/appliances-controller.js'
 
 describe('GET /appliances/{applianceId}', () => {
   let mockRequest
@@ -56,6 +55,7 @@ describe('GET /appliances/{applianceId}', () => {
 
       expect(result.success).toBe(true)
       expect(result.data).toEqual(mockAppliance)
+      expect(result.statusCode).toBe(statusCodes.ok)
       expect(applianceController.getApplianceById).toHaveBeenCalledWith(
         mockRequest.db,
         'APP-123',

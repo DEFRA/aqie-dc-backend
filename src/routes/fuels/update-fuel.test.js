@@ -1,14 +1,13 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { updateFuel } from './update-fuel.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
+import * as fuelController from '../../controllers/fuels-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/fuels-controller.js', () => ({
   default: {},
   updateFuel: vi.fn()
 }))
-
-import * as fuelController from '../../controllers/fuels-controller.js'
 
 describe('PATCH /fuels/{fuelId}', () => {
   let mockRequest
@@ -54,6 +53,7 @@ describe('PATCH /fuels/{fuelId}', () => {
       const result = await updateFuel.handler(mockRequest, h)
 
       expect(result.updated).toEqual(updatedFuel)
+      expect(result.statusCode).toBe(statusCodes.ok)
       expect(fuelController.updateFuel).toHaveBeenCalledWith(
         mockRequest.db,
         'FUEL-123',

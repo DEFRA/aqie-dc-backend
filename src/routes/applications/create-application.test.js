@@ -2,14 +2,13 @@ import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { createApplication } from './create-application.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 import applicationExample from '../../sample-data/application-example.js'
+import * as applicationsController from '../../controllers/applications-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/applications-controller.js', () => ({
   default: {},
   createApplication: vi.fn()
 }))
-
-import * as applicationsController from '../../controllers/applications-controller.js'
 
 describe('POST /applications', () => {
   let mockRequest
@@ -69,6 +68,7 @@ describe('POST /applications', () => {
         'Application and appliances created successfully'
       )
       expect(result.data.applicationId).toBe('uuid-123')
+      expect(result.statusCode).toBe(statusCodes.created)
       expect(applicationsController.createApplication).toHaveBeenCalledWith(
         mockRequest.server.mongoClient,
         mockRequest.db,

@@ -1,14 +1,13 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { getApplicationById } from './get-application-by-id.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
+import * as applicationsController from '../../controllers/applications-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/applications-controller.js', () => ({
   default: {},
   getApplicationById: vi.fn()
 }))
-
-import * as applicationsController from '../../controllers/applications-controller.js'
 
 describe('GET /applications/{applicationId}', () => {
   let mockRequest
@@ -66,6 +65,7 @@ describe('GET /applications/{applicationId}', () => {
 
       expect(result.success).toBe(true)
       expect(result.data).toEqual(mockApplication)
+      expect(result.statusCode).toBe(statusCodes.ok)
       expect(result.data.applicationId).toBe('app-123')
       expect(applicationsController.getApplicationById).toHaveBeenCalledWith(
         mockRequest.db,

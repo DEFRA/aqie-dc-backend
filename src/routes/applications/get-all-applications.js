@@ -4,7 +4,6 @@
  * Pagination query params are currently disabled but can be re-enabled if needed
  */
 
-import Joi from 'joi'
 import * as applicationsController from '../../controllers/applications-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
