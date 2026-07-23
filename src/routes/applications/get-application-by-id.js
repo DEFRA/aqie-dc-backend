@@ -3,6 +3,7 @@
  */
 
 import Joi from 'joi'
+import Boom from '@hapi/boom'
 import * as applicationsController from '../../controllers/applications-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
