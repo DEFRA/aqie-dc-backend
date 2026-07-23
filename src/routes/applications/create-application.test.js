@@ -2,14 +2,13 @@ import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { createApplication } from './create-application.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 import applicationExample from '../../sample-data/application-example.js'
+import * as applicationsController from '../../controllers/applications-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/applications-controller.js', () => ({
   default: {},
   createApplication: vi.fn()
 }))
-
-import * as applicationsController from '../../controllers/applications-controller.js'
 
 describe('POST /applications', () => {
   let mockRequest
@@ -34,6 +33,7 @@ describe('POST /applications', () => {
 
     mockRequest = {
       payload: applicationExample,
+      pre: { validatedPayload: applicationExample },
       db: {},
       server: {
         mongoClient: {}
@@ -69,6 +69,7 @@ describe('POST /applications', () => {
         'Application and appliances created successfully'
       )
       expect(result.data.applicationId).toBe('uuid-123')
+      expect(result.statusCode).toBe(statusCodes.created)
       expect(applicationsController.createApplication).toHaveBeenCalledWith(
         mockRequest.server.mongoClient,
         mockRequest.db,
@@ -77,16 +78,20 @@ describe('POST /applications', () => {
       )
     })
 
-    test('returns 500 when controller throws error', async () => {
+    test('returns a generic 500 Boom error when controller throws', async () => {
       const error = new Error('Database error')
       applicationsController.createApplication.mockRejectedValueOnce(error)
 
       const h = mockToolkit
       const result = await createApplication.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to create application')
-      expect(result.error).toBe('Database error')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to create application'
+      )
     })
 
     test('passes validatedPayload from pre to controller', async () => {
@@ -95,6 +100,7 @@ describe('POST /applications', () => {
         applicationType: 'fuel'
       }
       mockRequest.payload = customPayload
+      mockRequest.pre = { validatedPayload: customPayload }
 
       applicationsController.createApplication.mockResolvedValueOnce({
         success: true,
@@ -143,9 +149,13 @@ describe('POST /applications', () => {
       const h = mockToolkit
       const result = await createApplication.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to create application')
-      expect(result.error).toBe('Transaction failed')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to create application'
+      )
     })
   })
 

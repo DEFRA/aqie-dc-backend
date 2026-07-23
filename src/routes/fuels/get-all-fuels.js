@@ -8,7 +8,6 @@
  * 4. Pass { page, limit } to controller instead of hard-coded values
  */
 
-import Joi from 'joi'
 import * as fuelController from '../../controllers/fuels-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 

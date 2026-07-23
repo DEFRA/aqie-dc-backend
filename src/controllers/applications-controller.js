@@ -93,30 +93,11 @@ async function performApplicationInsert(db, payload, logger, session) {
   // Insert appliances with applicationId link
   let savedAppliances = []
   if (Array.isArray(appliances) && appliances.length > 0) {
-    const appliancesToInsert = appliances.map((appliance) => {
-      // Validate each appliance through schema to apply defaults
-      const { value, error } = applianceSchema.validate(
-        {
-          ...appliance,
-          applicationId: applicationId // Add applicationId to payload for validation
-        },
-        {
-          abortEarly: false
-        }
-      )
-
-      if (error) {
-        throw new Error(
-          `Appliance validation failed: ${error.details.map((d) => d.message).join(', ')}`
-        )
-      }
-
-      return {
-        ...value,
-        applianceId: value.applianceId || `APP-${generateSecureId()}`,
-        applicationId: applicationId // Ensure applicationId is set
-      }
-    })
+    const appliancesToInsert = appliances.map((appliance) => ({
+      ...appliance,
+      applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
+      applicationId: applicationId
+    }))
 
     const applianceResult = await applianceCollection.insertMany(
       appliancesToInsert,

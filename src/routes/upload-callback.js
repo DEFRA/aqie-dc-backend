@@ -4,12 +4,14 @@
  * Supports dynamic entity imports
  */
 
+import Boom from '@hapi/boom'
 import Joi from 'joi'
 import { importFromExcel } from '../migrations/import-from-excel-dynamic.js'
 import {
   downloadFromS3,
   cleanupTempFile
 } from '../common/helpers/s3-download.js'
+import { statusCodes } from '../common/constants/status-codes.js'
 
 /**
  * Upload callback controller
@@ -30,7 +32,7 @@ const uploadCallbackController = {
         request.logger.error(err, 'Upload callback validation failed')
         return h
           .response({ success: false, message: err.message })
-          .code(400)
+          .code(statusCodes.badRequest)
           .takeover()
       }
     }
@@ -50,7 +52,7 @@ const uploadCallbackController = {
       request.logger.warn({ uploadStatus }, 'Upload not ready yet')
       return h
         .response({ success: false, message: 'Upload not ready' })
-        .code(200)
+        .code(statusCodes.ok)
     }
 
     // Check for rejected files
@@ -65,7 +67,7 @@ const uploadCallbackController = {
           message:
             'One or more files were rejected (virus detected or validation failed)'
         })
-        .code(200)
+        .code(statusCodes.ok)
     }
 
     // Get file details from form
@@ -77,7 +79,7 @@ const uploadCallbackController = {
           success: false,
           message: 'File not available or incomplete'
         })
-        .code(200)
+        .code(statusCodes.ok)
     }
 
     // Check if file was rejected
@@ -91,7 +93,7 @@ const uploadCallbackController = {
           success: false,
           message: fileField.errorMessage || 'File validation failed'
         })
-        .code(200)
+        .code(statusCodes.ok)
     }
 
     const { s3Bucket, s3Key, filename } = fileField
@@ -104,7 +106,7 @@ const uploadCallbackController = {
           success: false,
           message: 'No entities specified for import'
         })
-        .code(200)
+        .code(statusCodes.ok)
     }
 
     let tempFilePath
@@ -135,15 +137,20 @@ const uploadCallbackController = {
           message: 'Import completed successfully',
           results
         })
-        .code(200)
+        .code(statusCodes.ok)
     } catch (error) {
       request.logger.error(error, 'Import failed')
-      return h
-        .response({
-          success: false,
-          message: error.message || 'Import processing failed'
-        })
-        .code(500)
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Import service is currently unavailable')
+      }
+
+      return Boom.internal('Import processing failed')
     } finally {
       // Cleanup temp file
       if (tempFilePath) {

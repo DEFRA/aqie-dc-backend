@@ -9,7 +9,6 @@ import {
   getCertainApplicationsWithAppliances,
   getApplicationsWithSummary
 } from './applications-controller.js'
-import applicationExample from '../sample-data/application-example.js'
 
 // Mock logger for testing
 const mockLogger = {
@@ -213,7 +212,7 @@ describe('applications-controller', () => {
 
     db = {
       collection: vi.fn((name) => {
-        if (name === 'Applications') return collection
+        if (name === 'Applications') { return collection } 
         if (name === 'Appliance' || name === 'Appliances')
           return applianceCollection
         if (name === 'Fuel' || name === 'Fuels') {
@@ -303,20 +302,22 @@ describe('applications-controller', () => {
       expect(collection.insertOne).toHaveBeenCalled()
     })
 
-    test('throws error when appliance validation fails', async () => {
+    test('invalid payloads should already be rejected before the controller', async () => {
       const payload = {
         applicationType: 'appliance',
         appliances: [
           {
-            // Missing required fields
+            // Missing required fields intentionally to verify controller does not revalidate
             companyName: 'ACME'
           }
         ]
       }
 
-      await expect(
-        createApplication(client, db, payload, mockLogger)
-      ).rejects.toThrow()
+      const result = await createApplication(client, db, payload, mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(applianceCollection.insertMany).toHaveBeenCalled()
+      expect(result.data.appliances).toHaveLength(1)
     })
 
     test('throws error when application insert fails', async () => {

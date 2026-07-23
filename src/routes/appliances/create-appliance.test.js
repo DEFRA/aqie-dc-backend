@@ -2,14 +2,13 @@ import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { createAppliance } from './create-appliance.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 import applianceExample from '../../sample-data/appliance-example.js'
+import * as applianceController from '../../controllers/appliances-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/appliances-controller.js', () => ({
   default: {},
   createAppliance: vi.fn()
 }))
-
-import * as applianceController from '../../controllers/appliances-controller.js'
 
 describe('POST /appliances', () => {
   let mockRequest
@@ -63,6 +62,7 @@ describe('POST /appliances', () => {
       expect(result.success).toBe(true)
       expect(result.message).toBe('Appliance created successfully')
       expect(result.data.applianceId).toBe(mockId)
+      expect(result.statusCode).toBe(statusCodes.created)
       expect(applianceController.createAppliance).toHaveBeenCalledWith(
         mockRequest.db,
         applianceExample,
