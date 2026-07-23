@@ -33,6 +33,7 @@ describe('POST /applications', () => {
 
     mockRequest = {
       payload: applicationExample,
+      pre: { validatedPayload: applicationExample },
       db: {},
       server: {
         mongoClient: {}
@@ -95,6 +96,7 @@ describe('POST /applications', () => {
         applicationType: 'fuel'
       }
       mockRequest.payload = customPayload
+      mockRequest.pre = { validatedPayload: customPayload }
 
       applicationsController.createApplication.mockResolvedValueOnce({
         success: true,

@@ -55,7 +55,7 @@ export const createApplication = {
       const result = await applicationsController.createApplication(
         request.server.mongoClient,
         request.db,
-        request.payload,
+        request.pre.validatedPayload,
         request.logger
       )
 
