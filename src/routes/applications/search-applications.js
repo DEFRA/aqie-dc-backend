@@ -6,6 +6,9 @@ import Joi from 'joi'
 import * as applicationsController from '../../controllers/applications-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
+const MIN_QUERY_LENGTH = 2
+const MAX_QUERY_LENGTH = 50
+
 export const searchApplications = {
   method: 'GET',
   path: '/applications/search',
@@ -15,7 +18,15 @@ export const searchApplications = {
     notes: 'Search applications by status or reviewer',
     validate: {
       query: Joi.object({
-        q: Joi.string().min(2).required().description('Search query'),
+        q: Joi.string()
+          .trim()
+          .min(MIN_QUERY_LENGTH)
+          .max(MAX_QUERY_LENGTH)
+          .pattern(/^[a-zA-Z0-9\s\-_.&']+$/)
+          .required()
+          .description(
+            'Search query for applications (status, reviewer, applicationId). Min 2, max 50 chars.'
+          ),
         page: Joi.number()
           .integer()
           .min(1)
