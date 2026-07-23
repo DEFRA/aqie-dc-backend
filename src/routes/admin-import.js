@@ -4,6 +4,7 @@
  * Supports dynamic entity types
  */
 
+import Boom from '@hapi/boom'
 import Joi from 'joi'
 import {
   initiateCdpUpload,
@@ -11,6 +12,7 @@ import {
 } from '../common/helpers/cdp-uploader.js'
 import { ENTITY_TYPES } from '../common/helpers/entity-config.js'
 import { config } from '../config.js'
+import { statusCodes } from '../common/constants/status-codes.js'
 
 /**
  * Initiate CDP Upload
@@ -76,16 +78,20 @@ const initiateImportController = {
           uploadUrl,
           statusUrl: result.statusUrl
         })
-        .code(200)
+        .code(statusCodes.ok)
     } catch (error) {
       request.logger.error(error, 'Failed to initiate CDP upload')
-      return h
-        .response({
-          success: false,
-          message: 'Failed to initiate upload',
-          error: error.message
-        })
-        .code(500)
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Upload service is currently unavailable')
+      }
+
+      return Boom.internal('Failed to initiate upload')
     }
   }
 }
@@ -113,16 +119,20 @@ const checkUploadStatusController = {
           success: true,
           status
         })
-        .code(200)
+        .code(statusCodes.ok)
     } catch (error) {
       request.logger.error(error, 'Failed to get upload status')
-      return h
-        .response({
-          success: false,
-          message: 'Failed to get upload status',
-          error: error.message
-        })
-        .code(500)
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Upload status service is currently unavailable')
+      }
+
+      return Boom.internal('Failed to get upload status')
     }
   }
 }

@@ -9,6 +9,7 @@
  * 5. Include pagination metadata in response
  */
 
+import Boom from '@hapi/boom'
 import * as applianceController from '../../controllers/appliances-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
@@ -56,13 +57,17 @@ export const getAllAppliances = {
       return h.response(result).code(statusCodes.ok)
     } catch (error) {
       request.logger.error(error, 'Failed to fetch appliances')
-      return h
-        .response({
-          success: false,
-          message: 'Failed to fetch appliances',
-          error: error.message
-        })
-        .code(statusCodes.internalServerError)
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Appliance service is currently unavailable')
+      }
+
+      return Boom.internal('Failed to fetch appliances')
     }
   }
 }

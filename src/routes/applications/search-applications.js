@@ -2,6 +2,7 @@
  * Search applications by status or reviewer
  */
 
+import Boom from '@hapi/boom'
 import Joi from 'joi'
 import * as applicationsController from '../../controllers/applications-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
@@ -53,13 +54,18 @@ export const searchApplications = {
 
       return h.response(result).code(statusCodes.ok)
     } catch (error) {
-      return h
-        .response({
-          success: false,
-          message: 'Failed to search applications',
-          error: error.message
-        })
-        .code(statusCodes.internalServerError)
+      request.logger.error(error, 'Failed to search applications')
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Application search service is currently unavailable')
+      }
+
+      return Boom.internal('Failed to search applications')
     }
   }
 }

@@ -3,6 +3,7 @@
  * POST /api/applications
  */
 
+import Boom from '@hapi/boom'
 import * as applicationsController from '../../controllers/applications-controller.js'
 import { applicationsSchema } from '../schema.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
@@ -61,13 +62,19 @@ export const createApplication = {
 
       return h.response(result).code(statusCodes.created)
     } catch (error) {
-      return h
-        .response({
-          success: false,
-          message: 'Failed to create application',
-          error: error.message
-        })
-        .code(statusCodes.internalServerError)
+      request.logger.error(error, 'Failed to create application')
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Application service is currently unavailable')
+      }
+
+      return Boom.internal('Failed to create application')
     }
   }
 }

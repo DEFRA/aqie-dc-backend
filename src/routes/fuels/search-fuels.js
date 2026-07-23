@@ -2,6 +2,7 @@
  * Search fuels by name or type
  */
 
+import Boom from '@hapi/boom'
 import Joi from 'joi'
 import * as fuelsController from '../../controllers/fuels-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
@@ -41,13 +42,18 @@ export const searchFuels = {
 
       return h.response(result).code(statusCodes.ok)
     } catch (error) {
-      return h
-        .response({
-          success: false,
-          message: 'Failed to search fuels',
-          error: error.message
-        })
-        .code(statusCodes.internalServerError)
+      request.logger.error(error, 'Failed to search fuels')
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Fuel search service is currently unavailable')
+      }
+
+      return Boom.internal('Failed to search fuels')
     }
   }
 }

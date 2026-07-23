@@ -78,16 +78,20 @@ describe('POST /applications', () => {
       )
     })
 
-    test('returns 500 when controller throws error', async () => {
+    test('returns a generic 500 Boom error when controller throws', async () => {
       const error = new Error('Database error')
       applicationsController.createApplication.mockRejectedValueOnce(error)
 
       const h = mockToolkit
       const result = await createApplication.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to create application')
-      expect(result.error).toBe('Database error')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to create application'
+      )
     })
 
     test('passes validatedPayload from pre to controller', async () => {
@@ -145,9 +149,13 @@ describe('POST /applications', () => {
       const h = mockToolkit
       const result = await createApplication.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to create application')
-      expect(result.error).toBe('Transaction failed')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to create application'
+      )
     })
   })
 
