@@ -9,8 +9,10 @@ import { s3Import } from '../routes/s3-import.js'
 // } from '../routes/admin-import.js'
 import { createApplication } from '../routes/applications/create-application.js'
 import { getAllApplications } from '../routes/applications/get-all-applications.js'
-import { getCounts } from '../routes/applications/get-counts.js'
+import { getApplicationById } from '../routes/applications/get-application-by-id.js'
 import { getApplicationsWithSummary } from '../routes/applications/get-applications-with-summary.js'
+import { getCounts } from '../routes/applications/get-counts.js'
+import { searchApplications } from '../routes/applications/search-applications.js'
 import { createAppliance } from '../routes/appliances/create-appliance.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
@@ -77,7 +79,9 @@ const router = {
         createApplication,
         getAllApplications,
         getCounts,
-        getApplicationsWithSummary
+        getApplicationsWithSummary,
+        searchApplications, // Must come before getApplicationById to avoid route conflict
+        getApplicationById
       ])
 
       // Appliance API routes

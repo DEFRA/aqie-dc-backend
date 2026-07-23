@@ -1,14 +1,13 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { deleteAppliance } from './delete-appliance.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
+import * as applianceController from '../../controllers/appliances-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/appliances-controller.js', () => ({
   default: {},
   deleteAppliance: vi.fn()
 }))
-
-import * as applianceController from '../../controllers/appliances-controller.js'
 
 describe('DELETE /appliances/{applianceId}', () => {
   let mockRequest
@@ -45,6 +44,7 @@ describe('DELETE /appliances/{applianceId}', () => {
       const result = await deleteAppliance.handler(mockRequest, h)
 
       expect(result.deleted).toBe(true)
+      expect(result.statusCode).toBe(statusCodes.ok)
       expect(applianceController.deleteAppliance).toHaveBeenCalledWith(
         mockRequest.db,
         'APP-123',

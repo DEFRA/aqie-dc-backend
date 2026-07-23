@@ -4,12 +4,14 @@
  * Supports dynamic entity imports
  */
 
+import Boom from '@hapi/boom'
 import Joi from 'joi'
 import { importFromExcel } from '../migrations/import-from-excel-dynamic.js'
 import {
   downloadFromS3,
   cleanupTempFile
 } from '../common/helpers/s3-download.js'
+import { statusCodes } from '../common/constants/status-codes.js'
 
 /**
  * S3 import controller
@@ -30,7 +32,7 @@ const s3ImportController = {
         request.logger.error(err, 'Upload callback validation failed')
         return h
           .response({ success: false, message: err.message })
-          .code(400)
+          .code(statusCodes.badRequest)
           .takeover()
       }
     }
@@ -145,15 +147,20 @@ const s3ImportController = {
           message: 'Import completed successfully',
           results
         })
-        .code(200)
+        .code(statusCodes.ok)
     } catch (error) {
       request.logger.error(error, 'Import failed')
-      return h
-        .response({
-          success: false,
-          message: error.message || 'Import processing failed'
-        })
-        .code(500)
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Import service is currently unavailable')
+      }
+
+      return Boom.internal('Import processing failed')
     } finally {
       // Cleanup temp file
       if (tempFilePath) {

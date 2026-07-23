@@ -4,13 +4,15 @@
 //  * Supports dynamic entity types
 //  */
 
-// import Joi from 'joi'
-// import {
-//   initiateCdpUpload,
-//   getCdpUploadStatus
-// } from '../common/helpers/cdp-uploader.js'
-// import { ENTITY_TYPES } from '../common/helpers/entity-config.js'
-// import { config } from '../config.js'
+import Boom from '@hapi/boom'
+import Joi from 'joi'
+import {
+  initiateCdpUpload,
+  getCdpUploadStatus
+} from '../common/helpers/cdp-uploader.js'
+import { ENTITY_TYPES } from '../common/helpers/entity-config.js'
+import { config } from '../config.js'
+import { statusCodes } from '../common/constants/status-codes.js'
 
 // /**
 //  * Initiate CDP Upload
@@ -69,26 +71,30 @@
 //         uploadUrl = `/${serviceName}${result.uploadUrl}`
 //       }
 
-//       return h
-//         .response({
-//           success: true,
-//           uploadId: result.uploadId,
-//           uploadUrl,
-//           statusUrl: result.statusUrl
-//         })
-//         .code(200)
-//     } catch (error) {
-//       request.logger.error(error, 'Failed to initiate CDP upload')
-//       return h
-//         .response({
-//           success: false,
-//           message: 'Failed to initiate upload',
-//           error: error.message
-//         })
-//         .code(500)
-//     }
-//   }
-// }
+      return h
+        .response({
+          success: true,
+          uploadId: result.uploadId,
+          uploadUrl,
+          statusUrl: result.statusUrl
+        })
+        .code(statusCodes.ok)
+    } catch (error) {
+      request.logger.error(error, 'Failed to initiate CDP upload')
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Upload service is currently unavailable')
+      }
+
+      return Boom.internal('Failed to initiate upload')
+    }
+  }
+}
 
 // /**
 //  * Check Upload Status
@@ -108,23 +114,27 @@
 //     try {
 //       const status = await getCdpUploadStatus(statusUrl)
 
-//       return h
-//         .response({
-//           success: true,
-//           status
-//         })
-//         .code(200)
-//     } catch (error) {
-//       request.logger.error(error, 'Failed to get upload status')
-//       return h
-//         .response({
-//           success: false,
-//           message: 'Failed to get upload status',
-//           error: error.message
-//         })
-//         .code(500)
-//     }
-//   }
-// }
+      return h
+        .response({
+          success: true,
+          status
+        })
+        .code(statusCodes.ok)
+    } catch (error) {
+      request.logger.error(error, 'Failed to get upload status')
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Upload status service is currently unavailable')
+      }
+
+      return Boom.internal('Failed to get upload status')
+    }
+  }
+}
 
 // export { initiateImportController, checkUploadStatusController }
