@@ -352,9 +352,7 @@ async function getCertainApplicationsWithAppliances(
     const itemCollection = db.collection('Appliances')
 
     // 1. Fetch only applications where status is 'new'
-    const newApplications = await appCollection
-      .find({ status })
-      .toArray()
+    const newApplications = await appCollection.find({ status }).toArray()
 
     // If no new applications found, return an empty array early
     if (newApplications.length === 0) {
