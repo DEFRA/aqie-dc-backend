@@ -157,9 +157,14 @@ describe('GET /api/appliances/search', () => {
       const h = mockToolkit
       const result = await searchAppliances.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to search appliances')
-      expect(result.error).toBe('Search failed')
+      expect(result.output.payload.message).toBe('An internal server error occurred')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to search appliances'
+      )
     })
 
     test('uses request.logger', async () => {

@@ -87,9 +87,14 @@ describe('GET /appliances', () => {
       const h = mockToolkit
       const result = await getAllAppliances.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to fetch appliances')
-      expect(result.error).toBe('Database connection failed')
+      expect(result.output.payload.message).toBe('An internal server error occurred')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to fetch appliances'
+      )
     })
 
     test('passes default pagination params to controller', async () => {

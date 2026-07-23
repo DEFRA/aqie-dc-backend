@@ -84,9 +84,14 @@ describe('GET /appliances/{applianceId}', () => {
       const h = mockToolkit
       const result = await getApplianceById.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to fetch appliance')
-      expect(result.error).toBe('Database error')
+      expect(result.output.payload.message).toBe('An internal server error occurred')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to fetch appliance'
+      )
     })
 
     test('passes applianceId from params to controller', async () => {
@@ -112,9 +117,14 @@ describe('GET /appliances/{applianceId}', () => {
       applianceController.getApplianceById.mockRejectedValueOnce(error)
 
       const h = mockToolkit
-      await getApplianceById.handler(mockRequest, h)
+      const result = await getApplianceById.handler(mockRequest, h)
 
-      expect(mockRequest.logger.error).not.toHaveBeenCalled() // Not logged in this handler
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to fetch appliance'
+      )
     })
   })
 

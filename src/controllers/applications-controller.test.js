@@ -8,7 +8,6 @@ import {
   getAllApplicationsWithAppliances,
   getCertainApplicationsWithAppliances
 } from './applications-controller.js'
-import applicationExample from '../sample-data/application-example.js'
 
 // Mock logger for testing
 const mockLogger = {
@@ -198,7 +197,7 @@ describe('applications-controller', () => {
 
     db = {
       collection: vi.fn((name) => {
-        if (name === 'Applications') return collection
+        if (name === 'Applications') { return collection } 
         if (name === 'Appliance' || name === 'Appliances')
           return applianceCollection
         if (name === 'Fuel' || name === 'Fuels') {

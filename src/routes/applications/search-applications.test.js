@@ -178,9 +178,14 @@ describe('GET /applications/search', () => {
       const h = mockToolkit
       const result = await searchApplications.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to search applications')
-      expect(result.error).toBe('Search query failed')
+      expect(result.output.payload.message).toBe('An internal server error occurred')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to search applications'
+      )
     })
 
     test('searches across multiple fields', async () => {

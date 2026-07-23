@@ -96,9 +96,14 @@ describe('GET /applications/{applicationId}', () => {
       const h = mockToolkit
       const result = await getApplicationById.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to fetch application')
-      expect(result.error).toBe('Database error')
+      expect(result.output.payload.message).toBe('An internal server error occurred')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to fetch application'
+      )
     })
 
     test('passes applicationId from params to controller', async () => {
@@ -182,10 +187,15 @@ describe('GET /applications/{applicationId}', () => {
       applicationsController.getApplicationById.mockRejectedValueOnce(error)
 
       const h = mockToolkit
-      await getApplicationById.handler(mockRequest, h)
+      const result = await getApplicationById.handler(mockRequest, h)
 
-      // Error logging happens in the controller
-      expect(applicationsController.getApplicationById).toHaveBeenCalled()
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
+      expect(result.message).toBe('Failed to fetch application')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to fetch application'
+      )
     })
   })
 
