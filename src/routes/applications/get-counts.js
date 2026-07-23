@@ -22,7 +22,9 @@ export const getCounts = {
 
       const status = error?.status
       if (status && status >= statusCodes.internalServerError) {
-        return Boom.badGateway('Application counts service is currently unavailable')
+        return Boom.badGateway(
+          'Application counts service is currently unavailable'
+        )
       }
 
       return Boom.internal('Failed to fetch counts')

@@ -50,7 +50,9 @@ export const searchAppliances = {
 
       const status = error?.status
       if (status && status >= statusCodes.internalServerError) {
-        return Boom.badGateway('Appliance search service is currently unavailable')
+        return Boom.badGateway(
+          'Appliance search service is currently unavailable'
+        )
       }
 
       return Boom.internal('Failed to search appliances')
