@@ -182,13 +182,19 @@ describe('PATCH /appliances/{applianceId}', () => {
       expect(error).toBeUndefined()
     })
 
-    test('allows unknown payload fields', () => {
+    test('rejects unknown payload fields', () => {
       const payloadSchema = updateAppliance.options.validate.payload
       const { error } = payloadSchema.validate({
         modelName: 'Test',
         unknownField: 'value'
       })
-      expect(error).toBeUndefined()
+      expect(error).toBeDefined()
+    })
+
+    test('requires at least one update field', () => {
+      const payloadSchema = updateAppliance.options.validate.payload
+      const { error } = payloadSchema.validate({})
+      expect(error).toBeDefined()
     })
   })
 })
