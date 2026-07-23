@@ -57,7 +57,7 @@ async function performApplicationInsert(db, payload, logger, session) {
 
   //following the schema in the applicationSchema.js file (MongoDB validator)
   const application = {
-    applicationId: applicationId,
+    applicationId,
     applicationType: applicationData.applicationType,
     status: applicationData.status || 'new',
     reviewer: applicationData.reviewer || null,
@@ -85,7 +85,7 @@ async function performApplicationInsert(db, payload, logger, session) {
     const appliancesToInsert = appliances.map((appliance) => ({
       ...appliance,
       applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
-      applicationId: applicationId
+      applicationId
     }))
 
     const applianceResult = await applianceCollection.insertMany(
@@ -353,7 +353,7 @@ async function getCertainApplicationsWithAppliances(
 
     // 1. Fetch only applications where status is 'new'
     const newApplications = await appCollection
-      .find({ status: status })
+      .find({ status })
       .toArray()
 
     // If no new applications found, return an empty array early
