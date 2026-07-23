@@ -15,33 +15,24 @@ import { generateSecureId } from '../common/helpers/data-transformer.js'
  * @param {Object} logger - Logger instance
  */
 async function createApplication(client, db, payload, logger) {
-  const { appliances, ...applicationData } = payload
-
   // Try to use transactions if client supports it, otherwise fall back to direct operations
   const session = client.startSession()
-  let useTransaction = false
 
   try {
-    // Check if transaction is supported by attempting to start one
-    try {
-      useTransaction = true
-      return await session.withTransaction(async () => {
-        return await performApplicationInsert(db, payload, logger, session)
-      })
-    } catch (transactionError) {
-      // If transaction fails (e.g., standalone MongoDB), fall back to direct operations
-      if (
-        transactionError.message.includes('Transaction') ||
-        transactionError.message.includes('replica set')
-      ) {
-        logger.warn(
-          'Transactions not supported, falling back to direct operations'
-        )
-        useTransaction = false
-        return await performApplicationInsert(db, payload, logger, null)
-      }
-      throw transactionError
+    return await session.withTransaction(async () => {
+      return await performApplicationInsert(db, payload, logger, session)
+    })
+  } catch (transactionError) {
+    if (
+      transactionError.message.includes('Transaction') ||
+      transactionError.message.includes('replica set')
+    ) {
+      logger.warn(
+        'Transactions not supported, falling back to direct operations'
+      )
+      return await performApplicationInsert(db, payload, logger, null)
     }
+    throw transactionError
   } finally {
     await session.endSession()
   }
@@ -167,14 +158,13 @@ async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
     return {
       success: true,
       message: 'Applications retrieved successfully',
-      data: applications
-      // TODO: Pagination info - uncomment when pagination is decided
-      // pagination: {
-      //   page,
-      //   limit,
-      //   total,
-      //   totalPages: Math.ceil(total / limit)
-      // }
+      data: applications,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch applications')
