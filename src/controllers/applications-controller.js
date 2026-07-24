@@ -72,7 +72,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   const { appliances, ...applicationData } = payload
 
   const appCollection = db.collection('Applications')
-  const applianceCollection = db.collection('Appliance')
+  const applianceCollection = db.collection('Appliances')
 
   // Build and insert Application
   const application = buildApplication(applicationData)
@@ -425,7 +425,7 @@ async function getApplicationsWithSummary(
 ) {
   try {
     const appCollection = db.collection('Applications')
-    const applianceCollection = db.collection('Appliance')
+    const applianceCollection = db.collection('Appliances')
 
     // 1. Fetch all applications with specified statuses
     const applications = await appCollection

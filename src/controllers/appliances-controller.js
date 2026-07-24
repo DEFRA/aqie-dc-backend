@@ -23,7 +23,7 @@ async function createAppliance(db, item, logger) {
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Appliance')
+    const collection = db.collection('Appliances')
 
     const now = new Date()
 
@@ -104,7 +104,7 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Appliance')
+    const collection = db.collection('Appliances')
     // TODO: DECISION REQUIRED - Should we implement pagination for appliances?
     // Currently disabled to return all certified appliances. Enable pagination by uncommenting below:
     // const skip = (page - 1) * limit
@@ -157,7 +157,7 @@ async function getApplianceById(db, applianceId, logger) {
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Appliance')
+    const collection = db.collection('Appliances')
     const item = await collection.findOne({ applianceId })
 
     if (!item) {
@@ -186,7 +186,7 @@ async function updateAppliance(db, applianceId, updates, logger) {
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Appliance')
+    const collection = db.collection('Appliances')
     const now = new Date()
 
     const result = await collection.updateOne(
@@ -216,7 +216,7 @@ async function deleteAppliance(db, applianceId, logger) {
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Appliance')
+    const collection = db.collection('Appliances')
     const result = await collection.deleteOne({ applianceId })
 
     if (result.deletedCount === 0) {
@@ -244,7 +244,7 @@ async function searchAppliances(
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Appliance')
+    const collection = db.collection('Appliances')
     const skip = (page - 1) * limit
 
     const searchQuery = {
@@ -290,7 +290,7 @@ async function getApplianceWithRelatedItems(db, applianceId, logger) {
     throw new Error('logger is required')
   }
   try {
-    const appliance = await db.collection('Appliance').findOne({ applianceId })
+    const appliance = await db.collection('Appliances').findOne({ applianceId })
 
     if (!appliance) {
       return {
