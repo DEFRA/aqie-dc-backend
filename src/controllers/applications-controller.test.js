@@ -766,63 +766,63 @@ describe('applications-controller', () => {
     })
   })
 
-    describe('getApplicationsWithSummary', () => {
-      test('returns applications grouped by status with appliance model names', async () => {
-        docs.push(
-          {
-            applicationId: 'app-1',
-            applicationType: 'appliance',
-            status: 'new',
-            submittedAt: new Date('2026-01-01'),
-            createdAt: new Date('2026-01-02')
-          },
-          {
-            applicationId: 'app-2',
-            applicationType: 'appliance',
-            status: 'in_progress',
-            submittedAt: new Date('2026-01-03'),
-            createdAt: new Date('2026-01-04')
-          }
-        )
-        applianceDocs.push(
-          {
-            _id: 'appl-1',
-            applicationId: 'app-1',
-            modelName: 'Model A'
-          },
-          {
-            _id: 'appl-2',
-            applicationId: 'app-2',
-            modelName: 'Model B'
-          }
-        )
+  describe('getApplicationsWithSummary', () => {
+    test('returns applications grouped by status with appliance model names', async () => {
+      docs.push(
+        {
+          applicationId: 'app-1',
+          applicationType: 'appliance',
+          status: 'new',
+          submittedAt: new Date('2026-01-01'),
+          createdAt: new Date('2026-01-02')
+        },
+        {
+          applicationId: 'app-2',
+          applicationType: 'appliance',
+          status: 'in_progress',
+          submittedAt: new Date('2026-01-03'),
+          createdAt: new Date('2026-01-04')
+        }
+      )
+      applianceDocs.push(
+        {
+          _id: 'appl-1',
+          applicationId: 'app-1',
+          modelName: 'Model A'
+        },
+        {
+          _id: 'appl-2',
+          applicationId: 'app-2',
+          modelName: 'Model B'
+        }
+      )
 
-        const result = await getApplicationsWithSummary(db, mockLogger)
+      const result = await getApplicationsWithSummary(db, mockLogger)
 
-        expect(result.success).toBe(true)
-        expect(result.data.new).toHaveLength(1)
-        expect(result.data.in_progress).toHaveLength(1)
-        expect(result.data.new[0].appliances[0].modelName).toBe('Model A')
-        expect(result.data.in_progress[0].appliances[0].modelName).toBe('Model B')
+      expect(result.success).toBe(true)
+      expect(result.data.new).toHaveLength(1)
+      expect(result.data.in_progress).toHaveLength(1)
+      expect(result.data.new[0].appliances[0].modelName).toBe('Model A')
+      expect(result.data.in_progress[0].appliances[0].modelName).toBe('Model B')
+    })
+
+    test('returns empty result when no matching applications exist', async () => {
+      const result = await getApplicationsWithSummary(db, mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.new).toEqual([])
+      expect(result.data.in_progress).toEqual([])
+    })
+
+    test('handles database errors', async () => {
+      collection.find.mockImplementationOnce(() => {
+        throw new Error('Summary fetch failed')
       })
 
-      test('returns empty result when no matching applications exist', async () => {
-        const result = await getApplicationsWithSummary(db, mockLogger)
-
-        expect(result.success).toBe(true)
-        expect(result.data.new).toEqual([])
-        expect(result.data.in_progress).toEqual([])
-      })
-
-      test('handles database errors', async () => {
-        collection.find.mockImplementationOnce(() => {
-          throw new Error('Summary fetch failed')
-        })
-
-        await expect(getApplicationsWithSummary(db, mockLogger)).rejects.toThrow(
-          'Summary fetch failed'
-        )
-        expect(mockLogger.error).toHaveBeenCalled()
-      })
+      await expect(getApplicationsWithSummary(db, mockLogger)).rejects.toThrow(
+        'Summary fetch failed'
+      )
+      expect(mockLogger.error).toHaveBeenCalled()
     })
   })
+})
