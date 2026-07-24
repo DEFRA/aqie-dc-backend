@@ -6,7 +6,8 @@ import {
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getCertainApplicationsWithAppliances
+  getCertainApplicationsWithAppliances,
+  getApplicationsWithSummary
 } from './applications-controller.js'
 
 // Mock logger for testing
@@ -32,6 +33,31 @@ describe('applications-controller', () => {
     docs = []
     applianceDocs = []
 
+    const matchesQuery = (doc, query) => {
+      if (!query) return true
+      if (query.$or) {
+        return query.$or.some((condition) => {
+          const field = Object.keys(condition)[0]
+          const value = condition[field]
+          if (value?.$regex) {
+            const regex = new RegExp(value.$regex, value.$options || '')
+            return regex.test(doc[field])
+          }
+          return doc[field] === value
+        })
+      }
+
+      return Object.entries(query).every(([key, value]) => {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          if (value.$in) {
+            return value.$in.includes(doc[key])
+          }
+          return false
+        }
+        return doc[key] === value
+      })
+    }
+
     // Mock appliance collection
     applianceCollection = {
       insertMany: vi.fn(async (docs, options) => {
@@ -51,34 +77,29 @@ describe('applications-controller', () => {
           acknowledged: true
         }
       }),
-      find: vi.fn((query) => ({
-        sort: vi.fn((sort) => ({
-          skip: vi.fn((skip) => ({
-            limit: vi.fn((limit) => ({
-              toArray: vi.fn(async () => {
-                return applianceDocs
-              })
-            }))
+      find: vi.fn((query) => {
+        const runToArray = async () => {
+          return applianceDocs.filter((doc) => matchesQuery(doc, query))
+        }
+
+        return {
+          sort: vi.fn(() => ({
+            skip: vi.fn(() => ({
+              limit: vi.fn(() => ({
+                toArray: vi.fn(async () => runToArray())
+              }))
+            })),
+            toArray: vi.fn(async () => runToArray())
           })),
-          toArray: vi.fn(async () => {
-            return applianceDocs
-          })
-        })),
-        toArray: vi.fn(async () => {
-          if (!query) return applianceDocs
-          return applianceDocs.filter((doc) => {
-            for (const key in query) {
-              if (query[key]?.$in) {
-                if (!query[key].$in.includes(doc[key])) return false
-              } else if (doc[key] !== query[key]) {
-                return false
-              }
-            }
-            return true
-          })
-        })
-      })),
-      countDocuments: vi.fn(async () => applianceDocs.length)
+          project: vi.fn(() => ({
+            toArray: vi.fn(async () => runToArray())
+          })),
+          toArray: vi.fn(async () => runToArray())
+        }
+      }),
+      countDocuments: vi.fn(async (query) => {
+        return applianceDocs.filter((doc) => matchesQuery(doc, query)).length
+      })
     }
 
     // Mock applications collection
@@ -91,66 +112,54 @@ describe('applications-controller', () => {
         }
       }),
       findOne: vi.fn(async (query) => {
-        return docs.find((doc) => {
-          for (const key in query) {
-            if (doc[key] !== query[key]) return false
-          }
-          return true
-        })
+        return docs.find((doc) =>
+          Object.entries(query).every(([key, value]) => doc[key] === value)
+        )
       }),
       find: vi.fn((query) => {
-        const chainedMethods = {
-          sort: vi.fn((sort) => {
-            return {
-              skip: vi.fn((skip) => ({
-                limit: vi.fn((limit) => ({
-                  toArray: vi.fn(async () => {
-                    return docs
-                  })
-                }))
-              })),
-              toArray: vi.fn(async () => {
-                // Filter docs based on query
-                if (!query) return docs
-                if (query.$or) {
-                  return docs.filter((doc) =>
-                    query.$or.some((condition) => {
-                      const field = Object.keys(condition)[0]
-                      if (condition[field]?.$regex) {
-                        const regex = new RegExp(
-                          condition[field].$regex,
-                          condition[field].$options || ''
-                        )
-                        return regex.test(doc[field])
-                      }
-                      return doc[field] === condition[field]
-                    })
-                  )
-                }
-                return docs
-              })
+        const matchesQuery = (doc, queryObject) => {
+          if (!queryObject) return true
+          if (queryObject.$or) {
+            return queryObject.$or.some((condition) => {
+              const field = Object.keys(condition)[0]
+              const value = condition[field]
+              if (value?.$regex) {
+                const regex = new RegExp(value.$regex, value.$options || '')
+                return regex.test(doc[field])
+              }
+              return doc[field] === value
+            })
+          }
+
+          return Object.entries(queryObject).every(([key, value]) => {
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+              if (value.$in) {
+                return value.$in.includes(doc[key])
+              }
+              return false
             }
-          }),
-          toArray: vi.fn(async () => {
-            // Direct toArray without sort/skip/limit
-            if (!query) return docs
-            if (query.$or) {
-              return docs.filter((doc) =>
-                query.$or.some((condition) => {
-                  const field = Object.keys(condition)[0]
-                  if (condition[field]?.$regex) {
-                    const regex = new RegExp(
-                      condition[field].$regex,
-                      condition[field].$options || ''
-                    )
-                    return regex.test(doc[field])
-                  }
-                  return doc[field] === condition[field]
-                })
-              )
-            }
-            return docs
+            return doc[key] === value
           })
+        }
+
+        const runToArray = async () => {
+          if (!query) return docs
+          return docs.filter((doc) => matchesQuery(doc, query))
+        }
+
+        const chainedMethods = {
+          sort: vi.fn((sort) => ({
+            skip: vi.fn((skip) => ({
+              limit: vi.fn((limit) => ({
+                toArray: vi.fn(async () => runToArray())
+              }))
+            })),
+            toArray: vi.fn(async () => runToArray())
+          })),
+          project: vi.fn(() => ({
+            toArray: vi.fn(async () => runToArray())
+          })),
+          toArray: vi.fn(async () => runToArray())
         }
         return chainedMethods
       }),
@@ -160,17 +169,23 @@ describe('applications-controller', () => {
           if (query.$or) {
             return query.$or.some((condition) => {
               const field = Object.keys(condition)[0]
-              if (condition[field]?.$regex) {
-                const regex = new RegExp(
-                  condition[field].$regex,
-                  condition[field].$options || ''
-                )
+              const value = condition[field]
+              if (value?.$regex) {
+                const regex = new RegExp(value.$regex, value.$options || '')
                 return regex.test(doc[field])
               }
-              return doc[field] === condition[field]
+              return doc[field] === value
             })
           }
-          return true
+          return Object.entries(query).every(([key, value]) => {
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+              if (value.$in) {
+                return value.$in.includes(doc[key])
+              }
+              return false
+            }
+            return doc[key] === value
+          })
         }).length
       }),
       aggregate: vi.fn((pipeline) => ({
@@ -576,6 +591,42 @@ describe('applications-controller', () => {
       )
       expect(mockLogger.error).toHaveBeenCalled()
     })
+
+    test('counts complete application records and legacy appliance records', async () => {
+      docs.push(
+        {
+          applicationId: 'app-1',
+          applicationType: 'appliance',
+          status: 'complete'
+        },
+        {
+          applicationId: 'app-2',
+          applicationType: 'fuel',
+          status: 'complete'
+        },
+        {
+          applicationId: 'app-3',
+          applicationType: 'appliance',
+          status: 'new'
+        }
+      )
+      applianceDocs.push(
+        {
+          applianceId: 'appl-1',
+          applicationId: 'app-1'
+        },
+        {
+          applianceId: 'appl-2',
+          applicationId: 'app-3',
+          legacyRecord: true
+        }
+      )
+
+      const result = await getCounts(db, mockLogger)
+
+      expect(result.data.appliance.records).toBe(2)
+      expect(result.data.fuel.records).toBe(0)
+    })
   })
 
   describe('getAllApplicationsWithAppliances', () => {
@@ -712,6 +763,66 @@ describe('applications-controller', () => {
       )
 
       expect(Array.isArray(result)).toBe(true)
+    })
+  })
+
+  describe('getApplicationsWithSummary', () => {
+    test('returns applications grouped by status with appliance model names', async () => {
+      docs.push(
+        {
+          applicationId: 'app-1',
+          applicationType: 'appliance',
+          status: 'new',
+          submittedAt: new Date('2026-01-01'),
+          createdAt: new Date('2026-01-02')
+        },
+        {
+          applicationId: 'app-2',
+          applicationType: 'appliance',
+          status: 'in_progress',
+          submittedAt: new Date('2026-01-03'),
+          createdAt: new Date('2026-01-04')
+        }
+      )
+      applianceDocs.push(
+        {
+          _id: 'appl-1',
+          applicationId: 'app-1',
+          modelName: 'Model A'
+        },
+        {
+          _id: 'appl-2',
+          applicationId: 'app-2',
+          modelName: 'Model B'
+        }
+      )
+
+      const result = await getApplicationsWithSummary(db, mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.new).toHaveLength(1)
+      expect(result.data.in_progress).toHaveLength(1)
+      expect(result.data.new[0].appliances[0].modelName).toBe('Model A')
+      expect(result.data.in_progress[0].appliances[0].modelName).toBe('Model B')
+    })
+
+    test('returns empty result when no matching applications exist', async () => {
+      const result = await getApplicationsWithSummary(db, mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.new).toEqual([])
+      expect(result.data.in_progress).toEqual([])
+    })
+
+    test('handles database errors', async () => {
+      collection.find.mockImplementationOnce(() => {
+        throw new Error('Summary fetch failed')
+      })
+
+      await expect(getApplicationsWithSummary(db, mockLogger)).rejects.toThrow(
+        'Summary fetch failed'
+      )
+      expect(mockLogger.error).toHaveBeenCalled()
     })
   })
 })

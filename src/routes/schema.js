@@ -118,6 +118,11 @@ export const applianceSchema = Joi.object({
     .description('Instruction manual additional information'),
   declaration: Joi.boolean().required().description('Declaration'),
   //End of appliance application fields
+  legacyRecord: Joi.boolean()
+    .optional()
+    .description(
+      'Records that have been migrated to the DB are deemed as legacy records'
+    ),
   submittedBy: Joi.string().optional().description('Submitted by'),
   submittedDate: Joi.date().optional().description('Submitted date'),
   publishedDate: Joi.date().optional().description('Published date'),
@@ -384,9 +389,11 @@ export const applicationsSchema = Joi.object({
     .description('Record creation timestamp (server-generated)'),
   //Are the above both needed - check defra forms payload
   status: Joi.string()
-    .valid('new', 'in_progress', 'approved', 'rejected') //think this should be completed (instead of approved/rejected)- because there may be appliances that are rejected or approved but the application is still completed
+    .valid('new', 'in_progress', 'complete')
     .optional()
-    .description('Application status (server-generated, defaults to "new")'),
+    .description(
+      'Application status (server-generated, defaults to "new". Complete when all items (applinances/fuels) have been reviewed (approved/rejected) and the application is submitted)'
+    ),
   appliances: Joi.array().items(applianceSchema).optional(),
   //items: Joi.array().items(itemSchema).optional()
   additionalMetadata: Joi.object()

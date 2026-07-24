@@ -5,6 +5,7 @@
 
 import { randomUUID } from 'crypto'
 import { generateSecureId } from '../common/helpers/data-transformer.js'
+import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
 
 /**
  * Create a new application with appliances using MongoDB transactions (if available)
@@ -20,7 +21,7 @@ async function createApplication(client, db, payload, logger) {
 
   try {
     return await session.withTransaction(async () => {
-      return await performApplicationInsert(db, payload, logger, session)
+      return performApplicationInsert(db, payload, logger, session)
     })
   } catch (transactionError) {
     if (
@@ -269,7 +270,13 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
  */
 async function getCounts(db, logger) {
   try {
-    const applicationCounts = await db
+    const applicationCounts = {
+      appliance: { new: 0, inProgress: 0, records: 0 },
+      fuel: { new: 0, inProgress: 0, records: 0 }
+    }
+
+    // This sets appliance/fuel counts for applications with new and in_progress statuses.
+    const applicationStatusCounts = await db
       .collection('Applications')
       .aggregate([
         {
@@ -281,34 +288,47 @@ async function getCounts(db, logger) {
       ])
       .toArray()
 
-    const summary = {
-      appliance: { new: 0, inProgress: 0, records: 0 },
-      fuel: { new: 0, inProgress: 0, records: 0 }
-    }
-
-    for (const row of applicationCounts) {
-      const { type, status } = row._id
-      if (!summary[type]) {
+    for (const row of applicationStatusCounts) {
+      const { type: applicationType, status } = row._id
+      if (!applicationCounts[applicationType]) {
         continue
       }
-      if (status === 'new') {
-        summary[type].new = row.count
-      } else if (status === 'in_progress') {
-        summary[type].inProgress = row.count
-      } else {
-        logger.warn(`Unknown status: ${status}`)
+
+      switch (status) {
+        case 'new':
+          applicationCounts[applicationType].new = row.count
+          break
+        case 'in_progress':
+          applicationCounts[applicationType].inProgress = row.count
+          break
+        default:
+          break
       }
     }
 
-    //records count from published appliances and fuels
-    summary.appliance.records = await db
+    // This sets appliance/fuel counts for records of complete applications.
+    // note: its not the count of complete applications, but rather the count of all appliance/fuel records belonging to complete applications
+
+    const filter = await getCompleteApplicationRecordsFilter(db)
+
+    const [applianceRecordCount, fuelRecordCount] = await Promise.all([
+      db.collection('Appliances').countDocuments(filter),
+      db.collection('Fuels').countDocuments(filter)
+    ])
+
+    // Count all legacy appliance records where legacyRecord is true.
+    const legacyApplianceRecordCount = await db
       .collection('Appliances')
-      .countDocuments()
-    summary.fuel.records = await db.collection('Fuels').countDocuments()
+      .countDocuments({ legacyRecord: true })
+
+    applicationCounts.appliance.records =
+      applianceRecordCount + legacyApplianceRecordCount
+    applicationCounts.fuel.records = fuelRecordCount
+
     return {
       success: true,
       message: 'Application counts retrieved successfully',
-      data: summary
+      data: applicationCounts
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch counts')
