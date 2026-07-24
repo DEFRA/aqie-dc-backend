@@ -124,7 +124,9 @@ describe('GET /applications', () => {
       expect(result.isBoom).toBe(true)
       expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to fetch applications')
-      expect(result.output.payload.message).toBe('An internal server error occurred')
+      expect(result.output.payload.message).toBe(
+        'An internal server error occurred'
+      )
       expect(mockRequest.logger.error).toHaveBeenCalledWith(
         error,
         'Failed to fetch applications'

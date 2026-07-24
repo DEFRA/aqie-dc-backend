@@ -33,10 +33,12 @@ export const createApplication = {
               abortEarly: false
             }
           )
-          if (error) throw error
+          if (error) {
+            throw error
+          }
           return value
         },
-        failAction: (request, h, error) => {
+        failAction: (_request, h, error) => {
           // Return 400 with validation details
           return h
             .response({

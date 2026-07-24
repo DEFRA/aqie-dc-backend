@@ -17,35 +17,48 @@ import { getCompleteApplicationRecordsFilter } from './complete-application-reco
  * @param {Object} logger - Logger instance
  */
 async function createApplication(client, db, payload, logger) {
-  const { appliances, ...applicationData } = payload
-
   // Try to use transactions if client supports it, otherwise fall back to direct operations
   const session = client.startSession()
-  let useTransaction = false
 
   try {
-    // Check if transaction is supported by attempting to start one
-    try {
-      useTransaction = true
-      return await session.withTransaction(async () => {
-        return await performApplicationInsert(db, payload, logger, session)
-      })
-    } catch (transactionError) {
-      // If transaction fails (e.g., standalone MongoDB), fall back to direct operations
-      if (
-        transactionError.message.includes('Transaction') ||
-        transactionError.message.includes('replica set')
-      ) {
-        logger.warn(
-          'Transactions not supported, falling back to direct operations'
-        )
-        useTransaction = false
-        return await performApplicationInsert(db, payload, logger, null)
-      }
-      throw transactionError
+    return await session.withTransaction(async () => {
+      return await performApplicationInsert(db, payload, logger, session)
+    })
+  } catch (transactionError) {
+    if (
+      transactionError.message.includes('Transaction') ||
+      transactionError.message.includes('replica set')
+    ) {
+      logger.warn(
+        'Transactions not supported, falling back to direct operations'
+      )
+      return await performApplicationInsert(db, payload, logger, null)
     }
+    throw transactionError
   } finally {
     await session.endSession()
+  }
+}
+
+function buildApplication(applicationData) {
+  const applicationId = randomUUID()
+  const now = new Date()
+
+  return {
+    applicationId,
+    applicationType: applicationData.applicationType,
+    status: applicationData.status || 'new',
+    reviewer: applicationData.reviewer || null,
+    reviewNotes: applicationData.reviewNotes || null,
+    additionalMetadata: applicationData.additionalMetadata || {},
+    submittedAt: applicationData.submittedAt
+      ? new Date(applicationData.submittedAt)
+      : null,
+    reviewedAt: null,
+    createdAt: applicationData.createdAt
+      ? new Date(applicationData.createdAt)
+      : now,
+    updatedAt: now
   }
 }
 
@@ -63,26 +76,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   const applianceCollection = db.collection('Appliance')
 
   // Build and insert Application
-  const applicationId = randomUUID()
-  const now = new Date()
-
-  //following the schema in the applicationSchema.js file (MongoDB validator)
-  const application = {
-    applicationId: applicationId,
-    applicationType: applicationData.applicationType,
-    status: applicationData.status || 'new',
-    reviewer: applicationData.reviewer || null,
-    reviewNotes: applicationData.reviewNotes || null,
-    additionalMetadata: applicationData.additionalMetadata || {},
-    submittedAt: applicationData.submittedAt
-      ? new Date(applicationData.submittedAt)
-      : null,
-    reviewedAt: null,
-    createdAt: applicationData.createdAt
-      ? new Date(applicationData.createdAt)
-      : now,
-    updatedAt: now
-  }
+  const application = buildApplication(applicationData)
 
   const insertOptions = session ? { session } : {}
   const appResult = await appCollection.insertOne(application, insertOptions)
@@ -96,7 +90,7 @@ async function performApplicationInsert(db, payload, logger, session) {
     const appliancesToInsert = appliances.map((appliance) => ({
       ...appliance,
       applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
-      applicationId: applicationId
+      applicationId: application.applicationId
     }))
 
     const applianceResult = await applianceCollection.insertMany(
@@ -128,7 +122,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   }
 
   logger.info(
-    `Application created: ${applicationId} with ${savedAppliances.length} appliances`
+    `Application created: ${application.applicationId} with ${savedAppliances.length} appliances`
   )
 
   // Return detailed response with success message
@@ -169,14 +163,13 @@ async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
     return {
       success: true,
       message: 'Applications retrieved successfully',
-      data: applications
-      // TODO: Pagination info - uncomment when pagination is decided
-      // pagination: {
-      //   page,
-      //   limit,
-      //   total,
-      //   totalPages: Math.ceil(total / limit)
-      // }
+      data: applications,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch applications')
@@ -212,6 +205,8 @@ async function getApplicationById(db, applicationId, logger) {
         .collection('Fuels')
         .find({ applicationId })
         .toArray()
+    } else {
+      logger.warn(`Unknown application type: ${application.applicationType}`)
     }
 
     return {
@@ -390,9 +385,7 @@ async function getCertainApplicationsWithAppliances(
     const itemCollection = db.collection('Appliances')
 
     // 1. Fetch only applications where status is 'new'
-    const newApplications = await appCollection
-      .find({ status: status })
-      .toArray()
+    const newApplications = await appCollection.find({ status }).toArray()
 
     // If no new applications found, return an empty array early
     if (newApplications.length === 0) {
@@ -485,6 +478,8 @@ async function getApplicationsWithSummary(
         result.new.push(appData)
       } else if (app.status === 'in_progress') {
         result.in_progress.push(appData)
+      } else {
+        logger.warn(`Unknown application status: ${app.status}`)
       }
     }
 

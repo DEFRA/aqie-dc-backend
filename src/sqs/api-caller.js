@@ -8,7 +8,7 @@ export async function callCreateAPI(server, type, payload) {
   }
   callQueueAPI(server, payload)
   //End of exploring mapping - delete later
-
+  //This needs to be checked and changes now that refactoring has happened to API endpoints
   const response = await server.inject({
     method: 'POST',
     url: `/add-new/${type}`,

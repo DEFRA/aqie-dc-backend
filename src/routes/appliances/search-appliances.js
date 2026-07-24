@@ -9,6 +9,7 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 
 const MIN_QUERY_LENGTH = 2
 const MAX_QUERY_LENGTH = 50
+const DEFAULT_LIMIT = 20
 
 export const searchAppliances = {
   method: 'GET',
@@ -26,7 +27,7 @@ export const searchAppliances = {
             'Search query for appliances (modelName, companyName and applianceType ). Min 2, max 50 chars.'
           ),
         page: Joi.number().integer().min(1).default(1),
-        limit: Joi.number().integer().min(1).max(100).default(20)
+        limit: Joi.number().integer().min(1).max(100).default(DEFAULT_LIMIT)
       })
     }
   },

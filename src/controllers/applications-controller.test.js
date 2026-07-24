@@ -212,9 +212,12 @@ describe('applications-controller', () => {
 
     db = {
       collection: vi.fn((name) => {
-        if (name === 'Applications') { return collection } 
-        if (name === 'Appliance' || name === 'Appliances')
+        if (name === 'Applications') {
+          return collection
+        }
+        if (name === 'Appliance' || name === 'Appliances') {
           return applianceCollection
+        }
         if (name === 'Fuel' || name === 'Fuels') {
           // Return a fuel collection mock with same structure as appliance
           return {
