@@ -38,25 +38,11 @@ async function createApplication(client, db, payload, logger) {
   }
 }
 
-/**
- * Perform the application and appliance insert
- * @param {Db} db - Database instance
- * @param {Object} payload - Application payload
- * @param {Object} logger - Logger
- * @param {ClientSession|null} session - MongoDB session for transactions (null if not available)
- */
-async function performApplicationInsert(db, payload, logger, session) {
-  const { appliances, ...applicationData } = payload
-
-  const appCollection = db.collection('Applications')
-  const applianceCollection = db.collection('Appliance')
-
-  // Build and insert Application
+function buildApplication(applicationData) {
   const applicationId = randomUUID()
   const now = new Date()
 
-  //following the schema in the applicationSchema.js file (MongoDB validator)
-  const application = {
+  return {
     applicationId,
     applicationType: applicationData.applicationType,
     status: applicationData.status || 'new',
@@ -72,6 +58,23 @@ async function performApplicationInsert(db, payload, logger, session) {
       : now,
     updatedAt: now
   }
+}
+
+/**
+ * Perform the application and appliance insert
+ * @param {Db} db - Database instance
+ * @param {Object} payload - Application payload
+ * @param {Object} logger - Logger
+ * @param {ClientSession|null} session - MongoDB session for transactions (null if not available)
+ */
+async function performApplicationInsert(db, payload, logger, session) {
+  const { appliances, ...applicationData } = payload
+
+  const appCollection = db.collection('Applications')
+  const applianceCollection = db.collection('Appliance')
+
+  // Build and insert Application
+  const application = buildApplication(applicationData)
 
   const insertOptions = session ? { session } : {}
   const appResult = await appCollection.insertOne(application, insertOptions)
@@ -85,7 +88,7 @@ async function performApplicationInsert(db, payload, logger, session) {
     const appliancesToInsert = appliances.map((appliance) => ({
       ...appliance,
       applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
-      applicationId
+      applicationId: application.applicationId
     }))
 
     const applianceResult = await applianceCollection.insertMany(
@@ -117,7 +120,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   }
 
   logger.info(
-    `Application created: ${applicationId} with ${savedAppliances.length} appliances`
+    `Application created: ${application.applicationId} with ${savedAppliances.length} appliances`
   )
 
   // Return detailed response with success message
@@ -200,6 +203,8 @@ async function getApplicationById(db, applicationId, logger) {
         .collection('Fuels')
         .find({ applicationId })
         .toArray()
+    } else {
+      logger.warn(`Unknown application type: ${application.applicationType}`)
     }
 
     return {
@@ -283,9 +288,16 @@ async function getCounts(db, logger) {
 
     for (const row of applicationCounts) {
       const { type, status } = row._id
-      if (!summary[type]) continue
-      if (status === 'new') summary[type].new = row.count
-      else if (status === 'in_progress') summary[type].inProgress = row.count
+      if (!summary[type]) {
+        continue
+      }
+      if (status === 'new') {
+        summary[type].new = row.count
+      } else if (status === 'in_progress') {
+        summary[type].inProgress = row.count
+      } else {
+        logger.warn(`Unknown status: ${status}`)
+      }
     }
 
     //records count from published appliances and fuels
@@ -445,6 +457,8 @@ async function getApplicationsWithSummary(
         result.new.push(appData)
       } else if (app.status === 'in_progress') {
         result.in_progress.push(appData)
+      } else {
+        logger.warn(`Unknown application status: ${app.status}`)
       }
     }
 
