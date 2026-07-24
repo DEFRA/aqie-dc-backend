@@ -24,7 +24,7 @@ export const searchFuels = {
           .pattern(/^[a-zA-Z0-9\s\-_.&']+$/)
           .required()
           .description(
-            'Search query for fuels (brandNames, companyName, fuelType ). Min 2, max 50 chars.'
+            'Search query for fuels (brandNames, companyName, resellerName ). Min 2, max 50 chars.'
           ),
         page: Joi.number().integer().min(1).default(1),
         limit: Joi.number().integer().min(1).max(100).default(DEFAULT_LIMIT)
