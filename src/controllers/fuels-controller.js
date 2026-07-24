@@ -23,7 +23,7 @@ async function createFuel(db, item, logger) {
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Fuel')
+    const collection = db.collection('Fuels')
 
     const now = new Date()
 
@@ -107,7 +107,7 @@ async function getAllFuels(db, logger) {
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Fuel') //change once refactored to Fuels collection
+    const collection = db.collection('Fuels')
 
     // Get all certified fuels
     const certificationFilter = {
@@ -143,7 +143,7 @@ async function getFuelById(db, fuelId, logger) {
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Fuel')
+    const collection = db.collection('Fuels')
     const item = await collection.findOne({ fuelId })
 
     if (!item) {
@@ -172,7 +172,7 @@ async function updateFuel(db, fuelId, updates, logger) {
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Fuel')
+    const collection = db.collection('Fuels')
     const now = new Date()
     const result = await collection.updateOne(
       { fuelId },
@@ -197,7 +197,7 @@ async function deleteFuel(db, fuelId, logger) {
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Fuel')
+    const collection = db.collection('Fuels')
     const result = await collection.deleteOne({ fuelId })
     if (result.deletedCount === 0) {
       return { notFound: true }
@@ -222,7 +222,7 @@ async function getAllFuelsWithPagination(
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Fuel')
+    const collection = db.collection('Fuels')
     const skip = (page - 1) * limit
 
     // Get all certified fuels
@@ -269,7 +269,7 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
     throw new Error('logger is required')
   }
   try {
-    const collection = db.collection('Fuel')
+    const collection = db.collection('Fuels')
     const skip = (page - 1) * limit
 
     const searchQuery = {
@@ -315,7 +315,7 @@ async function getFuelWithRelatedItems(db, fuelId, logger) {
   }
   try {
     // Get fuel
-    const fuel = await db.collection('Fuel').findOne({ fuelId })
+    const fuel = await db.collection('Fuels').findOne({ fuelId })
 
     if (!fuel) {
       return {
