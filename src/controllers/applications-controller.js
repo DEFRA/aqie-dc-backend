@@ -477,7 +477,7 @@ async function getApplicationsWithSummary(
       if (app.status === 'new') {
         result.new.push(appData)
       } else if (app.status === 'in_progress') {
-         result.inProgress.push(appData)
+        result.inProgress.push(appData)
       } else {
         logger.warn(`Unknown application status: ${app.status}`)
       }

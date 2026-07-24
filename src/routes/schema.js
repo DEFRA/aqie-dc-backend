@@ -383,14 +383,20 @@ export const applicationsSchema = Joi.object({
     .description('Unique application identifier (server-generated)'),
   applicationDate: Joi.date()
     .optional()
-    .description('When the application was submitted by company, date comes from Defra forms'),
+    .description(
+      'When the application was submitted by company, date comes from Defra forms'
+    ),
   referenceNumber: Joi.string()
     .optional()
-    .description('Reference number from Defra forms, keep record of it incase any issues with the forms'),
+    .description(
+      'Reference number from Defra forms, keep record of it incase any issues with the forms'
+    ),
   //do we need this:
   createdAt: Joi.date()
     .optional()
-    .description('When the application was created in our system (server-generated)'),
+    .description(
+      'When the application was created in our system (server-generated)'
+    ),
   //Are the above both needed - check defra forms payload
   status: Joi.string()
     .valid('new', 'in_progress', 'complete')
@@ -406,7 +412,9 @@ export const applicationsSchema = Joi.object({
     email: Joi.string().optional().description('Email of the reviewer')
   })
     .optional()
-    .description('Assigned to this application, will be null first then comes from SSO'),
+    .description(
+      'Assigned to this application, will be null first then comes from SSO'
+    )
 })
   .unknown(false)
   .label('Application')
