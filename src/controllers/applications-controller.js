@@ -157,7 +157,7 @@ async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
       .toArray()
 
     // Get total count
-    const total = await collection.countDocuments()
+    //const total = await collection.countDocuments()
 
     return {
       success: true,
