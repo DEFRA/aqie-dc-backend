@@ -7,6 +7,12 @@ import * as fuelController from '../../controllers/fuels-controller.js'
 import { fuelSchema } from '../schema.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
+const updateFuelSchema = fuelSchema
+  .fork(Object.keys(fuelSchema.describe().keys), (schema) => schema.optional())
+  .min(1)
+  .unknown(false)
+  .prefs({ noDefaults: true })
+
 export const updateFuel = {
   method: 'PATCH',
   path: '/fuels/{fuelId}',
@@ -17,7 +23,7 @@ export const updateFuel = {
       params: Joi.object({
         fuelId: Joi.string().required()
       }),
-      payload: Joi.object().unknown(true)
+      payload: updateFuelSchema
     }
   },
   handler: async (request, h) => {
@@ -30,7 +36,7 @@ export const updateFuel = {
         request.payload,
         request.logger
       )
-      
+
       if (result.notFound) {
         return h.response(result).code(statusCodes.notFound)
       }

@@ -2,14 +2,13 @@ import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { createFuel } from './create-fuel.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 import fuelExample from '../../sample-data/fuel-example.js'
+import * as fuelController from '../../controllers/fuels-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/fuels-controller.js', () => ({
   default: {},
   createFuel: vi.fn()
 }))
-
-import * as fuelController from '../../controllers/fuels-controller.js'
 
 describe('POST /fuels', () => {
   let mockRequest
@@ -63,6 +62,7 @@ describe('POST /fuels', () => {
       expect(result.success).toBe(true)
       expect(result.message).toBe('Fuel created successfully')
       expect(result.data.fuelId).toBe(mockId)
+      expect(result.statusCode).toBe(statusCodes.created)
       expect(fuelController.createFuel).toHaveBeenCalledWith(
         mockRequest.db,
         fuelExample,
@@ -80,7 +80,10 @@ describe('POST /fuels', () => {
       expect(result.success).toBe(false)
       expect(result.message).toBe('Failed to create fuel')
       expect(result.error).toBe('Database error')
-      expect(mockRequest.logger.error).toHaveBeenCalledWith(error, 'Failed to create fuel')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to create fuel'
+      )
     })
 
     test('returns request.pre.validatedPayload as newItem', async () => {

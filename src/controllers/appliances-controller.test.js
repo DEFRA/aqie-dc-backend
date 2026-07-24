@@ -45,7 +45,10 @@ describe('appliances-controller', () => {
                     query.$or.some((condition) => {
                       const field = Object.keys(condition)[0]
                       if (condition[field]?.$regex) {
-                        const regex = new RegExp(condition[field].$regex, condition[field].$options || '')
+                        const regex = new RegExp(
+                          condition[field].$regex,
+                          condition[field].$options || ''
+                        )
                         return regex.test(doc[field])
                       }
                       return false
@@ -61,7 +64,10 @@ describe('appliances-controller', () => {
             if (!query) return docs
             return docs.filter((doc) => {
               // Handle technicalApproval && $or filters
-              if (query.technicalApproval && doc.technicalApproval !== query.technicalApproval) {
+              if (
+                query.technicalApproval &&
+                doc.technicalApproval !== query.technicalApproval
+              ) {
                 return false
               }
               if (query.$or) {
@@ -113,7 +119,10 @@ describe('appliances-controller', () => {
         if (!query) return docs.length
         return docs.filter((doc) => {
           // Basic query matching
-          if (query.technicalApproval && doc.technicalApproval !== query.technicalApproval) {
+          if (
+            query.technicalApproval &&
+            doc.technicalApproval !== query.technicalApproval
+          ) {
             return false
           }
           if (query.$or) {
@@ -152,7 +161,9 @@ describe('appliances-controller', () => {
       expect(result.data.createdAt).toBeInstanceOf(Date)
       expect(result.data.updatedAt).toBeInstanceOf(Date)
       expect(collection.insertOne).toHaveBeenCalled()
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Appliance created'))
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Appliance created')
+      )
     })
 
     test('uses provided applianceId if supplied', async () => {
@@ -185,32 +196,42 @@ describe('appliances-controller', () => {
     test('throws error when db is missing', async () => {
       const payload = { companyName: 'ACME', technicalApproval: 'Certified' }
 
-      await expect(createAppliance(null, payload, mockLogger)).rejects.toThrow('db is required')
+      await expect(createAppliance(null, payload, mockLogger)).rejects.toThrow(
+        'db is required'
+      )
     })
 
     test('throws error when item is missing', async () => {
-      await expect(createAppliance(db, null, mockLogger)).rejects.toThrow('item is required')
+      await expect(createAppliance(db, null, mockLogger)).rejects.toThrow(
+        'item is required'
+      )
     })
 
     test('throws error when logger is missing', async () => {
       const payload = { companyName: 'ACME', technicalApproval: 'Certified' }
 
-      await expect(createAppliance(db, payload, null)).rejects.toThrow('logger is required')
+      await expect(createAppliance(db, payload, null)).rejects.toThrow(
+        'logger is required'
+      )
     })
 
     test('throws error when insertOne fails', async () => {
-      collection.insertOne = vi.fn().mockRejectedValueOnce(new Error('DB error'))
+      collection.insertOne = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('DB error'))
 
-      await expect(createAppliance(db, applianceExample, mockLogger)).rejects.toThrow('DB error')
+      await expect(
+        createAppliance(db, applianceExample, mockLogger)
+      ).rejects.toThrow('DB error')
       expect(mockLogger.error).toHaveBeenCalled()
     })
 
     test('throws error when result is not acknowledged', async () => {
       collection.insertOne = vi.fn(async () => ({ acknowledged: false }))
 
-      await expect(createAppliance(db, applianceExample, mockLogger)).rejects.toThrow(
-        'Failed to insert appliance'
-      )
+      await expect(
+        createAppliance(db, applianceExample, mockLogger)
+      ).rejects.toThrow('Failed to insert appliance')
     })
   })
 
@@ -307,7 +328,9 @@ describe('appliances-controller', () => {
     })
 
     test('throws error when logger is missing', async () => {
-      await expect(getAllAppliances(db, {}, null)).rejects.toThrow('logger is required')
+      await expect(getAllAppliances(db, {}, null)).rejects.toThrow(
+        'logger is required'
+      )
     })
 
     test('throws error on database failure', async () => {
@@ -317,7 +340,9 @@ describe('appliances-controller', () => {
         })
       })
 
-      await expect(getAllAppliances(db, {}, mockLogger)).rejects.toThrow('DB error')
+      await expect(getAllAppliances(db, {}, mockLogger)).rejects.toThrow(
+        'DB error'
+      )
       expect(mockLogger.error).toHaveBeenCalled()
     })
   })
@@ -373,13 +398,17 @@ describe('appliances-controller', () => {
     })
 
     test('throws error when logger is missing', async () => {
-      await expect(getApplianceById(db, 'APP-001', null)).rejects.toThrow('logger is required')
+      await expect(getApplianceById(db, 'APP-001', null)).rejects.toThrow(
+        'logger is required'
+      )
     })
 
     test('throws error on database failure', async () => {
       collection.findOne = vi.fn().mockRejectedValueOnce(new Error('DB error'))
 
-      await expect(getApplianceById(db, 'APP-001', mockLogger)).rejects.toThrow('DB error')
+      await expect(getApplianceById(db, 'APP-001', mockLogger)).rejects.toThrow(
+        'DB error'
+      )
       expect(mockLogger.error).toHaveBeenCalled()
     })
   })
@@ -398,7 +427,9 @@ describe('appliances-controller', () => {
 
       expect(result.updated).toBeDefined()
       expect(result.updated.modelName).toBe('Updated Model')
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Appliance updated'))
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Appliance updated')
+      )
     })
 
     test('sets updatedAt timestamp', async () => {
@@ -419,19 +450,30 @@ describe('appliances-controller', () => {
     })
 
     test('returns notFound when appliance does not exist', async () => {
-      const result = await updateAppliance(db, 'APP-NONEXISTENT', { modelName: 'Test' }, mockLogger)
+      const result = await updateAppliance(
+        db,
+        'APP-NONEXISTENT',
+        { modelName: 'Test' },
+        mockLogger
+      )
 
       expect(result.notFound).toBe(true)
     })
 
     test('throws error when logger is missing', async () => {
-      await expect(updateAppliance(db, 'APP-001', {}, null)).rejects.toThrow('logger is required')
+      await expect(updateAppliance(db, 'APP-001', {}, null)).rejects.toThrow(
+        'logger is required'
+      )
     })
 
     test('throws error on database failure', async () => {
-      collection.updateOne = vi.fn().mockRejectedValueOnce(new Error('DB error'))
+      collection.updateOne = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('DB error'))
 
-      await expect(updateAppliance(db, 'APP-001', {}, mockLogger)).rejects.toThrow('DB error')
+      await expect(
+        updateAppliance(db, 'APP-001', {}, mockLogger)
+      ).rejects.toThrow('DB error')
     })
   })
 
@@ -446,7 +488,9 @@ describe('appliances-controller', () => {
       const result = await deleteAppliance(db, 'APP-001', mockLogger)
 
       expect(result.deleted).toBe(true)
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Appliance deleted'))
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.stringContaining('Appliance deleted')
+      )
     })
 
     test('returns notFound when appliance does not exist', async () => {
@@ -469,13 +513,19 @@ describe('appliances-controller', () => {
     })
 
     test('throws error when logger is missing', async () => {
-      await expect(deleteAppliance(db, 'APP-001', null)).rejects.toThrow('logger is required')
+      await expect(deleteAppliance(db, 'APP-001', null)).rejects.toThrow(
+        'logger is required'
+      )
     })
 
     test('throws error on database failure', async () => {
-      collection.deleteOne = vi.fn().mockRejectedValueOnce(new Error('DB error'))
+      collection.deleteOne = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('DB error'))
 
-      await expect(deleteAppliance(db, 'APP-001', mockLogger)).rejects.toThrow('DB error')
+      await expect(deleteAppliance(db, 'APP-001', mockLogger)).rejects.toThrow(
+        'DB error'
+      )
     })
   })
 

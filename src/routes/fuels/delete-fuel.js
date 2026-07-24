@@ -22,8 +22,12 @@ export const deleteFuel = {
     const { fuelId } = request.params
 
     try {
-      const result = await fuelController.deleteFuel(request.db, fuelId, request.logger)
-      
+      const result = await fuelController.deleteFuel(
+        request.db,
+        fuelId,
+        request.logger
+      )
+
       if (result.notFound) {
         return h.response(result).code(statusCodes.notFound)
       }

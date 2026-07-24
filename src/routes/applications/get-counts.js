@@ -2,6 +2,7 @@
  * Get application counts by status
  */
 
+import Boom from '@hapi/boom'
 import { getCounts as getCountsController } from '../../controllers/applications-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
@@ -13,13 +14,20 @@ export const getCounts = {
       const result = await getCountsController(request.db, request.logger)
       return h.response(result).code(statusCodes.ok)
     } catch (error) {
-      return h
-        .response({
-          success: false,
-          message: 'Failed to fetch counts',
-          error: error.message
-        })
-        .code(statusCodes.internalServerError)
+      request.logger.error(error, 'Failed to fetch counts')
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway(
+          'Application counts service is currently unavailable'
+        )
+      }
+
+      return Boom.internal('Failed to fetch counts')
     }
   }
 }

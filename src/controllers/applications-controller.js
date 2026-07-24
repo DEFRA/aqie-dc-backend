@@ -5,7 +5,6 @@
 
 import { randomUUID } from 'crypto'
 import { generateSecureId } from '../common/helpers/data-transformer.js'
-import { applianceSchema } from '../routes/schema.js'
 
 /**
  * Create a new application with appliances using MongoDB transactions (if available)
@@ -16,35 +15,48 @@ import { applianceSchema } from '../routes/schema.js'
  * @param {Object} logger - Logger instance
  */
 async function createApplication(client, db, payload, logger) {
-  const { appliances, ...applicationData } = payload
-
   // Try to use transactions if client supports it, otherwise fall back to direct operations
   const session = client.startSession()
-  let useTransaction = false
 
   try {
-    // Check if transaction is supported by attempting to start one
-    try {
-      useTransaction = true
-      return await session.withTransaction(async () => {
-        return await performApplicationInsert(db, payload, logger, session)
-      })
-    } catch (transactionError) {
-      // If transaction fails (e.g., standalone MongoDB), fall back to direct operations
-      if (
-        transactionError.message.includes('Transaction') ||
-        transactionError.message.includes('replica set')
-      ) {
-        logger.warn(
-          'Transactions not supported, falling back to direct operations'
-        )
-        useTransaction = false
-        return await performApplicationInsert(db, payload, logger, null)
-      }
-      throw transactionError
+    return await session.withTransaction(async () => {
+      return await performApplicationInsert(db, payload, logger, session)
+    })
+  } catch (transactionError) {
+    if (
+      transactionError.message.includes('Transaction') ||
+      transactionError.message.includes('replica set')
+    ) {
+      logger.warn(
+        'Transactions not supported, falling back to direct operations'
+      )
+      return await performApplicationInsert(db, payload, logger, null)
     }
+    throw transactionError
   } finally {
     await session.endSession()
+  }
+}
+
+function buildApplication(applicationData) {
+  const applicationId = randomUUID()
+  const now = new Date()
+
+  return {
+    applicationId,
+    applicationType: applicationData.applicationType,
+    status: applicationData.status || 'new',
+    reviewer: applicationData.reviewer || null,
+    reviewNotes: applicationData.reviewNotes || null,
+    additionalMetadata: applicationData.additionalMetadata || {},
+    submittedAt: applicationData.submittedAt
+      ? new Date(applicationData.submittedAt)
+      : null,
+    reviewedAt: null,
+    createdAt: applicationData.createdAt
+      ? new Date(applicationData.createdAt)
+      : now,
+    updatedAt: now
   }
 }
 
@@ -62,26 +74,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   const applianceCollection = db.collection('Appliances')
 
   // Build and insert Application
-  const applicationId = randomUUID()
-  const now = new Date()
-
-  //following the schema in the applicationSchema.js file (MongoDB validator)
-  const application = {
-    applicationId: applicationId,
-    applicationType: applicationData.applicationType,
-    status: applicationData.status || 'new',
-    reviewer: applicationData.reviewer || null,
-    reviewNotes: applicationData.reviewNotes || null,
-    additionalMetadata: applicationData.additionalMetadata || {},
-    submittedAt: applicationData.submittedAt
-      ? new Date(applicationData.submittedAt)
-      : null,
-    reviewedAt: null,
-    createdAt: applicationData.createdAt
-      ? new Date(applicationData.createdAt)
-      : now,
-    updatedAt: now
-  }
+  const application = buildApplication(applicationData)
 
   const insertOptions = session ? { session } : {}
   const appResult = await appCollection.insertOne(application, insertOptions)
@@ -92,30 +85,11 @@ async function performApplicationInsert(db, payload, logger, session) {
   // Insert appliances with applicationId link
   let savedAppliances = []
   if (Array.isArray(appliances) && appliances.length > 0) {
-    const appliancesToInsert = appliances.map((appliance) => {
-      // Validate each appliance through schema to apply defaults
-      const { value, error } = applianceSchema.validate(
-        {
-          ...appliance,
-          applicationId: applicationId // Add applicationId to payload for validation
-        },
-        {
-          abortEarly: false
-        }
-      )
-
-      if (error) {
-        throw new Error(
-          `Appliance validation failed: ${error.details.map((d) => d.message).join(', ')}`
-        )
-      }
-
-      return {
-        ...value,
-        applianceId: value.applianceId || `APP-${generateSecureId()}`,
-        applicationId: applicationId // Ensure applicationId is set
-      }
-    })
+    const appliancesToInsert = appliances.map((appliance) => ({
+      ...appliance,
+      applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
+      applicationId: application.applicationId
+    }))
 
     const applianceResult = await applianceCollection.insertMany(
       appliancesToInsert,
@@ -146,7 +120,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   }
 
   logger.info(
-    `Application created: ${applicationId} with ${savedAppliances.length} appliances`
+    `Application created: ${application.applicationId} with ${savedAppliances.length} appliances`
   )
 
   // Return detailed response with success message
@@ -187,14 +161,13 @@ async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
     return {
       success: true,
       message: 'Applications retrieved successfully',
-      data: applications
-      // TODO: Pagination info - uncomment when pagination is decided
-      // pagination: {
-      //   page,
-      //   limit,
-      //   total,
-      //   totalPages: Math.ceil(total / limit)
-      // }
+      data: applications,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch applications')
@@ -230,6 +203,8 @@ async function getApplicationById(db, applicationId, logger) {
         .collection('Fuels')
         .find({ applicationId })
         .toArray()
+    } else {
+      logger.warn(`Unknown application type: ${application.applicationType}`)
     }
 
     return {
@@ -313,9 +288,16 @@ async function getCounts(db, logger) {
 
     for (const row of applicationCounts) {
       const { type, status } = row._id
-      if (!summary[type]) continue
-      if (status === 'new') summary[type].new = row.count
-      else if (status === 'in_progress') summary[type].inProgress = row.count
+      if (!summary[type]) {
+        continue
+      }
+      if (status === 'new') {
+        summary[type].new = row.count
+      } else if (status === 'in_progress') {
+        summary[type].inProgress = row.count
+      } else {
+        logger.warn(`Unknown status: ${status}`)
+      }
     }
 
     //records count from published appliances and fuels
@@ -382,9 +364,7 @@ async function getCertainApplicationsWithAppliances(
     const itemCollection = db.collection('Appliances')
 
     // 1. Fetch only applications where status is 'new'
-    const newApplications = await appCollection
-      .find({ status: status })
-      .toArray()
+    const newApplications = await appCollection.find({ status }).toArray()
 
     // If no new applications found, return an empty array early
     if (newApplications.length === 0) {
@@ -418,7 +398,11 @@ async function getCertainApplicationsWithAppliances(
 /**
  * Get (uncomplete) applications grouped by status and with summary (returns only appliance names)
  */
-async function getApplicationsWithSummary(db, logger, statuses = ['new', 'in_progress']) {
+async function getApplicationsWithSummary(
+  db,
+  logger,
+  statuses = ['new', 'in_progress']
+) {
   try {
     const appCollection = db.collection('Applications')
     const applianceCollection = db.collection('Appliances')
@@ -473,6 +457,8 @@ async function getApplicationsWithSummary(db, logger, statuses = ['new', 'in_pro
         result.new.push(appData)
       } else if (app.status === 'in_progress') {
         result.in_progress.push(appData)
+      } else {
+        logger.warn(`Unknown application status: ${app.status}`)
       }
     }
 

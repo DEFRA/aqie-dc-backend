@@ -1,14 +1,13 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { getApplicationById } from './get-application-by-id.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
+import * as applicationsController from '../../controllers/applications-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/applications-controller.js', () => ({
   default: {},
   getApplicationById: vi.fn()
 }))
-
-import * as applicationsController from '../../controllers/applications-controller.js'
 
 describe('GET /applications/{applicationId}', () => {
   let mockRequest
@@ -66,6 +65,7 @@ describe('GET /applications/{applicationId}', () => {
 
       expect(result.success).toBe(true)
       expect(result.data).toEqual(mockApplication)
+      expect(result.statusCode).toBe(statusCodes.ok)
       expect(result.data.applicationId).toBe('app-123')
       expect(applicationsController.getApplicationById).toHaveBeenCalledWith(
         mockRequest.db,
@@ -96,9 +96,16 @@ describe('GET /applications/{applicationId}', () => {
       const h = mockToolkit
       const result = await getApplicationById.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to fetch application')
-      expect(result.error).toBe('Database error')
+      expect(result.output.payload.message).toBe(
+        'An internal server error occurred'
+      )
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to fetch application'
+      )
     })
 
     test('passes applicationId from params to controller', async () => {
@@ -182,10 +189,15 @@ describe('GET /applications/{applicationId}', () => {
       applicationsController.getApplicationById.mockRejectedValueOnce(error)
 
       const h = mockToolkit
-      await getApplicationById.handler(mockRequest, h)
+      const result = await getApplicationById.handler(mockRequest, h)
 
-      // Error logging happens in the controller
-      expect(applicationsController.getApplicationById).toHaveBeenCalled()
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
+      expect(result.message).toBe('Failed to fetch application')
+      expect(mockRequest.logger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to fetch application'
+      )
     })
   })
 

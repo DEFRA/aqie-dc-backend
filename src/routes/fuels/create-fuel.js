@@ -23,11 +23,13 @@ export const createFuel = {
     pre: [
       {
         assign: 'validatedPayload',
-        method: (request, h) => {
+        method: (request, _h) => {
           const { value, error } = fuelSchema.validate(request.payload, {
             abortEarly: false
           })
-          if (error) throw error
+          if (error) {
+            throw error
+          }
           return value
         },
         failAction: (request, h, error) => {
@@ -50,7 +52,11 @@ export const createFuel = {
       ...request.pre.validatedPayload
     }
     try {
-      const { data, message } = await fuelController.createFuel(request.db, newItem, request.logger)
+      const { data, message } = await fuelController.createFuel(
+        request.db,
+        newItem,
+        request.logger
+      )
       return h
         .response({
           success: true,

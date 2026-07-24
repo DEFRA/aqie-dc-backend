@@ -18,7 +18,8 @@ async function createFuel(db, item, logger) {
   }
   if (!item) {
     throw new Error('item is required')
-  }  if (!logger) {
+  }
+  if (!logger) {
     throw new Error('logger is required')
   }
   try {
@@ -212,7 +213,11 @@ async function deleteFuel(db, fuelId, logger) {
  * Get all fuels with pagination
  * @deprecated not sure if pagniation is needed, if not can delete, if yes then replace with this
  */
-async function getAllFuelsWithPagination(db, { page = 1, limit = 20 } = {}, logger) {
+async function getAllFuelsWithPagination(
+  db,
+  { page = 1, limit = 20 } = {},
+  logger
+) {
   if (!logger) {
     throw new Error('logger is required')
   }
@@ -271,7 +276,7 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
       $or: [
         { brandNames: { $regex: query, $options: 'i' } },
         { companyName: { $regex: query, $options: 'i' } },
-        { fuelType: { $regex: query, $options: 'i' } }
+        { resellBrandName: { $regex: query, $options: 'i' } }
       ]
     }
 
@@ -286,7 +291,7 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
 
     return {
       success: true,
-      data: fuels.map(item => mapFuelSummary(item)),
+      data: fuels.map((item) => mapFuelSummary(item)),
       pagination: {
         page,
         limit,
@@ -337,4 +342,13 @@ async function getFuelWithRelatedItems(db, fuelId, logger) {
   }
 }
 
-export { createFuel, getAllFuels, getFuelById, updateFuel, deleteFuel, getAllFuelsWithPagination, searchFuels, getFuelWithRelatedItems }
+export {
+  createFuel,
+  getAllFuels,
+  getFuelById,
+  updateFuel,
+  deleteFuel,
+  getAllFuelsWithPagination,
+  searchFuels,
+  getFuelWithRelatedItems
+}

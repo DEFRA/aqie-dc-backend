@@ -7,6 +7,15 @@ import * as applianceController from '../../controllers/appliances-controller.js
 import { applianceSchema } from '../schema.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
+// PATCH schema: all appliance fields optional, requires at least one key, and reject unknown extra fields.
+const updateApplianceSchema = applianceSchema
+  .fork(Object.keys(applianceSchema.describe().keys), (schema) =>
+    schema.optional()
+  )
+  .min(1)
+  .unknown(false)
+  .prefs({ noDefaults: true })
+
 export const updateAppliance = {
   method: 'PATCH',
   path: '/appliances/{applianceId}',
@@ -17,7 +26,7 @@ export const updateAppliance = {
       params: Joi.object({
         applianceId: Joi.string().required()
       }),
-      payload: Joi.object().unknown(true)
+      payload: updateApplianceSchema
     }
   },
   handler: async (request, h) => {
@@ -30,7 +39,7 @@ export const updateAppliance = {
         request.payload,
         request.logger
       )
-      
+
       if (result.notFound) {
         return h.response(result).code(statusCodes.notFound)
       }

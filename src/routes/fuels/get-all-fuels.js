@@ -8,7 +8,6 @@
  * 4. Pass { page, limit } to controller instead of hard-coded values
  */
 
-import Joi from 'joi'
 import * as fuelController from '../../controllers/fuels-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
@@ -41,7 +40,10 @@ export const getAllFuels = {
     // const { page, limit } = request.query
 
     try {
-      const result = await fuelController.getAllFuels(request.db, request.logger)
+      const result = await fuelController.getAllFuels(
+        request.db,
+        request.logger
+      )
       return h.response(result).code(statusCodes.ok)
     } catch (err) {
       return h
