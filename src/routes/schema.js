@@ -381,12 +381,16 @@ export const applicationsSchema = Joi.object({
   applicationId: Joi.string()
     .optional()
     .description('Unique application identifier (server-generated)'),
-  submittedAt: Joi.date()
+  applicationDate: Joi.date()
     .optional()
-    .description('When the application was submitted'),
+    .description('When the application was submitted by company, date comes from Defra forms'),
+  referenceNumber: Joi.string()
+    .optional()
+    .description('Reference number from Defra forms, keep record of it incase any issues with the forms'),
+  //do we need this:
   createdAt: Joi.date()
     .optional()
-    .description('Record creation timestamp (server-generated)'),
+    .description('When the application was created in our system (server-generated)'),
   //Are the above both needed - check defra forms payload
   status: Joi.string()
     .valid('new', 'in_progress', 'complete')
@@ -395,22 +399,14 @@ export const applicationsSchema = Joi.object({
       'Application status (server-generated, defaults to "new". Complete when all items (applinances/fuels) have been reviewed (approved/rejected) and the application is submitted)'
     ),
   appliances: Joi.array().items(applianceSchema).optional(),
-  //items: Joi.array().items(itemSchema).optional()
-  additionalMetadata: Joi.object()
-    .optional()
-    .description('Optional additional metadata'),
+  //needs to be changed to items: Joi.array().items(itemSchema).optional() when do fuels applications
   //later in the applicaiton flow:
-  reviewer: Joi.string()
+  reviewer: Joi.object({
+    name: Joi.string().optional().description('Name of the reviewer'),
+    email: Joi.string().optional().description('Email of the reviewer')
+  })
     .optional()
-    .description('Name/ID of the reviewer assigned to this application'),
-  reviewNotes: Joi.string().optional().description('Notes from the reviewer'),
-  reviewedAt: Joi.date()
-    .optional()
-    .allow(null)
-    .description('When the application was reviewed (server-managed)'),
-  updatedAt: Joi.date()
-    .optional()
-    .description('Record last update timestamp (server-generated)')
+    .description('Assigned to this application, will be null first then comes from SSO'),
 })
   .unknown(false)
   .label('Application')
