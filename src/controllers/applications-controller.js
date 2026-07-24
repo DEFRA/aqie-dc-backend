@@ -5,7 +5,6 @@
 
 import { randomUUID } from 'crypto'
 import { generateSecureId } from '../common/helpers/data-transformer.js'
-import { applianceSchema } from '../routes/schema.js'
 import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
 
 /**
@@ -22,7 +21,7 @@ async function createApplication(client, db, payload, logger) {
 
   try {
     return await session.withTransaction(async () => {
-      return await performApplicationInsert(db, payload, logger, session)
+      return performApplicationInsert(db, payload, logger, session)
     })
   } catch (transactionError) {
     if (
