@@ -1,14 +1,17 @@
 /**
  * Get fuel by ID
  */
-
+import Boom from '@hapi/boom'
 import Joi from 'joi'
-import * as fuelsController from '../../controllers/fuels-controller.js'
+import * as fuelController from '../../controllers/fuels-controller.js'
+import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const getFuelById = {
   method: 'GET',
-  path: '/api/fuels/{fuelId}',
+  path: '/fuels/{fuelId}',
   options: {
+    tags: ['api', 'read'],
+    description: 'Fetch fuel fields for the given fuel ID',
     validate: {
       params: Joi.object({
         fuelId: Joi.string().required()
@@ -19,25 +22,30 @@ export const getFuelById = {
     const { fuelId } = request.params
 
     try {
-      const result = await fuelsController.getFuelById(
+      const result = await fuelController.getFuelById(
         request.db,
         fuelId,
         request.logger
       )
 
-      if (result.notFound) {
-        return h.response(result).code(404)
+      if (!result.success) {
+        return h.response(result).code(statusCodes.notFound)
       }
 
-      return h.response(result).code(200)
+      return h.response(result).code(statusCodes.ok)
     } catch (error) {
-      return h
-        .response({
-          success: false,
-          message: 'Failed to fetch fuel',
-          error: error.message
-        })
-        .code(500)
+      request.logger.error(error, 'Failed to fetch fuel')
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Fuel service is currently unavailable')
+      }
+
+      return Boom.internal('Failed to fetch fuel')
     }
   }
 }

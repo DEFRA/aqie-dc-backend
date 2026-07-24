@@ -1,5 +1,10 @@
 // Example appliance payload for tests and API documentation
 export default {
+  // Auto-generated fields
+  // applianceId: 'APP-abc123def456',
+  // applicationId: 'app-uuid-12345',
+  // createdAt: new Date('2026-07-01T10:00:00Z'),
+  // updatedAt: new Date('2026-07-01T10:00:00Z'),
   companyName: 'ACME',
   companyContactName: 'John Doe',
   companyContactEmail: 'john@acme.com',

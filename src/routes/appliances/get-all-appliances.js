@@ -1,40 +1,73 @@
 /**
- * Get all appliances with pagination
+ * Get all appliances
+ * TODO: DECISION REQUIRED - Should pagination be enabled for this endpoint?
+ * Currently returns all certified appliances. Pagination can be enabled by:
+ * 1. Uncomment the validate block with page/limit query params
+ * 2. Uncomment page/limit destructuring in handler
+ * 3. Pass { page, limit } to controller instead of hard-coded values
+ * 4. Uncomment pagination filtering in controller
+ * 5. Include pagination metadata in response
  */
 
-import Joi from 'joi'
-import * as appliancesController from '../../controllers/appliances-controller.js'
+import Boom from '@hapi/boom'
+import * as applianceController from '../../controllers/appliances-controller.js'
+import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const getAllAppliances = {
   method: 'GET',
-  path: '/api/appliances',
+  path: '/appliances',
   options: {
-    validate: {
-      query: Joi.object({
-        page: Joi.number().integer().min(1).default(1),
-        limit: Joi.number().integer().min(1).max(100).default(20)
-      })
-    }
+    tags: ['api', 'appliances'],
+    description: 'Get all appliances',
+    notes: 'Returns all certified appliances'
+    // TODO: PAGINATION - Uncomment validation below if pagination is re-enabled
+    // validate: {
+    //   query: Joi.object({
+    //     page: Joi.number()
+    //       .integer()
+    //       .min(1)
+    //       .default(1)
+    //       .description('Page number'),
+    //     limit: Joi.number()
+    //       .integer()
+    //       .min(1)
+    //       .max(100)
+    //       .default(20)
+    //       .description('Results per page')
+    //   })
+    // }
   },
   handler: async (request, h) => {
-    const { page, limit } = request.query
+    // TODO: PAGINATION - Uncomment when pagination is re-enabled
+    // const { page, limit } = request.query
 
     try {
-      const result = await appliancesController.getAllAppliances(
+      // TODO: PAGINATION - Pass pagination params when re-enabled:
+      // const result = await applianceController.getAllAppliances(
+      //   request.db,
+      //   { page, limit },
+      //   request.logger
+      // )
+      // For now, pass default pagination values to return all appliances
+      const result = await applianceController.getAllAppliances(
         request.db,
-        { page, limit },
+        { page: 1, limit: 999999 }, // Return all certified appliances
         request.logger
       )
-
-      return h.response(result).code(200)
+      return h.response(result).code(statusCodes.ok)
     } catch (error) {
-      return h
-        .response({
-          success: false,
-          message: 'Failed to fetch appliances',
-          error: error.message
-        })
-        .code(500)
+      request.logger.error(error, 'Failed to fetch appliances')
+
+      if (Boom.isBoom(error)) {
+        throw error
+      }
+
+      const status = error?.status
+      if (status && status >= statusCodes.internalServerError) {
+        return Boom.badGateway('Appliance service is currently unavailable')
+      }
+
+      return Boom.internal('Failed to fetch appliances')
     }
   }
 }

@@ -1,4 +1,5 @@
-// Utility functions for db-service.js
+// Utility functions for data transformation and ID generation
+// Used by controllers for formatting data, generating IDs, and processing certifications
 
 import crypto from 'node:crypto'
 

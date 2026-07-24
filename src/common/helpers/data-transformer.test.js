@@ -4,7 +4,7 @@ import {
   findCertified,
   findLastUpdatedDate,
   getFullAddress
-} from './db-utils.js'
+} from './data-transformer.js'
 
 const ADDRESS_LINE_1 = '123 Main St'
 const ADDRESS_LINE_2 = 'Apt 4'
@@ -13,7 +13,7 @@ const ADDRESS_COUNTY = 'Greater London'
 const ADDRESS_POSTCODE = 'SW1A 1AA'
 const SECURE_ID_LENGTH = 12
 
-describe('db-utils constants', () => {
+describe('data-transformer constants', () => {
   test('SECURE_ID_LENGTH constant is used for generateSecureId length', () => {
     // This test verifies the constant is properly used by checking multiple IDs
     for (let i = 0; i < 10; i++) {
@@ -67,7 +67,7 @@ describe('getFullAddress', () => {
   })
 })
 
-describe('db-utils', () => {
+describe('data-transformer', () => {
   test('generateSecureId returns a 12-character alphanumeric string', () => {
     const id = generateSecureId()
     expect(typeof id).toBe('string')

@@ -15,6 +15,9 @@ const fuelOptions = ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other']
 const INVALID_PHONE_ERROR = 'any.invalid'
 
 export const applianceSchema = Joi.object({
+  applicationId: Joi.string()
+    .optional()
+    .description('Application ID (foreign key)'),
   // Start of appliance application fields
   companyName: Joi.string().required().description('Company name'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
@@ -363,3 +366,44 @@ export const fuelSchema = Joi.object({
     .optional()
     .description('England date last updated (last certified or revoked)')
 }).label('Fuel')
+
+//appliances application schema
+export const applicationsSchema = Joi.object({
+  applicationType: Joi.string()
+    .valid('appliance', 'fuel')
+    .required()
+    .description('Type of application'),
+  applicationId: Joi.string()
+    .optional()
+    .description('Unique application identifier (server-generated)'),
+  submittedAt: Joi.date()
+    .optional()
+    .description('When the application was submitted'),
+  createdAt: Joi.date()
+    .optional()
+    .description('Record creation timestamp (server-generated)'),
+  //Are the above both needed - check defra forms payload
+  status: Joi.string()
+    .valid('new', 'in_progress', 'approved', 'rejected') //think this should be completed (instead of approved/rejected)- because there may be appliances that are rejected or approved but the application is still completed
+    .optional()
+    .description('Application status (server-generated, defaults to "new")'),
+  appliances: Joi.array().items(applianceSchema).optional(),
+  //items: Joi.array().items(itemSchema).optional()
+  additionalMetadata: Joi.object()
+    .optional()
+    .description('Optional additional metadata'),
+  //later in the applicaiton flow:
+  reviewer: Joi.string()
+    .optional()
+    .description('Name/ID of the reviewer assigned to this application'),
+  reviewNotes: Joi.string().optional().description('Notes from the reviewer'),
+  reviewedAt: Joi.date()
+    .optional()
+    .allow(null)
+    .description('When the application was reviewed (server-managed)'),
+  updatedAt: Joi.date()
+    .optional()
+    .description('Record last update timestamp (server-generated)')
+})
+  .unknown(false)
+  .label('Application')

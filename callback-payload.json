@@ -4,10 +4,7 @@
   "metadata": {
     "entities": [
       { "type": "appliances", "sheetName": "Appliances" },
-      { "type": "fuels", "sheetName": "Fuels" },
-      { "type": "users", "sheetName": "Users" },
-      { "type": "userAppliances", "sheetName": "UserAppliances" },
-      { "type": "userFuels", "sheetName": "UserFuels" }
+      { "type": "fuels", "sheetName": "Fuels" }
     ]
   },
   "form": {

@@ -1,0 +1,55 @@
+/**
+ * Update fuel
+ */
+
+import Joi from 'joi'
+import * as fuelController from '../../controllers/fuels-controller.js'
+import { fuelSchema } from '../schema.js'
+import { statusCodes } from '../../common/constants/status-codes.js'
+
+const updateFuelSchema = fuelSchema
+  .fork(Object.keys(fuelSchema.describe().keys), (schema) => schema.optional())
+  .min(1)
+  .unknown(false)
+  .prefs({ noDefaults: true })
+
+export const updateFuel = {
+  method: 'PATCH',
+  path: '/fuels/{fuelId}',
+  options: {
+    tags: ['api', 'fuels'],
+    description: 'Update fuel fields',
+    validate: {
+      params: Joi.object({
+        fuelId: Joi.string().required()
+      }),
+      payload: updateFuelSchema
+    }
+  },
+  handler: async (request, h) => {
+    const { fuelId } = request.params
+
+    try {
+      const result = await fuelController.updateFuel(
+        request.db,
+        fuelId,
+        request.payload,
+        request.logger
+      )
+
+      if (result.notFound) {
+        return h.response(result).code(statusCodes.notFound)
+      }
+
+      return h.response(result).code(statusCodes.ok)
+    } catch (err) {
+      return h
+        .response({
+          success: false,
+          message: 'Failed to update fuel',
+          error: err.message
+        })
+        .code(statusCodes.internalServerError)
+    }
+  }
+}
