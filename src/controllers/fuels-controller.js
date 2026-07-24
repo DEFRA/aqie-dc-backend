@@ -276,7 +276,7 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
       $or: [
         { brandNames: { $regex: query, $options: 'i' } },
         { companyName: { $regex: query, $options: 'i' } },
-        { fuelType: { $regex: query, $options: 'i' } }
+        { resellBrandName: { $regex: query, $options: 'i' } }
       ]
     }
 
