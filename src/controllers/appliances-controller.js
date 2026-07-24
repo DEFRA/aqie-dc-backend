@@ -130,7 +130,7 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
       // .limit(limit)      // PAGINATION: Uncomment if needed
       .toArray()
 
-    const total = await collection.countDocuments(certificationFilter)
+    //const total = await collection.countDocuments(certificationFilter) //part of pagnation metadata if needed
 
     return {
       success: true,

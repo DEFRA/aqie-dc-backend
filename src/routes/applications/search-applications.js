@@ -9,6 +9,7 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 
 const MIN_QUERY_LENGTH = 2
 const MAX_QUERY_LENGTH = 50
+const DEFAULT_LIMIT = 20
 
 export const searchApplications = {
   method: 'GET',
@@ -37,7 +38,7 @@ export const searchApplications = {
           .integer()
           .min(1)
           .max(100)
-          .default(20)
+          .default(DEFAULT_LIMIT)
           .description('Results per page')
       })
     }
