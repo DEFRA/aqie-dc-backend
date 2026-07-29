@@ -801,9 +801,9 @@ describe('applications-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.data.new).toHaveLength(1)
-      expect(result.data.in_progress).toHaveLength(1)
+      expect(result.data.inProgress).toHaveLength(1)
       expect(result.data.new[0].appliances[0].modelName).toBe('Model A')
-      expect(result.data.in_progress[0].appliances[0].modelName).toBe('Model B')
+      expect(result.data.inProgress[0].appliances[0].modelName).toBe('Model B')
     })
 
     test('returns empty result when no matching applications exist', async () => {
@@ -811,7 +811,7 @@ describe('applications-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.data.new).toEqual([])
-      expect(result.data.in_progress).toEqual([])
+      expect(result.data.inProgress).toEqual([])
     })
 
     test('handles database errors', async () => {
