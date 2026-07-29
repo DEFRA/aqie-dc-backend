@@ -157,18 +157,19 @@ async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
       .toArray()
 
     // Get total count
-    const total = await collection.countDocuments()
+    //const total = await collection.countDocuments()
 
     return {
       success: true,
       message: 'Applications retrieved successfully',
-      data: applications,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
+      data: applications
+      // TODO: Pagination info - uncomment when pagination is decided
+      // pagination: {
+      //   page,
+      //   limit,
+      //   total,
+      //   totalPages: Math.ceil(total / limit)
+      // }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch applications')
@@ -439,7 +440,7 @@ async function getApplicationsWithSummary(
         success: true,
         data: {
           new: [],
-          in_progress: []
+          inProgress: []
         }
       }
     }
@@ -456,12 +457,12 @@ async function getApplicationsWithSummary(
     // 4. Build result organized by status
     const result = {
       new: [],
-      in_progress: []
+      inProgress: []
     }
 
     for (const app of applications) {
       const appData = {
-        applicationId: app.applicationId,
+        id: app.applicationId,
         applicationType: app.applicationType,
         status: app.status,
         submittedAt: app.submittedAt,
@@ -476,14 +477,14 @@ async function getApplicationsWithSummary(
       if (app.status === 'new') {
         result.new.push(appData)
       } else if (app.status === 'in_progress') {
-        result.in_progress.push(appData)
+        result.inProgress.push(appData)
       } else {
         logger.warn(`Unknown application status: ${app.status}`)
       }
     }
 
     logger.info(
-      `Found ${result.new.length} new and ${result.in_progress.length} in-progress applications with model names`
+      `Found ${result.new.length} new and ${result.inProgress.length} in-progress applications with model names`
     )
 
     return {
