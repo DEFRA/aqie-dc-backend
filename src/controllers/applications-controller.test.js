@@ -107,7 +107,7 @@ describe('applications-controller', () => {
       insertOne: vi.fn(async (doc, options) => {
         docs.push(doc)
         return {
-          insertedId: doc.applicationId || 'mock-id',
+          insertedId: doc.id || 'mock-id',
           acknowledged: true
         }
       }),
@@ -194,7 +194,7 @@ describe('applications-controller', () => {
           if (pipeline[0]?.$group) {
             const groupByType = {}
             docs.forEach((doc) => {
-              const key = `${doc.applicationType}-${doc.status}`
+              const key = `${doc.type}-${doc.status}`
               groupByType[key] = (groupByType[key] || 0) + 1
             })
             return Object.entries(groupByType).map(([key, count]) => {
@@ -245,7 +245,7 @@ describe('applications-controller', () => {
   describe('createApplication', () => {
     test('creates application and appliances successfully with transaction', async () => {
       const payload = {
-        applicationType: 'appliance',
+        type: 'appliance',
         status: 'new',
         reviewer: 'John',
         reviewNotes: 'Test',
@@ -284,7 +284,7 @@ describe('applications-controller', () => {
       expect(result.message).toBe(
         'Application and appliances created successfully'
       )
-      expect(result.data.applicationId).toBeDefined()
+      expect(result.data.id).toBeDefined()
       expect(result.data.appliances).toHaveLength(1)
       expect(collection.insertOne).toHaveBeenCalled()
       expect(applianceCollection.insertMany).toHaveBeenCalled()
@@ -292,7 +292,7 @@ describe('applications-controller', () => {
 
     test('creates application without appliances', async () => {
       const payload = {
-        applicationType: 'fuel',
+        type: 'fuel',
         status: 'new',
         additionalMetadata: {},
         appliances: []
@@ -307,7 +307,7 @@ describe('applications-controller', () => {
 
     test('invalid payloads should already be rejected before the controller', async () => {
       const payload = {
-        applicationType: 'appliance',
+        type: 'appliance',
         appliances: [
           {
             // Missing required fields intentionally to verify controller does not revalidate
@@ -327,7 +327,7 @@ describe('applications-controller', () => {
       collection.insertOne.mockRejectedValueOnce(new Error('Insert failed'))
 
       const payload = {
-        applicationType: 'appliance',
+        type: 'appliance',
         appliances: []
       }
 
@@ -350,7 +350,7 @@ describe('applications-controller', () => {
       }
 
       const payload = {
-        applicationType: 'appliance',
+        type: 'appliance',
         appliances: []
       }
 
@@ -369,18 +369,18 @@ describe('applications-controller', () => {
   describe('getAllApplications', () => {
     test('returns all applications successfully', async () => {
       docs.push({
-        applicationId: 'app-1',
-        applicationType: 'appliance',
+        id: 'app-1',
+        type: 'appliance',
         status: 'new',
         createdAt: new Date(),
-        submittedAt: new Date()
+        submittedDate: new Date()
       })
       docs.push({
-        applicationId: 'app-2',
-        applicationType: 'fuel',
+        id: 'app-2',
+        type: 'fuel',
         status: 'in_progress',
         createdAt: new Date(),
-        submittedAt: new Date()
+        submittedDate: new Date()
       })
 
       const result = await getAllApplications(db, {}, mockLogger)
@@ -398,7 +398,7 @@ describe('applications-controller', () => {
       expect(result.data).toEqual([])
     })
 
-    test('sorts applications by submittedAt and createdAt descending', async () => {
+    test('sorts applications by submittedDate and createdAt descending', async () => {
       await getAllApplications(db, {}, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({})
@@ -421,8 +421,8 @@ describe('applications-controller', () => {
   describe('getApplicationById', () => {
     test('returns application when found', async () => {
       const mockApp = {
-        applicationId: 'app-123',
-        applicationType: 'appliance',
+        id: 'app-123',
+        type: 'appliance',
         status: 'new',
         createdAt: new Date()
       }
@@ -432,9 +432,9 @@ describe('applications-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.message).toBe('Application retrieved successfully')
-      expect(result.data.applicationId).toBe('app-123')
+      expect(result.data.id).toBe('app-123')
       expect(collection.findOne).toHaveBeenCalledWith({
-        applicationId: 'app-123'
+        id: 'app-123'
       })
     })
 
@@ -448,10 +448,10 @@ describe('applications-controller', () => {
       expect(result.notFound).toBe(true)
     })
 
-    test('fetches linked appliances when applicationType is appliance', async () => {
+    test('fetches linked appliances when type is appliance', async () => {
       const mockApp = {
-        applicationId: 'app-123',
-        applicationType: 'appliance',
+        id: 'app-123',
+        type: 'appliance',
         status: 'new'
       }
       collection.findOne.mockResolvedValueOnce(mockApp)
@@ -476,12 +476,12 @@ describe('applications-controller', () => {
   describe('searchApplications', () => {
     test('searches applications by query', async () => {
       docs.push({
-        applicationId: 'app-1',
+        id: 'app-1',
         status: 'new',
         reviewer: 'John'
       })
       docs.push({
-        applicationId: 'app-2',
+        id: 'app-2',
         status: 'in_progress',
         reviewer: 'Jane'
       })
@@ -502,7 +502,7 @@ describe('applications-controller', () => {
     test('returns pagination info with total count', async () => {
       for (let i = 0; i < 5; i++) {
         docs.push({
-          applicationId: `app-${i}`,
+          id: `app-${i}`,
           status: 'new',
           reviewer: 'Test'
         })
@@ -547,18 +547,18 @@ describe('applications-controller', () => {
   describe('getCounts', () => {
     test('returns application counts by type and status', async () => {
       docs.push({
-        applicationId: 'app-1',
-        applicationType: 'appliance',
+        id: 'app-1',
+        type: 'appliance',
         status: 'new'
       })
       docs.push({
-        applicationId: 'app-2',
-        applicationType: 'appliance',
+        id: 'app-2',
+        type: 'appliance',
         status: 'in_progress'
       })
       docs.push({
-        applicationId: 'app-3',
-        applicationType: 'fuel',
+        id: 'app-3',
+        type: 'fuel',
         status: 'new'
       })
 
@@ -595,18 +595,18 @@ describe('applications-controller', () => {
     test('counts complete application records and legacy appliance records', async () => {
       docs.push(
         {
-          applicationId: 'app-1',
-          applicationType: 'appliance',
+          id: 'app-1',
+          type: 'appliance',
           status: 'complete'
         },
         {
-          applicationId: 'app-2',
-          applicationType: 'fuel',
+          id: 'app-2',
+          type: 'fuel',
           status: 'complete'
         },
         {
-          applicationId: 'app-3',
-          applicationType: 'appliance',
+          id: 'app-3',
+          type: 'appliance',
           status: 'new'
         }
       )
@@ -632,8 +632,8 @@ describe('applications-controller', () => {
   describe('getAllApplicationsWithAppliances', () => {
     test('returns applications with nested appliances', async () => {
       docs.push({
-        applicationId: 'app-1',
-        applicationType: 'appliance',
+        id: 'app-1',
+        type: 'appliance',
         status: 'new'
       })
       applianceDocs.push({
@@ -659,13 +659,13 @@ describe('applications-controller', () => {
     test('filters appliances by applicationId', async () => {
       docs.push(
         {
-          applicationId: 'app-1',
-          applicationType: 'appliance',
+          id: 'app-1',
+          type: 'appliance',
           status: 'new'
         },
         {
-          applicationId: 'app-2',
-          applicationType: 'appliance',
+          id: 'app-2',
+          type: 'appliance',
           status: 'new'
         }
       )
@@ -701,13 +701,13 @@ describe('applications-controller', () => {
     test('returns applications with specific status', async () => {
       docs.push(
         {
-          applicationId: 'app-1',
-          applicationType: 'appliance',
+          id: 'app-1',
+          type: 'appliance',
           status: 'new'
         },
         {
-          applicationId: 'app-2',
-          applicationType: 'appliance',
+          id: 'app-2',
+          type: 'appliance',
           status: 'in_progress'
         }
       )
@@ -735,13 +735,13 @@ describe('applications-controller', () => {
     test('filters appliances for specific applications', async () => {
       docs.push(
         {
-          applicationId: 'app-1',
-          applicationType: 'appliance',
+          id: 'app-1',
+          type: 'appliance',
           status: 'new'
         },
         {
-          applicationId: 'app-2',
-          applicationType: 'appliance',
+          id: 'app-2',
+          type: 'appliance',
           status: 'new'
         }
       )
@@ -770,17 +770,17 @@ describe('applications-controller', () => {
     test('returns applications grouped by status with appliance model names', async () => {
       docs.push(
         {
-          applicationId: 'app-1',
-          applicationType: 'appliance',
+          id: 'app-1',
+          type: 'appliance',
           status: 'new',
-          submittedAt: new Date('2026-01-01'),
+          submittedDate: new Date('2026-01-01'),
           createdAt: new Date('2026-01-02')
         },
         {
-          applicationId: 'app-2',
-          applicationType: 'appliance',
+          id: 'app-2',
+          type: 'appliance',
           status: 'in_progress',
-          submittedAt: new Date('2026-01-03'),
+          submittedDate: new Date('2026-01-03'),
           createdAt: new Date('2026-01-04')
         }
       )

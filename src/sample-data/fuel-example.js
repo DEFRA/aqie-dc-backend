@@ -50,5 +50,6 @@ export default {
   walesDateLastUpdated: '2026-02-12',
   nIrelandDateLastUpdated: '2026-02-13',
   scotlandDateLastUpdated: '2026-02-14',
-  englandDateLastUpdated: '2026-02-15'
+  englandDateLastUpdated: '2026-02-15',
+  legacyRecord: true
 }

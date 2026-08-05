@@ -52,8 +52,8 @@ describe('POST /applications', () => {
         success: true,
         message: 'Application and appliances created successfully',
         data: {
-          applicationId: 'uuid-123',
-          applicationType: 'appliance',
+          id: 'uuid-123',
+          type: 'appliance',
           status: 'new',
           appliances: applicationExample.appliances
         }
@@ -68,7 +68,7 @@ describe('POST /applications', () => {
       expect(result.message).toBe(
         'Application and appliances created successfully'
       )
-      expect(result.data.applicationId).toBe('uuid-123')
+      expect(result.data.id).toBe('uuid-123')
       expect(result.statusCode).toBe(statusCodes.created)
       expect(applicationsController.createApplication).toHaveBeenCalledWith(
         mockRequest.server.mongoClient,
@@ -97,7 +97,7 @@ describe('POST /applications', () => {
     test('passes validatedPayload from pre to controller', async () => {
       const customPayload = {
         ...applicationExample,
-        applicationType: 'fuel'
+        type: 'fuel'
       }
       mockRequest.payload = customPayload
       mockRequest.pre = { validatedPayload: customPayload }
@@ -105,7 +105,7 @@ describe('POST /applications', () => {
       applicationsController.createApplication.mockResolvedValueOnce({
         success: true,
         message: 'Application and appliances created successfully',
-        data: { applicationId: 'uuid-456' }
+        data: { id: 'uuid-456' }
       })
 
       const h = mockToolkit
@@ -124,8 +124,8 @@ describe('POST /applications', () => {
         success: true,
         message: 'Application and appliances created successfully',
         data: {
-          applicationId: 'uuid-123',
-          applicationType: 'appliance',
+          id: 'uuid-123',
+          type: 'appliance',
           appliances: [
             { applianceId: 'APP-001', companyName: 'ACME' },
             { applianceId: 'APP-002', companyName: 'Beta' }

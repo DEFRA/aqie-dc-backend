@@ -119,7 +119,7 @@ export const applianceSchema = Joi.object({
   declaration: Joi.boolean().required().description('Declaration'),
   //End of appliance application fields
   legacyRecord: Joi.boolean()
-    .optional()
+    .default(false)
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
     ),
@@ -369,22 +369,27 @@ export const fuelSchema = Joi.object({
     .description('Scotland date last updated (last certified or revoked)'),
   englandDateLastUpdated: Joi.date()
     .optional()
-    .description('England date last updated (last certified or revoked)')
+    .description('England date last updated (last certified or revoked)'),
+  legacyRecord: Joi.boolean()
+    .default(false)
+    .description(
+      'Records that have been migrated to the DB are deemed as legacy records'
+    )
 }).label('Fuel')
 
 //appliances application schema
 export const applicationsSchema = Joi.object({
-  applicationType: Joi.string()
+  type: Joi.string()
     .valid('appliance', 'fuel')
     .required()
     .description('Type of application'),
-  applicationId: Joi.string()
+  id: Joi.string()
     .optional()
     .description('Unique application identifier (server-generated)'),
-  applicationDate: Joi.date()
+  submittedDate: Joi.date()
     .optional()
     .description(
-      'When the application was submitted by company, date comes from Defra forms'
+      'When the application was submitted by a company, date comes from Defra forms'
     ),
   referenceNumber: Joi.string()
     .optional()
@@ -412,6 +417,7 @@ export const applicationsSchema = Joi.object({
     email: Joi.string().optional().description('Email of the reviewer')
   })
     .optional()
+    .allow(null)
     .description(
       'Assigned to this application, will be null first then comes from SSO'
     )

@@ -1,18 +1,15 @@
 // Example application payload for tests and API documentation
 export default {
-  applicationType: 'appliance',
-  // applicationId: 'app-uuid-12345',
-  submittedAt: new Date('2026-04-24T12:00:00Z'),
+  type: 'appliance',
+  // id: 'app-uuid-12345',
+  submittedDate: new Date('2026-04-24T12:00:00Z'),
   // createdAt: new Date('2026-07-01T10:00:00Z'),
   status: 'new', //auto-generated but can be set for Swagger input
-  additionalMetadata: {
-    notes: 'Initial submission'
+  reviewer: {
+    name: 'John Reviewer',
+    email: 'john@reviewer.com'
   },
-  reviewer: 'John Reviewer',
-  reviewNotes: 'Initial submission',
-  // reviewedAt: null,
-  // updatedAt: new Date('2026-07-01T10:00:00Z'),
-
+  referenceNumber: 'referencenumber435435',
   appliances: [
     {
       // NOTE: These fields are auto-generated/set by server
@@ -52,6 +49,7 @@ export default {
       scotlandApproval: 'Certified',
       walesApproval: 'Certified',
       nIrelandApproval: 'Certified'
+      //legacyRecord: false //default to false
     },
     {
       // NOTE: These fields are auto-generated/set by server
@@ -81,6 +79,7 @@ export default {
       scotlandApproval: 'Certified',
       walesApproval: 'Revoked',
       nIrelandApproval: 'Uncertified'
+      //legacyRecord: false //default to false
     }
   ]
 }

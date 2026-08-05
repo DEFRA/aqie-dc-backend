@@ -37,12 +37,12 @@ describe('GET /applications/{applicationId}', () => {
   describe('handler', () => {
     test('returns application detail when found', async () => {
       const mockApplication = {
-        applicationId: 'app-123',
-        applicationType: 'appliance',
+        id: 'app-123',
+        type: 'appliance',
         status: 'new',
         reviewer: 'John',
         reviewNotes: 'Pending review',
-        submittedAt: new Date(),
+        submittedDate: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
         appliances: [
@@ -66,7 +66,7 @@ describe('GET /applications/{applicationId}', () => {
       expect(result.success).toBe(true)
       expect(result.data).toEqual(mockApplication)
       expect(result.statusCode).toBe(statusCodes.ok)
-      expect(result.data.applicationId).toBe('app-123')
+      expect(result.data.id).toBe('app-123')
       expect(applicationsController.getApplicationById).toHaveBeenCalledWith(
         mockRequest.db,
         'app-123',
@@ -112,7 +112,7 @@ describe('GET /applications/{applicationId}', () => {
       mockRequest.params.applicationId = 'app-456'
       applicationsController.getApplicationById.mockResolvedValueOnce({
         success: true,
-        data: { applicationId: 'app-456' }
+        data: { id: 'app-456' }
       })
 
       const h = mockToolkit
@@ -127,8 +127,8 @@ describe('GET /applications/{applicationId}', () => {
 
     test('includes linkedItems in response when present', async () => {
       const mockApplication = {
-        applicationId: 'app-123',
-        applicationType: 'appliance',
+        id: 'app-123',
+        type: 'appliance',
         status: 'new',
         linkedItems: [
           { applianceId: 'APP-001', companyName: 'ACME' },
@@ -150,15 +150,15 @@ describe('GET /applications/{applicationId}', () => {
 
     test('handles different application types (appliance and fuel)', async () => {
       const applianceApp = {
-        applicationId: 'app-appliance-1',
-        applicationType: 'appliance',
+        id: 'app-appliance-1',
+        type: 'appliance',
         status: 'new',
         linkedItems: [{ applianceId: 'APP-001' }]
       }
 
       const fuelApp = {
-        applicationId: 'app-fuel-1',
-        applicationType: 'fuel',
+        id: 'app-fuel-1',
+        type: 'fuel',
         status: 'new',
         linkedItems: [{ fuelId: 'FUEL-001' }]
       }
@@ -171,7 +171,7 @@ describe('GET /applications/{applicationId}', () => {
 
       let h = mockToolkit
       let result = await getApplicationById.handler(mockRequest, h)
-      expect(result.data.applicationType).toBe('appliance')
+      expect(result.data.type).toBe('appliance')
 
       // Test fuel type
       applicationsController.getApplicationById.mockResolvedValueOnce({
@@ -181,7 +181,7 @@ describe('GET /applications/{applicationId}', () => {
 
       h = mockToolkit
       result = await getApplicationById.handler(mockRequest, h)
-      expect(result.data.applicationType).toBe('fuel')
+      expect(result.data.type).toBe('fuel')
     })
 
     test('logs errors properly', async () => {
