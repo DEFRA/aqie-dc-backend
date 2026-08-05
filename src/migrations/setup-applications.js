@@ -28,7 +28,7 @@ const applicationsValidator = {
       },
       status: {
         bsonType: 'string',
-        enum: ['new', 'in_progress', 'approved', 'rejected'],
+        enum: ['new', 'in_progress', 'complete'],
         description: 'Application status - required'
       },
       applicationType: {
@@ -37,8 +37,18 @@ const applicationsValidator = {
         description: 'Type of application (appliance or fuel) - required'
       },
       reviewer: {
-        bsonType: ['string', 'null'],
-        description: 'Reviewer name or ID - optional'
+        bsonType: ['object', 'null'],
+        properties: {
+          name: {
+            bsonType: ['string', 'null'],
+            description: 'Name of the reviewer'
+          },
+          email: {
+            bsonType: ['string', 'null'],
+            description: 'Email of the reviewer'
+          }
+        },
+        description: 'Assigned to this application, will be null first then comes from SSO'
       },
       reviewNotes: {
         bsonType: ['string', 'null'],
