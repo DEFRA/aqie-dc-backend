@@ -8,9 +8,7 @@ export async function getCompleteApplicationRecordsFilter(db) {
     .toArray()
 
   // 2. Extract the application IDs values and return them in a simple array
-  const ids = completeApplicationIds
-    .map((app) => app.id)
-    .filter(Boolean)
+  const ids = completeApplicationIds.map((app) => app.id).filter(Boolean)
 
   // 3. Return a MongoDB query filter object, to be used to find e.g. all appliance records of complete applications
   return { applicationId: { $in: ids } }

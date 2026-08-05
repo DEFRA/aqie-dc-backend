@@ -7,10 +7,7 @@ describe('getCompleteApplicationRecordsFilter', () => {
       collection: vi.fn(() => ({
         find: vi.fn(() => ({
           project: vi.fn(() => ({
-            toArray: vi.fn(async () => [
-              { id: 'app_1' },
-              { id: 'app_2' }
-            ])
+            toArray: vi.fn(async () => [{ id: 'app_1' }, { id: 'app_2' }])
           }))
         }))
       }))
