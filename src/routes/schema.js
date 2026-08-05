@@ -119,7 +119,7 @@ export const applianceSchema = Joi.object({
   declaration: Joi.boolean().required().description('Declaration'),
   //End of appliance application fields
   legacyRecord: Joi.boolean()
-    .optional()
+    .default(false)
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
     ),
@@ -369,7 +369,12 @@ export const fuelSchema = Joi.object({
     .description('Scotland date last updated (last certified or revoked)'),
   englandDateLastUpdated: Joi.date()
     .optional()
-    .description('England date last updated (last certified or revoked)')
+    .description('England date last updated (last certified or revoked)'),
+  legacyRecord: Joi.boolean()
+    .default(false)
+    .description(
+      'Records that have been migrated to the DB are deemed as legacy records'
+    ),
 }).label('Fuel')
 
 //appliances application schema
