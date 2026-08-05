@@ -20,9 +20,9 @@ import { config } from '../config.js'
 const applicationsValidator = {
   $jsonSchema: {
     bsonType: 'object',
-    required: ['applicationId', 'status', 'applicationType'],
+    required: ['id', 'status', 'type'],
     properties: {
-      applicationId: {
+      id: {
         bsonType: 'string',
         description: 'Unique application identifier - required'
       },
@@ -31,7 +31,7 @@ const applicationsValidator = {
         enum: ['new', 'in_progress', 'complete'],
         description: 'Application status - required'
       },
-      applicationType: {
+      type: {
         bsonType: 'string',
         enum: ['appliance', 'fuel'],
         description: 'Type of application (appliance or fuel) - required'
@@ -55,7 +55,7 @@ const applicationsValidator = {
         bsonType: ['string', 'null'],
         description: 'Notes from reviewer - optional'
       },
-      submittedAt: {
+      submittedDate: {
         bsonType: ['date', 'null'],
         description: 'When the application was submitted - optional'
       },
@@ -106,9 +106,7 @@ export async function setupApplications(db, options = { dropExisting: false }) {
     console.log('   ✓ Collection created with schema validation')
 
     // Create indexes for Applications
-    await db
-      .collection('Applications')
-      .createIndex({ applicationId: 1 }, { unique: true })
+    await db.collection('Applications').createIndex({ id: 1 }, { unique: true })
     await db.collection('Applications').createIndex({ status: 1 })
     console.log('   ✓ Indexes created')
 

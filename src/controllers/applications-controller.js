@@ -40,18 +40,18 @@ async function createApplication(client, db, payload, logger) {
 }
 
 function buildApplication(applicationData) {
-  const applicationId = randomUUID()
+  const id = randomUUID()
   const now = new Date()
 
   return {
-    applicationId,
-    applicationType: applicationData.applicationType,
+    id,
+    type: applicationData.type,
     status: applicationData.status || 'new',
     reviewer: applicationData.reviewer || null,
     reviewNotes: applicationData.reviewNotes || null,
     additionalMetadata: applicationData.additionalMetadata || {},
-    submittedAt: applicationData.submittedAt
-      ? new Date(applicationData.submittedAt)
+    submittedDate: applicationData.submittedDate
+      ? new Date(applicationData.submittedDate)
       : null,
     reviewedAt: null,
     createdAt: applicationData.createdAt
@@ -89,7 +89,7 @@ async function performApplicationInsert(db, payload, logger, session) {
     const appliancesToInsert = appliances.map((appliance) => ({
       ...appliance,
       applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
-      applicationId: application.applicationId
+      applicationId: application.id
     }))
 
     const applianceResult = await applianceCollection.insertMany(
@@ -121,7 +121,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   }
 
   logger.info(
-    `Application created: ${application.applicationId} with ${savedAppliances.length} appliances`
+    `Application created: ${application.id} with ${savedAppliances.length} appliances`
   )
 
   // Return detailed response with success message
@@ -151,7 +151,7 @@ async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
     // Get all applications (pagination disabled)
     const applications = await collection
       .find({})
-      .sort({ submittedAt: -1, createdAt: -1 })
+      .sort({ submittedDate: -1, createdAt: -1 })
       // .skip(skip)        // PAGINATION: Uncomment if needed
       // .limit(limit)      // PAGINATION: Uncomment if needed
       .toArray()
@@ -178,12 +178,12 @@ async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
 }
 
 /**
- * Get application by applicationId
+ * Get application by id
  */
 async function getApplicationById(db, applicationId, logger) {
   try {
     const collection = db.collection('Applications')
-    const application = await collection.findOne({ applicationId })
+    const application = await collection.findOne({ id: applicationId })
 
     if (!application) {
       return {
@@ -195,18 +195,18 @@ async function getApplicationById(db, applicationId, logger) {
 
     // Also fetch associated appliances/fuels
     let linkedItems = []
-    if (application.applicationType === 'appliance') {
+    if (application.type === 'appliance') {
       linkedItems = await db
         .collection('Appliances')
-        .find({ applicationId })
+        .find({ applicationId: applicationId })
         .toArray()
-    } else if (application.applicationType === 'fuel') {
+    } else if (application.type === 'fuel') {
       linkedItems = await db
         .collection('Fuels')
-        .find({ applicationId })
+        .find({ applicationId: applicationId })
         .toArray()
     } else {
-      logger.warn(`Unknown application type: ${application.applicationType}`)
+      logger.warn(`Unknown application type: ${application.type}`)
     }
 
     return {
@@ -236,13 +236,15 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
       $or: [
         { status: { $regex: query, $options: 'i' } },
         { reviewer: { $regex: query, $options: 'i' } },
-        { applicationId: { $regex: query, $options: 'i' } }
+        { 'reviewer.name': { $regex: query, $options: 'i' } },
+        { 'reviewer.email': { $regex: query, $options: 'i' } },
+        { id: { $regex: query, $options: 'i' } }
       ]
     }
 
     const applications = await collection
       .find(searchQuery)
-      .sort({ submittedAt: -1, createdAt: -1 })
+      .sort({ submittedDate: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .toArray()
@@ -282,7 +284,7 @@ async function getCounts(db, logger) {
       .aggregate([
         {
           $group: {
-            _id: { type: '$applicationType', status: '$status' },
+            _id: { type: '$type', status: '$status' },
             count: { $sum: 1 }
           }
         }
@@ -290,17 +292,17 @@ async function getCounts(db, logger) {
       .toArray()
 
     for (const row of applicationStatusCounts) {
-      const { type: applicationType, status } = row._id
-      if (!applicationCounts[applicationType]) {
+      const { type, status } = row._id
+      if (!applicationCounts[type]) {
         continue
       }
 
       switch (status) {
         case 'new':
-          applicationCounts[applicationType].new = row.count
+          applicationCounts[type].new = row.count
           break
         case 'in_progress':
-          applicationCounts[applicationType].inProgress = row.count
+          applicationCounts[type].inProgress = row.count
           break
         default:
           break
@@ -346,8 +348,8 @@ async function getAllApplicationsWithAppliances(db, logger) {
     const applications = await appCollection.find({}).toArray()
 
     // 2. Fetch all appliances that belong to these applications
-    // We get all applicationIds first to limit the appliances query
-    const applicationIds = applications.map((app) => app.applicationId)
+    // We get all application IDs first to limit the appliances query
+    const applicationIds = applications.map((app) => app.id)
 
     const allAppliances = await itemCollection
       .find({ applicationId: { $in: applicationIds } })
@@ -359,7 +361,7 @@ async function getAllApplicationsWithAppliances(db, logger) {
       return {
         ...app,
         appliances: allAppliances.filter(
-          (appliance) => appliance.applicationId === app.applicationId
+          (appliance) => appliance.applicationId === app.id
         )
       }
     })
@@ -393,7 +395,7 @@ async function getCertainApplicationsWithAppliances(
     }
 
     // 2. Extract the IDs of only the 'new' applications
-    const applicationIds = newApplications.map((app) => app.applicationId)
+    const applicationIds = newApplications.map((app) => app.id)
 
     // 3. Fetch all appliances linked to those specific application IDs
     const associatedAppliances = await itemCollection
@@ -404,7 +406,7 @@ async function getCertainApplicationsWithAppliances(
     const result = newApplications.map((app) => ({
       ...app,
       appliances: associatedAppliances.filter(
-        (appliance) => appliance.applicationId === app.applicationId
+        (appliance) => appliance.applicationId === app.id
       )
     }))
 
@@ -431,7 +433,7 @@ async function getApplicationsWithSummary(
     // 1. Fetch all applications with specified statuses
     const applications = await appCollection
       .find({ status: { $in: statuses } })
-      .sort({ submittedAt: -1, createdAt: -1 })
+      .sort({ submittedDate: -1, createdAt: -1 })
       .toArray()
 
     // If no applications found, return early
@@ -446,7 +448,7 @@ async function getApplicationsWithSummary(
     }
 
     // 2. Extract application IDs
-    const applicationIds = applications.map((app) => app.applicationId)
+    const applicationIds = applications.map((app) => app.id)
 
     // 3. Fetch appliances and project only modelName field
     const appliances = await applianceCollection
@@ -462,12 +464,12 @@ async function getApplicationsWithSummary(
 
     for (const app of applications) {
       const appData = {
-        id: app.applicationId,
-        applicationType: app.applicationType,
+        id: app.id,
+        type: app.type,
         status: app.status,
-        submittedAt: app.submittedAt,
+        submittedDate: app.submittedDate,
         appliances: appliances
-          .filter((appliance) => appliance.applicationId === app.applicationId)
+          .filter((appliance) => appliance.applicationId === app.id)
           .map((appliance) => ({
             applianceId: appliance._id,
             modelName: appliance.modelName

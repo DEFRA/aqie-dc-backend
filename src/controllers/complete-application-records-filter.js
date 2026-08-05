@@ -4,12 +4,12 @@ export async function getCompleteApplicationRecordsFilter(db) {
   const completeApplicationIds = await db
     .collection('Applications')
     .find({ status: 'complete' })
-    .project({ applicationId: 1, _id: 0 })
+    .project({ id: 1, _id: 0 })
     .toArray()
 
-  // 2. Extract the applicationId values and return them in a simple array
+  // 2. Extract the application IDs values and return them in a simple array
   const ids = completeApplicationIds
-    .map((app) => app.applicationId)
+    .map((app) => app.id)
     .filter(Boolean)
 
   // 3. Return a MongoDB query filter object, to be used to find e.g. all appliance records of complete applications

@@ -1,17 +1,15 @@
 // Example application payload for tests and API documentation
 export default {
-  applicationType: 'appliance',
-  // applicationId: 'app-uuid-12345',
-  applicationDate: new Date('2026-04-24T12:00:00Z'),
+  type: 'appliance',
+  // id: 'app-uuid-12345',
+  submittedDate: new Date('2026-04-24T12:00:00Z'),
   // createdAt: new Date('2026-07-01T10:00:00Z'),
   status: 'new', //auto-generated but can be set for Swagger input
   reviewer: {
     name: 'John Reviewer',
     email: 'john@reviewer.com'
   },
-  // reviewedAt: null,
-  // updatedAt: new Date('2026-07-01T10:00:00Z'),
-
+  referenceNumber: 'referencenumber435435',
   appliances: [
     {
       // NOTE: These fields are auto-generated/set by server

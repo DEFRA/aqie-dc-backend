@@ -379,17 +379,17 @@ export const fuelSchema = Joi.object({
 
 //appliances application schema
 export const applicationsSchema = Joi.object({
-  applicationType: Joi.string()
+  type: Joi.string()
     .valid('appliance', 'fuel')
     .required()
     .description('Type of application'),
-  applicationId: Joi.string()
+  id: Joi.string()
     .optional()
     .description('Unique application identifier (server-generated)'),
-  applicationDate: Joi.date()
+  submittedDate: Joi.date()
     .optional()
     .description(
-      'When the application was submitted by company, date comes from Defra forms'
+      'When the application was submitted by a company, date comes from Defra forms'
     ),
   referenceNumber: Joi.string()
     .optional()
@@ -417,6 +417,7 @@ export const applicationsSchema = Joi.object({
     email: Joi.string().optional().description('Email of the reviewer')
   })
     .optional()
+    .allow(null)
     .description(
       'Assigned to this application, will be null first then comes from SSO'
     )

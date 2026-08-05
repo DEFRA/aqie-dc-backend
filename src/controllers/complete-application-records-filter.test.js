@@ -8,8 +8,8 @@ describe('getCompleteApplicationRecordsFilter', () => {
         find: vi.fn(() => ({
           project: vi.fn(() => ({
             toArray: vi.fn(async () => [
-              { applicationId: 'app_1' },
-              { applicationId: 'app_2' }
+              { id: 'app_1' },
+              { id: 'app_2' }
             ])
           }))
         }))
@@ -28,10 +28,10 @@ describe('getCompleteApplicationRecordsFilter', () => {
         find: vi.fn(() => ({
           project: vi.fn(() => ({
             toArray: vi.fn(async () => [
-              { applicationId: 'app_1' },
-              { applicationId: null },
-              { applicationId: '' },
-              { applicationId: 'app_2' }
+              { id: 'app_1' },
+              { id: null },
+              { id: '' },
+              { id: 'app_2' }
             ])
           }))
         }))
