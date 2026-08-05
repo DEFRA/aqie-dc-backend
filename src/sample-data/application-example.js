@@ -6,9 +6,9 @@ export default {
   // createdAt: new Date('2026-07-01T10:00:00Z'),
   status: 'new', //auto-generated but can be set for Swagger input
   reviewer: {
-      name: 'John Reviewer',
-      email: 'john@reviewer.com'
-    },
+    name: 'John Reviewer',
+    email: 'john@reviewer.com'
+  },
   // reviewedAt: null,
   // updatedAt: new Date('2026-07-01T10:00:00Z'),
 
@@ -81,7 +81,7 @@ export default {
       scotlandApproval: 'Certified',
       walesApproval: 'Revoked',
       nIrelandApproval: 'Uncertified'
-       //legacyRecord: false //default to false
+      //legacyRecord: false //default to false
     }
   ]
 }

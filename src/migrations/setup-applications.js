@@ -48,7 +48,8 @@ const applicationsValidator = {
             description: 'Email of the reviewer'
           }
         },
-        description: 'Assigned to this application, will be null first then comes from SSO'
+        description:
+          'Assigned to this application, will be null first then comes from SSO'
       },
       reviewNotes: {
         bsonType: ['string', 'null'],

@@ -374,7 +374,7 @@ export const fuelSchema = Joi.object({
     .default(false)
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
-    ),
+    )
 }).label('Fuel')
 
 //appliances application schema
