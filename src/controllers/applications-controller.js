@@ -198,12 +198,12 @@ async function getApplicationById(db, applicationId, logger) {
     if (application.type === 'appliance') {
       linkedItems = await db
         .collection('Appliances')
-        .find({ applicationId: applicationId })
+        .find({ applicationId })
         .toArray()
     } else if (application.type === 'fuel') {
       linkedItems = await db
         .collection('Fuels')
-        .find({ applicationId: applicationId })
+        .find({ applicationId })
         .toArray()
     } else {
       logger.warn(`Unknown application type: ${application.type}`)
