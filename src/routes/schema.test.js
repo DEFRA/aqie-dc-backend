@@ -1,7 +1,8 @@
 import { describe, test, expect } from 'vitest'
-import { applianceSchema, fuelSchema } from './schema.js'
+import { applianceSchema, fuelSchema, applicationsSchema } from './schema.js'
 import applianceExample from '../sample-data/appliance-example.js'
 import fuelExample from '../sample-data/fuel-example.js'
+import applicationExample from '../sample-data/application-example.js'
 
 const TEST_INVALID_PHONE_MSG = 'Invalid phone number'
 
@@ -118,6 +119,38 @@ describe('applianceSchema - companyPhone', () => {
   })
 })
 // Fuel schema tests - similar to appliance but with fuel-specific required fields
+describe('applicationsSchema - reviewer', () => {
+  test('reviewer object is accepted', () => {
+    const payload = {
+      ...applicationExample,
+      reviewer: {
+        name: 'John Reviewer',
+        email: 'john@reviewer.com'
+      }
+    }
+
+    const { value, error } = applicationsSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.reviewer).toEqual({
+      name: 'John Reviewer',
+      email: 'john@reviewer.com'
+    })
+  })
+
+  test('reviewer string is rejected because reviewer must be an object or null', () => {
+    const payload = {
+      ...applicationExample,
+      reviewer: 'John Reviewer'
+    }
+
+    const { error } = applicationsSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].message).toContain('must be')
+  })
+})
+
 describe('fuelSchema - companyPhone', () => {
   const baseFuelPayload = fuelExample
   test('changesMade field is accepted as string', () => {

@@ -6,7 +6,8 @@ import {
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getCertainApplicationsWithAppliances
+  getCertainApplicationsWithAppliances,
+  getApplicationsWithSummary
 } from './applications-controller.js'
 
 // Mock logger for testing
@@ -32,6 +33,31 @@ describe('applications-controller', () => {
     docs = []
     applianceDocs = []
 
+    const matchesQuery = (doc, query) => {
+      if (!query) return true
+      if (query.$or) {
+        return query.$or.some((condition) => {
+          const field = Object.keys(condition)[0]
+          const value = condition[field]
+          if (value?.$regex) {
+            const regex = new RegExp(value.$regex, value.$options || '')
+            return regex.test(doc[field])
+          }
+          return doc[field] === value
+        })
+      }
+
+      return Object.entries(query).every(([key, value]) => {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          if (value.$in) {
+            return value.$in.includes(doc[key])
+          }
+          return false
+        }
+        return doc[key] === value
+      })
+    }
+
     // Mock appliance collection
     applianceCollection = {
       insertMany: vi.fn(async (docs, options) => {
@@ -51,34 +77,29 @@ describe('applications-controller', () => {
           acknowledged: true
         }
       }),
-      find: vi.fn((query) => ({
-        sort: vi.fn((sort) => ({
-          skip: vi.fn((skip) => ({
-            limit: vi.fn((limit) => ({
-              toArray: vi.fn(async () => {
-                return applianceDocs
-              })
-            }))
+      find: vi.fn((query) => {
+        const runToArray = async () => {
+          return applianceDocs.filter((doc) => matchesQuery(doc, query))
+        }
+
+        return {
+          sort: vi.fn(() => ({
+            skip: vi.fn(() => ({
+              limit: vi.fn(() => ({
+                toArray: vi.fn(async () => runToArray())
+              }))
+            })),
+            toArray: vi.fn(async () => runToArray())
           })),
-          toArray: vi.fn(async () => {
-            return applianceDocs
-          })
-        })),
-        toArray: vi.fn(async () => {
-          if (!query) return applianceDocs
-          return applianceDocs.filter((doc) => {
-            for (const key in query) {
-              if (query[key]?.$in) {
-                if (!query[key].$in.includes(doc[key])) return false
-              } else if (doc[key] !== query[key]) {
-                return false
-              }
-            }
-            return true
-          })
-        })
-      })),
-      countDocuments: vi.fn(async () => applianceDocs.length)
+          project: vi.fn(() => ({
+            toArray: vi.fn(async () => runToArray())
+          })),
+          toArray: vi.fn(async () => runToArray())
+        }
+      }),
+      countDocuments: vi.fn(async (query) => {
+        return applianceDocs.filter((doc) => matchesQuery(doc, query)).length
+      })
     }
 
     // Mock applications collection
@@ -86,71 +107,59 @@ describe('applications-controller', () => {
       insertOne: vi.fn(async (doc, options) => {
         docs.push(doc)
         return {
-          insertedId: doc.applicationId || 'mock-id',
+          insertedId: doc.id || 'mock-id',
           acknowledged: true
         }
       }),
       findOne: vi.fn(async (query) => {
-        return docs.find((doc) => {
-          for (const key in query) {
-            if (doc[key] !== query[key]) return false
-          }
-          return true
-        })
+        return docs.find((doc) =>
+          Object.entries(query).every(([key, value]) => doc[key] === value)
+        )
       }),
       find: vi.fn((query) => {
-        const chainedMethods = {
-          sort: vi.fn((sort) => {
-            return {
-              skip: vi.fn((skip) => ({
-                limit: vi.fn((limit) => ({
-                  toArray: vi.fn(async () => {
-                    return docs
-                  })
-                }))
-              })),
-              toArray: vi.fn(async () => {
-                // Filter docs based on query
-                if (!query) return docs
-                if (query.$or) {
-                  return docs.filter((doc) =>
-                    query.$or.some((condition) => {
-                      const field = Object.keys(condition)[0]
-                      if (condition[field]?.$regex) {
-                        const regex = new RegExp(
-                          condition[field].$regex,
-                          condition[field].$options || ''
-                        )
-                        return regex.test(doc[field])
-                      }
-                      return doc[field] === condition[field]
-                    })
-                  )
-                }
-                return docs
-              })
+        const matchesQuery = (doc, queryObject) => {
+          if (!queryObject) return true
+          if (queryObject.$or) {
+            return queryObject.$or.some((condition) => {
+              const field = Object.keys(condition)[0]
+              const value = condition[field]
+              if (value?.$regex) {
+                const regex = new RegExp(value.$regex, value.$options || '')
+                return regex.test(doc[field])
+              }
+              return doc[field] === value
+            })
+          }
+
+          return Object.entries(queryObject).every(([key, value]) => {
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+              if (value.$in) {
+                return value.$in.includes(doc[key])
+              }
+              return false
             }
-          }),
-          toArray: vi.fn(async () => {
-            // Direct toArray without sort/skip/limit
-            if (!query) return docs
-            if (query.$or) {
-              return docs.filter((doc) =>
-                query.$or.some((condition) => {
-                  const field = Object.keys(condition)[0]
-                  if (condition[field]?.$regex) {
-                    const regex = new RegExp(
-                      condition[field].$regex,
-                      condition[field].$options || ''
-                    )
-                    return regex.test(doc[field])
-                  }
-                  return doc[field] === condition[field]
-                })
-              )
-            }
-            return docs
+            return doc[key] === value
           })
+        }
+
+        const runToArray = async () => {
+          if (!query) return docs
+          return docs.filter((doc) => matchesQuery(doc, query))
+        }
+
+        const chainedMethods = {
+          sort: vi.fn((sort) => ({
+            skip: vi.fn((skip) => ({
+              limit: vi.fn((limit) => ({
+                toArray: vi.fn(async () => runToArray())
+              }))
+            })),
+            toArray: vi.fn(async () => runToArray())
+          })),
+          project: vi.fn(() => ({
+            toArray: vi.fn(async () => runToArray())
+          })),
+          toArray: vi.fn(async () => runToArray())
         }
         return chainedMethods
       }),
@@ -160,17 +169,23 @@ describe('applications-controller', () => {
           if (query.$or) {
             return query.$or.some((condition) => {
               const field = Object.keys(condition)[0]
-              if (condition[field]?.$regex) {
-                const regex = new RegExp(
-                  condition[field].$regex,
-                  condition[field].$options || ''
-                )
+              const value = condition[field]
+              if (value?.$regex) {
+                const regex = new RegExp(value.$regex, value.$options || '')
                 return regex.test(doc[field])
               }
-              return doc[field] === condition[field]
+              return doc[field] === value
             })
           }
-          return true
+          return Object.entries(query).every(([key, value]) => {
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+              if (value.$in) {
+                return value.$in.includes(doc[key])
+              }
+              return false
+            }
+            return doc[key] === value
+          })
         }).length
       }),
       aggregate: vi.fn((pipeline) => ({
@@ -179,7 +194,7 @@ describe('applications-controller', () => {
           if (pipeline[0]?.$group) {
             const groupByType = {}
             docs.forEach((doc) => {
-              const key = `${doc.applicationType}-${doc.status}`
+              const key = `${doc.type}-${doc.status}`
               groupByType[key] = (groupByType[key] || 0) + 1
             })
             return Object.entries(groupByType).map(([key, count]) => {
@@ -230,7 +245,7 @@ describe('applications-controller', () => {
   describe('createApplication', () => {
     test('creates application and appliances successfully with transaction', async () => {
       const payload = {
-        applicationType: 'appliance',
+        type: 'appliance',
         status: 'new',
         reviewer: 'John',
         reviewNotes: 'Test',
@@ -269,7 +284,7 @@ describe('applications-controller', () => {
       expect(result.message).toBe(
         'Application and appliances created successfully'
       )
-      expect(result.data.applicationId).toBeDefined()
+      expect(result.data.id).toBeDefined()
       expect(result.data.appliances).toHaveLength(1)
       expect(collection.insertOne).toHaveBeenCalled()
       expect(applianceCollection.insertMany).toHaveBeenCalled()
@@ -277,7 +292,7 @@ describe('applications-controller', () => {
 
     test('creates application without appliances', async () => {
       const payload = {
-        applicationType: 'fuel',
+        type: 'fuel',
         status: 'new',
         additionalMetadata: {},
         appliances: []
@@ -292,7 +307,7 @@ describe('applications-controller', () => {
 
     test('invalid payloads should already be rejected before the controller', async () => {
       const payload = {
-        applicationType: 'appliance',
+        type: 'appliance',
         appliances: [
           {
             // Missing required fields intentionally to verify controller does not revalidate
@@ -312,7 +327,7 @@ describe('applications-controller', () => {
       collection.insertOne.mockRejectedValueOnce(new Error('Insert failed'))
 
       const payload = {
-        applicationType: 'appliance',
+        type: 'appliance',
         appliances: []
       }
 
@@ -335,7 +350,7 @@ describe('applications-controller', () => {
       }
 
       const payload = {
-        applicationType: 'appliance',
+        type: 'appliance',
         appliances: []
       }
 
@@ -354,18 +369,18 @@ describe('applications-controller', () => {
   describe('getAllApplications', () => {
     test('returns all applications successfully', async () => {
       docs.push({
-        applicationId: 'app-1',
-        applicationType: 'appliance',
+        id: 'app-1',
+        type: 'appliance',
         status: 'new',
         createdAt: new Date(),
-        submittedAt: new Date()
+        submittedDate: new Date()
       })
       docs.push({
-        applicationId: 'app-2',
-        applicationType: 'fuel',
+        id: 'app-2',
+        type: 'fuel',
         status: 'in_progress',
         createdAt: new Date(),
-        submittedAt: new Date()
+        submittedDate: new Date()
       })
 
       const result = await getAllApplications(db, {}, mockLogger)
@@ -383,7 +398,7 @@ describe('applications-controller', () => {
       expect(result.data).toEqual([])
     })
 
-    test('sorts applications by submittedAt and createdAt descending', async () => {
+    test('sorts applications by submittedDate and createdAt descending', async () => {
       await getAllApplications(db, {}, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({})
@@ -406,8 +421,8 @@ describe('applications-controller', () => {
   describe('getApplicationById', () => {
     test('returns application when found', async () => {
       const mockApp = {
-        applicationId: 'app-123',
-        applicationType: 'appliance',
+        id: 'app-123',
+        type: 'appliance',
         status: 'new',
         createdAt: new Date()
       }
@@ -417,9 +432,9 @@ describe('applications-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.message).toBe('Application retrieved successfully')
-      expect(result.data.applicationId).toBe('app-123')
+      expect(result.data.id).toBe('app-123')
       expect(collection.findOne).toHaveBeenCalledWith({
-        applicationId: 'app-123'
+        id: 'app-123'
       })
     })
 
@@ -433,10 +448,10 @@ describe('applications-controller', () => {
       expect(result.notFound).toBe(true)
     })
 
-    test('fetches linked appliances when applicationType is appliance', async () => {
+    test('fetches linked appliances when type is appliance', async () => {
       const mockApp = {
-        applicationId: 'app-123',
-        applicationType: 'appliance',
+        id: 'app-123',
+        type: 'appliance',
         status: 'new'
       }
       collection.findOne.mockResolvedValueOnce(mockApp)
@@ -461,12 +476,12 @@ describe('applications-controller', () => {
   describe('searchApplications', () => {
     test('searches applications by query', async () => {
       docs.push({
-        applicationId: 'app-1',
+        id: 'app-1',
         status: 'new',
         reviewer: 'John'
       })
       docs.push({
-        applicationId: 'app-2',
+        id: 'app-2',
         status: 'in_progress',
         reviewer: 'Jane'
       })
@@ -487,7 +502,7 @@ describe('applications-controller', () => {
     test('returns pagination info with total count', async () => {
       for (let i = 0; i < 5; i++) {
         docs.push({
-          applicationId: `app-${i}`,
+          id: `app-${i}`,
           status: 'new',
           reviewer: 'Test'
         })
@@ -532,18 +547,18 @@ describe('applications-controller', () => {
   describe('getCounts', () => {
     test('returns application counts by type and status', async () => {
       docs.push({
-        applicationId: 'app-1',
-        applicationType: 'appliance',
+        id: 'app-1',
+        type: 'appliance',
         status: 'new'
       })
       docs.push({
-        applicationId: 'app-2',
-        applicationType: 'appliance',
+        id: 'app-2',
+        type: 'appliance',
         status: 'in_progress'
       })
       docs.push({
-        applicationId: 'app-3',
-        applicationType: 'fuel',
+        id: 'app-3',
+        type: 'fuel',
         status: 'new'
       })
 
@@ -576,13 +591,49 @@ describe('applications-controller', () => {
       )
       expect(mockLogger.error).toHaveBeenCalled()
     })
+
+    test('counts complete application records and legacy appliance records', async () => {
+      docs.push(
+        {
+          id: 'app-1',
+          type: 'appliance',
+          status: 'complete'
+        },
+        {
+          id: 'app-2',
+          type: 'fuel',
+          status: 'complete'
+        },
+        {
+          id: 'app-3',
+          type: 'appliance',
+          status: 'new'
+        }
+      )
+      applianceDocs.push(
+        {
+          applianceId: 'appl-1',
+          applicationId: 'app-1'
+        },
+        {
+          applianceId: 'appl-2',
+          applicationId: 'app-3',
+          legacyRecord: true
+        }
+      )
+
+      const result = await getCounts(db, mockLogger)
+
+      expect(result.data.appliance.records).toBe(2)
+      expect(result.data.fuel.records).toBe(0)
+    })
   })
 
   describe('getAllApplicationsWithAppliances', () => {
     test('returns applications with nested appliances', async () => {
       docs.push({
-        applicationId: 'app-1',
-        applicationType: 'appliance',
+        id: 'app-1',
+        type: 'appliance',
         status: 'new'
       })
       applianceDocs.push({
@@ -608,13 +659,13 @@ describe('applications-controller', () => {
     test('filters appliances by applicationId', async () => {
       docs.push(
         {
-          applicationId: 'app-1',
-          applicationType: 'appliance',
+          id: 'app-1',
+          type: 'appliance',
           status: 'new'
         },
         {
-          applicationId: 'app-2',
-          applicationType: 'appliance',
+          id: 'app-2',
+          type: 'appliance',
           status: 'new'
         }
       )
@@ -650,13 +701,13 @@ describe('applications-controller', () => {
     test('returns applications with specific status', async () => {
       docs.push(
         {
-          applicationId: 'app-1',
-          applicationType: 'appliance',
+          id: 'app-1',
+          type: 'appliance',
           status: 'new'
         },
         {
-          applicationId: 'app-2',
-          applicationType: 'appliance',
+          id: 'app-2',
+          type: 'appliance',
           status: 'in_progress'
         }
       )
@@ -684,13 +735,13 @@ describe('applications-controller', () => {
     test('filters appliances for specific applications', async () => {
       docs.push(
         {
-          applicationId: 'app-1',
-          applicationType: 'appliance',
+          id: 'app-1',
+          type: 'appliance',
           status: 'new'
         },
         {
-          applicationId: 'app-2',
-          applicationType: 'appliance',
+          id: 'app-2',
+          type: 'appliance',
           status: 'new'
         }
       )
@@ -712,6 +763,66 @@ describe('applications-controller', () => {
       )
 
       expect(Array.isArray(result)).toBe(true)
+    })
+  })
+
+  describe('getApplicationsWithSummary', () => {
+    test('returns applications grouped by status with appliance model names', async () => {
+      docs.push(
+        {
+          id: 'app-1',
+          type: 'appliance',
+          status: 'new',
+          submittedDate: new Date('2026-01-01'),
+          createdAt: new Date('2026-01-02')
+        },
+        {
+          id: 'app-2',
+          type: 'appliance',
+          status: 'in_progress',
+          submittedDate: new Date('2026-01-03'),
+          createdAt: new Date('2026-01-04')
+        }
+      )
+      applianceDocs.push(
+        {
+          _id: 'appl-1',
+          applicationId: 'app-1',
+          modelName: 'Model A'
+        },
+        {
+          _id: 'appl-2',
+          applicationId: 'app-2',
+          modelName: 'Model B'
+        }
+      )
+
+      const result = await getApplicationsWithSummary(db, mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.new).toHaveLength(1)
+      expect(result.data.inProgress).toHaveLength(1)
+      expect(result.data.new[0].appliances[0].modelName).toBe('Model A')
+      expect(result.data.inProgress[0].appliances[0].modelName).toBe('Model B')
+    })
+
+    test('returns empty result when no matching applications exist', async () => {
+      const result = await getApplicationsWithSummary(db, mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.new).toEqual([])
+      expect(result.data.inProgress).toEqual([])
+    })
+
+    test('handles database errors', async () => {
+      collection.find.mockImplementationOnce(() => {
+        throw new Error('Summary fetch failed')
+      })
+
+      await expect(getApplicationsWithSummary(db, mockLogger)).rejects.toThrow(
+        'Summary fetch failed'
+      )
+      expect(mockLogger.error).toHaveBeenCalled()
     })
   })
 })

@@ -152,7 +152,11 @@ export const applianceSchema = Joi.object({
     .description('Instruction manual additional information'),
   declaration: Joi.boolean().required().description('Declaration'),
   //End of appliance application fields
-  //is this airControlModifications field come from the applications defra form? //how was it referenced in public frontend if it didnt exist before?
+  legacyRecord: Joi.boolean()
+    .default(false)
+    .description(
+      'Records that have been migrated to the DB are deemed as legacy records'
+    ),
   airControlModifications: Joi.boolean()
     .optional()
     .description(
@@ -448,7 +452,12 @@ export const fuelSchema = Joi.object({
     .description('Scotland date last updated (last certified or revoked)'),
   englandDateLastUpdated: Joi.date()
     .optional()
-    .description('England date last updated (last certified or revoked)')
+    .description('England date last updated (last certified or revoked)'),
+  legacyRecord: Joi.boolean()
+    .default(false)
+    .description(
+      'Records that have been migrated to the DB are deemed as legacy records'
+    )
 }).label('Fuel')
 
 // ============================================================================
@@ -456,41 +465,48 @@ export const fuelSchema = Joi.object({
 // ============================================================================
 
 export const applicationsSchema = Joi.object({
-  applicationType: Joi.string()
+  type: Joi.string()
     .valid('appliance', 'fuel')
     .required()
     .description('Type of application'),
-  applicationId: Joi.string()
+  id: Joi.string()
     .optional()
     .description('Unique application identifier (server-generated)'),
-  submittedAt: Joi.date()
+  submittedDate: Joi.date()
     .optional()
-    .description('When the application was submitted'),
+    .description(
+      'When the application was submitted by a company, date comes from Defra forms'
+    ),
+  referenceNumber: Joi.string()
+    .optional()
+    .description(
+      'Reference number from Defra forms, keep record of it incase any issues with the forms'
+    ),
+  //do we need this:
   createdAt: Joi.date()
     .optional()
-    .description('Record creation timestamp (server-generated)'),
+    .description(
+      'When the application was created in our system (server-generated)'
+    ),
   //Are the above both needed - check defra forms payload
   status: Joi.string()
-    .valid('new', 'in_progress', 'approved', 'rejected') //think this should be completed (instead of approved/rejected)- because there may be appliances that are rejected or approved but the application is still completed
+    .valid('new', 'in_progress', 'complete')
     .optional()
-    .description('Application status (server-generated, defaults to "new")'),
+    .description(
+      'Application status (server-generated, defaults to "new". Complete when all items (applinances/fuels) have been reviewed (approved/rejected) and the application is submitted)'
+    ),
   appliances: Joi.array().items(applianceSchema).optional(),
-  //items: Joi.array().items(itemSchema).optional()
-  additionalMetadata: Joi.object()
-    .optional()
-    .description('Optional additional metadata'),
+  //needs to be changed to items: Joi.array().items(itemSchema).optional() when do fuels applications
   //later in the applicaiton flow:
-  reviewer: Joi.string()
-    .optional()
-    .description('Name/ID of the reviewer assigned to this application'),
-  reviewNotes: Joi.string().optional().description('Notes from the reviewer'),
-  reviewedAt: Joi.date()
+  reviewer: Joi.object({
+    name: Joi.string().optional().description('Name of the reviewer'),
+    email: Joi.string().optional().description('Email of the reviewer')
+  })
     .optional()
     .allow(null)
-    .description('When the application was reviewed (server-managed)'),
-  updatedAt: Joi.date()
-    .optional()
-    .description('Record last update timestamp (server-generated)')
+    .description(
+      'Assigned to this application, will be null first then comes from SSO'
+    )
 })
   .unknown(false)
   .label('Application')

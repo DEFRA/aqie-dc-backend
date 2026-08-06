@@ -40,12 +40,12 @@ describe('GET /applications/search', () => {
     test('searches applications and returns matching results', async () => {
       const mockResults = [
         {
-          applicationId: 'app-001',
+          id: 'app-001',
           status: 'new',
           reviewer: 'John'
         },
         {
-          applicationId: 'app-002',
+          id: 'app-002',
           status: 'in_progress',
           reviewer: 'Jane'
         }
@@ -102,7 +102,7 @@ describe('GET /applications/search', () => {
       const mockResults = []
       for (let i = 0; i < 5; i++) {
         mockResults.push({
-          applicationId: `app-${i}`,
+          id: `app-${i}`,
           status: 'new'
         })
       }

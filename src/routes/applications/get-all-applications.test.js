@@ -36,15 +36,15 @@ describe('GET /applications', () => {
     test('returns all applications successfully', async () => {
       const mockApplications = [
         {
-          applicationId: 'app-001',
-          applicationType: 'appliance',
+          id: 'app-001',
+          type: 'appliance',
           status: 'new',
           reviewer: 'John',
           createdAt: new Date()
         },
         {
-          applicationId: 'app-002',
-          applicationType: 'fuel',
+          id: 'app-002',
+          type: 'fuel',
           status: 'in_progress',
           reviewer: 'Jane',
           createdAt: new Date()
@@ -88,13 +88,13 @@ describe('GET /applications', () => {
     test('includes all application properties in response', async () => {
       const mockApplications = [
         {
-          applicationId: 'app-001',
-          applicationType: 'appliance',
+          id: 'app-001',
+          type: 'appliance',
           status: 'new',
           reviewer: 'John',
           reviewNotes: 'Pending review',
           additionalMetadata: { notes: 'Test' },
-          submittedAt: new Date(),
+          submittedDate: new Date(),
           createdAt: new Date(),
           updatedAt: new Date()
         }
@@ -108,8 +108,8 @@ describe('GET /applications', () => {
       const h = mockToolkit
       const result = await getAllApplications.handler(mockRequest, h)
 
-      expect(result.data[0].applicationId).toBeDefined()
-      expect(result.data[0].applicationType).toBeDefined()
+      expect(result.data[0].id).toBeDefined()
+      expect(result.data[0].type).toBeDefined()
       expect(result.data[0].status).toBeDefined()
       expect(result.data[0].reviewer).toBeDefined()
     })

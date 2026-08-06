@@ -49,5 +49,6 @@ export default {
   walesDateFirstAuthorised: '2026-02-04',
   nIrelandDateFirstAuthorised: '2026-02-05',
   scotlandDateFirstAuthorised: '2026-02-06',
-  englandDateFirstAuthorised: '2026-02-07'
+  englandDateFirstAuthorised: '2026-02-07',
+  legacyRecord: true
 }
