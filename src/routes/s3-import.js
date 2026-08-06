@@ -4,14 +4,44 @@
  * Supports dynamic entity imports
  */
 
-import Boom from '@hapi/boom'
 import Joi from 'joi'
 import { importFromExcel } from '../migrations/import-from-excel-dynamic.js'
 import {
   downloadFromS3,
   cleanupTempFile
 } from '../common/helpers/s3-download.js'
-import { statusCodes } from '../common/constants/status-codes.js'
+
+/**
+ * Perform S3 import - reusable function for both API endpoint and startup initialization
+ * @param {Db} db - MongoDB database instance
+ * @param {Array} entities - Entity types to import ['appliances', 'fuels']
+ * @param {object} logger - Logger instance
+ * @returns {Promise<object>} Import results
+ */
+export async function performS3DataImport(db, entities, logger) {
+  let tempFilePath
+
+  try {
+    logger.info('Downloading file from S3')
+    tempFilePath = await downloadFromS3(logger)
+
+    logger.info({ entities, tempFilePath }, 'Processing Excel import')
+
+    const results = await importFromExcel(db, tempFilePath, entities, {
+      verbose: false
+    })
+
+    logger.info({ results }, 'Import completed successfully')
+    return results
+  } catch (error) {
+    logger.error(error, 'Import failed')
+    throw error
+  } finally {
+    if (tempFilePath) {
+      await cleanupTempFile(tempFilePath, logger)
+    }
+  }
+}
 
 /**
  * S3 import controller
@@ -32,7 +62,7 @@ const s3ImportController = {
         request.logger.error(err, 'Upload callback validation failed')
         return h
           .response({ success: false, message: err.message })
-          .code(statusCodes.badRequest)
+          .code(400)
           .takeover()
       }
     }
@@ -112,26 +142,12 @@ const s3ImportController = {
     // }
     // ===== END: Commented out validation logic =====
 
-    // ===== START =====
+    // ===== START: ======
     // Excel file should have 2 sheets: 'Appliances' and 'Fuels'
     const entities = [{ type: 'appliances' }, { type: 'fuels' }]
-    // ===== END: Hardcoded values =====
-
-    let tempFilePath
 
     try {
-      // Download file from S3
-      request.logger.info('Downloading file from S3')
-      tempFilePath = await downloadFromS3(request.logger)
-
-      // Import data for each entity
-      request.logger.info({ entities, tempFilePath }, 'Processing Excel import')
-
-      const results = await importFromExcel(db, tempFilePath, entities, {
-        verbose: false
-      })
-
-      request.logger.info({ results }, 'Import completed successfully')
+      const results = await performS3DataImport(db, entities, request.logger)
 
       return h
         .response({
@@ -139,32 +155,22 @@ const s3ImportController = {
           message: 'Import completed successfully',
           results
         })
-        .code(statusCodes.ok)
+        .code(200)
     } catch (error) {
       request.logger.error(error, 'Import failed')
-
-      if (Boom.isBoom(error)) {
-        throw error
-      }
-
-      const status = error?.status
-      if (status && status >= statusCodes.internalServerError) {
-        return Boom.badGateway('Import service is currently unavailable')
-      }
-
-      return Boom.internal('Import processing failed')
-    } finally {
-      // Cleanup temp file
-      if (tempFilePath) {
-        await cleanupTempFile(tempFilePath, request.logger)
-      }
+      return h
+        .response({
+          success: false,
+          message: error.message || 'Import processing failed'
+        })
+        .code(500)
     }
   }
 }
 
 const s3Import = {
   method: 'POST',
-  path: '/upload-callback',
+  path: '/import',
   ...s3ImportController
 }
 

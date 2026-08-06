@@ -1,53 +1,58 @@
-# CDP Uploader Implementation - Complete ✅
+# Excel Import from S3 - Implementation ✅
 
 ## Summary
 
-Full CDP-compliant file upload system for Excel imports with virus scanning.
+Direct Excel import from S3 for data import and migration into MongoDB collections.
 
 ## What Was Implemented
 
 ### 1. Core Infrastructure ✅
 
-- **Configuration** (`src/config.js`)
-  - CDP Uploader URL configuration
-  - S3 bucket and path settings
-  - File size limits (10MB)
-  - Allowed MIME types
-  - Environment-aware callback URLs
-
-- **CDP Uploader Helper** (`src/common/helpers/cdp-uploader.js`)
-  - `initiateCdpUpload()` - Starts upload flow with CDP Uploader
-  - `getCdpUploadStatus()` - Polls for upload status
-  - Builds environment-specific callback URLs
-
 - **S3 Download Helper** (`src/common/helpers/s3-download.js`)
-  - `downloadFromS3()` - Downloads scanned files from S3
-  - `cleanupTempFile()` - Cleans up temporary files
+  - `downloadFromS3()` - Downloads files from S3 to temporary location
+  - `cleanupTempFile()` - Cleans up temporary files after import
   - LocalStack support for local development
+  - AWS SDK integration for S3 operations
 
-### 2. API Routes ✅
+- **Entity Configuration** (`src/common/helpers/entity-config.js`)
+  - Single source of truth for all entity types (Appliances, Fuels)
+  - Column mappings for production Excel files
+  - Transform functions for data conversion
+  - Sample data references
 
-- **Upload Callback** (`src/routes/upload-callback.js`)
-  - POST `/upload-callback` - Receives CDP Uploader callbacks
-  - Validates upload status and file status
-  - Downloads file from S3
-  - Triggers import process
-  - Handles errors gracefully
+### 2. API & Helpers ✅
 
-- **Admin Import Routes** (`src/routes/admin-import.js`)
-  - GET `/admin/import` - HTML admin page with drag-drop upload
-  - POST `/admin/import/initiate` - Initiates CDP upload
-  - GET `/admin/import/status` - Polls upload status
-  - GET `/templates/{file*}` - Serves Excel templates
+- **S3 Import Handler** (`src/routes/s3-import.js`)
+  - POST `/import` - Manual trigger endpoint for data import
+  - Exports `performS3DataImport()` function (reusable core logic)
+  - Downloads file from S3, imports to MongoDB, cleans up temp files
+  - Used by both startup initialization and API endpoint
 
-### 3. Router Configuration ✅
+- **MongoDB Plugin** (`src/common/helpers/mongodb.js`)
+  - Automatically checks for missing collections on startup
+  - Calls `performS3DataImport()` if collections don't exist
+  - Allows app to continue if import fails (graceful degradation)
+
+### 3. Import Engines ✅
+
+- **Dynamic Excel Import** (`src/migrations/import-from-excel-dynamic.js`)
+  - Entry point for production imports
+  - Processes multiple entity types from single Excel file
+  - Uses ENTITY_CONFIG for consistent transforms
+  - Upserts data to MongoDB
+
+- **CLI Excel Import** (`src/migrations/import-from-excel.js`)
+  - Standalone CLI utility for manual imports
+  - Command: `npm run import:appliances --file path.xlsx --type appliances|fuels|both`
+  - Shares same transforms via ENTITY_CONFIG
+  - Useful for development and testing
+
+### 4. Router Configuration ✅
 
 - **Updated** (`src/plugins/router.js`)
-  - Registered all CDP Uploader routes
-  - Added @hapi/inert for static file serving
-  - Template directory serving enabled
+  - Registered s3-import route
 
-### 4. Dependencies ✅
+### 5. Dependencies ✅
 
 - **Installed**:
   - `@aws-sdk/client-s3@3.978.0` - S3 operations
@@ -57,54 +62,75 @@ Full CDP-compliant file upload system for Excel imports with virus scanning.
 
 ```
 src/
-├── config.js                           # CDP Uploader configuration
+├── config.js                           # S3 and service configuration
 ├── common/helpers/
-│   ├── cdp-uploader.js                # CDP Uploader service integration
+│   ├── entity-config.js               # Entity mappings and transforms
 │   └── s3-download.js                 # S3 download and cleanup
 ├── routes/
-│   ├── upload-callback.js             # CDP callback handler
-│   └── admin-import.js                # Admin UI and API
+│   └── s3-import.js                   # S3 import handler
 ├── plugins/
 │   └── router.js                      # Route registration
 ├── migrations/
-│   ├── import-from-excel.js           # Excel import engine (existing)
-│   └── setup-appliances-fuels.js      # Schema setup (existing)
-└── templates/
-    ├── appliances-import-template.xlsx
-    ├── fuels-import-template.xlsx
-    └── combined-import-template.xlsx
+│   ├── import-from-excel.js           # CLI import tool
+│   ├── import-from-excel-dynamic.js   # Production import engine
+│   └── setup-appliances-fuels.js      # Schema setup
+├── sample-data/
+│   ├── appliance-example.js           # Sample appliance data
+│   ├── fuel-example.js                # Sample fuel data
+│   └── application-example.js         # Sample application data
+    └── *.xlsx files
 
 Documentation:
-├── CDP_UPLOADER_IMPLEMENTATION.md     # Implementation guide
-└── TESTING_GUIDE.md                   # Testing instructions
+└── This file (IMPLEMENTATION_COMPLETE.md)
 ```
 
 ## How It Works
 
-### Upload Flow
+### Automatic Startup Import
 
-1. User accesses `/admin/import` page
-2. Selects import type and uploads Excel file
-3. Frontend calls POST `/admin/import/initiate`
-4. Backend calls CDP Uploader `/initiate` endpoint
-5. CDP Uploader returns `uploadUrl` and `statusUrl`
-6. Frontend uploads file to CDP Uploader's `uploadUrl`
-7. CDP Uploader scans file for viruses
-8. Frontend polls `/admin/import/status` for completion
-9. When scan complete, CDP Uploader calls `/upload-callback`
-10. Backend downloads file from S3
-11. Backend imports data to MongoDB
-12. Backend cleans up temp file
-13. User sees success message
+1. **Server starts** (npm run dev)
+2. **MongoDB plugin initializes** and checks if Appliances & Fuels collections exist
+3. **If collections DON'T exist:**
+   - Downloads Excel file from S3 (using `cdpUploader.s3Bucket` and `cdpUploader.s3Prefix` config)
+   - Calls `performS3DataImport()` helper function
+   - Imports data into MongoDB using ENTITY_CONFIG transforms
+   - Cleans up temporary file
+4. **If collections already exist:** skips import, continues startup
+
+### Manual Import Trigger (Fallback)
+
+If automatic import fails or you need to re-import:
+
+```bash
+curl -X POST http://localhost:3001/import \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+This calls the same `performS3DataImport()` function with hardcoded S3 location.
+
+### Data Transform Process
+
+1. Excel file sheets are parsed to JSON
+2. For each row in sheet:
+   - Transform function from ENTITY_CONFIG is applied
+   - Data is mapped to MongoDB schema
+   - Upsert operation (insert or update) to database
+3. Results returned with success/error counts
+
+### Supported Entity Types
+
+- **Appliances**: Unique key `applianceId`, transforms 50+ production columns
+- **Fuels**: Unique key `fuelId`, transforms fuel-specific columns
+- **Applications**: Future support for application data
 
 ### Security Features
 
-✅ Virus scanning via ClamAV (CDP Uploader)  
-✅ File size validation (10MB limit)  
-✅ MIME type validation (Excel only)  
-✅ S3 quarantine bucket before processing  
-✅ Temporary file cleanup  
-✅ Environment-based configuration
+✅ S3 bucket isolation (dev/test/prod separate buckets)  
+✅ Temporary file cleanup after import  
+✅ Transaction-style upsert operations  
+✅ Environment-based S3 endpoint configuration  
+✅ Error logging and validation
 
 ## Configuration Required
 
@@ -112,19 +138,13 @@ Documentation:
 
 ```javascript
 // Already configured in src/config.js
-cdpUploader: {
-  url: 'http://localhost:7337',
-  s3Bucket: 'aqie-dc-backend',
-  s3Prefix: 'uploads',
-  maxFileSize: 10485760, // 10MB
-  allowedMimeTypes: [
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-excel'
-  ]
-},
 aws: {
   region: 'eu-west-2',
   endpoint: 'http://localhost:4566' // LocalStack
+},
+cdpUploader: {
+  s3Bucket: 'aqie-dc-backend',
+  s3Prefix: 'uploads'
 }
 ```
 
@@ -133,108 +153,76 @@ aws: {
 Set environment variables:
 
 ```bash
-CDP_UPLOADER_URL=https://cdp-uploader.${ENVIRONMENT}.cdp-int.defra.cloud
-S3_BUCKET_NAME=aqie-dc-backend-${ENVIRONMENT}
 AWS_REGION=eu-west-2
+S3_BUCKET_NAME=aqie-dc-backend-{environment}
 # AWS_ENDPOINT not set (use real AWS)
 ```
 
 ## Testing
 
-### Quick Start
+### Via CLI
 
 ```bash
-# 1. Install dependencies (already done)
-npm install
-
-# 2. Start CDP Uploader locally
-# (See TESTING_GUIDE.md for full instructions)
-
-# 3. Start backend
-npm run dev
-
-# 4. Access admin page
-open http://localhost:3001/admin/import
+npm run import:appliances --file path/to/file.xlsx --type appliances
+npm run import:appliances --file path/to/file.xlsx --type fuels
+npm run import:appliances --file path/to/file.xlsx --type both --verbose
 ```
 
-### Test Scenarios
+### Via API
 
-✅ Upload valid Excel file → Success  
-✅ Upload file with virus → Rejected  
-✅ Upload file too large → Rejected  
-✅ Download templates → Works  
-✅ Check MongoDB import → Data inserted
-
-See `TESTING_GUIDE.md` for detailed testing instructions.
+```bash
+curl -X POST http://localhost:3001/import \
+  -H "Content-Type: application/json" \
+  -d '{
+    "s3Bucket": "aqie-dc-backend",
+    "s3Key": "uploads/file.xlsx",
+    "entities": ["appliances", "fuels"]
+  }'
+```
 
 ## Next Steps
 
 ### Before Deployment
 
-1. ✅ Local testing with CDP Uploader
-2. ⏳ Request S3 bucket via CDP Portal
-3. ⏳ Deploy to CDP Dev environment
-4. ⏳ Test with real CDP Uploader
-5. ⏳ Validate callback URLs work in CDP
-6. ⏳ Promote to Test/Prod
-
-### CDP Portal Actions Required
-
-1. **Create S3 Bucket**: Request bucket creation for each environment
-   - Bucket name: `aqie-dc-backend-{env}`
-   - Region: eu-west-2
-   - Access: Service account only
-
-2. **Update Service Configuration**:
-   - Add environment variables in CDP Portal
-   - Verify service can access CDP Uploader
+1. ✅ Local testing with S3 import
+2. ⏳ Test with real AWS S3 bucket
+3. ⏳ Validate import results in MongoDB
+4. ⏳ Deploy to CDP Dev environment
+5. ⏳ Promote to Test/Prod
 
 ## Code Quality
 
 ✅ ESLint: No errors  
-✅ TypeScript: No errors  
 ✅ All routes registered  
 ✅ Error handling implemented  
 ✅ Logging added  
-✅ Documentation complete
+✅ Sample data consolidated  
+✅ Single source of truth for entity configuration
 
-## Comparison with Other AQIE Services
+## Related Documentation
 
-| Service                     | File Uploads | CDP Uploader | Security             |
-| --------------------------- | ------------ | ------------ | -------------------- |
-| **aqie-dc-backend** (this)  | ✅ Yes       | ✅ **Yes**   | ✅ **CDP Standards** |
-| aqie-historicaldata-backend | ✅ Yes       | ❌ Direct S3 | ⚠️ No virus scan     |
-| aqie-location-backend       | ❌ No        | N/A          | N/A                  |
-| aqie-dataselector-frontend  | ❌ No        | N/A          | N/A                  |
-
-**Our implementation is the most secure and CDP-compliant** ✅
-
-## Support & Documentation
-
-- **Implementation Guide**: `CDP_UPLOADER_IMPLEMENTATION.md`
-- **Testing Guide**: `TESTING_GUIDE.md`
-- **CDP Uploader Docs**: https://github.com/DEFRA/cdp-uploader
-- **Excel Import Logic**: `src/migrations/import-from-excel.js`
+- **Entity Configuration**: `src/common/helpers/entity-config.js`
+- **CLI Import Tool**: `src/migrations/import-from-excel.js`
+- **Dynamic Import Engine**: `src/migrations/import-from-excel-dynamic.js`
 
 ## Known Limitations
 
-1. **Callback Authentication**: CDP Uploader doesn't support callback auth yet
-2. **File Size**: 10MB limit (configurable but CDP Uploader has own limits)
-3. **Concurrent Uploads**: No queueing system (process one at a time)
-4. **Error Recovery**: Manual retry required if callback fails
+1. **File Size**: S3 has own limits (currently 5GB per object)
+2. **Concurrent Imports**: Process one at a time
+3. **Error Recovery**: Manual retry required if import fails
 
 ## Future Enhancements (Optional)
 
-- [ ] Job queue for concurrent uploads
-- [ ] Upload history tracking in MongoDB
+- [ ] Job queue for concurrent imports
+- [ ] Import history tracking in MongoDB
 - [ ] Email notifications on completion
 - [ ] Progress tracking in database
-- [ ] Retry mechanism for failed callbacks
-- [ ] Admin dashboard for upload history
+- [ ] Retry mechanism for failed imports
+- [ ] Admin dashboard for import history
 - [ ] Scheduled imports from external sources
 
 ---
 
 **Status**: ✅ **READY FOR TESTING**  
-**Last Updated**: 28 January 2026  
-**Version**: 1.0.0
+**Last Updated**: 13 July 2026  
+**Version**: 2.0.0

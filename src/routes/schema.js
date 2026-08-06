@@ -14,12 +14,27 @@ const fuelOptions = ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other']
 
 const INVALID_PHONE_ERROR = 'any.invalid'
 
+// ============================================================================
+// APPLIANCE SCHEMA
+// ============================================================================
+
 export const applianceSchema = Joi.object({
   applicationId: Joi.string()
     .optional()
-    .description('Application ID (foreign key)'),
+    .description(
+      'Application ID (foreign key). For records coming from DB migration this is "Application Number"'
+    ),
+  applianceId: Joi.string()
+    .optional()
+    .description(
+      'Appliance ID (primary key). For records coming from DB migration this is "Appliance ID", server generated for new appliances'
+    ),
   // Start of appliance application fields
-  companyName: Joi.string().required().description('Company name'),
+  companyName: Joi.string()
+    .required()
+    .description(
+      'Company name. For records coming from DB migration this is "Manufacturer Name"'
+    ),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
   companyAddress: Joi.string()
     .when('isUkBased', {
@@ -27,7 +42,9 @@ export const applianceSchema = Joi.object({
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
-    .description('Company address for non-UK-based companies'),
+    .description(
+      'Company address for non-UK-based companies. For records coming from DB migration this is "Manufacturer Address"'
+    ),
   companyAddressLine1: Joi.string()
     .when('isUkBased', {
       is: true,
@@ -46,6 +63,7 @@ export const applianceSchema = Joi.object({
     })
     .description('Company city'),
   companyAddressCounty: Joi.string().optional().description('Company county'),
+  //is country missing from defra forms (doesnt come in the migration script as comes as just address, so not missing there)
   companyAddressPostcode: Joi.string()
     .when('isUkBased', {
       is: true,
@@ -87,32 +105,48 @@ export const applianceSchema = Joi.object({
     })
     .description('Validated and normalized with google-libphonenumber'),
 
-  modelName: Joi.string().required().description('Model name'),
+  modelName: Joi.string()
+    .required()
+    .description(
+      'Model name. For records coming from DB migration this is "Appliance Name (Title)"'
+    ),
   modelNumber: Joi.string().optional().description('Model number'), //NEEDTO: change back to number?
   applianceType: Joi.string()
     .required()
-    .description('Appliance type e.g. "heat"'),
+    .description(
+      'Appliance type e.g. "heat". For records coming from DB migration this is "Appliance Types"'
+    ),
   isVariant: Joi.boolean().required().description('Variant of appliance'),
   existingAuthorisedAppliance: Joi.string()
     .optional()
     .description('If it is a variant, details'),
-  nominalOutput: Joi.number().required().description('Thermal output (kW)'),
+  nominalOutput: Joi.number()
+    .required()
+    .description(
+      'Thermal output (kW). for records coming from DB migration this is "Output Value"'
+    ),
   allowedFuels: Joi.array()
     .single() // "Wood Logs" -> ["Wood Logs"]
     .items(Joi.string().valid(...fuelOptions))
     .min(1)
     .unique()
     .required()
-    .description('Allowed fuels'),
+    .description('Allowed fuels, also known as Permitted Fuels.'),
   instructionManualTitle: Joi.string()
     .required()
-    .description('Instruction manual title'),
+    .description(
+      'Instruction manual title. For records coming from DB migration this is "Servicing Manual Title"'
+    ),
   instructionManualDate: Joi.date()
     .required()
-    .description('Instruction manual date'),
+    .description(
+      'Instruction manual date. For records coming from DB migration this is "Servicing Manual Date"'
+    ),
   instructionManualVersion: Joi.string()
     .optional()
-    .description('Instruction manual version'),
+    .description(
+      'Instruction manual version. For records coming from DB migration this is "Servicing Manual Reference"'
+    ),
   instructionManualAdditionalInfo: Joi.string()
     .optional()
     .description('Instruction manual additional information'),
@@ -123,10 +157,23 @@ export const applianceSchema = Joi.object({
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
     ),
-  submittedBy: Joi.string().optional().description('Submitted by'),
+  airControlModifications: Joi.boolean()
+    .optional()
+    .description(
+      'Air control modifications. For records coming from DB migration this is "Additional Condition Comments"'
+    ),
+  submittedBy: Joi.string()
+    .optional()
+    .description(
+      'Submitted by. For records coming from DB migration this is "Submitted By (User)"'
+    ),
   submittedDate: Joi.date().optional().description('Submitted date'),
-  publishedDate: Joi.date().optional().description('Published date'),
-  technicalApproval: approvalField.description('Technical approval'),
+  publishedDate: Joi.date()
+    .optional()
+    .description(
+      'Published date, for the records coming from DB migration this is "WP Published Date"'
+    ),
+  technicalApproval: approvalField.description('Technical approval'), //this will be broken down into multple steps before?
   ratedOutput: Joi.number().optional().description('Rated Output'),
   testedOutputRated: Joi.number()
     .optional()
@@ -144,29 +191,64 @@ export const applianceSchema = Joi.object({
   nIrelandApproval: approvalField.description(
     'Northern Ireland approval status'
   ),
-  englandApprovedBy: Joi.string().optional().description('England approved by'),
+  englandApprovedBy: Joi.string()
+    .optional()
+    .description(
+      'England approved by, for the records coming from DB migration this is "England User"'
+    ),
   scotlandApprovedBy: Joi.string()
     .optional()
-    .description('Scotland approved by'),
-  walesApprovedBy: Joi.string().optional().description('Wales approved by'),
+    .description(
+      'Scotland approved by, for the records coming from DB migration this is "Scotland User"'
+    ),
+  walesApprovedBy: Joi.string()
+    .optional()
+    .description(
+      'Wales approved by, for the records coming from DB migration this is "Wales User"'
+    ),
   nIrelandApprovedBy: Joi.string()
     .optional()
-    .description('Northern Ireland approved by'),
+    .description(
+      'Northern Ireland approved by. For records coming from DB migration this is "N Ireland User"'
+    ),
   englandDateFirstAuthorised: Joi.date()
     .optional()
-    .description('England date first authorised'),
+    .description(
+      'England date first authorised. For records coming from DB migration this is "England Approve Date"'
+    ),
   scotlandDateFirstAuthorised: Joi.date()
     .optional()
-    .description('Scotland date first authorised'),
+    .description(
+      'Scotland date first authorised. For records coming from DB migration this is "Scotland Approve Date"'
+    ),
   walesDateFirstAuthorised: Joi.date()
     .optional()
-    .description('Wales date first authorised'),
+    .description(
+      'Wales date first authorised. For records coming from DB migration this is "Wales Approve Date"'
+    ),
   nIrelandDateFirstAuthorised: Joi.date()
     .optional()
-    .description('Northern Ireland date first authorised')
+    .description(
+      'Northern Ireland date first authorised. For records coming from DB migration this is "N Ireland Approve Date"'
+    )
+  //status of appliance through approval process
 }).label('Appliance')
 
+// ============================================================================
+// FUEL SCHEMA
+// ============================================================================
+
 export const fuelSchema = Joi.object({
+  fuelId: Joi.string()
+    .optional()
+    .description(
+      'Fuel ID (primary key/surrogate key). Server-generated, strictly internal and immutable once assigned. Assigned to new fuels and also to records coming from DB migration, ("Fuel ID" will be migrated to packagingID).'
+    ),
+  packagingId: Joi.string()
+    .optional()
+    .description(
+      'Packaging ID (natural key). This is the id that is applied to packaging. For records coming from DB migration this is "Fuel ID". There may be errors in this field so that why it is not the primary key. This is a natural key that is used to identify the fuel in the packaging. It is not guaranteed to be unique, but it should be unique for each fuel.'
+    ),
   // Start of fuel application fields
   companyName: Joi.string().required().description('Manufacturer'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
@@ -195,6 +277,7 @@ export const fuelSchema = Joi.object({
     })
     .description('Company city'),
   companyAddressCounty: Joi.string().optional().description('Company county'),
+  companyAddressCountry: Joi.string().optional().description('Company country'),
   companyAddressPostcode: Joi.string()
     .when('isUkBased', {
       is: true,
@@ -377,7 +460,10 @@ export const fuelSchema = Joi.object({
     )
 }).label('Fuel')
 
-//appliances application schema
+// ============================================================================
+// APPLICATIONS SCHEMA
+// ============================================================================
+
 export const applicationsSchema = Joi.object({
   type: Joi.string()
     .valid('appliance', 'fuel')

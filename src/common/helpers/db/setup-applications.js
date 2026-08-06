@@ -1,20 +1,22 @@
 /**
- * Programmatic migration to create Applications collection
+ * Database setup helper - Creates Applications collection
  * with schema validation and indexes
  *
  * Applications store submission data (not user identity).
  * Appliances and Fuels link to Applications via applicationId field.
  *
+ * This runs automatically on application startup.
+ *
  * Usage:
- * import { setupApplications } from './migrations/setup-applications.js'
+ * import { setupApplications } from './common/helpers/db/setup-applications.js'
  * await setupApplications(db)
  *
  * Or run standalone:
- * node src/migrations/setup-applications.js
+ * node src/common/helpers/db/setup-applications.js
  */
 
 import { MongoClient } from 'mongodb'
-import { config } from '../config.js'
+import { config } from '../../../config.js'
 
 // ==================== APPLICATIONS SCHEMA ====================
 const applicationsValidator = {
@@ -80,10 +82,10 @@ const applicationsValidator = {
 }
 
 /**
- * Main migration function
+ * Main setup function
  */
 export async function setupApplications(db, options = { dropExisting: false }) {
-  console.log('🚀 Starting Applications migration...')
+  console.log('🚀 Starting Applications setup...')
 
   try {
     // Drop existing collection if requested
@@ -115,7 +117,7 @@ export async function setupApplications(db, options = { dropExisting: false }) {
       .collection('Applications')
       .countDocuments()
 
-    console.log('\n✅ Migration completed successfully!')
+    console.log('\n✅ Setup completed successfully!')
     console.log(`   📊 Applications: ${applicationsCount} documents`)
   } catch (error) {
     if (error.code === 48) {
@@ -144,7 +146,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       dropExisting: false
     })
   } catch (error) {
-    console.error('❌ Migration failed:', error)
+    console.error('❌ Setup failed:', error)
     process.exit(1)
   } finally {
     await client.close()

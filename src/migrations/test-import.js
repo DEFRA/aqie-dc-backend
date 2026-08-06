@@ -4,6 +4,8 @@
  */
 
 import { importFromExcel } from './import-from-excel.js'
+import applianceExample from '../sample-data/appliance-example.js'
+import fuelExample from '../sample-data/fuel-example.js'
 import { MongoClient } from 'mongodb'
 import { config } from '../config.js'
 import xlsx from 'xlsx'
@@ -11,76 +13,9 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { unlinkSync } from 'fs'
 
-// Sample test data
-const testAppliances = [
-  {
-    applianceId: 'TEST-APP-001',
-    manufacturer: 'Test Stoves Ltd',
-    manufacturerAddress: '123 Test Street, Test City, TS1 2AB',
-    manufacturerContactName: 'John Test',
-    manufacturerContactEmail: 'john.test@teststoves.com',
-    manufacturerPhone: '01234567890',
-    modelName: 'Test Stove Pro',
-    modelNumber: 'TSP-2024',
-    applianceType: 'Stove',
-    isVariant: 'No',
-    nominalOutput: '15',
-    allowedFuels: 'Wood Logs, Pellets',
-    instructionManualTitle: 'Test Stove Pro Manual',
-    instructionManualDate: '01/01/2024',
-    instructionManualReference: 'Rev 1.0',
-    submittedBy: 'Test User',
-    approvedBy: 'Test Approver',
-    publishedDate: '15/01/2024'
-  },
-  {
-    applianceId: 'TEST-APP-002',
-    manufacturer: 'Test Boilers Inc',
-    manufacturerAddress: '456 Boiler Avenue, Heat City, HC3 4CD',
-    manufacturerContactName: 'Jane Smith',
-    manufacturerContactEmail: 'jane.smith@testboilers.com',
-    manufacturerPhone: '09876543210',
-    modelName: 'EcoHeat 3000',
-    modelNumber: 'EH-3000',
-    applianceType: 'Boiler',
-    isVariant: 'Yes',
-    existingAuthorisedAppliance: 'EcoHeat 2000',
-    nominalOutput: '25',
-    allowedFuels: 'Natural Gas, LPG',
-    instructionManualTitle: 'EcoHeat 3000 Installation Guide',
-    instructionManualDate: '15/02/2024',
-    instructionManualReference: 'Rev 2.1',
-    submittedBy: 'Engineering Team',
-    approvedBy: 'Safety Officer',
-    publishedDate: '01/03/2024'
-  }
-]
-
-const testFuels = [
-  {
-    fuelId: 'TEST-FUEL-001',
-    manufacturerName: 'Green Fuel Co',
-    manufacturerAddress: '789 Eco Street, Green City, GC5 6EF',
-    manufacturerContactName: 'Bob Green',
-    manufacturerContactEmail: 'bob.green@greenfuel.com',
-    manufacturerPhone: '01122334455',
-    representativeName: 'Alice Brown',
-    representativeEmail: 'alice.brown@greenfuel.com',
-    hasCustomerComplaints: 'No',
-    qualityControlSystem: 'ISO 9001:2015 Certified',
-    certificationScheme: 'Clean Air Act 1993 Approved',
-    fuelName: 'Eco Premium Briquettes',
-    fuelBagging: 'Bagged',
-    isBaggedAtSource: 'Yes',
-    fuelDescription: 'High-quality compressed wood briquettes',
-    fuelWeight: '10kg bags',
-    fuelComposition: 'Compressed sawdust (100%)',
-    sulphurContent: '5',
-    manufacturingProcess: 'High-pressure compression',
-    isRebrandedProduct: 'No',
-    hasChangedFromOriginal: 'No'
-  }
-]
+// Sample test data from sample-data folder
+const testAppliances = [applianceExample]
+const testFuels = [fuelExample]
 
 async function runTest() {
   console.log('🧪 Running Excel Import Test\n')

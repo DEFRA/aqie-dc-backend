@@ -1,20 +1,22 @@
 /**
- * Programmatic migration to create Appliances and Fuels collections
+ * Database setup helper - Creates Appliances and Fuels collections
  * with schema validation and indexes
  *
+ * This runs automatically on application startup.
+ *
  * Usage:
- * import { setupAppliancesAndFuels } from './migrations/setup-appliances-fuels.js'
+ * import { setupAppliancesAndFuels } from './common/helpers/db/setup-appliances-fuels.js'
  * await setupAppliancesAndFuels(db)
  *
  * Or run standalone:
- * node src/migrations/setup-appliances-fuels.js
+ * node src/common/helpers/db/setup-appliances-fuels.js
  */
 
 import { MongoClient } from 'mongodb'
-import { config } from '../config.js'
-import { applianceSchema, fuelSchema } from '../routes/schema.js'
-import applianceExample from '../sample-data/appliance-example.js'
-import fuelExample from '../sample-data/fuel-example.js'
+import { config } from '../../../config.js'
+import { applianceSchema, fuelSchema } from '../../../routes/schema.js'
+import applianceExample from '../../../sample-data/appliance-example.js'
+import fuelExample from '../../../sample-data/fuel-example.js'
 
 /**
  * Validate data using Joi schemas
@@ -34,9 +36,9 @@ function validateWithJoi(data, type) {
 }
 
 /**
- * Main migration function
+ * Main setup function
  * @param {Db} db - MongoDB database instance
- * @param {Object} options - Migration options
+ * @param {Object} options - Setup options
  * @param {boolean} options.dropExisting - Drop existing collections before creating
  * @param {boolean} options.insertSamples - Insert sample data
  */
@@ -44,7 +46,7 @@ export async function setupAppliancesAndFuels(
   db,
   options = { dropExisting: false, insertSamples: false }
 ) {
-  console.log('🚀 Starting Appliances and Fuels migration...')
+  console.log('🚀 Starting Appliances and Fuels setup...')
 
   try {
     // Drop existing collections if requested
@@ -108,7 +110,7 @@ export async function setupAppliancesAndFuels(
     const appliancesCount = await db.collection('Appliances').countDocuments()
     const fuelsCount = await db.collection('Fuels').countDocuments()
 
-    console.log('\n✅ Migration completed successfully!')
+    console.log('\n✅ Setup completed successfully!')
     console.log(`   📊 Appliances: ${appliancesCount} documents`)
     console.log(`   📊 Fuels: ${fuelsCount} documents`)
 
@@ -120,7 +122,7 @@ export async function setupAppliancesAndFuels(
       }
     }
   } catch (error) {
-    console.error('❌ Migration failed:', error.message)
+    console.error('❌ Setup failed:', error.message)
     throw error
   }
 }

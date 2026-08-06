@@ -2,12 +2,49 @@
  * S3 Download Helper
  * Provides functions to download files from S3 and manage temporary files
  */
-
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
+import {
+  S3Client,
+  GetObjectCommand,
+  ListObjectsV2Command,
+  HeadObjectCommand
+} from '@aws-sdk/client-s3'
 import { writeFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { config } from '../../config.js'
+
+//Get s3 key from metadata, the file will have the metadata key "encodedfilename" with value "MasterList.xlsx"
+export const findKeyByMetadataFilename = async (bucketName) => {
+  const encodedFilename = `MasterList.xlsx`
+
+  let continuationToken
+
+  do {
+    const { Contents, NextContinuationToken } = await S3Client.send(
+      new ListObjectsV2Command({
+        Bucket: bucketName,
+        ContinuationToken: continuationToken
+      })
+    )
+
+    for (const { Key } of Contents || []) {
+      const { Metadata } = await S3Client.send(
+        new HeadObjectCommand({
+          Bucket: bucketName,
+          Key
+        })
+      )
+
+      if (Metadata?.encodedfilename === encodedFilename) {
+        return Key // ✅ found match
+      }
+    }
+
+    continuationToken = NextContinuationToken
+  } while (continuationToken)
+
+  throw new Error(`File not found: ${encodedFilename}`)
+}
 
 /**
  * Download file from S3 to temporary location
@@ -16,9 +53,11 @@ import { config } from '../../config.js'
  * @param {object} logger Logger instance
  * @returns {Promise<string>} Path to downloaded file
  */
-export async function downloadFromS3(s3Bucket, s3Key, logger) {
+export async function downloadFromS3(logger) {
   const region = config.get('aws.region')
   const cdpEnvironment = config.get('cdpEnvironment')
+  const s3Bucket = config.get('cdpUploader.s3Bucket')
+  const s3Key = await findKeyByMetadataFilename(s3Bucket)
 
   // Configure S3 client based on environment
   const s3ClientConfig = {

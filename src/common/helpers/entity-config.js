@@ -1,3 +1,7 @@
+import { parse, isValid } from 'date-fns'
+import applianceExample from '../../sample-data/appliance-example.js'
+import fuelExample from '../../sample-data/fuel-example.js'
+
 /**
  * Entity Configuration
  * Defines all importable entities and their schemas
@@ -29,167 +33,160 @@ export const ENTITY_CONFIG = {
  * Helper functions
  */
 // Helper to get first non-empty value
-function getValueOrDefault(...values) {
-  for (const value of values) {
-    if (value !== undefined && value !== null && value !== '') {
-      return value
-    }
-  }
-  return values[values.length - 1] // Return last value as default
-}
+// function getValueOrDefault(...values) {
+//   for (const value of values) {
+//     if (value !== undefined && value !== null && value !== '') {
+//       return value
+//     }
+//   }
+//   return values[values.length - 1] // Return last value as default
+// }
 
-function parseBoolean(value) {
-  if (typeof value === 'boolean') return value
+// function parseBoolean(value) {
+//   if (typeof value === 'boolean') return value
+//   if (typeof value === 'string') {
+//     const trimmed = value.trim()
+//     if (trimmed === '') return false
+//     return trimmed.toLowerCase() === 'yes' || trimmed.toLowerCase() === 'true'
+//   }
+//   return false
+// }
+
+function parseArrayField(value) {
+  if (!value) return []
+  if (Array.isArray(value)) return value
   if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (trimmed === '') return false
-    return trimmed.toLowerCase() === 'yes' || trimmed.toLowerCase() === 'true'
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
   }
-  return false
+  return [value]
 }
 
-function parseDate(dateString) {
-  if (!dateString) return null
-  if (dateString instanceof Date) return dateString
+function parseDate(value) {
+  if (!value) return new Date()
+  if (value instanceof Date) return value
 
-  // Try parsing DD/MM/YYYY format
-  const parts = dateString.split('/')
-  if (parts.length === 3) {
-    const [day, month, year] = parts
-    const date = new Date(year, month - 1, day)
-    if (!isNaN(date.getTime())) return date
+  // Try parsing common date formats
+  const formats = [
+    'dd/MM/yyyy',
+    'MM/dd/yyyy',
+    'yyyy-MM-dd',
+    'dd-MM-yyyy',
+    'MM-dd-yyyy'
+  ]
+
+  for (const format of formats) {
+    const date = parse(value, format, new Date())
+    if (isValid(date)) return date
   }
 
-  // Fallback to standard parsing
-  const date = new Date(dateString)
-  return isNaN(date.getTime()) ? null : date
+  // Fallback to native Date parsing
+  const date = new Date(value)
+  return isValid(date) ? date : new Date()
 }
 
 /**
  * Transform functions for each entity type
  */
 function transformToAppliance(row) {
-  // Validate and normalize appliance type
-  const rawType = getValueOrDefault(
-    row.applianceType,
-    row['Appliance Type'],
-    'Other'
-  )
-  const validTypes = ['Stove', 'Boiler', 'Fire', 'Heater', 'Other']
-  const applianceType = validTypes.includes(rawType) ? rawType : 'Other'
+  // Determine technicalApproval based on Reviewer dates
+  const reviewerApproveDate = row['Reviewer Approve Date']
+  const reviewerRejectDate = row['Reviewer Reject Date']
+
+  let technicalApproval = 'Uncertified'
+  let technicalApprovalDate = null
+
+  // Parse both dates for comparison
+  const approveDate = reviewerApproveDate
+    ? parseDate(reviewerApproveDate)
+    : null
+  const rejectDate = reviewerRejectDate ? parseDate(reviewerRejectDate) : null
+
+  if (approveDate && rejectDate) {
+    // Both dates exist - use the later one
+    if (approveDate >= rejectDate) {
+      technicalApproval = 'Certified'
+      technicalApprovalDate = approveDate
+    } else {
+      technicalApproval = 'Revoked'
+      technicalApprovalDate = rejectDate
+    }
+  } else if (approveDate) {
+    technicalApproval = 'Certified'
+    technicalApprovalDate = approveDate
+  } else if (rejectDate) {
+    technicalApproval = 'Revoked'
+    technicalApprovalDate = rejectDate
+  }
 
   const appliance = {
-    applianceId: getValueOrDefault(
-      row.applianceId,
-      row.ApplianceID,
-      row.ID,
-      ''
-    ),
-    manufacturer: getValueOrDefault(
-      row.manufacturer,
-      row.Manufacturer,
-      'Unknown'
-    ),
-    manufacturerAddress: getValueOrDefault(
-      row.manufacturerAddress,
-      row['Manufacturer Address'],
-      'Not Provided'
-    ),
-    manufacturerContactName: getValueOrDefault(
-      row.manufacturerContactName,
-      row['Contact Name'],
-      'Not Provided'
-    ),
-    manufacturerContactEmail: getValueOrDefault(
-      row.manufacturerContactEmail,
-      row['Contact Email'],
-      'noemail@example.com'
-    ),
-    manufacturerPhone: getValueOrDefault(
-      row.manufacturerPhone,
-      row['Contact Phone'],
-      'Not Provided'
-    ),
-    modelName: getValueOrDefault(
-      row.modelName,
-      row['Model Name'],
-      'Unknown Model'
-    ),
-    modelNumber: getValueOrDefault(row.modelNumber, row['Model Number'], 'N/A'),
-    applianceType,
-    isVariant: parseBoolean(
-      getValueOrDefault(row.isVariant, row['Is Variant'])
-    ),
-    nominalOutput: parseFloat(
-      getValueOrDefault(row.nominalOutput, row['Nominal Output (kW)'], 0)
-    ),
-    allowedFuels: getValueOrDefault(
-      row.allowedFuels,
-      row['Allowed Fuels'],
-      'Not Specified'
-    ),
-    instructionManualTitle: getValueOrDefault(
-      row.instructionManualTitle,
-      row['Manual Title'],
-      'Not Provided'
-    ),
-    instructionManualDate:
-      parseDate(
-        getValueOrDefault(row.instructionManualDate, row['Manual Date'])
-      ) || new Date(),
-    instructionManualReference: getValueOrDefault(
-      row.instructionManualReference,
-      row['Manual Reference'],
-      'N/A'
-    ),
-    submittedBy: getValueOrDefault(
-      row.submittedBy,
-      row['Submitted By'],
-      'Unknown'
-    ),
-    approvedBy: getValueOrDefault(
-      row.approvedBy,
-      row['Approved By'],
-      'Unknown'
-    ),
-    publishedDate:
-      parseDate(getValueOrDefault(row.publishedDate, row['Published Date'])) ||
-      new Date(),
+    applicationId: row['Application Number'],
+    applianceId: row['Appliance ID'],
+    companyName: row['Manufacturer Name'],
+    companyAddress: row['Manufacturer Address'],
+    modelName: row['Appliance Name (Title)'],
+    applianceType: row['Appliance Types'],
+    nominalOutput: parseFloat(row['Output Value'] || 0),
+    allowedFuels: parseArrayField(row['Permitted Fuels']),
+    instructionManualTitle: row['Instructions Manual Title'],
+    instructionManualDate: parseDate(row['Instructions Manual Date']),
+    instructionManualVersion: row['Instructions Manual Reference'],
+    instructionManualAdditionalInfo: row['Additional Comments'],
+    airControlModifications: row['Additional Condition Comments'],
+    submittedBy: row['Submitted By (User)'],
+    submittedDate: parseDate(row['Reviewer Assign Date']),
+    publishedDate: parseDate(row['WP Published Date']),
+    technicalApproval,
+    englandApproval: row['England Status'],
+    englandApprovedBy: row['England User'],
+    englandDateFirstAuthorised: parseDate(row['England Approve Date']),
+    scotlandApproval: row['Scotland Status'],
+    scotlandApprovedBy: row['Scotland User'],
+    scotlandDateFirstAuthorised: parseDate(row['Scotland Approve Date']),
+    walesApproval: row['Wales Status'],
+    walesApprovedBy: row['Wales User'],
+    walesDateFirstAuthorised: parseDate(row['Wales Approve Date']),
+    nIrelandApproval: row['N Ireland Status'],
+    nIrelandApprovedBy: row['N Ireland User'],
+    nIrelandDateFirstAuthorised: parseDate(row['N Ireland Approve Date']),
     updatedAt: new Date(),
-    createdAt: new Date()
-  }
-
-  // Optional fields
-  const altEmail = getValueOrDefault(
-    row.manufacturerAlternateEmail,
-    row['Alternate Email']
-  )
-  if (altEmail) {
-    appliance.manufacturerAlternateEmail = altEmail
-  }
-
-  const existingAppliance = getValueOrDefault(
-    row.existingAuthorisedAppliance,
-    row['Existing Appliance']
-  )
-  if (existingAppliance) {
-    appliance.existingAuthorisedAppliance = existingAppliance
-  }
-
-  const additionalConds = getValueOrDefault(
-    row.additionalConditions,
-    row['Additional Conditions']
-  )
-  if (additionalConds) {
-    appliance.additionalConditions = additionalConds
-  }
-
-  const fuelsString = getValueOrDefault(
-    row.permittedFuels,
-    row['Permitted Fuels']
-  )
-  if (fuelsString) {
-    appliance.permittedFuels = fuelsString.split(',').map((f) => f.trim())
+    // Legacy/Additional fields
+    linkedApplications: row['Linked Applications'],
+    technicalApprovalDate,
+    reviewedBy: row['Reviewed By (User)'],
+    reviewerAssignDate: parseDate(row['Reviewer Assign Date']),
+    additionalConditionComments: row['Additional Condition Comments'],
+    englandStatus: row['England Status'],
+    scotlandStatus: row['Scotland Status'],
+    walesStatus: row['Wales Status'],
+    nIrelandStatus: row['N Ireland Status'],
+    fuelTypes: row['Fuel Types'],
+    postId: row['Post ID'],
+    wpPostStatus: row['WP Post Status'],
+    manufacturerPostId: row['Manufacturer Post ID'],
+    outputUnitId: row['Output Unit ID'],
+    servicingManualTitle: row['Servicing Manual Title'],
+    servicingManualReference: row['Servicing Manual Reference'],
+    servicingManualDate: row['Servicing Manual Date'],
+    additionalConditionIds: row['Additional Condition IDs'],
+    additionalComments: row['Additional Comments'],
+    commentToDA: row['Comment to DA'],
+    userComment: row['User Comment'],
+    comments: row['Comments'],
+    englandAssignedDate: row['England Assigned Date'],
+    englandPublishDate: row['England Publish Date'],
+    englandStatutoryInstruments: row['England Statutory Instruments'],
+    walesAssignedDate: row['Wales Assigned Date'],
+    walesPublishDate: row['Wales Publish Date'],
+    walesStatutoryInstruments: row['Wales Statutory Instruments'],
+    scotlandAssignedDate: row['Scotland Assigned Date'],
+    scotlandPublishDate: row['Scotland Publish Date'],
+    scotlandStatutoryInstruments: row['Scotland Statutory Instruments'],
+    nIrelandAssignedDate: row['N Ireland Assigned Date'],
+    nIrelandPublishDate: row['N Ireland Publish Date'],
+    nIrelandStatutoryInstruments: row['N Ireland Statutory Instruments']
   }
 
   return appliance
@@ -197,112 +194,29 @@ function transformToAppliance(row) {
 
 function transformToFuel(row) {
   const fuel = {
-    fuelId: getValueOrDefault(row.fuelId, row.FuelID, row.ID, ''),
-    manufacturerName: getValueOrDefault(
-      row.manufacturerName,
-      row['Manufacturer Name'],
-      'Unknown'
-    ),
-    manufacturerAddress: getValueOrDefault(
-      row.manufacturerAddress,
-      row['Manufacturer Address'],
-      'Not Provided'
-    ),
-    manufacturerContactName: getValueOrDefault(
-      row.manufacturerContactName,
-      row['Contact Name'],
-      'Not Provided'
-    ),
-    manufacturerContactEmail: getValueOrDefault(
-      row.manufacturerContactEmail,
-      row['Contact Email'],
-      'noemail@example.com'
-    ),
-    manufacturerPhone: getValueOrDefault(
-      row.manufacturerPhone,
-      row['Contact Phone'],
-      'Not Provided'
-    ),
-    representativeName: getValueOrDefault(
-      row.representativeName,
-      row['Representative Name'],
-      'Not Provided'
-    ),
-    representativeEmail: getValueOrDefault(
-      row.representativeEmail,
-      row['Representative Email'],
-      'noemail@example.com'
-    ),
-    hasCustomerComplaints: parseBoolean(
-      getValueOrDefault(row.hasCustomerComplaints, row['Customer Complaints'])
-    ),
-    qualityControlSystem: getValueOrDefault(
-      row.qualityControlSystem,
-      row['Quality Control System'],
-      'Not Specified'
-    ),
-    certificationScheme: getValueOrDefault(
-      row.certificationScheme,
-      row['Certification Scheme'],
-      'None'
-    ),
-    fuelName: getValueOrDefault(row.fuelName, row['Fuel Name'], 'Unknown Fuel'),
-    fuelBagging: getValueOrDefault(
-      row.fuelBagging,
-      row['Fuel Bagging'],
-      'Bagged'
-    ),
-    isBaggedAtSource: parseBoolean(
-      getValueOrDefault(row.isBaggedAtSource, row['Bagged at Source'])
-    ),
-    fuelDescription: getValueOrDefault(
-      row.fuelDescription,
-      row['Fuel Description'],
-      'No description'
-    ),
-    fuelWeight: getValueOrDefault(
-      row.fuelWeight,
-      row['Fuel Weight'],
-      'Not Specified'
-    ),
-    fuelComposition: getValueOrDefault(
-      row.fuelComposition,
-      row['Fuel Composition'],
-      'Not Specified'
-    ),
-    sulphurContent: parseFloat(
-      getValueOrDefault(row.sulphurContent, row['Sulphur Content'], 0)
-    ),
-    manufacturingProcess: getValueOrDefault(
-      row.manufacturingProcess,
-      row['Manufacturing Process'],
-      'Not Specified'
-    ),
-    isRebrandedProduct: parseBoolean(
-      getValueOrDefault(row.isRebrandedProduct, row['Is Rebranded'])
-    ),
-    hasChangedFromOriginal: parseBoolean(
-      getValueOrDefault(
-        row.hasChangedFromOriginal,
-        row['Changed from Original']
-      )
-    ),
-    updatedAt: new Date(),
-    createdAt: new Date()
-  }
-
-  // Optional fields
-  const altEmail = getValueOrDefault(
-    row.manufacturerAlternateEmail,
-    row['Alternate Email']
-  )
-  if (altEmail) {
-    fuel.manufacturerAlternateEmail = altEmail
-  }
-
-  const brandsString = getValueOrDefault(row.brandNames, row['Brand Names'])
-  if (brandsString) {
-    fuel.brandNames = brandsString
+    fuelId: row['Fuel ID'],
+    companyName: row['Manufacturer Name'],
+    fuelDescription: row['Point C (Manufacturing Process)'],
+    fuelWeight: row['Point D (Form Description)'],
+    fuelComposition: row['Point A (Fuel Name / Description)'],
+    sulphurContent: row['Point E (Unit Weight)'],
+    manufacturingProcess: row['Point B (Product Composition)'],
+    brandNames: row['Fuel Name (Title)'],
+    submittedBy: row['Submitted By (User)'],
+    submittedDate: row['Reviewer Assign Date'],
+    englandApproval: row['England Status'],
+    scotlandApproval: row['N Ireland Status'],
+    walesApproval: row['Wales Status'],
+    nIrelandApproval: row['Scotland Status'],
+    englandApprovedBy: row['England User'],
+    scotlandApprovedBy: row['Wales User'],
+    walesApprovedBy: row['Scotland User'],
+    nIrelandApprovedBy: row['N Ireland User'],
+    englandDateFirstAuthorised: row['England Approve Date'],
+    scotlandDateFirstAuthorised: row['Scotland Approve Date'],
+    walesDateFirstAuthorised: row['Wales Approve Date'],
+    nIrelandDateFirstAuthorised: row['N Ireland Approve Date'],
+    updatedAt: new Date()
   }
 
   return fuel
@@ -310,60 +224,12 @@ function transformToFuel(row) {
 
 /**
  * Sample data generators
+ * Returns examples from sample-data folder for tests and API documentation
  */
 function getSampleAppliance() {
-  return {
-    applianceId: 'APP001',
-    manufacturer: 'Stoves LTD',
-    manufacturerAddress: '24 Bowerfield Lane Newcastle NE638BO',
-    manufacturerContactName: 'Joe Bloggs',
-    manufacturerContactEmail: 'Joe.bloggs@gmail.com',
-    manufacturerAlternateEmail: 'Joe.bloggs2@gmail.com',
-    manufacturerPhone: '7846638263',
-    modelName: 'Hot Stove 89',
-    modelNumber: 'AHS231',
-    applianceType: 'Stove',
-    isVariant: 'Yes',
-    existingAuthorisedAppliance: 'Hot Stove 88',
-    nominalOutput: '12',
-    allowedFuels: 'Wood Logs, Wood Pellets',
-    permittedFuels: 'FUEL001, FUEL002',
-    instructionManualTitle: 'Stove manual instructions',
-    instructionManualDate: '01/07/2024',
-    instructionManualReference: 'Issue 08',
-    additionalConditions:
-      'Must be fitted with the supplied secondary air control limiters',
-    submittedBy: 'Phil Mitchell',
-    approvedBy: 'Bruce Lee',
-    publishedDate: '04/02/2025'
-  }
+  return applianceExample
 }
 
 function getSampleFuel() {
-  return {
-    fuelId: 'FUEL001',
-    manufacturerName: 'Fuels Company Ltd',
-    manufacturerAddress: '24 Bowerfield Lane Newcastle NE638BO',
-    manufacturerContactName: 'Joe Bloggs',
-    manufacturerContactEmail: 'Joe.bloggs@gmail.com',
-    manufacturerAlternateEmail: 'Joe.bloggs2@gmail.com',
-    manufacturerPhone: '7846638263',
-    representativeName: 'Simon Gates',
-    representativeEmail: 'Simon.Gates@FuelsLTD.com',
-    hasCustomerComplaints: 'No',
-    qualityControlSystem: 'ISO 9001 certified',
-    certificationScheme: 'Fuel authorisation under the Clean Air Act 1993',
-    fuelName: 'Eco Briquettes Premium',
-    fuelBagging: 'Bagged',
-    isBaggedAtSource: 'Yes',
-    fuelDescription: 'Pillow-shaped briquettes with single line indentation',
-    fuelWeight: 'Average weight of 125 to 135 grams per briquette',
-    fuelComposition: 'Anthracite fines (60% to 80%)',
-    sulphurContent: '20',
-    manufacturingProcess:
-      'Roll pressing and heat treatment at 300 degrees celsius',
-    isRebrandedProduct: 'No',
-    hasChangedFromOriginal: 'No',
-    brandNames: 'Fuel brand 1, Fuel brand 2'
-  }
+  return fuelExample
 }

@@ -6,19 +6,32 @@
 
 import xlsx from 'xlsx'
 import { ENTITY_CONFIG } from '../common/helpers/entity-config.js'
+import fs from 'node:fs'
 
 /**
  * Parse Excel file and return data from a specific sheet
  */
 function parseExcelSheet(filePath, sheetName) {
-  const workbook = xlsx.readFile(filePath)
+  //const fileExtension = filePath.toLowerCase().endsWith('.csv') ? 'csv' : 'xlsx'
+  // Read file using fs and pass buffer to xlsx for better compatibility with CSV
+  const fileBuffer = fs.readFileSync(filePath)
+  const workbook = xlsx.read(fileBuffer, { type: 'buffer' })
 
-  const sheet = sheetName
-    ? workbook.Sheets[sheetName]
-    : workbook.Sheets[workbook.SheetNames[0]]
+  // If sheet name is provided, try to find it. Otherwise, use first sheet.
+  // For CSV files uploaded with .xlsx extension, sheetName will be null and we use the first sheet.
+  let sheet
+  if (sheetName && workbook.Sheets[sheetName]) {
+    sheet = workbook.Sheets[sheetName]
+  } else if (sheetName) {
+    // Sheet name was requested but not found - likely a CSV file, use first sheet
+    sheet = workbook.Sheets[workbook.SheetNames[0]]
+  } else {
+    // No sheet name provided, use first sheet
+    sheet = workbook.Sheets[workbook.SheetNames[0]]
+  }
 
   if (!sheet) {
-    throw new Error(`Sheet "${sheetName}" not found in Excel file`)
+    throw new Error(`No data found in file`)
   }
 
   const data = xlsx.utils.sheet_to_json(sheet, {
@@ -212,6 +225,10 @@ async function importEntity(
 export async function importFromExcel(db, filePath, entities, options = {}) {
   const { verbose = false } = options
 
+  // // For CSV files, don't use sheet names (they only have one sheet)
+  // const isCSV = filePath.toLowerCase().endsWith('.csv')
+  // // NOTE: CSV support commented out - using Excel format with named sheets only
+
   if (verbose) {
     console.log('🚀 Starting Excel import...')
     console.log(`📁 File: ${filePath}`)
@@ -242,11 +259,16 @@ export async function importFromExcel(db, filePath, entities, options = {}) {
     }
 
     try {
+      // Use provided sheet name or default from entity config
+      // // For CSV files, pass null to use the first sheet. For Excel files, use provided sheet name or default.
+      // const actualSheetName = isCSV ? null : sheetName || entityConfig.defaultSheetName
+      const actualSheetName = sheetName || entityConfig.defaultSheetName
+
       const result = await importEntity(
         db,
         filePath,
         entityConfig,
-        sheetName,
+        actualSheetName,
         verbose
       )
       allResults.push(result)

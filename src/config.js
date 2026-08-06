@@ -147,13 +147,13 @@ const config = convict({
     s3Bucket: {
       doc: 'S3 bucket for uploaded files',
       format: String,
-      default: 'dev-aqie-dc-uploads-c63f2',
+      default: 'aqie-dc-backend',
       env: 'CDP_UPLOADER_S3_BUCKET'
     },
     s3Prefix: {
       doc: 'S3 prefix (folder) for uploaded files',
       format: String,
-      default: 'imports',
+      default: 'uploads',
       env: 'CDP_UPLOADER_S3_PREFIX'
     },
     maxFileSize: {

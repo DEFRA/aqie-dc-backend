@@ -1,10 +1,12 @@
 import { health } from '../routes/health.js'
 import { example } from '../routes/example.js'
-import { uploadCallback } from '../routes/upload-callback.js'
-import {
-  initiateImportController,
-  checkUploadStatusController
-} from '../routes/admin-import.js'
+import { s3Import } from '../routes/s3-import.js'
+// no longer used
+// Flow now starts from S3 bucket
+// import {
+//   initiateImportController,
+//   checkUploadStatusController
+// } from '../routes/admin-import.js'
 import { createApplication } from '../routes/applications/create-application.js'
 import { getAllApplications } from '../routes/applications/get-all-applications.js'
 import { getApplicationById } from '../routes/applications/get-application-by-id.js'
@@ -26,7 +28,7 @@ import { deleteFuel } from '../routes/fuels/delete-fuel.js'
 import { test } from '../dc/routes/test.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
-import { config } from '../config.js'
+// import { config } from '../config.js'
 
 const router = {
   plugin: {
@@ -43,62 +45,34 @@ const router = {
       const baseRoutes = [health].concat(example).concat(testRoutes)
       server.route(baseRoutes)
 
-      // CDP Uploader callback route
-      server.route(uploadCallback)
+      // S3 import route
+      server.route(s3Import)
 
-      // Admin import routes
-      server.route([
-        {
-          method: 'POST',
-          path: '/admin/import/initiate',
-          ...initiateImportController
-        },
-        {
-          method: 'GET',
-          path: '/admin/import/status',
-          ...checkUploadStatusController
-        },
-        {
-          method: 'GET',
-          path: '/templates/{file*}',
-          handler: {
-            directory: {
-              path: 'templates',
-              redirectToSlash: true,
-              index: false
-            }
-          }
-        }
-      ])
-
-      // Proxy route for CDP Uploader upload endpoint
-      // Note: This route does NOT include the service name prefix
-      // The gateway strips /aqie-dc-backend before routing to this service
-      server.route({
-        method: 'POST',
-        path: '/upload-and-scan/{uploadId}',
-        options: {
-          auth: false,
-          payload: {
-            output: 'stream',
-            parse: false,
-            maxBytes: config.get('cdpUploader.maxFileSize')
-          }
-        },
-        handler: {
-          proxy: {
-            mapUri: (request) => {
-              const { uploadId } = request.params
-              const cdpUploaderUrl = config.get('cdpUploader.url')
-              return {
-                uri: `${cdpUploaderUrl}/upload-and-scan/${uploadId}`
-              }
-            },
-            passThrough: true,
-            xforward: true
-          }
-        }
-      })
+      // Admin import routes - DISABLED (steps 11-14)
+      //   method: 'POST',
+      //   path: '/upload-and-scan/{uploadId}',
+      //   options: {
+      //     auth: false,
+      //     payload: {
+      //       output: 'stream',
+      //       parse: false,
+      //       maxBytes: config.get('cdpUploader.maxFileSize')
+      //     }
+      //   },
+      //   handler: {
+      //     proxy: {
+      //       mapUri: (request) => {
+      //         const { uploadId } = request.params
+      //         const cdpUploaderUrl = config.get('cdpUploader.url')
+      //         return {
+      //           uri: `${cdpUploaderUrl}/upload-and-scan/${uploadId}`
+      //         }
+      //       },
+      //       passThrough: true,
+      //       xforward: true
+      //     }
+      //   }
+      // })
 
       // Application API routes
       server.route([

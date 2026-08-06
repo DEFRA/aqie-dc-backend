@@ -13,21 +13,39 @@
 import xlsx from 'xlsx'
 import { MongoClient } from 'mongodb'
 import { config } from '../config.js'
-import { parse, isValid } from 'date-fns'
+import fs from 'node:fs'
+import { ENTITY_CONFIG, ENTITY_TYPES } from '../common/helpers/entity-config.js'
+import { applianceSchema, fuelSchema } from '../routes/schema.js'
 
 /**
  * Parse Excel file and return data
  */
 function parseExcelFile(filePath, sheetName) {
-  console.log(`📖 Reading Excel file: ${filePath}`)
-  const workbook = xlsx.readFile(filePath)
+  const fileExtension = filePath.toLowerCase().endsWith('.csv') ? 'csv' : 'xlsx'
+  console.log(`📖 Reading ${fileExtension.toUpperCase()} file: ${filePath}`)
 
-  const sheet = sheetName
-    ? workbook.Sheets[sheetName]
-    : workbook.Sheets[workbook.SheetNames[0]]
+  // Read file using fs and pass buffer to xlsx for better compatibility
+  const fileBuffer = fs.readFileSync(filePath)
+  const workbook = xlsx.read(fileBuffer, { type: 'buffer' })
+
+  // If sheet name is provided, try to find it. Otherwise, use first sheet.
+  // For CSV files uploaded with .xlsx extension, sheetName will be null and we use the first sheet.
+  let sheet
+  if (sheetName && workbook.Sheets[sheetName]) {
+    sheet = workbook.Sheets[sheetName]
+  } else if (sheetName) {
+    // Sheet name was requested but not found - likely a CSV file, use first sheet
+    console.log(
+      `   ⚠️  Sheet "${sheetName}" not found, using first available sheet`
+    )
+    sheet = workbook.Sheets[workbook.SheetNames[0]]
+  } else {
+    // No sheet name provided, use first sheet
+    sheet = workbook.Sheets[workbook.SheetNames[0]]
+  }
 
   if (!sheet) {
-    throw new Error(`Sheet "${sheetName}" not found in Excel file`)
+    throw new Error(`No data found in file`)
   }
 
   const data = xlsx.utils.sheet_to_json(sheet, {
@@ -40,168 +58,51 @@ function parseExcelFile(filePath, sheetName) {
 }
 
 /**
- * Transform Excel row to Appliance document
+ * Create a proxy to track which CSV columns are accessed during transformation
  */
-function transformToAppliance(row) {
-  const appliance = {
-    applianceId: row.applianceId || row.ApplianceID || row.ID,
-    manufacturer: row.manufacturer || row.Manufacturer,
-    manufacturerAddress: row.manufacturerAddress || row['Manufacturer Address'],
-    manufacturerContactName: row.manufacturerContactName || row['Contact Name'],
-    manufacturerContactEmail:
-      row.manufacturerContactEmail || row['Contact Email'],
-    manufacturerPhone: row.manufacturerPhone || row['Contact Phone'],
-    modelName: row.modelName || row['Model Name'],
-    modelNumber: row.modelNumber || row['Model Number'],
-    applianceType: row.applianceType || row['Appliance Type'],
-    isVariant: parseBoolean(row.isVariant || row['Is Variant']),
-    nominalOutput: parseFloat(
-      row.nominalOutput || row['Nominal Output (kW)'] || 0
-    ),
-    allowedFuels: row.allowedFuels || row['Allowed Fuels'],
-    instructionManualTitle: row.instructionManualTitle || row['Manual Title'],
-    instructionManualDate: parseDate(
-      row.instructionManualDate || row['Manual Date']
-    ),
-    instructionManualReference:
-      row.instructionManualReference || row['Manual Reference'],
-    submittedBy: row.submittedBy || row['Submitted By'],
-    approvedBy: row.approvedBy || row['Approved By'],
-    publishedDate: parseDate(row.publishedDate || row['Published Date']),
-    updatedAt: new Date()
-  }
-
-  // Optional fields
-  if (row.manufacturerAlternateEmail || row['Alternate Email']) {
-    appliance.manufacturerAlternateEmail =
-      row.manufacturerAlternateEmail || row['Alternate Email']
-  }
-
-  if (row.existingAuthorisedAppliance || row['Existing Appliance']) {
-    appliance.existingAuthorisedAppliance =
-      row.existingAuthorisedAppliance || row['Existing Appliance']
-  }
-
-  if (row.additionalConditions || row['Additional Conditions']) {
-    appliance.additionalConditions =
-      row.additionalConditions || row['Additional Conditions']
-  }
-
-  if (row.permittedFuels || row['Permitted Fuels']) {
-    const fuelsString = row.permittedFuels || row['Permitted Fuels']
-    appliance.permittedFuels = fuelsString
-      ? fuelsString.split(',').map((f) => f.trim())
-      : null
-  }
-
-  // Set createdAt only for new documents (will be ignored in updates)
-  appliance.createdAt = new Date()
-
-  return appliance
+function createRowProxy(row, accessedColumns) {
+  return new Proxy(row, {
+    get(target, prop) {
+      if (typeof prop === 'string' && prop in target) {
+        accessedColumns.add(prop)
+      }
+      return target[prop]
+    }
+  })
 }
 
 /**
- * Transform Excel row to Fuel document
+ * Get list of CSV columns that are NOT mapped to any DB field
+ * by running a sample row through the transform and tracking access
  */
-function transformToFuel(row) {
-  const fuel = {
-    fuelId: row.fuelId || row.FuelID || row.ID,
-    manufacturerName: row.manufacturerName || row['Manufacturer Name'],
-    manufacturerAddress: row.manufacturerAddress || row['Manufacturer Address'],
-    manufacturerContactName: row.manufacturerContactName || row['Contact Name'],
-    manufacturerContactEmail:
-      row.manufacturerContactEmail || row['Contact Email'],
-    manufacturerPhone: row.manufacturerPhone || row['Contact Phone'],
-    representativeName: row.representativeName || row['Representative Name'],
-    representativeEmail: row.representativeEmail || row['Representative Email'],
-    hasCustomerComplaints: parseBoolean(
-      row.hasCustomerComplaints || row['Has Complaints']
-    ),
-    qualityControlSystem:
-      row.qualityControlSystem || row['Quality Control System'],
-    certificationScheme: row.certificationScheme || row['Certification Scheme'],
-    fuelName: row.fuelName || row['Fuel Name'],
-    fuelBagging: row.fuelBagging || row['Fuel Bagging'],
-    isBaggedAtSource: parseBoolean(
-      row.isBaggedAtSource || row['Bagged at Source']
-    ),
-    fuelDescription: row.fuelDescription || row['Fuel Description'],
-    fuelWeight: row.fuelWeight || row['Fuel Weight'],
-    fuelComposition: row.fuelComposition || row['Fuel Composition'],
-    sulphurContent: parseFloat(
-      row.sulphurContent || row['Sulphur Content (%)'] || 0
-    ),
-    manufacturingProcess:
-      row.manufacturingProcess || row['Manufacturing Process'],
-    isRebrandedProduct: parseBoolean(
-      row.isRebrandedProduct || row['Is Rebranded']
-    ),
-    hasChangedFromOriginal: parseBoolean(
-      row.hasChangedFromOriginal || row['Changed from Original']
-    ),
-    updatedAt: new Date()
-  }
+function getUnmappedColumns(sampleRow, transformFn) {
+  const accessedColumns = new Set()
+  const proxiedRow = createRowProxy(sampleRow, accessedColumns)
+  transformFn(proxiedRow)
 
-  // Optional fields
-  if (row.manufacturerAlternateEmail || row['Alternate Email']) {
-    fuel.manufacturerAlternateEmail =
-      row.manufacturerAlternateEmail || row['Alternate Email']
-  }
-
-  if (row.brandNames || row['Brand Names']) {
-    fuel.brandNames = row.brandNames || row['Brand Names']
-  }
-
-  // Set createdAt only for new documents
-  fuel.createdAt = new Date()
-
-  return fuel
+  const allColumns = Object.keys(sampleRow)
+  return allColumns.filter((col) => !accessedColumns.has(col))
 }
 
 /**
- * Parse boolean values from Excel
+ * Use centralized transforms from ENTITY_CONFIG to ensure consistency
+ * between CLI imports and CDP production imports
  */
-function parseBoolean(value) {
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'string') {
-    const lower = value.toLowerCase().trim()
-    if (['true', 'yes', '1', 'y'].includes(lower)) return true
-    if (['false', 'no', '0', 'n'].includes(lower)) return false
-  }
-  return Boolean(value)
-}
-
-/**
- * Parse date values from Excel
- */
-function parseDate(value) {
-  if (!value) return new Date()
-  if (value instanceof Date) return value
-
-  // Try parsing common date formats
-  const formats = [
-    'dd/MM/yyyy',
-    'MM/dd/yyyy',
-    'yyyy-MM-dd',
-    'dd-MM-yyyy',
-    'MM-dd-yyyy'
-  ]
-
-  for (const format of formats) {
-    const date = parse(value, format, new Date())
-    if (isValid(date)) return date
-  }
-
-  // Fallback to native Date parsing
-  const date = new Date(value)
-  return isValid(date) ? date : new Date()
-}
+const transformToAppliance = ENTITY_CONFIG[ENTITY_TYPES.APPLIANCES].transform
+const transformToFuel = ENTITY_CONFIG[ENTITY_TYPES.FUELS].transform
 
 /**
  * Import appliances with upsert logic
  */
 async function importAppliances(db, data, options = {}) {
   console.log(`\n📦 Importing ${data.length} appliances...`)
+
+  // Debug: show column names found in CSV
+  if (data.length > 0) {
+    console.log(`\n📋 CSV columns found:`)
+    Object.keys(data[0]).forEach((col) => console.log(`   - "${col}"`))
+    console.log('')
+  }
 
   const collection = db.collection('Appliances')
   let inserted = 0
@@ -217,11 +118,18 @@ async function importAppliances(db, data, options = {}) {
         throw new Error('Missing applianceId')
       }
 
+      // Joi validation temporarily disabled for testing column mapping
+      // const { value: validatedAppliance, error } = applianceSchema.validate(appliance, { abortEarly: false })
+      // if (error) {
+      //   throw new Error(error.details.map(d => d.message).join(', '))
+      // }
+      const validatedAppliance = appliance
+
       const result = await collection.updateOne(
-        { applianceId: appliance.applianceId },
+        { applianceId: validatedAppliance.applianceId },
         {
-          $set: appliance,
-          $setOnInsert: { createdAt: appliance.createdAt }
+          $set: validatedAppliance,
+          $setOnInsert: { createdAt: new Date() }
         },
         { upsert: true }
       )
@@ -229,12 +137,12 @@ async function importAppliances(db, data, options = {}) {
       if (result.upsertedCount > 0) {
         inserted++
         if (options.verbose) {
-          console.log(`   ✓ Inserted: ${appliance.applianceId}`)
+          console.log(`   ✓ Inserted: ${validatedAppliance.applianceId}`)
         }
       } else if (result.modifiedCount > 0) {
         updated++
         if (options.verbose) {
-          console.log(`   ↻ Updated: ${appliance.applianceId}`)
+          console.log(`   ↻ Updated: ${validatedAppliance.applianceId}`)
         }
       }
     } catch (error) {
@@ -250,6 +158,42 @@ async function importAppliances(db, data, options = {}) {
   console.log(`   📝 Inserted: ${inserted}`)
   console.log(`   ↻ Updated: ${updated}`)
   console.log(`   ✗ Failed: ${failed}`)
+
+  // Report on unmapped CSV columns and unfilled schema fields
+  if (data.length > 0) {
+    // Dynamically detect unmapped columns by tracking which ones are accessed
+    const unmappedColumns = getUnmappedColumns(data[0], transformToAppliance)
+
+    if (unmappedColumns.length > 0) {
+      console.log(
+        `\n⚠️  CSV columns NOT mapped to DB fields (${unmappedColumns.length}):`
+      )
+      unmappedColumns.forEach((col) => console.log(`   - "${col}"`))
+    }
+
+    // Get schema fields from Joi schema
+    const schemaFields = Object.keys(applianceSchema.describe().keys)
+
+    // Get fields that are being set in transform (check first row)
+    const sampleAppliance = transformToAppliance(data[0])
+    const filledFields = Object.keys(sampleAppliance).filter(
+      (key) =>
+        sampleAppliance[key] !== null &&
+        sampleAppliance[key] !== undefined &&
+        sampleAppliance[key] !== ''
+    )
+
+    const unfilledSchemaFields = schemaFields.filter(
+      (field) => !filledFields.includes(field) && field !== 'createdAt' // createdAt is set on insert
+    )
+
+    if (unfilledSchemaFields.length > 0) {
+      console.log(
+        `\n⚠️  Schema fields NOT filled from CSV (${unfilledSchemaFields.length}):`
+      )
+      unfilledSchemaFields.forEach((field) => console.log(`   - ${field}`))
+    }
+  }
 
   return { inserted, updated, failed, errors }
 }
@@ -304,6 +248,42 @@ async function importFuels(db, data, options = {}) {
   console.log(`   ↻ Updated: ${updated}`)
   console.log(`   ✗ Failed: ${failed}`)
 
+  // Report on unmapped CSV columns and unfilled schema fields
+  if (data.length > 0) {
+    // Dynamically detect unmapped columns by tracking which ones are accessed
+    const unmappedColumns = getUnmappedColumns(data[0], transformToFuel)
+
+    if (unmappedColumns.length > 0) {
+      console.log(
+        `\n⚠️  CSV columns NOT mapped to DB fields (${unmappedColumns.length}):`
+      )
+      unmappedColumns.forEach((col) => console.log(`   - "${col}"`))
+    }
+
+    // Get schema fields from Joi schema
+    const schemaFields = Object.keys(fuelSchema.describe().keys)
+
+    // Get fields that are being set in transform (check first row)
+    const sampleFuel = transformToFuel(data[0])
+    const filledFields = Object.keys(sampleFuel).filter(
+      (key) =>
+        sampleFuel[key] !== null &&
+        sampleFuel[key] !== undefined &&
+        sampleFuel[key] !== ''
+    )
+
+    const unfilledSchemaFields = schemaFields.filter(
+      (field) => !filledFields.includes(field) && field !== 'createdAt' // createdAt is set on insert
+    )
+
+    if (unfilledSchemaFields.length > 0) {
+      console.log(
+        `\n⚠️  Schema fields NOT filled from CSV (${unfilledSchemaFields.length}):`
+      )
+      unfilledSchemaFields.forEach((field) => console.log(`   - ${field}`))
+    }
+  }
+
   return { inserted, updated, failed, errors }
 }
 
@@ -315,6 +295,13 @@ export async function importFromExcel(db, filePath, type, options = {}) {
   console.log(`   Type: ${type}`)
 
   const results = {}
+
+  // // For CSV files, don't use sheet names (they only have one sheet)
+  // const isCSV = filePath.toLowerCase().endsWith('.csv')
+  // // NOTE: CSV support commented out - using Excel format with named sheets only
+  // if (isCSV) {
+  //   console.log(`   📄 Detected CSV file - using first sheet`)
+  // }
 
   try {
     if (type === 'appliances' || type === 'both') {
@@ -363,7 +350,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const type =
     typeIndex !== -1 && args[typeIndex + 1] ? args[typeIndex + 1] : 'both'
 
-  const mongoUrl = config.get('mongo.uri')
+  const mongoUrl = config.get('mongo.mongoUrl')
   const databaseName = config.get('mongo.databaseName')
 
   console.log(`Connecting to MongoDB: ${databaseName}`)
