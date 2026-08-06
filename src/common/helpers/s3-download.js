@@ -2,7 +2,12 @@
  * S3 Download Helper
  * Provides functions to download files from S3 and manage temporary files
  */
-import { S3Client, GetObjectCommand, ListObjectsV2Command, HeadObjectCommand } from '@aws-sdk/client-s3'
+import {
+  S3Client,
+  GetObjectCommand,
+  ListObjectsV2Command,
+  HeadObjectCommand
+} from '@aws-sdk/client-s3'
 import { writeFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'

@@ -144,10 +144,7 @@ const s3ImportController = {
 
     // ===== START: ======
     // Excel file should have 2 sheets: 'Appliances' and 'Fuels'
-    const entities = [
-      { type: 'appliances' },
-      { type: 'fuels' }
-    ]
+    const entities = [{ type: 'appliances' }, { type: 'fuels' }]
 
     try {
       const results = await performS3DataImport(db, entities, request.logger)

@@ -28,7 +28,7 @@ import { deleteFuel } from '../routes/fuels/delete-fuel.js'
 import { test } from '../dc/routes/test.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
-import { config } from '../config.js'
+// import { config } from '../config.js'
 
 const router = {
   plugin: {

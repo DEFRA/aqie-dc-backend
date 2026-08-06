@@ -35,7 +35,9 @@ function parseExcelFile(filePath, sheetName) {
     sheet = workbook.Sheets[sheetName]
   } else if (sheetName) {
     // Sheet name was requested but not found - likely a CSV file, use first sheet
-    console.log(`   ⚠️  Sheet "${sheetName}" not found, using first available sheet`)
+    console.log(
+      `   ⚠️  Sheet "${sheetName}" not found, using first available sheet`
+    )
     sheet = workbook.Sheets[workbook.SheetNames[0]]
   } else {
     // No sheet name provided, use first sheet

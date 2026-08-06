@@ -12,7 +12,7 @@ import fs from 'node:fs'
  * Parse Excel file and return data from a specific sheet
  */
 function parseExcelSheet(filePath, sheetName) {
-  const fileExtension = filePath.toLowerCase().endsWith('.csv') ? 'csv' : 'xlsx'
+  //const fileExtension = filePath.toLowerCase().endsWith('.csv') ? 'csv' : 'xlsx'
   // Read file using fs and pass buffer to xlsx for better compatibility with CSV
   const fileBuffer = fs.readFileSync(filePath)
   const workbook = xlsx.read(fileBuffer, { type: 'buffer' })

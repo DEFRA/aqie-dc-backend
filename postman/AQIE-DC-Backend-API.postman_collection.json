@@ -1,5 +1,5 @@
-// needs updating 
-{ 
+// needs updating
+{
   "info": {
     "name": "AQIE DC Backend API",
     "description": "REST API endpoints for accessing applications, appliances, and fuels data from MongoDB",

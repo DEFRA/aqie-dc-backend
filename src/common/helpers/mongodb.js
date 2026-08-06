@@ -2,7 +2,7 @@ import { MongoClient } from 'mongodb'
 import { LockManager } from 'mongo-locks'
 import { performS3DataImport } from '../../routes/s3-import.js'
 import { setupApplications } from './db/setup-applications.js'
-import { config } from '../../config.js'
+// import { config } from '../../config.js'
 
 export const mongoDb = {
   plugin: {
@@ -64,14 +64,13 @@ async function ensureAppliancesAndFuelsCollections(db, logger) {
 
     // Setup Appliances and Fuels
     if (!hasAppliances || !hasFuels) {
-      logger.info('Appliances and/or Fuels collections missing - importing from S3...')
+      logger.info(
+        'Appliances and/or Fuels collections missing - importing from S3...'
+      )
 
       try {
         // Excel file should have 2 sheets: 'Appliances' and 'Fuels'
-        const entities = [
-          { type: 'appliances' },
-          { type: 'fuels' }
-        ]
+        const entities = [{ type: 'appliances' }, { type: 'fuels' }]
 
         await performS3DataImport(db, entities, logger)
 

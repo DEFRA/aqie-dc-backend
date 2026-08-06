@@ -114,26 +114,18 @@ const s3ImportController = {
 
     // ===== START =====
     // Excel file should have 2 sheets: 'Appliances' and 'Fuels'
-    const entities = [
-      { type: 'appliances' },
-      { type: 'fuels' }
-    ]
+    const entities = [{ type: 'appliances' }, { type: 'fuels' }]
     // ===== END: Hardcoded values =====
 
     let tempFilePath
 
     try {
       // Download file from S3
-      request.logger.info(
-        'Downloading file from S3'
-      )
+      request.logger.info('Downloading file from S3')
       tempFilePath = await downloadFromS3(request.logger)
 
       // Import data for each entity
-      request.logger.info(
-        { entities, tempFilePath },
-        'Processing Excel import'
-      )
+      request.logger.info({ entities, tempFilePath }, 'Processing Excel import')
 
       const results = await importFromExcel(db, tempFilePath, entities, {
         verbose: false

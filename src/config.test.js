@@ -240,7 +240,7 @@ describe('#config', () => {
 
     test('Should have expected default S3 prefix', async () => {
       const { config } = await import('./config.js')
-      expect(config.get('cdpUploader.s3Prefix')).toBe('imports')
+      expect(config.get('cdpUploader.s3Prefix')).toBe('uploads')
     })
   })
 

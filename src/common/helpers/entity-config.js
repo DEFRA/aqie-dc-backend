@@ -33,24 +33,24 @@ export const ENTITY_CONFIG = {
  * Helper functions
  */
 // Helper to get first non-empty value
-function getValueOrDefault(...values) {
-  for (const value of values) {
-    if (value !== undefined && value !== null && value !== '') {
-      return value
-    }
-  }
-  return values[values.length - 1] // Return last value as default
-}
+// function getValueOrDefault(...values) {
+//   for (const value of values) {
+//     if (value !== undefined && value !== null && value !== '') {
+//       return value
+//     }
+//   }
+//   return values[values.length - 1] // Return last value as default
+// }
 
-function parseBoolean(value) {
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (trimmed === '') return false
-    return trimmed.toLowerCase() === 'yes' || trimmed.toLowerCase() === 'true'
-  }
-  return false
-}
+// function parseBoolean(value) {
+//   if (typeof value === 'boolean') return value
+//   if (typeof value === 'string') {
+//     const trimmed = value.trim()
+//     if (trimmed === '') return false
+//     return trimmed.toLowerCase() === 'yes' || trimmed.toLowerCase() === 'true'
+//   }
+//   return false
+// }
 
 function parseArrayField(value) {
   if (!value) return []
