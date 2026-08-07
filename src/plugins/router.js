@@ -23,6 +23,7 @@ import { createFuel } from '../routes/fuels/create-fuel.js'
 import { getAllFuels } from '../routes/fuels/get-all-fuels.js'
 import { updateFuel } from '../routes/fuels/update-fuel.js'
 import { deleteFuel } from '../routes/fuels/delete-fuel.js'
+import { createSqsMessage } from '../routes/sqs-messages/create-sqs-message.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
 import { config } from '../config.js'
@@ -127,6 +128,9 @@ const router = {
         searchFuels, // Must come before getFuelById to avoid route conflict
         getFuelById
       ])
+
+      // SQS Message API routes
+      server.route([createSqsMessage])
     }
   }
 }

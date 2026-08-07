@@ -5,17 +5,18 @@
  */
 //create a POST route to store both raw and pre-processed (mapped) SQS messages from the queue, just like create-application.js, but for SQS messages.
 // it will import the soon to be created function createSqsMessage from the sqs-messages-controller.js file, and call it with the payload from the request body. It will return the result of the function call as the response.
-import { createSqsMessage } from '../../controllers/sqs-messages-controller.js'
+import * as sqsMessagesController from '../../controllers/sqs-messages-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
-export default {
+export const createSqsMessage = {
   method: 'POST',
   path: '/sqs-messages',
-  tags: ['api', 'sqs-messages'],
-
+  options: {
+    tags: ['api', 'sqs-messages']
+  },
   handler: async (request, h) => {
     try {
-      const result = await createSqsMessage(
+      const result = await sqsMessagesController.createSqsMessage(
         request.db,
         request.payload,
         request.logger
