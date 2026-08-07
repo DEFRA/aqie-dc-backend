@@ -23,7 +23,6 @@ import { createFuel } from '../routes/fuels/create-fuel.js'
 import { getAllFuels } from '../routes/fuels/get-all-fuels.js'
 import { updateFuel } from '../routes/fuels/update-fuel.js'
 import { deleteFuel } from '../routes/fuels/delete-fuel.js'
-import { test } from '../dc/routes/test.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
 import { config } from '../config.js'
@@ -38,9 +37,8 @@ const router = {
       // Register @hapi/h2o2 for proxying
       await server.register(H2o2)
 
-      // Health check, example, and test routes
-      const testRoutes = [test]
-      const baseRoutes = [health].concat(example).concat(testRoutes)
+      // Health check, example, routes
+      const baseRoutes = [health].concat(example)
       server.route(baseRoutes)
 
       // CDP Uploader callback route
