@@ -12,7 +12,7 @@ export default {
     const poll = async () => {
       while (!abortController.signal.aborted) {
         await main(server, undefined, abortController.signal)
-        await new Promise((resolve) => setTimeout(resolve, 60 * 60 * 1000)) // 60 minutes between polls
+        await new Promise((resolve) => setTimeout(resolve, 15 * 60 * 1000)) // 1 minute between polls, for 15 minute long polling: 15 * 60 * 1000
       }
     }
 
