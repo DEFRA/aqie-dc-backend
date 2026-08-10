@@ -126,7 +126,12 @@ export const applianceSchema = Joi.object({
   submittedBy: Joi.string().optional().description('Submitted by'),
   submittedDate: Joi.date().optional().description('Submitted date'),
   publishedDate: Joi.date().optional().description('Published date'),
-  technicalApproval: approvalField.description('Technical approval'),
+  technicalApproval: Joi.string()
+    .allow('', null)
+    .empty(['', null])
+    .default('pending')
+    .valid('pending', 'in_progress', 'accepted', 'rejected')
+    .optional(), //needs to be an optional field to allow it to be omitted and default to pending
   ratedOutput: Joi.number().optional().description('Rated Output'),
   testedOutputRated: Joi.number()
     .optional()

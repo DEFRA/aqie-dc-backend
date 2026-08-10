@@ -9,6 +9,7 @@ import { createApplication } from '../routes/applications/create-application.js'
 import { getAllApplications } from '../routes/applications/get-all-applications.js'
 import { getApplicationById } from '../routes/applications/get-application-by-id.js'
 import { getApplicationsWithSummary } from '../routes/applications/get-applications-with-summary.js'
+import { getApplicationSummary } from '../routes/applications/get-application-summary.js'
 import { getCounts } from '../routes/applications/get-counts.js'
 import { searchApplications } from '../routes/applications/search-applications.js'
 import { createAppliance } from '../routes/appliances/create-appliance.js'
@@ -105,6 +106,7 @@ const router = {
         getAllApplications,
         getCounts,
         getApplicationsWithSummary,
+        getApplicationSummary,
         searchApplications, // Must come before getApplicationById to avoid route conflict
         getApplicationById
       ])

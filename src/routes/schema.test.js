@@ -54,11 +54,11 @@ describe('applianceSchema - companyPhone', () => {
     expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
   })
 
-  test('approvalField empty string -> defaults to Uncertified', () => {
+  test('approvalField empty string -> defaults to pending', () => {
     const payload = { ...applianceBasePayload, technicalApproval: '' }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
-    expect(value.technicalApproval).toBe('Uncertified')
+    expect(value.technicalApproval).toBe('pending')
   })
 
   test('approvalField null -> defaults to Uncertified', () => {
@@ -68,11 +68,11 @@ describe('applianceSchema - companyPhone', () => {
     expect(value.walesApproval).toBe('Uncertified')
   })
 
-  test('approvalField omitted -> defaults to Uncertified', () => {
+  test('approvalField omitted -> defaults to pending', () => {
     const { technicalApproval, ...payload } = { ...applianceBasePayload }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
-    expect(value.technicalApproval).toBe('Uncertified')
+    expect(value.technicalApproval).toBe('pending')
   })
 
   test('approvalField invalid value -> validation error', () => {

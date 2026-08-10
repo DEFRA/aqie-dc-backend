@@ -6,7 +6,6 @@ import {
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getCertainApplicationsWithAppliances,
   getApplicationsWithSummary
 } from './applications-controller.js'
 
@@ -694,75 +693,6 @@ describe('applications-controller', () => {
       await expect(
         getAllApplicationsWithAppliances(db, mockLogger)
       ).rejects.toThrow('Fetch failed')
-    })
-  })
-
-  describe('getCertainApplicationsWithAppliances', () => {
-    test('returns applications with specific status', async () => {
-      docs.push(
-        {
-          id: 'app-1',
-          type: 'appliance',
-          status: 'new'
-        },
-        {
-          id: 'app-2',
-          type: 'appliance',
-          status: 'in_progress'
-        }
-      )
-
-      const result = await getCertainApplicationsWithAppliances(
-        db,
-        mockLogger,
-        'new'
-      )
-
-      expect(Array.isArray(result)).toBe(true)
-    })
-
-    test('returns empty array when no applications with status found', async () => {
-      const result = await getCertainApplicationsWithAppliances(
-        db,
-        mockLogger,
-        'nonexistent'
-      )
-
-      expect(Array.isArray(result)).toBe(true)
-      expect(result).toEqual([])
-    })
-
-    test('filters appliances for specific applications', async () => {
-      docs.push(
-        {
-          id: 'app-1',
-          type: 'appliance',
-          status: 'new'
-        },
-        {
-          id: 'app-2',
-          type: 'appliance',
-          status: 'new'
-        }
-      )
-      applianceDocs.push(
-        {
-          applianceId: 'app-001',
-          applicationId: 'app-1'
-        },
-        {
-          applianceId: 'app-002',
-          applicationId: 'app-2'
-        }
-      )
-
-      const result = await getCertainApplicationsWithAppliances(
-        db,
-        mockLogger,
-        'new'
-      )
-
-      expect(Array.isArray(result)).toBe(true)
     })
   })
 

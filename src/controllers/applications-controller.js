@@ -376,47 +376,6 @@ async function getAllApplicationsWithAppliances(db, logger) {
     throw error
   }
 }
-//is this being used?
-async function getCertainApplicationsWithAppliances(
-  db,
-  logger,
-  status = 'new'
-) {
-  try {
-    const appCollection = db.collection('Applications')
-    const itemCollection = db.collection('Appliances')
-
-    // 1. Fetch only applications where status is 'new'
-    const newApplications = await appCollection.find({ status }).toArray()
-
-    // If no new applications found, return an empty array early
-    if (newApplications.length === 0) {
-      return []
-    }
-
-    // 2. Extract the IDs of only the 'new' applications
-    const applicationIds = newApplications.map((app) => app.id)
-
-    // 3. Fetch all appliances linked to those specific application IDs
-    const associatedAppliances = await itemCollection
-      .find({ applicationId: { $in: applicationIds } })
-      .toArray()
-
-    // 4. Stitch the appliances into their respective applications
-    const result = newApplications.map((app) => ({
-      ...app,
-      appliances: associatedAppliances.filter(
-        (appliance) => appliance.applicationId === app.id
-      )
-    }))
-
-    logger.info(`Found ${result.length} new applications.`)
-    return result
-  } catch (error) {
-    logger.error(error, 'Failed to fetch new applications')
-    throw error
-  }
-}
 
 /**
  * Get (uncomplete) applications grouped by status and with summary (returns only appliance names)
@@ -499,6 +458,92 @@ async function getApplicationsWithSummary(
   }
 }
 
+/**
+ * Get application with linked items (appliances or fuels) summary (technical approval status and name only) by application ID
+ * @param {Db} db - MongoDB database instance
+ * @param {string} applicationId - Application ID to fetch summary for
+ * @param {string} type - Type of associated items to fetch summary for ('appliance' | 'fuel')
+ * @param {object} logger - Logger instance
+ */
+async function getApplicationSummaryById(db, applicationId, type, logger) {
+  try {
+    const application = await db
+      .collection('Applications')
+      .findOne({ id: applicationId })
+
+    if (!application) {
+      return {
+        success: false,
+        message: 'Application not found',
+        notFound: true
+      }
+    }
+
+    // Map incoming parameter ('appliance' / 'fuel') to MongoDB collection names
+    const collectionMap = {
+      appliance: 'Appliances',
+      fuel: 'Fuels'
+    }
+
+    const collectionName = collectionMap[type]
+
+    if (!collectionName) {
+      logger.warn(`Unknown or unsupported application type parameter: ${type}`)
+      return {
+        success: false,
+        message: `Invalid type parameter provided: ${type}`
+      }
+    }
+
+    // Fetch address from just one linked item - as they all have the same address
+    const applicationAddress = await db.collection(collectionName).findOne(
+      { applicationId },
+      {
+        projection: {
+          companyAddress: 1,
+          companyAddressLine1: 1,
+          companyAddressLine2: 1,
+          companyAddressCity: 1,
+          companyAddressCounty: 1,
+          companyAddressPostcode: 1,
+          _id: 0
+        }
+      }
+    )
+
+    const companyAddress = {
+      full: applicationAddress?.companyAddress || null,
+      line1: applicationAddress?.companyAddressLine1 || null,
+      line2: applicationAddress?.companyAddressLine2 || null,
+      city: applicationAddress?.companyAddressCity || null,
+      county: applicationAddress?.companyAddressCounty || null,
+      postcode: applicationAddress?.companyAddressPostcode || null
+    }
+
+    // Fetch summary of linked items (only name and technicalApproval)
+    const linkedItems = await db
+      .collection(collectionName)
+      .find(
+        { applicationId },
+        { projection: { modelName: 1, technicalApproval: 1, _id: 0 } }
+      )
+      .toArray()
+
+    return {
+      success: true,
+      message: 'Application summary retrieved successfully',
+      data: {
+        id: application.id,
+        companyAddress,
+        linkedItems // Contains item name and technicalApproval }
+      }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to fetch application summary')
+    throw error
+  }
+}
+
 export {
   createApplication,
   getAllApplications,
@@ -506,6 +551,6 @@ export {
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getCertainApplicationsWithAppliances,
-  getApplicationsWithSummary
+  getApplicationsWithSummary, //getApplicationsSummaryByStatus?
+  getApplicationSummaryById
 }
