@@ -47,7 +47,7 @@ describe('createSqsMessage - additional coverage', () => {
     })
   })
 
-  test('parses mappedPayload when provided as valid JSON string', async () => {
+  test('stores mappedPayload string without parsing', async () => {
     const payload = {
       messageId: 'msg-123',
       messageBody: '{}',
@@ -61,16 +61,13 @@ describe('createSqsMessage - additional coverage', () => {
 
     expect(collection.insertOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        parsedPayload: {
-          applianceId: 'APP-001',
-          status: 'approved'
-        },
+        parsedPayload: null,
         mappedPayload: payload.mappedPayload
       })
     )
   })
 
-  test('logs warning and stores original value when mappedPayload is invalid JSON', async () => {
+  test('stores invalid mappedPayload string unchanged', async () => {
     const payload = {
       messageId: 'msg-123',
       messageBody: '{}',
@@ -79,13 +76,7 @@ describe('createSqsMessage - additional coverage', () => {
 
     await createSqsMessage(db, payload, mockLogger)
 
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        messageId: 'msg-123',
-        error: expect.any(Error)
-      }),
-      'Failed to parse mappedPayload, storing original value'
-    )
+    expect(mockLogger.warn).not.toHaveBeenCalled()
 
     const insertedDoc = collection.insertOne.mock.calls[0][0]
 
@@ -124,10 +115,14 @@ describe('createSqsMessage - additional coverage', () => {
     expect(insertedDoc.mappedPayload).toBeNull()
   })
 
-  test('stores parsedPayload and mappedPayload separately for valid JSON string', async () => {
-    const mappedPayload = JSON.stringify({
+  test('stores parsedMessageBody and mappedPayload separately', async () => {
+    const parsedMessageBody = {
       foo: 'bar',
       count: 1
+    }
+
+    const mappedPayload = JSON.stringify({
+      transformed: true
     })
 
     await createSqsMessage(
@@ -135,6 +130,7 @@ describe('createSqsMessage - additional coverage', () => {
       {
         messageId: 'msg-123',
         messageBody: '{}',
+        parsedMessageBody,
         mappedPayload
       },
       mockLogger
@@ -142,11 +138,7 @@ describe('createSqsMessage - additional coverage', () => {
 
     const insertedDoc = collection.insertOne.mock.calls[0][0]
 
-    expect(insertedDoc.parsedPayload).toEqual({
-      foo: 'bar',
-      count: 1
-    })
-
+    expect(insertedDoc.parsedPayload).toEqual(parsedMessageBody)
     expect(insertedDoc.mappedPayload).toBe(mappedPayload)
   })
 })

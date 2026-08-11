@@ -139,7 +139,13 @@ const createNewRecord = async (message, server) => {
     const mappedData = splitRepeaterJson(messageBody.data)
     mappedData.forEach(async (item) => {
       const mappedPayload = mapKeys(item, 'appliance')
-      await ingestSqsMessageViaRoute(server, message, mappedPayload)
+      await ingestSqsMessageViaRoute(
+        server,
+        message.id,
+        message.Body.data,
+        messageBody.data,
+        mappedPayload
+      )
       await createApplianceRecordViaRoute(server, mappedPayload)
     })
   }

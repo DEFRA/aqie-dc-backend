@@ -17,27 +17,14 @@ async function createSqsMessage(db, payload, logger) {
     const now = new Date()
 
     //the payload contains the messageBody, messageId, and mappedPayload. The messageBody is the raw payload of the SQS message, the messageId is the unique identifier of the SQS message, and the mappedPayload is the pre-processed version of the messageBody.
-    const { messageId, messageBody, mappedPayload } = payload
-
-    let parsedMappedPayload
-
-    if (mappedPayload && typeof mappedPayload === 'string') {
-      try {
-        parsedMappedPayload = JSON.parse(mappedPayload)
-      } catch (error) {
-        logger.warn(
-          { error, messageId },
-          'Failed to parse mappedPayload, storing original value'
-        )
-      }
-    }
+    const { messageId, messageBody, parsedMessageBody, mappedPayload } = payload
 
     // Insert into database
     const result = await collection.insertOne({
       id: messageId, //do i need this? can i guaraentee it will be unique? should i use the mongo _id instead? or both?
       receivedAt: now, //should/can i pull this out of the sqs message? should it be createdAt, what exaclty am i storing here?
       rawPayload: messageBody,
-      parsedPayload: parsedMappedPayload || null,
+      parsedPayload: parsedMessageBody || null,
       mappedPayload: mappedPayload || null
     })
 
