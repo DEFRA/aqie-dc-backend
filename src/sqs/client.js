@@ -85,6 +85,7 @@ export const main = async (server, queueUrl, abortSignal) => {
     // -------------------------------
     for (const message of Messages) {
       try {
+        await ingestSqsMessageViaRoute(server, message)
         await createNewRecord(message, server)
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)

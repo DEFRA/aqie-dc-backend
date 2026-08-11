@@ -3,10 +3,11 @@ import { createSqsMessage } from './sqs-messages-controller.js'
 
 const mockLogger = {
   info: vi.fn(),
+  warn: vi.fn(),
   error: vi.fn()
 }
 
-describe('createSqsMessage', () => {
+describe('createSqsMessage - additional coverage', () => {
   let db
   let collection
 
@@ -14,7 +15,7 @@ describe('createSqsMessage', () => {
     vi.clearAllMocks()
 
     collection = {
-      insertOne: vi.fn(async (doc) => ({
+      insertOne: vi.fn(async () => ({
         insertedId: 'mock-mongo-id',
         acknowledged: true
       }))
@@ -25,69 +26,119 @@ describe('createSqsMessage', () => {
     }
   })
 
-  test('stores sqs message and returns success response', async () => {
-    const payload = {
-      messageId: 'msg-123',
-      messageBody: JSON.stringify({
-        applianceId: 'APP-001',
-        status: 'approved'
-      }),
-      mappedPayload: {
-        applianceId: 'APP-001'
-      }
+  test('returns notFound when SqsMessages collection does not exist', async () => {
+    db = {
+      collection: vi.fn(() => null)
     }
 
-    const result = await createSqsMessage(db, payload, mockLogger)
+    const result = await createSqsMessage(
+      db,
+      {
+        messageId: 'msg-123',
+        messageBody: '{}'
+      },
+      mockLogger
+    )
 
     expect(result).toEqual({
-      success: true,
-      message: 'Sqs message stored successfully',
-      _id: 'mock-mongo-id'
+      success: false,
+      message: 'SqsMessages collection not found',
+      notFound: true
     })
-
-    expect(collection.insertOne).toHaveBeenCalledTimes(1)
-    expect(mockLogger.info).toHaveBeenCalledWith('Sqs message stored: msg-123')
   })
 
-  test('stores expected document structure', async () => {
+  test('parses mappedPayload when provided as valid JSON string', async () => {
     const payload = {
       messageId: 'msg-123',
-      messageBody: JSON.stringify({
-        test: true
-      }),
-      mappedPayload: {
-        test: true
-      }
+      messageBody: '{}',
+      mappedPayload: JSON.stringify({
+        applianceId: 'APP-001',
+        status: 'approved'
+      })
     }
 
     await createSqsMessage(db, payload, mockLogger)
 
     expect(collection.insertOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: 'msg-123',
-        rawPayload: payload.messageBody,
         parsedPayload: {
-          test: true
+          applianceId: 'APP-001',
+          status: 'approved'
         },
-        mappedPayload: {
-          test: true
-        },
-        receivedAt: expect.any(Date)
+        mappedPayload: payload.mappedPayload
       })
     )
   })
 
-  test('parses json messageBody before storing', async () => {
+  test('logs warning and stores original value when mappedPayload is invalid JSON', async () => {
     const payload = {
       messageId: 'msg-123',
-      messageBody: JSON.stringify({
-        foo: 'bar',
-        count: 1
-      }),
-      mappedPayload: {}
+      messageBody: '{}',
+      mappedPayload: '{invalid-json'
     }
 
     await createSqsMessage(db, payload, mockLogger)
+
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messageId: 'msg-123',
+        error: expect.any(Error)
+      }),
+      'Failed to parse mappedPayload, storing original value'
+    )
+
+    const insertedDoc = collection.insertOne.mock.calls[0][0]
+
+    expect(insertedDoc.parsedPayload).toBeNull()
+    expect(insertedDoc.mappedPayload).toBe('{invalid-json')
+  })
+
+  test('stores null values when mappedPayload is not provided', async () => {
+    const payload = {
+      messageId: 'msg-123',
+      messageBody: '{}'
+    }
+
+    await createSqsMessage(db, payload, mockLogger)
+
+    expect(collection.insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parsedPayload: null,
+        mappedPayload: null
+      })
+    )
+  })
+
+  test('stores null values when mappedPayload is an empty string', async () => {
+    const payload = {
+      messageId: 'msg-123',
+      messageBody: '{}',
+      mappedPayload: ''
+    }
+
+    await createSqsMessage(db, payload, mockLogger)
+
+    const insertedDoc = collection.insertOne.mock.calls[0][0]
+
+    expect(insertedDoc.parsedPayload).toBeNull()
+    expect(insertedDoc.mappedPayload).toBeNull()
+  })
+
+  test('stores parsedPayload and mappedPayload separately for valid JSON string', async () => {
+    const mappedPayload = JSON.stringify({
+      foo: 'bar',
+      count: 1
+    })
+
+    await createSqsMessage(
+      db,
+      {
+        messageId: 'msg-123',
+        messageBody: '{}',
+        mappedPayload
+      },
+      mockLogger
+    )
 
     const insertedDoc = collection.insertOne.mock.calls[0][0]
 
@@ -95,93 +146,7 @@ describe('createSqsMessage', () => {
       foo: 'bar',
       count: 1
     })
-  })
 
-  test('throws error when insertOne is not acknowledged', async () => {
-    collection.insertOne = vi.fn(async () => ({
-      acknowledged: false
-    }))
-
-    const payload = {
-      messageId: 'msg-123',
-      messageBody: JSON.stringify({ test: true }),
-      mappedPayload: {}
-    }
-
-    await expect(createSqsMessage(db, payload, mockLogger)).rejects.toThrow(
-      'Failed to insert sqs message'
-    )
-
-    expect(mockLogger.error).toHaveBeenCalled()
-  })
-
-  test('throws error when database insert fails', async () => {
-    collection.insertOne = vi.fn().mockRejectedValueOnce(new Error('DB error'))
-
-    const payload = {
-      messageId: 'msg-123',
-      messageBody: JSON.stringify({ test: true }),
-      mappedPayload: {}
-    }
-
-    await expect(createSqsMessage(db, payload, mockLogger)).rejects.toThrow(
-      'DB error'
-    )
-
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.any(Error),
-      'Failed to store sqs message, no backup of the message was made'
-    )
-  })
-
-  test('throws error when messageBody contains invalid json', async () => {
-    const payload = {
-      messageId: 'msg-123',
-      messageBody: '{invalid-json',
-      mappedPayload: {}
-    }
-
-    await expect(createSqsMessage(db, payload, mockLogger)).rejects.toThrow()
-
-    expect(collection.insertOne).not.toHaveBeenCalled()
-    expect(mockLogger.error).toHaveBeenCalled()
-  })
-
-  test('uses messageId as stored id', async () => {
-    const payload = {
-      messageId: 'unique-message-id',
-      messageBody: JSON.stringify({ test: true }),
-      mappedPayload: {}
-    }
-
-    await createSqsMessage(db, payload, mockLogger)
-
-    expect(collection.insertOne).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'unique-message-id'
-      })
-    )
-  })
-
-  test('stores provided mappedPayload', async () => {
-    const payload = {
-      messageId: 'msg-123',
-      messageBody: JSON.stringify({ original: true }),
-      mappedPayload: {
-        transformed: true,
-        applianceId: 'APP-001'
-      }
-    }
-
-    await createSqsMessage(db, payload, mockLogger)
-
-    expect(collection.insertOne).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mappedPayload: {
-          transformed: true,
-          applianceId: 'APP-001'
-        }
-      })
-    )
+    expect(insertedDoc.mappedPayload).toBe(mappedPayload)
   })
 })

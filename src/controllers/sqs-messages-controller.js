@@ -2,7 +2,6 @@
  * SQS Messages Controller
  * Business logic for handling/storing payload (body) of SQS messages in the database for debugging and backup purposes.
  */
-
 async function createSqsMessage(db, payload, logger) {
   try {
     const collection = db.collection('SqsMessages')
@@ -20,13 +19,26 @@ async function createSqsMessage(db, payload, logger) {
     //the payload contains the messageBody, messageId, and mappedPayload. The messageBody is the raw payload of the SQS message, the messageId is the unique identifier of the SQS message, and the mappedPayload is the pre-processed version of the messageBody.
     const { messageId, messageBody, mappedPayload } = payload
 
+    let parsedMappedPayload
+
+    if (mappedPayload && typeof mappedPayload === 'string') {
+      try {
+        parsedMappedPayload = JSON.parse(mappedPayload)
+      } catch (error) {
+        logger.warn(
+          { error, messageId },
+          'Failed to parse mappedPayload, storing original value'
+        )
+      }
+    }
+
     // Insert into database
     const result = await collection.insertOne({
       id: messageId, //do i need this? can i guaraentee it will be unique? should i use the mongo _id instead? or both?
       receivedAt: now, //should/can i pull this out of the sqs message? should it be createdAt, what exaclty am i storing here?
       rawPayload: messageBody,
-      parsedPayload: JSON.parse(messageBody),
-      mappedPayload
+      parsedPayload: parsedMappedPayload || null,
+      mappedPayload: mappedPayload || null
     })
 
     if (!result.acknowledged) {
