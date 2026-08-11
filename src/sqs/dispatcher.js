@@ -55,15 +55,20 @@ export async function createApplianceRecordViaRoute(server, payload) {
 // --- SQS Message Management Routes ---
 
 //This function is used to ingest SQS messages via an internal route in the server. It sends a POST request to the /sqs-messages endpoint with the provided payload.
-export async function ingestSqsMessageViaRoute(server, message, mappedPayload) {
-  const { messageId, messageBody } = message
-
+export async function ingestSqsMessageViaRoute(
+  server,
+  messageId,
+  messageBody,
+  parsedMessageBody,
+  mappedPayload
+) {
   const response = await server.inject({
     method: 'POST',
     url: `/sqs-messages`,
     payload: {
       messageId,
       messageBody,
+      parsedMessageBody,
       mappedPayload
     }
   })
