@@ -131,15 +131,15 @@ const createNewRecord = async (message, server) => {
 
   if (type === 'fuel') {
     const mappedPayload = mapKeys(messageBody.data.main, 'fuel')
-    await createFuelRecordViaRoute(server, mappedPayload)
     await ingestSqsMessageViaRoute(server, message, mappedPayload) //save raw payload (message.body) and mapped payload to the SQS messages collection
     //NEEDTO: possibly to get the reference number out so that i can use it as an id in the sqs messages collection?
+    await createFuelRecordViaRoute(server, mappedPayload)
   } else {
     const mappedData = splitRepeaterJson(messageBody.data)
     mappedData.forEach(async (item) => {
       const mappedPayload = mapKeys(item, 'appliance')
-      await createApplianceRecordViaRoute(server, mappedPayload)
       await ingestSqsMessageViaRoute(server, message, mappedPayload)
+      await createApplianceRecordViaRoute(server, mappedPayload)
     })
   }
 }

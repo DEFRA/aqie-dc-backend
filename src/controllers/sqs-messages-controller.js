@@ -6,6 +6,15 @@
 async function createSqsMessage(db, payload, logger) {
   try {
     const collection = db.collection('SqsMessages')
+
+    if (!collection) {
+      return {
+        success: false,
+        message: 'SqsMessages collection not found',
+        notFound: true
+      }
+    }
+
     const now = new Date()
 
     //the payload contains the messageBody, messageId, and mappedPayload. The messageBody is the raw payload of the SQS message, the messageId is the unique identifier of the SQS message, and the mappedPayload is the pre-processed version of the messageBody.
