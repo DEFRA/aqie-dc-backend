@@ -407,6 +407,7 @@ export const applicationsSchema = Joi.object({
   status: Joi.string()
     .valid('new', 'in_progress', 'complete')
     .optional()
+    .default('new')
     .description(
       'Application status (server-generated, defaults to "new". Complete when all items (applinances/fuels) have been reviewed (approved/rejected) and the application is submitted)'
     ),

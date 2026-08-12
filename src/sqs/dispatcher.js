@@ -31,15 +31,10 @@ export async function createFuelRecordViaRoute(server, payload) {
 // --- Appliance Management Routes ---
 
 export async function createApplianceRecordViaRoute(server, payload) {
-  //This is for exploring mapping locally - delete later
-  if (process.env.ENVIRONMENT === 'local') {
-    console.log(payload)
-  }
-  //End
-
+  //pass in appliance as type here, once add fuels
   const response = await server.inject({
     method: 'POST',
-    url: `/appliances`,
+    url: `/applications`, //application instead, then dont do the validation just check
     payload
   })
 

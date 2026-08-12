@@ -1,6 +1,6 @@
 /**
  * Create a new application
- * POST /api/applications
+ * POST /applications
  */
 
 import Boom from '@hapi/boom'
