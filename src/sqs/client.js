@@ -15,7 +15,6 @@ import {
   createApplianceRecordViaRoute,
   createFuelRecordViaRoute
 } from './dispatcher.js'
-import { exampleA } from './example.js'
 
 const logger = createLogger()
 
@@ -118,16 +117,16 @@ const createNewRecord = async (message, server) => {
     return //need to continue the loop
   }
   //application details extraction
- const application = {
-    type: messageBody.formSlug ===
-        'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
-          ? 'fuel'
-          : 'appliance',
+  const application = {
+    type:
+      messageBody.formSlug ===
+      'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
+        ? 'fuel'
+        : 'appliance',
     referenceNumber: messageBody.referenceNumber,
     submittedDate: messageBody.timestamp,
-    appliances: [] 
- }
-  
+    appliances: []
+  }
 
   if (application.type === 'fuel') {
     const mappedPayload = mapKeys(messageBody.data.main, 'fuel')
