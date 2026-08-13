@@ -10,8 +10,6 @@ const approvalField = Joi.string()
   .valid('Certified', 'Revoked', 'Uncertified')
   .optional() //needs to be an optional field to allow it to be omitted and default to Uncertified
 
-const fuelOptions = ['Wood Logs', 'Wood Pellets', 'Wood Chips', 'Other']
-
 const INVALID_PHONE_ERROR = 'any.invalid'
 
 export const applianceSchema = Joi.object({
@@ -69,23 +67,25 @@ export const applianceSchema = Joi.object({
     .optional()
     .allow(null)
     .empty(null)
-    .custom((value, helpers) => {
-      try {
-        // If you know the user's country, pass it here (e.g., 'GB', 'US')
-        const number = phoneUtil.parse(value, undefined) // undefined = expects +countrycode
-        if (!phoneUtil.isValidNumber(number)) {
-          return helpers.error(INVALID_PHONE_ERROR)
-        }
-        const e164 = phoneUtil.format(number, 1) // 1 = E164
-        return e164
-      } catch {
-        return helpers.error(INVALID_PHONE_ERROR)
-      }
-    }, 'libphonenumber validation')
-    .messages({
-      [INVALID_PHONE_ERROR]: 'Invalid phone number'
-    })
-    .description('Validated and normalized with google-libphonenumber'),
+    .pattern(/^\+?\d{1,11}$/),
+
+  // .custom((value, helpers) => {
+  //   try {
+  //     // If you know the user's country, pass it here (e.g., 'GB', 'US')
+  //     const number = phoneUtil.parse(value, undefined) // undefined = expects +countrycode
+  //     if (!phoneUtil.isValidNumber(number)) {
+  //       return helpers.error(INVALID_PHONE_ERROR)
+  //     }
+  //     const e164 = phoneUtil.format(number, 1) // 1 = E164
+  //     return e164
+  //   } catch {
+  //     return helpers.error(INVALID_PHONE_ERROR)
+  //   }
+  // }, 'libphonenumber validation')
+  // .messages({
+  //   [INVALID_PHONE_ERROR]: 'Invalid phone number'
+  // })
+  // .description('Validated and normalized with google-libphonenumber'),
 
   modelName: Joi.string().required().description('Model name'),
   modelNumber: Joi.string().optional().description('Model number'), //NEEDTO: change back to number?
@@ -97,18 +97,21 @@ export const applianceSchema = Joi.object({
     .optional()
     .description('If it is a variant, details'),
   nominalOutput: Joi.number().required().description('Thermal output (kW)'),
-  allowedFuels: Joi.array()
-    .single() // "Wood Logs" -> ["Wood Logs"]
-    .items(Joi.string().valid(...fuelOptions))
+  multifuelAppliance: Joi.boolean()
+    .required()
+    .description('Multifuel capability'),
+  allowedFuels: Joi.string()
+    .trim()
     .min(1)
-    .unique()
     .required()
-    .description('Allowed fuels'),
+    .description('The fuels the appliance will be certified to burn'),
+  declaration: Joi.boolean().required().description('Declaration'),
+  //End of appliance application fields
   instructionManualTitle: Joi.string()
-    .required()
+    .optional()
     .description('Instruction manual title'),
   instructionManualDate: Joi.date()
-    .required()
+    .optional()
     .description('Instruction manual date'),
   instructionManualVersion: Joi.string()
     .optional()
@@ -116,8 +119,6 @@ export const applianceSchema = Joi.object({
   instructionManualAdditionalInfo: Joi.string()
     .optional()
     .description('Instruction manual additional information'),
-  declaration: Joi.boolean().required().description('Declaration'),
-  //End of appliance application fields
   legacyRecord: Joi.boolean()
     .default(false)
     .description(
@@ -406,6 +407,7 @@ export const applicationsSchema = Joi.object({
   status: Joi.string()
     .valid('new', 'in_progress', 'complete')
     .optional()
+    .default('new')
     .description(
       'Application status (server-generated, defaults to "new". Complete when all items (applinances/fuels) have been reviewed (approved/rejected) and the application is submitted)'
     ),

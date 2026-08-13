@@ -1,6 +1,6 @@
 /**
  * Create a new application
- * POST /api/applications
+ * POST /applications
  */
 
 import Boom from '@hapi/boom'
@@ -25,7 +25,7 @@ export const createApplication = {
     },
     pre: [
       {
-        assign: 'validatedPayload',
+        assign: 'validationResult',
         method: (request, h) => {
           const { value, error } = applicationsSchema.validate(
             request.payload,
@@ -33,21 +33,18 @@ export const createApplication = {
               abortEarly: false
             }
           )
-          if (error) {
-            throw error
+
+          const validationWarnings = error
+            ? error.details.map((detail) => ({
+                field: detail.path.join('.'),
+                message: detail.message
+              }))
+            : []
+
+          return {
+            payload: value,
+            validationWarnings
           }
-          return value
-        },
-        failAction: (_request, h, error) => {
-          // Return 400 with validation details
-          return h
-            .response({
-              success: false,
-              message: 'Validation failed',
-              details: error.details
-            })
-            .code(statusCodes.badRequest)
-            .takeover()
         }
       }
     ]
@@ -55,10 +52,22 @@ export const createApplication = {
 
   handler: async (request, h) => {
     try {
+      const { payload, validationWarnings } = request.pre.validationResult
+
+      // Log warnings but do not block the save to DB
+      if (validationWarnings.length > 0) {
+        request.logger.warn(
+          {
+            validationWarnings
+          },
+          'Application validation warnings'
+        )
+      }
+
       const result = await applicationsController.createApplication(
         request.server.mongoClient,
         request.db,
-        request.pre.validatedPayload,
+        payload,
         request.logger
       )
 

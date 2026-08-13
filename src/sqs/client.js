@@ -10,8 +10,11 @@ import { config } from '../config.js'
 import { createLogger } from '../common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
-import { callCreateAPI, callQueueAPI } from './api-caller.js'
-import { exampleA } from './example.js'
+import {
+  ingestSqsMessageViaRoute,
+  createApplianceRecordViaRoute,
+  createFuelRecordViaRoute
+} from './dispatcher.js'
 
 const logger = createLogger()
 
@@ -58,20 +61,15 @@ const receiveMessage = (queueUrl, abortSignal) =>
 // -------------------------------
 export const main = async (server, queueUrl, abortSignal) => {
   try {
-    //This is for exploring mapping - delete later
-    if (process.env.ENVIRONMENT === 'local') {
-      createNewRecord(exampleA, server)
-      console.log(exampleA)
-    }
-    //end of exploring mapping - delete later
-
     if (!queueUrl) {
       queueUrl = await getQueueUrl() // ★ Correct queue URL
     }
 
     const { Messages } = await receiveMessage(queueUrl, abortSignal)
 
-    if (!Messages) return
+    if (!Messages) {
+      return
+    }
     logger.info(`Received ${Messages.length} message(s) from SQS`)
 
     // -------------------------------
@@ -79,28 +77,10 @@ export const main = async (server, queueUrl, abortSignal) => {
     // -------------------------------
     for (const message of Messages) {
       try {
-        // Validate JSON before processing
-        JSON.parse(message.Body)
-      } catch {
-        logger.error('Invalid JSON in SQS message:', message.Body)
-        logger.error(message.Body)
-        continue // Skip this one, do not break the loop
-      }
-
-      //This is for exploring mapping - delete or extract later
-      try {
-        await callQueueAPI(server, message.Body)
-      } catch {
-        logger.error('Failed internal Queue API')
-      }
-      //end
-
-      try {
-        await createNewRecord(message.body, server)
+        await createNewApplicationRecord(message, server)
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)
         logger.error(err)
-
         continue // Skip this one, do not break the loop
       }
     }
@@ -124,21 +104,55 @@ export const main = async (server, queueUrl, abortSignal) => {
     logger.error('SQS error:', err)
   }
 }
-const createNewRecord = async (messageBody, server) => {
-  const type =
-    messageBody.formSlug ===
-    'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
-      ? 'fuel'
-      : 'appliance'
+const createNewApplicationRecord = async (message, server) => {
+  let messageBody
+  try {
+    // Validate JSON before processing
+    messageBody = JSON.parse(message.Body)
+  } catch {
+    logger.error('Invalid JSON in SQS message:', message.Body)
+    logger.error(message.Body)
+    return //need to continue the loop
+  }
+  //application details extraction
+  const application = {
+    type:
+      messageBody.meta.formSlug ===
+      'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
+        ? 'fuel'
+        : 'appliance',
+    referenceNumber: messageBody.meta.referenceNumber,
+    submittedDate: messageBody.meta.timestamp,
+    appliances: []
+  }
 
-  if (type === 'fuel') {
-    const payload = mapKeys(messageBody.data.main, 'fuel')
-    await callCreateAPI(server, type, payload)
+  if (application.type === 'fuel') {
+    const mappedFuelData = mapKeys(messageBody.data.main, 'fuel')
+    application.appliances.push(mappedFuelData) //should be application.items.push
+    const applicationPayload = JSON.stringify(application)
+    await ingestSqsMessageViaRoute(
+      server,
+      message.MessageId,
+      message.Body.data,
+      messageBody.data,
+      applicationPayload
+    ) //reference number instead of messageId?
+    await createFuelRecordViaRoute(server, applicationPayload)
   } else {
-    const mappedData = splitRepeaterJson(messageBody.data)
-    mappedData.forEach(async (item) => {
-      const payload = mapKeys(item, 'appliance')
-      await callCreateAPI(server, type, payload)
+    const repeaters = splitRepeaterJson(messageBody.data)
+    repeaters.forEach((repeater) => {
+      const mappedAppliance = mapKeys(repeater, 'appliance')
+      application.appliances.push(mappedAppliance)
     })
+    const applicationPayload = JSON.stringify(application)
+    await createApplianceRecordViaRoute(server, applicationPayload)
+    logger.info('Creating Appliance Application Record')
+    await ingestSqsMessageViaRoute(
+      server,
+      message.MessageId,
+      message.Body,
+      messageBody.data,
+      applicationPayload
+    )
   }
 }

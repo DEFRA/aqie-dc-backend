@@ -33,7 +33,12 @@ describe('POST /applications', () => {
 
     mockRequest = {
       payload: applicationExample,
-      pre: { validatedPayload: applicationExample },
+      pre: {
+        validationResult: {
+          payload: applicationExample,
+          validationWarnings: []
+        }
+      },
       db: {},
       server: {
         mongoClient: {}
@@ -61,8 +66,7 @@ describe('POST /applications', () => {
 
       applicationsController.createApplication.mockResolvedValueOnce(mockResult)
 
-      const h = mockToolkit
-      const result = await createApplication.handler(mockRequest, h)
+      const result = await createApplication.handler(mockRequest, mockToolkit)
 
       expect(result.success).toBe(true)
       expect(result.message).toBe(
@@ -70,6 +74,7 @@ describe('POST /applications', () => {
       )
       expect(result.data.id).toBe('uuid-123')
       expect(result.statusCode).toBe(statusCodes.created)
+
       expect(applicationsController.createApplication).toHaveBeenCalledWith(
         mockRequest.server.mongoClient,
         mockRequest.db,
@@ -78,29 +83,91 @@ describe('POST /applications', () => {
       )
     })
 
+    test('logs validation warnings but still creates application', async () => {
+      const warnings = [
+        {
+          field: 'companyName',
+          message: '"companyName" is required'
+        }
+      ]
+
+      mockRequest.pre = {
+        validationResult: {
+          payload: applicationExample,
+          validationWarnings: warnings
+        }
+      }
+
+      applicationsController.createApplication.mockResolvedValueOnce({
+        success: true,
+        data: {
+          id: 'uuid-123'
+        }
+      })
+
+      await createApplication.handler(mockRequest, mockToolkit)
+
+      expect(mockRequest.logger.warn).toHaveBeenCalledWith(
+        { validationWarnings: warnings },
+        'Application validation warnings'
+      )
+
+      expect(applicationsController.createApplication).toHaveBeenCalledWith(
+        mockRequest.server.mongoClient,
+        mockRequest.db,
+        applicationExample,
+        mockRequest.logger
+      )
+    })
+
+    test('does not log warnings when validation succeeds', async () => {
+      mockRequest.pre = {
+        validationResult: {
+          payload: applicationExample,
+          validationWarnings: []
+        }
+      }
+
+      applicationsController.createApplication.mockResolvedValueOnce({
+        success: true
+      })
+
+      await createApplication.handler(mockRequest, mockToolkit)
+
+      expect(mockRequest.logger.warn).not.toHaveBeenCalled()
+    })
+
     test('returns a generic 500 Boom error when controller throws', async () => {
       const error = new Error('Database error')
+
       applicationsController.createApplication.mockRejectedValueOnce(error)
 
-      const h = mockToolkit
-      const result = await createApplication.handler(mockRequest, h)
+      const result = await createApplication.handler(mockRequest, mockToolkit)
 
       expect(result.isBoom).toBe(true)
       expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to create application')
+
       expect(mockRequest.logger.error).toHaveBeenCalledWith(
         error,
         'Failed to create application'
       )
     })
 
-    test('passes validatedPayload from pre to controller', async () => {
+    test('passes payload from validationResult to controller', async () => {
       const customPayload = {
         ...applicationExample,
         type: 'fuel'
       }
+
       mockRequest.payload = customPayload
-      mockRequest.pre = { validatedPayload: customPayload }
+
+      mockRequest.pre = {
+        validationResult: {
+          payload: customPayload,
+          validationWarnings: []
+        }
+      }
 
       applicationsController.createApplication.mockResolvedValueOnce({
         success: true,
@@ -108,8 +175,7 @@ describe('POST /applications', () => {
         data: { id: 'uuid-456' }
       })
 
-      const h = mockToolkit
-      await createApplication.handler(mockRequest, h)
+      await createApplication.handler(mockRequest, mockToolkit)
 
       expect(applicationsController.createApplication).toHaveBeenCalledWith(
         mockRequest.server.mongoClient,
@@ -135,8 +201,7 @@ describe('POST /applications', () => {
 
       applicationsController.createApplication.mockResolvedValueOnce(mockResult)
 
-      const h = mockToolkit
-      const result = await createApplication.handler(mockRequest, h)
+      const result = await createApplication.handler(mockRequest, mockToolkit)
 
       expect(result.data.appliances).toHaveLength(2)
       expect(result.data.appliances[0].applianceId).toBe('APP-001')
@@ -144,14 +209,15 @@ describe('POST /applications', () => {
 
     test('logs error when controller throws', async () => {
       const error = new Error('Transaction failed')
+
       applicationsController.createApplication.mockRejectedValueOnce(error)
 
-      const h = mockToolkit
-      const result = await createApplication.handler(mockRequest, h)
+      const result = await createApplication.handler(mockRequest, mockToolkit)
 
       expect(result.isBoom).toBe(true)
       expect(result.output.statusCode).toBe(statusCodes.internalServerError)
       expect(result.message).toBe('Failed to create application')
+
       expect(mockRequest.logger.error).toHaveBeenCalledWith(
         error,
         'Failed to create application'
@@ -204,18 +270,12 @@ describe('POST /applications', () => {
       expect(createApplication.options.pre.length).toBeGreaterThan(0)
     })
 
-    test('pre hook assigns validatedPayload', () => {
+    test('pre hook assigns validationResult', () => {
       const preHook = createApplication.options.pre.find(
-        (p) => p.assign === 'validatedPayload'
+        (p) => p.assign === 'validationResult'
       )
-      expect(preHook).toBeDefined()
-    })
 
-    test('pre hook has failAction for validation errors', () => {
-      const preHook = createApplication.options.pre.find(
-        (p) => p.assign === 'validatedPayload'
-      )
-      expect(preHook.failAction).toBeDefined()
+      expect(preHook).toBeDefined()
     })
   })
 })

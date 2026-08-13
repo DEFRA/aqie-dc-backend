@@ -48,16 +48,13 @@ function buildApplication(applicationData) {
     type: applicationData.type,
     status: applicationData.status || 'new',
     reviewer: applicationData.reviewer || null,
-    reviewNotes: applicationData.reviewNotes || null,
-    additionalMetadata: applicationData.additionalMetadata || {},
     submittedDate: applicationData.submittedDate
       ? new Date(applicationData.submittedDate)
       : null,
-    reviewedAt: null,
+    referenceNumber: applicationData.referenceNumber,
     createdAt: applicationData.createdAt
       ? new Date(applicationData.createdAt)
-      : now,
-    updatedAt: now
+      : now
   }
 }
 
