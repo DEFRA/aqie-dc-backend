@@ -136,7 +136,7 @@ const createNewApplicationRecord = async (message, server) => {
       message.Body.data,
       messageBody.data,
       applicationPayload
-    )
+    ) //reference number instead of messageId?
     await createFuelRecordViaRoute(server, applicationPayload)
   } else {
     const repeaters = splitRepeaterJson(messageBody.data)
@@ -146,11 +146,11 @@ const createNewApplicationRecord = async (message, server) => {
     })
     const applicationPayload = JSON.stringify(application)
     await createApplianceRecordViaRoute(server, applicationPayload)
-
+    logger.info('Creating Appliance Application Record')
     await ingestSqsMessageViaRoute(
       server,
       message.MessageId,
-      message.Body.data,
+      message.Body,
       messageBody.data,
       applicationPayload
     )
