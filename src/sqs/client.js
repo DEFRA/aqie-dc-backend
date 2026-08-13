@@ -119,12 +119,12 @@ const createNewRecord = async (message, server) => {
   //application details extraction
   const application = {
     type:
-      messageBody.formSlug ===
+      messageBody.meta.formSlug ===
       'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
         ? 'fuel'
         : 'appliance',
-    referenceNumber: messageBody.referenceNumber,
-    submittedDate: messageBody.timestamp,
+    referenceNumber: messageBody.meta.referenceNumber,
+    submittedDate: messageBody.meta.timestamp,
     appliances: []
   }
 
