@@ -15,7 +15,6 @@ import {
   createApplianceRecordViaRoute,
   createFuelRecordViaRoute
 } from './dispatcher.js'
-import { exampleA } from './example.js'
 
 const logger = createLogger()
 
@@ -62,13 +61,6 @@ const receiveMessage = (queueUrl, abortSignal) =>
 // -------------------------------
 export const main = async (server, queueUrl, abortSignal) => {
   try {
-    //This is for exploring mapping - delete later
-    if (process.env.ENVIRONMENT === 'local') {
-      await createNewRecord(exampleA, server)
-      console.log(exampleA)
-    }
-    //end of exploring mapping - delete later
-
     if (!queueUrl) {
       queueUrl = await getQueueUrl() // ★ Correct queue URL
     }
@@ -124,29 +116,37 @@ const createNewRecord = async (message, server) => {
     logger.error(message.Body)
     return //need to continue the loop
   }
-  const type =
-    messageBody.formSlug ===
-    'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
-      ? 'fuel'
-      : 'appliance'
+  //application details extraction
+  const application = {
+    type:
+      messageBody.formSlug ===
+      'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
+        ? 'fuel'
+        : 'appliance',
+    referenceNumber: messageBody.referenceNumber,
+    submittedDate: messageBody.timestamp,
+    appliances: []
+  }
 
-  if (type === 'fuel') {
+  if (application.type === 'fuel') {
     const mappedPayload = mapKeys(messageBody.data.main, 'fuel')
+    application.appliances = mappedPayload
     await ingestSqsMessageViaRoute(server, message, mappedPayload) //save raw payload (message.body) and mapped payload to the SQS messages collection
-    //NEEDTO: possibly to get the reference number out so that i can use it as an id in the sqs messages collection?
-    await createFuelRecordViaRoute(server, mappedPayload)
+    //NEEDTO: for ingestSQSMessage - get the reference number out so that i can use it as an id in the sqs messages collection?
+    await createFuelRecordViaRoute(server, application)
   } else {
     const mappedData = splitRepeaterJson(messageBody.data)
     mappedData.forEach(async (item) => {
       const mappedPayload = mapKeys(item, 'appliance')
       await ingestSqsMessageViaRoute(
         server,
-        message.id,
+        message.MessageId,
         message.Body.data,
         messageBody.data,
         mappedPayload
       )
-      await createApplianceRecordViaRoute(server, mappedPayload)
+      application.appliances = mappedPayload
+      await createApplianceRecordViaRoute(server, application, mappedPayload)
     })
   }
 }

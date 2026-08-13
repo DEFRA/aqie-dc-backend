@@ -22,18 +22,12 @@ const keyMapAppliance = {
 
   LkASfn: 'applianceType',
 
-  xlcDZp: 'isVariant', // variant yes/no
   mVqdEy: 'isVariant',
 
   GFREno: 'existingAuthorisedAppliance',
   jxCIYY: 'nominalOutput',
-  Ltjqls: 'allowedFuels',
-  NGfXVf: 'otherFuelDetails', //schema change needed
-
-  tBhcJV: 'instructionManualTitle',
-  PebAxQ: 'instructionManualDate',
-  ZvUEHQ: 'instructionManualVersion',
-  DiJXuZ: 'instructionManualAdditionalInfo',
+  Ltjqls: 'multifuelAppliance',
+  NGfXVf: 'allowedFuels',
 
   tiRhSf: 'declaration',
 
@@ -96,17 +90,23 @@ export function mapKeys(input, type) {
 
     if (mappedKey) {
       // If value is an object (but not null or array), recursively map it
+
       if (
         typeof value === 'object' &&
         value !== null &&
         !Array.isArray(value)
       ) {
-        result[mappedKey] = mapKeys(value, type)
+        const mappedValue = mapKeys(value, type)
+
+        if (mappedKey === 'addressObject') {
+          Object.assign(result, mappedValue)
+        } else {
+          result[mappedKey] = mappedValue
+        }
       } else {
         result[mappedKey] = value
       }
     }
-    // keys mapped to null or missing are skipped
   }
 
   return result
