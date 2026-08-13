@@ -77,7 +77,7 @@ export const main = async (server, queueUrl, abortSignal) => {
     // -------------------------------
     for (const message of Messages) {
       try {
-        await createNewRecord(message, server)
+        await createNewApplicationRecord(message, server)
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)
         logger.error(err)
@@ -104,8 +104,7 @@ export const main = async (server, queueUrl, abortSignal) => {
     logger.error('SQS error:', err)
   }
 }
-//will the loop that is in will it keep going if one of the messages fails? i think it will, but i need to test it. i think it will just log the error and continue to the next message. i need to make sure that the delete batch command is only called for the messages that were successfully processed. i think it will be, because the delete batch command is outside of the loop. i need to make sure that the delete batch command is only called for the messages that were successfully processed. i think it will be, because the delete batch command is outside of the loop.
-const createNewRecord = async (message, server) => {
+const createNewApplicationRecord = async (message, server) => {
   let messageBody
   try {
     // Validate JSON before processing
