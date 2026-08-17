@@ -84,7 +84,7 @@ describe('applianceSchema - companyPhone', () => {
     expect(error).toBeUndefined()
     expect(value.technicalApproval).toBe('pending')
   })
-  
+
   test('approvalField omitted -> defaults to Uncertified', () => {
     const { walesApproval, ...payload } = { ...applianceBasePayload }
     const { value, error } = applianceSchema.validate(payload)
