@@ -130,8 +130,8 @@ export const applianceSchema = Joi.object({
   technicalApproval: Joi.string()
     .allow('', null)
     .empty(['', null])
-    .default('pending')
-    .valid('pending', 'in_progress', 'accepted', 'rejected')
+    .default('new')
+    .valid('new', 'in_review', 'accepted', 'rejected')
     .optional(), //needs to be an optional field to allow it to be omitted and default to pending
   ratedOutput: Joi.number().optional().description('Rated Output'),
   testedOutputRated: Joi.number()
@@ -335,7 +335,12 @@ export const fuelSchema = Joi.object({
   submittedBy: Joi.string().optional().description('Submitted by'),
   publishedDate: Joi.date().optional().description('Published date'),
   submittedDate: Joi.date().optional().description('Submitted date'),
-  technicalApproval: approvalField.description('Technical approval'),
+  technicalApproval: Joi.string()
+    .allow('', null)
+    .empty(['', null])
+    .default('new')
+    .valid('new', 'in_review', 'accepted', 'rejected')
+    .optional(), //needs to be an optional field to allow it to be omitted and default to pending
   englandApproval: approvalField.description('England approval status'),
   scotlandApproval: approvalField.description('Scotland approval status'),
   walesApproval: approvalField.description('Wales approval status'),
