@@ -11,54 +11,64 @@ describe('applianceSchema - companyPhone', () => {
     ...applianceExample,
     companyPhone: undefined
   }
-  test('valid phone with country code -> normalizes to E164', () => {
-    const payload = {
-      ...applianceBasePayload,
-      companyPhone: '+44 7405 123456'
-    }
-    const { value, error } = applianceSchema.validate(payload)
-    expect(error).toBeUndefined()
-    expect(value.companyPhone).toBe('+44 7405 123456') // Returns the formatted phone
-    expect(value.companyPhone).not.toBe('invalid')
-  })
+
   test('optional phone -> undefined or null passes', () => {
     const payload = { ...applianceBasePayload }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
     expect(value.companyPhone).toBeUndefined()
   })
-  test('invalid phone (try/catch) -> error', () => {
+
+  test('valid phone string passes', () => {
+    const payload = {
+      ...applianceBasePayload,
+      companyPhone: '07405123456'
+    }
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.companyPhone).toBe('07405123456')
+  })
+
+  test('optional phone -> undefined passes', () => {
+    const payload = { ...applianceBasePayload }
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.companyPhone).toBeUndefined()
+  })
+
+  test('non-phone string returns error', () => {
     const payload = {
       ...applianceBasePayload,
       companyPhone: 'not-a-phone'
     }
+
     const { error } = applianceSchema.validate(payload)
+
     expect(error).toBeDefined()
-    expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
-  })
-  test('invalid phone format (parse fails) -> catch block', () => {
-    const payload = {
-      ...applianceBasePayload,
-      companyPhone: '!!!invalid!!!'
-    }
-    const { error } = applianceSchema.validate(payload)
-    expect(error).toBeDefined()
-    expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
-  })
-  test('phone parses but is not valid (isValidNumber returns false)', () => {
-    // This number parses but is not a valid phone number
-    // e.g., +44 1234 is not a valid UK number
-    const payload = { ...applianceBasePayload, companyPhone: '+44 1234' }
-    const { error } = applianceSchema.validate(payload)
-    expect(error).toBeDefined()
-    expect(error.details[0].message).toContain(TEST_INVALID_PHONE_MSG)
+    expect(error.details[0].type).toBe('string.pattern.base')
   })
 
-  test('approvalField empty string -> defaults to pending', () => {
-    const payload = { ...applianceBasePayload, technicalApproval: '' }
+  test('phone longer than 11 digits -> error', () => {
+    const payload = {
+      ...applianceBasePayload,
+      companyPhone: '+123456789012'
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].type).toBe('string.pattern.base')
+  })
+
+  test('approvalField empty string -> defaults to Uncertified', () => {
+    const payload = { ...applianceBasePayload, walesApproval: '' }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
-    expect(value.technicalApproval).toBe('pending')
+    expect(value.walesApproval).toBe('Uncertified')
   })
 
   test('approvalField null -> defaults to Uncertified', () => {
@@ -68,11 +78,18 @@ describe('applianceSchema - companyPhone', () => {
     expect(value.walesApproval).toBe('Uncertified')
   })
 
-  test('approvalField omitted -> defaults to pending', () => {
+  test('technical approval field omitted -> defaults to pending', () => {
     const { technicalApproval, ...payload } = { ...applianceBasePayload }
     const { value, error } = applianceSchema.validate(payload)
     expect(error).toBeUndefined()
     expect(value.technicalApproval).toBe('pending')
+  })
+  
+  test('approvalField omitted -> defaults to Uncertified', () => {
+    const { walesApproval, ...payload } = { ...applianceBasePayload }
+    const { value, error } = applianceSchema.validate(payload)
+    expect(error).toBeUndefined()
+    expect(value.walesApproval).toBe('Uncertified')
   })
 
   test('approvalField invalid value -> validation error', () => {
@@ -118,6 +135,7 @@ describe('applianceSchema - companyPhone', () => {
     expect(error.details[0].path).toContain('companyAddressPostcode')
   })
 })
+
 // Fuel schema tests - similar to appliance but with fuel-specific required fields
 describe('applicationsSchema - reviewer', () => {
   test('reviewer object is accepted', () => {

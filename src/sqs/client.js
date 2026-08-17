@@ -15,7 +15,6 @@ import {
   createApplianceRecordViaRoute,
   createFuelRecordViaRoute
 } from './dispatcher.js'
-import { exampleA } from './example.js'
 
 const logger = createLogger()
 
@@ -62,13 +61,6 @@ const receiveMessage = (queueUrl, abortSignal) =>
 // -------------------------------
 export const main = async (server, queueUrl, abortSignal) => {
   try {
-    //This is for exploring mapping - delete later
-    if (process.env.ENVIRONMENT === 'local') {
-      await createNewRecord(exampleA, server)
-      console.log(exampleA)
-    }
-    //end of exploring mapping - delete later
-
     if (!queueUrl) {
       queueUrl = await getQueueUrl() // ★ Correct queue URL
     }
@@ -85,7 +77,7 @@ export const main = async (server, queueUrl, abortSignal) => {
     // -------------------------------
     for (const message of Messages) {
       try {
-        await createNewRecord(message, server)
+        await createNewApplicationRecord(message, server)
       } catch (err) {
         logger.error('API call failed. MessageId:', message.MessageId)
         logger.error(err)
@@ -112,8 +104,7 @@ export const main = async (server, queueUrl, abortSignal) => {
     logger.error('SQS error:', err)
   }
 }
-//will the loop that is in will it keep going if one of the messages fails? i think it will, but i need to test it. i think it will just log the error and continue to the next message. i need to make sure that the delete batch command is only called for the messages that were successfully processed. i think it will be, because the delete batch command is outside of the loop. i need to make sure that the delete batch command is only called for the messages that were successfully processed. i think it will be, because the delete batch command is outside of the loop.
-const createNewRecord = async (message, server) => {
+const createNewApplicationRecord = async (message, server) => {
   let messageBody
   try {
     // Validate JSON before processing
@@ -123,23 +114,45 @@ const createNewRecord = async (message, server) => {
     logger.error(message.Body)
     return //need to continue the loop
   }
-  const type =
-    messageBody.formSlug ===
-    'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
-      ? 'fuel'
-      : 'appliance'
+  //application details extraction
+  const application = {
+    type:
+      messageBody.meta.formSlug ===
+      'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
+        ? 'fuel'
+        : 'appliance',
+    referenceNumber: messageBody.meta.referenceNumber,
+    submittedDate: messageBody.meta.timestamp,
+    appliances: []
+  }
 
-  if (type === 'fuel') {
-    const mappedPayload = mapKeys(messageBody.data.main, 'fuel')
-    await createFuelRecordViaRoute(server, mappedPayload)
-    await ingestSqsMessageViaRoute(server, message, mappedPayload) //save raw payload (message.body) and mapped payload to the SQS messages collection
-    //NEEDTO: possibly to get the reference number out so that i can use it as an id in the sqs messages collection?
+  if (application.type === 'fuel') {
+    const mappedFuelData = mapKeys(messageBody.data.main, 'fuel')
+    application.appliances.push(mappedFuelData) //should be application.items.push
+    const applicationPayload = JSON.stringify(application)
+    await ingestSqsMessageViaRoute(
+      server,
+      message.MessageId,
+      message.Body.data,
+      messageBody.data,
+      applicationPayload
+    ) //reference number instead of messageId?
+    await createFuelRecordViaRoute(server, applicationPayload)
   } else {
-    const mappedData = splitRepeaterJson(messageBody.data)
-    mappedData.forEach(async (item) => {
-      const mappedPayload = mapKeys(item, 'appliance')
-      await createApplianceRecordViaRoute(server, mappedPayload)
-      await ingestSqsMessageViaRoute(server, message, mappedPayload)
+    const repeaters = splitRepeaterJson(messageBody.data)
+    repeaters.forEach((repeater) => {
+      const mappedAppliance = mapKeys(repeater, 'appliance')
+      application.appliances.push(mappedAppliance)
     })
+    const applicationPayload = JSON.stringify(application)
+    await createApplianceRecordViaRoute(server, applicationPayload)
+    logger.info('Creating Appliance Application Record')
+    await ingestSqsMessageViaRoute(
+      server,
+      message.MessageId,
+      message.Body,
+      messageBody.data,
+      applicationPayload
+    )
   }
 }
