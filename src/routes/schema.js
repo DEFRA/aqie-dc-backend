@@ -119,20 +119,27 @@ export const applianceSchema = Joi.object({
   instructionManualAdditionalInfo: Joi.string()
     .optional()
     .description('Instruction manual additional information'),
-  legacyRecord: Joi.boolean()
-    .default(false)
-    .description(
-      'Records that have been migrated to the DB are deemed as legacy records'
-    ),
-  submittedBy: Joi.string().optional().description('Submitted by'),
-  submittedDate: Joi.date().optional().description('Submitted date'),
-  publishedDate: Joi.date().optional().description('Published date'),
-  technicalApproval: Joi.string()
-    .allow('', null)
-    .empty(['', null])
-    .default('new')
-    .valid('new', 'in_review', 'accepted', 'rejected')
-    .optional(), //needs to be an optional field to allow it to be omitted and default to pending
+  technicalReview: Joi.object({
+    status: Joi.string()
+      .allow('', null)
+      .empty(['', null])
+      .default('new')
+      .valid('new', 'in_review', 'accepted', 'rejected')
+      .optional(), //needs to be an optional field to allow it to be omitted and default to pending
+    reviewer: Joi.object({
+      name: Joi.string()
+        .optional()
+        .description('Name of the technical reviewer'),
+      email: Joi.string()
+        .optional()
+        .description('Email of the technical reviewer')
+    }),
+    updatedAt: Joi.date()
+      .optional()
+      .description('Date technical review status changed')
+  }).description(
+    'This technical review happens during the application stage, compromises of several checks including test reports, comformity mark etc.'
+  ),
   ratedOutput: Joi.number().optional().description('Rated Output'),
   testedOutputRated: Joi.number()
     .optional()
@@ -335,12 +342,27 @@ export const fuelSchema = Joi.object({
   submittedBy: Joi.string().optional().description('Submitted by'),
   publishedDate: Joi.date().optional().description('Published date'),
   submittedDate: Joi.date().optional().description('Submitted date'),
-  technicalApproval: Joi.string()
-    .allow('', null)
-    .empty(['', null])
-    .default('new')
-    .valid('new', 'in_review', 'accepted', 'rejected')
-    .optional(), //needs to be an optional field to allow it to be omitted and default to pending
+  technicalReview: Joi.object({
+    status: Joi.string()
+      .allow('', null)
+      .empty(['', null])
+      .default('new')
+      .valid('new', 'in_review', 'accepted', 'rejected')
+      .optional(), //needs to be an optional field to allow it to be omitted and default to pending
+    reviewer: Joi.object({
+      name: Joi.string()
+        .optional()
+        .description('Name of the technical reviewer'),
+      email: Joi.string()
+        .optional()
+        .description('Email of the technical reviewer')
+    }),
+    updatedAt: Joi.date()
+      .optional()
+      .description('Date technical review status changed')
+  }).description(
+    'This technical review happens during the application stage, compromises of several checks including test reports, comformity mark etc.'
+  ),
   englandApproval: approvalField.description('England approval status'),
   scotlandApproval: approvalField.description('Scotland approval status'),
   walesApproval: approvalField.description('Wales approval status'),

@@ -33,7 +33,9 @@ export default {
   submittedBy: 'John Doe',
   submittedDate: '2026-02-02',
   publishedDate: '2026-02-11',
-  technicalApproval: 'pending',
+  technicalReview: {
+    status: 'accepted'
+  },
   ratedOutput: 10,
   testedOutputRated: 10.5,
   testedOutputLow: 5.2,

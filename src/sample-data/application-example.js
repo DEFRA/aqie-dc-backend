@@ -45,7 +45,6 @@ export default {
       declaration: true,
       // NOTE: Certification fields (optional) - Added for testing/demo purposes
       // In real workflows, these are populated later in the approval process
-      technicalApproval: 'pending',
       englandApproval: 'Certified',
       scotlandApproval: 'Certified',
       walesApproval: 'Certified',
@@ -76,7 +75,9 @@ export default {
       declaration: true,
       // NOTE: Certification fields (optional) - Added for testing/demo purposes
       // In real workflows, these are populated later in the approval process
-      technicalApproval: 'pending',
+      technicalReview: {
+        status: 'new'
+      },
       englandApproval: 'Certified',
       scotlandApproval: 'Certified',
       walesApproval: 'Revoked',

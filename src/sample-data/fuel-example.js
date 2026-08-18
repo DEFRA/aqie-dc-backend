@@ -34,7 +34,9 @@ export default {
   submittedBy: 'Fuel Person',
   submittedDate: '2026-02-02',
   publishedDate: '2026-02-11',
-  technicalApproval: 'Certified',
+  technicalReview: {
+    status: 'accepted'
+  },
   englandApproval: 'Certified',
   scotlandApproval: 'Certified',
   walesApproval: 'Certified',
