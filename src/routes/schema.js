@@ -23,7 +23,7 @@ export const applianceSchema = Joi.object({
     .description('Company address for overseas/non-UK-based companies'),
   companyAddress: Joi.object({
     line1: Joi.string()
-      .when('isUkBased', {
+      .when(Joi.ref('/isUkBased'), {
         is: true,
         then: Joi.string().required(),
         otherwise: Joi.string().optional()
@@ -31,7 +31,7 @@ export const applianceSchema = Joi.object({
       .description('Company address line 1'),
     line2: Joi.string().optional().description('Company address line 2'),
     city: Joi.string()
-      .when('isUkBased', {
+      .when(Joi.ref('/isUkBased'), {
         is: true,
         then: Joi.string().required(),
         otherwise: Joi.string().optional()
@@ -39,7 +39,7 @@ export const applianceSchema = Joi.object({
       .description('Company city'),
     county: Joi.string().optional().description('Company county'),
     postcode: Joi.string()
-      .when('isUkBased', {
+      .when(Joi.ref('/isUkBased'), {
         is: true,
         then: Joi.string().required(),
         otherwise: Joi.string().optional()
@@ -179,7 +179,7 @@ export const fuelSchema = Joi.object({
     .description('Manufacturer address for overseas/non-UK-based companies'),
   companyAddress: Joi.object({
     line1: Joi.string()
-      .when('isUkBased', {
+      .when(Joi.ref('/isUkBased'), {
         is: true,
         then: Joi.string().required(),
         otherwise: Joi.string().optional()
@@ -187,7 +187,7 @@ export const fuelSchema = Joi.object({
       .description('Company address line 1'),
     line2: Joi.string().optional().description('Company address line 2'),
     city: Joi.string()
-      .when('isUkBased', {
+      .when(Joi.ref('/isUkBased'), {
         is: true,
         then: Joi.string().required(),
         otherwise: Joi.string().optional()
@@ -195,7 +195,7 @@ export const fuelSchema = Joi.object({
       .description('Company city'),
     county: Joi.string().optional().description('Company county'),
     postcode: Joi.string()
-      .when('isUkBased', {
+      .when(Joi.ref('/isUkBased'), {
         is: true,
         then: Joi.string().required(),
         otherwise: Joi.string().optional()

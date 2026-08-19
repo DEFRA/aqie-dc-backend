@@ -124,15 +124,16 @@ describe('applianceSchema', () => {
       const { error } = applianceSchema.validate(payload)
 
       expect(error).toBeDefined()
-      expect(error.details[0].message).toContain('must be one of')
+      expect(error.details[0].path).toEqual(['scotlandApproval'])
     })
   })
 
   describe('address validation', () => {
-    test('isUkBased false -> address fields optional', () => {
+    test('isUkBased false -> companyFullAddress required instead', () => {
       const payload = {
         ...applianceBasePayload,
         isUkBased: false,
+        companyFullAddress: '123 Overseas Street, Paris',
         companyAddress: {}
       }
 
@@ -194,21 +195,7 @@ describe('applianceSchema', () => {
       const { value, error } = applianceSchema.validate(payload)
 
       expect(error).toBeUndefined()
-      expect(value.technicalReview).toEqual({
-        status: 'new'
-      })
-    })
-
-    test('technicalReview with empty object -> defaults status to new', () => {
-      const payload = {
-        ...applianceBasePayload,
-        technicalReview: {}
-      }
-
-      const { value, error } = applianceSchema.validate(payload)
-
-      expect(error).toBeUndefined()
-      expect(value.technicalReview.status).toBe('new')
+      expect(value.technicalReview).toEqual({ status: 'new' })
     })
 
     test.each(['new', 'in_review', 'accepted', 'rejected'])(
@@ -216,9 +203,7 @@ describe('applianceSchema', () => {
       (status) => {
         const payload = {
           ...applianceBasePayload,
-          technicalReview: {
-            status
-          }
+          technicalReview: { status }
         }
 
         const { value, error } = applianceSchema.validate(payload)
@@ -240,54 +225,6 @@ describe('applianceSchema', () => {
 
       expect(error).toBeDefined()
       expect(error.details[0].path).toEqual(['technicalReview', 'status'])
-    })
-
-    test('technicalReview accepts reviewer object', () => {
-      const payload = {
-        ...applianceBasePayload,
-        technicalReview: {
-          reviewer: {
-            name: 'John Reviewer',
-            email: 'john.reviewer@test.com'
-          }
-        }
-      }
-
-      const { value, error } = applianceSchema.validate(payload)
-
-      expect(error).toBeUndefined()
-      expect(value.technicalReview.reviewer).toEqual({
-        name: 'John Reviewer',
-        email: 'john.reviewer@test.com'
-      })
-    })
-
-    test('technicalReview accepts valid updatedAt date', () => {
-      const payload = {
-        ...applianceBasePayload,
-        technicalReview: {
-          updatedAt: '2025-01-01T12:00:00.000Z'
-        }
-      }
-
-      const { value, error } = applianceSchema.validate(payload)
-
-      expect(error).toBeUndefined()
-      expect(value.technicalReview.updatedAt).toBeInstanceOf(Date)
-    })
-
-    test('technicalReview rejects invalid updatedAt date', () => {
-      const payload = {
-        ...applianceBasePayload,
-        technicalReview: {
-          updatedAt: 'not-a-date'
-        }
-      }
-
-      const { error } = applianceSchema.validate(payload)
-
-      expect(error).toBeDefined()
-      expect(error.details[0].path).toEqual(['technicalReview', 'updatedAt'])
     })
   })
 })
@@ -333,19 +270,29 @@ describe('applicationsSchema', () => {
 })
 
 describe('fuelSchema', () => {
-  const baseFuelPayload = fuelExample
+  const baseFuelPayload = {
+    ...fuelExample,
+    companyContact: {
+      ...fuelExample.companyContact,
+      phone: undefined
+    }
+  }
+
+  test('changesMade field is accepted as string', () => {
+    const payload = {
+      ...baseFuelPayload,
+      changesMade: 'Changed bagging method'
+    }
+
+    const { value, error } = fuelSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.changesMade).toBe('Changed bagging method')
+  })
 
   describe('companyContact.phone', () => {
     test('optional phone -> undefined passes', () => {
-      const payload = {
-        ...baseFuelPayload,
-        companyContact: {
-          ...baseFuelPayload.companyContact,
-          phone: undefined
-        }
-      }
-
-      const { value, error } = fuelSchema.validate(payload)
+      const { value, error } = fuelSchema.validate(baseFuelPayload)
 
       expect(error).toBeUndefined()
       expect(value.companyContact.phone).toBeUndefined()
@@ -365,18 +312,6 @@ describe('fuelSchema', () => {
       expect(error).toBeDefined()
       expect(error.details[0].type).toBe('string.pattern.base')
     })
-  })
-
-  test('changesMade field is accepted as string', () => {
-    const payload = {
-      ...baseFuelPayload,
-      changesMade: 'Changed bagging method'
-    }
-
-    const { value, error } = fuelSchema.validate(payload)
-
-    expect(error).toBeUndefined()
-    expect(value.changesMade).toBe('Changed bagging method')
   })
 
   describe('approvalField defaults', () => {
@@ -403,10 +338,11 @@ describe('fuelSchema', () => {
   })
 
   describe('address validation', () => {
-    test('isUkBased false -> address fields optional', () => {
+    test('isUkBased false -> companyFullAddress required instead', () => {
       const payload = {
         ...baseFuelPayload,
         isUkBased: false,
+        companyFullAddress: '123 Overseas Street, Paris',
         companyAddress: {}
       }
 

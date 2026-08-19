@@ -13,7 +13,7 @@ export default {
     name: 'Fuel Person',
     email: 'fuel@co.com',
     alternativeEmail: 'alt@co.com',
-    phone: '+447537328906'
+    phone: '+44753732896'
   },
   responsibleName: 'Rep Name',
   responsibleEmailAddress: 'rep@co.com',

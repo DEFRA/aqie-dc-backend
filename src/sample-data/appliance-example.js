@@ -9,7 +9,7 @@ export default {
   companyContact: {
     name: 'John Doe',
     email: 'john@acme.com',
-    alternateEmail: 'alt@acme.com',
+    alternativeEmail: 'alt@acme.com',
     phone: '+44753732890'
   },
   isUkBased: true,
