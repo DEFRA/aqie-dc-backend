@@ -15,9 +15,7 @@ describe('applianceSchema', () => {
 
   describe('companyContact.phone', () => {
     test('optional phone -> undefined passes', () => {
-      const { value, error } = applianceSchema.validate(
-        applianceBasePayload
-      )
+      const { value, error } = applianceSchema.validate(applianceBasePayload)
 
       expect(error).toBeUndefined()
       expect(value.companyContact.phone).toBeUndefined()
