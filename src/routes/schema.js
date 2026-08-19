@@ -1,7 +1,4 @@
 import Joi from 'joi'
-import pkg from 'google-libphonenumber'
-const { PhoneNumberUtil } = pkg
-const phoneUtil = PhoneNumberUtil.getInstance()
 
 const approvalField = Joi.string()
   .allow('', null)
@@ -9,8 +6,6 @@ const approvalField = Joi.string()
   .default('Uncertified')
   .valid('Certified', 'Revoked', 'Uncertified')
   .optional() //needs to be an optional field to allow it to be omitted and default to Uncertified
-
-const INVALID_PHONE_ERROR = 'any.invalid'
 
 export const applianceSchema = Joi.object({
   applicationId: Joi.string()
@@ -339,9 +334,11 @@ export const fuelSchema = Joi.object({
     updatedAt: Joi.date()
       .optional()
       .description('Date technical review status changed')
-  }).description(
-    'This technical review happens during the application stage, compromises of several checks including test reports, comformity mark etc.'
-  ),
+  })
+    .default(() => ({ status: 'new' }))
+    .description(
+      'This technical review happens during the application stage, compromises of several checks including test reports, comformity mark etc.'
+    ),
   englandApproval: approvalField.description('England approval status'),
   scotlandApproval: approvalField.description('Scotland approval status'),
   walesApproval: approvalField.description('Wales approval status'),

@@ -1,5 +1,5 @@
 /**
- * Get application summary by ID (returns appliance names and technical approval status)
+ * Get application summary by ID (returns appliance names and technical review status)
  */
 
 import Boom from '@hapi/boom'
@@ -13,7 +13,7 @@ export const getApplicationSummary = {
   options: {
     tags: ['api', 'applications'],
     description:
-      'Get summary of a particular application by application ID with appliance or fuel names and technical approval status',
+      'Get summary of a particular application by application ID with appliance or fuel names and technical review status',
     validate: {
       params: Joi.object({
         applicationId: Joi.string()

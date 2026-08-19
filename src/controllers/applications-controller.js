@@ -456,7 +456,7 @@ async function getApplicationsWithSummary(
 }
 
 /**
- * Get application with linked items (appliances or fuels) summary (technical approval status and name only) by application ID
+ * Get application with linked items (appliances or fuels) summary (technical review status and name only) by application ID
  * @param {Db} db - MongoDB database instance
  * @param {string} applicationId - Application ID to fetch summary for
  * @param {string} type - Type of associated items to fetch summary for ('appliance' | 'fuel')
@@ -493,36 +493,25 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
     }
 
     // Fetch address from just one linked item - as they all have the same address
-    const applicationAddress = await db.collection(collectionName).findOne(
+    const companyDetails = await db.collection(collectionName).findOne(
       { applicationId },
       {
         projection: {
+          companyName: 1,
+          companyFullAddress: 1,
           companyAddress: 1,
-          companyAddressLine1: 1,
-          companyAddressLine2: 1,
-          companyAddressCity: 1,
-          companyAddressCounty: 1,
-          companyAddressPostcode: 1,
+          companyContact: 1,
           _id: 0
         }
       }
     )
-
-    const companyAddress = {
-      full: applicationAddress?.companyAddress || null,
-      line1: applicationAddress?.companyAddressLine1 || null,
-      line2: applicationAddress?.companyAddressLine2 || null,
-      city: applicationAddress?.companyAddressCity || null,
-      county: applicationAddress?.companyAddressCounty || null,
-      postcode: applicationAddress?.companyAddressPostcode || null
-    }
 
     // Fetch summary of linked items (only name and technicalApproval)
     const linkedItems = await db
       .collection(collectionName)
       .find(
         { applicationId },
-        { projection: { modelName: 1, technicalApproval: 1, _id: 0 } }
+        { projection: { modelName: 1, 'technicalReview.status': 1, _id: 0 } }
       )
       .toArray()
 
@@ -531,8 +520,11 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       message: 'Application summary retrieved successfully',
       data: {
         id: application.id,
-        companyAddress,
-        linkedItems // Contains item name and technicalApproval }
+        companyName: companyDetails?.companyName,
+        companyFullAddress: companyDetails?.companyFullAddress || null,
+        companyAddress: companyDetails?.companyAddress || null,
+        companyContact: companyDetails?.companyContact,
+        linkedItems // Contains item name and technicalReview
       }
     }
   } catch (error) {
