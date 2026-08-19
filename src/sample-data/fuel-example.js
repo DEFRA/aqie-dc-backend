@@ -2,16 +2,19 @@
 export default {
   companyName: 'FuelCo',
   isUkBased: true,
-  companyAddress: 'Some address',
-  companyAddressLine1: '789 Industrial Estate',
-  companyAddressLine2: 'Building C',
-  companyAddressCity: 'Manchester',
-  companyAddressCounty: 'Greater Manchester',
-  companyAddressPostcode: 'M1 3CD',
-  companyContactName: 'Fuel Person',
-  companyContactEmail: 'fuel@co.com',
-  companyAlternateEmail: 'alt@co.com',
-  companyPhone: '+447537328906',
+  companyAddress: {
+    line1: '789 Industrial Estate',
+    line2: 'Building C',
+    city: 'Manchester',
+    county: 'Greater Manchester',
+    postcode: 'M1 3CD'
+  },
+  companyContact: {
+    name: 'Fuel Person',
+    email: 'fuel@co.com',
+    alternativeEmail: 'alt@co.com',
+    phone: '+447537328906'
+  },
   responsibleName: 'Rep Name',
   responsibleEmailAddress: 'rep@co.com',
   customerComplaints: false,

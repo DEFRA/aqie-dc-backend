@@ -27,14 +27,14 @@ export const applianceSchema = Joi.object({
     })
     .description('Company address for overseas/non-UK-based companies'),
   companyAddress: Joi.object({
-    addressLine1: Joi.string()
+    line1: Joi.string()
       .when('isUkBased', {
         is: true,
         then: Joi.string().required(),
         otherwise: Joi.string().optional()
       })
       .description('Company address line 1'),
-    addressLine2: Joi.string().optional().description('Company address line 2'),
+    line2: Joi.string().optional().description('Company address line 2'),
     city: Joi.string()
       .when('isUkBased', {
         is: true,
@@ -127,9 +127,11 @@ export const applianceSchema = Joi.object({
     updatedAt: Joi.date()
       .optional()
       .description('Date technical review status changed')
-  }).description(
-    'This technical review happens during the application stage, compromises of several checks including test reports, comformity mark etc.'
-  ),
+  })
+    .default(() => ({ status: 'new' }))
+    .description(
+      'This technical review happens during the application stage, compromises of several checks including test reports, comformity mark etc.'
+    ),
   ratedOutput: Joi.number().optional().description('Rated Output'),
   testedOutputRated: Joi.number()
     .optional()
@@ -181,14 +183,14 @@ export const fuelSchema = Joi.object({
     })
     .description('Manufacturer address for overseas/non-UK-based companies'),
   companyAddress: Joi.object({
-    addressLine1: Joi.string()
+    line1: Joi.string()
       .when('isUkBased', {
         is: true,
         then: Joi.string().required(),
         otherwise: Joi.string().optional()
       })
       .description('Company address line 1'),
-    addressLine2: Joi.string().optional().description('Company address line 2'),
+    line2: Joi.string().optional().description('Company address line 2'),
     city: Joi.string()
       .when('isUkBased', {
         is: true,
