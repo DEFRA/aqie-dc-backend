@@ -22,7 +22,7 @@ export default {
       companyContact: {
         name: 'John Doe',
         email: 'john@acme.com',
-        alternateEmail: 'alt@acme.com',
+        alternativeEmail: 'alt@acme.com',
         phone: '+44753732890'
       },
       isUkBased: true,
@@ -44,6 +44,9 @@ export default {
       declaration: true,
       // NOTE: Certification fields (optional) - Added for testing/demo purposes
       // In real workflows, these are populated later in the approval process
+      technicalReview: {
+        status: 'new'
+      },
       instructionManualTitle: 'Manual X',
       instructionManualDate: new Date('2026-02-03'),
       instructionManualVersion: 'Version 1',
