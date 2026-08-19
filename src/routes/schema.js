@@ -51,42 +51,24 @@ export const applianceSchema = Joi.object({
       })
       .description('Company postcode')
   }),
-  companyContactName: Joi.string()
-    .required()
-    .description('Company contact name'),
-  companyContactEmail: Joi.string()
-    .required()
-    .description('Company contact email'),
-  companyAlternateEmail: Joi.string()
-    .optional()
-    .allow(null)
-    .empty(null) // allow null to be treated as missing i.e optional
-    .description('Company alternate contact email'),
-  companyPhone: Joi.string()
-    .trim()
-    .optional()
-    .allow(null)
-    .empty(null)
-    .pattern(/^\+?\d{1,11}$/),
-
-  // .custom((value, helpers) => {
-  //   try {
-  //     // If you know the user's country, pass it here (e.g., 'GB', 'US')
-  //     const number = phoneUtil.parse(value, undefined) // undefined = expects +countrycode
-  //     if (!phoneUtil.isValidNumber(number)) {
-  //       return helpers.error(INVALID_PHONE_ERROR)
-  //     }
-  //     const e164 = phoneUtil.format(number, 1) // 1 = E164
-  //     return e164
-  //   } catch {
-  //     return helpers.error(INVALID_PHONE_ERROR)
-  //   }
-  // }, 'libphonenumber validation')
-  // .messages({
-  //   [INVALID_PHONE_ERROR]: 'Invalid phone number'
-  // })
-  // .description('Validated and normalized with google-libphonenumber'),
-
+  companyContact: Joi.object({
+    name: Joi.string().required().description('Company contact name'),
+    email: Joi.string().required().description('Company contact email'),
+    alternativeEmail: Joi.string()
+      .optional()
+      .allow(null)
+      .empty(null) // allow null to be treated as missing i.e optional
+      .description('Company alternative contact email'),
+    phone: Joi.string()
+      .trim()
+      .optional()
+      .allow(null)
+      .empty(null)
+      .pattern(/^\+?\d{1,11}$/)
+      .description(
+        'Company contact phone number, accepts E.164 format (e.g., +447537328906) and up to 11 digits'
+      )
+  }),
   modelName: Joi.string().required().description('Model name'),
   modelNumber: Joi.string().optional().description('Model number'), //NEEDTO: change back to number?
   applianceType: Joi.string()
@@ -222,6 +204,24 @@ export const fuelSchema = Joi.object({
         otherwise: Joi.string().optional()
       })
       .description('Company postcode')
+  }),
+  companyContact: Joi.object({
+    name: Joi.string().required().description('Manufacturer contact name'),
+    email: Joi.string().required().description('Manufacturer contact email'),
+    alternativeEmail: Joi.string()
+      .optional()
+      .allow(null)
+      .empty(null) // allow null to be treated as missing i.e optional
+      .description('Manufacturer alternative contact email'),
+    phone: Joi.string()
+      .trim()
+      .optional()
+      .allow(null)
+      .empty(null)
+      .pattern(/^\+?\d{1,11}$/)
+      .description(
+        'Company contact phone number, accepts E.164 format (e.g., +447537328906) and up to 11 digits'
+      )
   }),
   responsibleName: Joi.string().required().description('Responsible name'),
   responsibleEmailAddress: Joi.string()
