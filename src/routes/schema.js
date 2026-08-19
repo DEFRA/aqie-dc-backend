@@ -19,38 +19,38 @@ export const applianceSchema = Joi.object({
   // Start of appliance application fields
   companyName: Joi.string().required().description('Company name'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
-  companyAddress: Joi.string()
+  companyFullAddress: Joi.string()
     .when('isUkBased', {
       is: false,
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
-    .description('Company address for non-UK-based companies'),
-  companyAddressLine1: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company address line 1'),
-  companyAddressLine2: Joi.string()
-    .optional()
-    .description('Company address line 2'),
-  companyAddressCity: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company city'),
-  companyAddressCounty: Joi.string().optional().description('Company county'),
-  companyAddressPostcode: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company postcode'),
+    .description('Company address for overseas/non-UK-based companies'),
+  companyAddress: Joi.object({
+    addressLine1: Joi.string()
+      .when('isUkBased', {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company address line 1'),
+    addressLine2: Joi.string().optional().description('Company address line 2'),
+    city: Joi.string()
+      .when('isUkBased', {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company city'),
+    county: Joi.string().optional().description('Company county'),
+    postcode: Joi.string()
+      .when('isUkBased', {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company postcode')
+  }),
   companyContactName: Joi.string()
     .required()
     .description('Company contact name'),
@@ -191,69 +191,38 @@ export const fuelSchema = Joi.object({
   // Start of fuel application fields
   companyName: Joi.string().required().description('Manufacturer'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
-  companyAddress: Joi.string()
+  companyFullAddress: Joi.string()
     .when('isUkBased', {
       is: false,
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
-    .description('Manufacturer address for overseas non-UK-based companies'),
-  companyAddressLine1: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company address line 1'),
-  companyAddressLine2: Joi.string()
-    .optional()
-    .description('Company address line 2'),
-  companyAddressCity: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company city'),
-  companyAddressCounty: Joi.string().optional().description('Company county'),
-  companyAddressPostcode: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company postcode'),
-  companyContactName: Joi.string()
-    .required()
-    .description('Manufacturer contact name'),
-  companyContactEmail: Joi.string()
-    .required()
-    .description('Manufacturer contact email'),
-  companyAlternateEmail: Joi.string()
-    .optional()
-    .allow(null)
-    .empty(null) // allow null to be treated as missing
-    .description('Manufacturer alternate email'),
-  companyPhone: Joi.string()
-    .trim()
-    .optional()
-    .custom((value, helpers) => {
-      try {
-        // If you know the user's country, pass it here (e.g., 'GB', 'US')
-        const number = phoneUtil.parse(value, undefined) // undefined = expects +countrycode
-        if (!phoneUtil.isValidNumber(number)) {
-          return helpers.error(INVALID_PHONE_ERROR)
-        }
-        const e164 = phoneUtil.format(number, 1) // 1 = E164
-        return e164
-      } catch {
-        return helpers.error(INVALID_PHONE_ERROR)
-      }
-    }, 'libphonenumber validation')
-    .messages({
-      [INVALID_PHONE_ERROR]: 'Invalid phone number'
-    })
-    .description('Validated and normalized with google-libphonenumber'),
+    .description('Manufacturer address for overseas/non-UK-based companies'),
+  companyAddress: Joi.object({
+    addressLine1: Joi.string()
+      .when('isUkBased', {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company address line 1'),
+    addressLine2: Joi.string().optional().description('Company address line 2'),
+    city: Joi.string()
+      .when('isUkBased', {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company city'),
+    county: Joi.string().optional().description('Company county'),
+    postcode: Joi.string()
+      .when('isUkBased', {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company postcode')
+  }),
   responsibleName: Joi.string().required().description('Responsible name'),
   responsibleEmailAddress: Joi.string()
     .optional()
