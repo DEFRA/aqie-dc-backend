@@ -1,94 +1,96 @@
 import Joi from 'joi'
-import pkg from 'google-libphonenumber'
-const { PhoneNumberUtil } = pkg
-const phoneUtil = PhoneNumberUtil.getInstance()
 
-const approvalField = Joi.string()
-  .allow('', null)
-  .empty(['', null])
-  .default('Uncertified')
-  .valid('Certified', 'Revoked', 'Uncertified')
-  .optional() //needs to be an optional field to allow it to be omitted and default to Uncertified
+const countryCertificationSchema = Joi.object({
+  // 1. Current State Metadata
+  status: Joi.string()
+    .valid(
+      'new', // Appliance/Item in technical review, hasn't been sent to country
+      'awaiting_decision',
+      'certified',
+      'revoked', // Previously certified, now uncertified
+      'rejected' // Denied initial certification
+    )
+    .default('new'),
+  decidedAt: Joi.date()
+    .iso()
+    .default(() => new Date()),
+  decidedBy: Joi.object({
+    name: Joi.string().optional(),
+    email: Joi.string().email().optional()
+  })
+    .allow(null)
+    .default(null),
+  // 2. Historical Milestones
+  firstCertifiedAt: Joi.date().iso().allow(null).default(null),
+  lastCertifiedAt: Joi.date().iso().allow(null).default(null)
+}).default()
 
-const INVALID_PHONE_ERROR = 'any.invalid'
-
+// ============================================================================
+// APPLIANCE SCHEMA
+// ============================================================================
 export const applianceSchema = Joi.object({
+  // Fields from DXT form input
   applicationId: Joi.string()
     .optional()
     .description('Application ID (foreign key)'),
   // Start of appliance application fields
   companyName: Joi.string().required().description('Company name'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
-  companyAddress: Joi.string()
+  companyFullAddress: Joi.string()
     .when('isUkBased', {
       is: false,
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
-    .description('Company address for non-UK-based companies'),
-  companyAddressLine1: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company address line 1'),
-  companyAddressLine2: Joi.string()
-    .optional()
-    .description('Company address line 2'),
-  companyAddressCity: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company city'),
-  companyAddressCounty: Joi.string().optional().description('Company county'),
-  companyAddressPostcode: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company postcode'),
-  companyContactName: Joi.string()
-    .required()
-    .description('Company contact name'),
-  companyContactEmail: Joi.string()
-    .required()
-    .description('Company contact email'),
-  companyAlternateEmail: Joi.string()
-    .optional()
-    .allow(null)
-    .empty(null) // allow null to be treated as missing i.e optional
-    .description('Company alternate contact email'),
-  companyPhone: Joi.string()
-    .trim()
-    .optional()
-    .allow(null)
-    .empty(null)
-    .pattern(/^\+?\d{1,11}$/),
-
-  // .custom((value, helpers) => {
-  //   try {
-  //     // If you know the user's country, pass it here (e.g., 'GB', 'US')
-  //     const number = phoneUtil.parse(value, undefined) // undefined = expects +countrycode
-  //     if (!phoneUtil.isValidNumber(number)) {
-  //       return helpers.error(INVALID_PHONE_ERROR)
-  //     }
-  //     const e164 = phoneUtil.format(number, 1) // 1 = E164
-  //     return e164
-  //   } catch {
-  //     return helpers.error(INVALID_PHONE_ERROR)
-  //   }
-  // }, 'libphonenumber validation')
-  // .messages({
-  //   [INVALID_PHONE_ERROR]: 'Invalid phone number'
-  // })
-  // .description('Validated and normalized with google-libphonenumber'),
-
+    .description('Company address for overseas/non-UK-based companies'),
+  companyAddress: Joi.object({
+    uprn: Joi.string()
+      .optional()
+      .description('Company address UPRN (Unique Property Reference Number)'),
+    line1: Joi.string()
+      .when(Joi.ref('/isUkBased'), {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company address line 1'),
+    line2: Joi.string().optional().description('Company address line 2'),
+    city: Joi.string()
+      .when(Joi.ref('/isUkBased'), {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company city'),
+    county: Joi.string().optional().description('Company county'),
+    postcode: Joi.string()
+      .when(Joi.ref('/isUkBased'), {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company postcode')
+  }),
+  companyContact: Joi.object({
+    name: Joi.string().required().description('Company contact name'),
+    email: Joi.string().required().description('Company contact email'),
+    alternativeEmail: Joi.string()
+      .optional()
+      .allow(null)
+      .empty(null) // allow null to be treated as missing i.e optional
+      .description('Company alternative contact email'),
+    phone: Joi.string()
+      .trim()
+      .optional()
+      .allow(null)
+      .empty(null)
+      .pattern(/^\+?\d{1,11}$/)
+      .description(
+        'Company contact phone number, accepts E.164 format (e.g., +447537328906) and up to 11 digits'
+      )
+  }),
   modelName: Joi.string().required().description('Model name'),
-  modelNumber: Joi.string().optional().description('Model number'), //NEEDTO: change back to number?
+  modelNumber: Joi.string().optional().description('Model number'),
   applianceType: Joi.string()
     .required()
     .description('Appliance type e.g. "heat"'),
@@ -106,65 +108,107 @@ export const applianceSchema = Joi.object({
     .required()
     .description('The fuels the appliance will be certified to burn'),
   declaration: Joi.boolean().required().description('Declaration'),
-  //End of appliance application fields
-  instructionManualTitle: Joi.string()
+  // Fields from admin FE input
+  ratedOutput: Joi.number().optional().description('Rated Output'),
+  testedOutput: Joi.object({
+    rated: Joi.number().optional().description('Tested Output - rated'),
+    low: Joi.number().optional().description('Tested Output - low')
+  }).optional(),
+  smokeEmissionOutput: Joi.object({
+    rated: Joi.number().optional().description('Smoke emission output - rated'),
+    low: Joi.number().optional().description('Smoke emission output - low')
+  }).optional(),
+  airControlModifications: Joi.string()
     .optional()
-    .description('Instruction manual title'),
-  instructionManualDate: Joi.date()
-    .optional()
-    .description('Instruction manual date'),
-  instructionManualVersion: Joi.string()
-    .optional()
-    .description('Instruction manual version'),
-  instructionManualAdditionalInfo: Joi.string()
-    .optional()
-    .description('Instruction manual additional information'),
+    .description('Air control modifications'),
+  instructionManual: Joi.object({
+    title: Joi.string().optional().description('Instruction manual title'),
+    date: Joi.date().optional().description('Instruction manual date'),
+    version: Joi.string().optional().description('Instruction manual version'),
+    additionalInfo: Joi.string()
+      .optional()
+      .description('Instruction manual additional information')
+  }).optional(),
+  //Legacy record fields (additional fields from DB migration that no longer exist in the new admin system)
+  servicingManual: Joi.object({
+    title: Joi.string().optional().description('Servicing manual title'),
+    date: Joi.date().optional().description('Servicing manual date'),
+    version: Joi.string().optional().description('Servicing manual version'),
+    additionalInfo: Joi.string()
+      .optional()
+      .description('Servicing manual additional information')
+  }).optional(),
   legacyRecord: Joi.boolean()
     .default(false)
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
     ),
-  submittedBy: Joi.string().optional().description('Submitted by'),
-  submittedDate: Joi.date().optional().description('Submitted date'),
-  publishedDate: Joi.date().optional().description('Published date'),
-  technicalApproval: approvalField.description('Technical approval'),
-  ratedOutput: Joi.number().optional().description('Rated Output'),
-  testedOutputRated: Joi.number()
-    .optional()
-    .description('Tested Output - rated'),
-  testedOutputLow: Joi.number().optional().description('Tested Output - low'),
-  smokeEmissionOutputRated: Joi.number()
-    .optional()
-    .description('Smoke emission output - rated'),
-  smokeEmissionOutputLow: Joi.number()
-    .optional()
-    .description('Smoke emission output - low'),
-  englandApproval: approvalField.description('England approval status'),
-  scotlandApproval: approvalField.description('Scotland approval status'),
-  walesApproval: approvalField.description('Wales approval status'),
-  nIrelandApproval: approvalField.description(
-    'Northern Ireland approval status'
+  legacy: Joi.object({
+    comments: Joi.string().optional().description('Legacy comments'),
+    applianceId: Joi.string().optional().description('Legacy appliance ID'),
+    applicationId: Joi.string().optional().description('Legacy application ID'),
+    linkedApplications: Joi.string()
+      .optional()
+      .description('Legacy linked applications')
+  }).optional(),
+  //Reviews/Certifications
+  technicalReview: Joi.object({
+    status: Joi.string()
+      .allow('', null)
+      .empty(['', null])
+      .default('new')
+      .valid('new', 'in_review', 'accepted', 'rejected')
+      .optional(), //needs to be an optional field to allow it to be omitted and default to pending
+    reviewer: Joi.object({
+      name: Joi.string()
+        .optional()
+        .description('Name of the technical reviewer'),
+      email: Joi.string()
+        .optional()
+        .description('Email of the technical reviewer')
+    }),
+    updatedAt: Joi.date()
+      .optional()
+      .description('Date technical review status changed'),
+    documentationReviewed: Joi.object({
+      testReports: Joi.boolean().default(false),
+      technicalDrawings: Joi.boolean().default(false),
+      conformityMark: Joi.boolean().default(false),
+      instructionManual: Joi.boolean().default(false)
+    }),
+    checksCompleted: Joi.object({
+      applianceDetails: Joi.boolean().default(false),
+      permittedFuels: Joi.boolean().default(false),
+      additionalConditions: Joi.boolean().default(false)
+    })
+  })
+    .default(() => ({ status: 'new' }))
+    .description(
+      'This technical review happens during the application stage, compromises of several checks including test reports, comformity mark etc.'
+    ),
+  englandCertification: countryCertificationSchema.description(
+    'England certification status'
   ),
-  englandApprovedBy: Joi.string().optional().description('England approved by'),
-  scotlandApprovedBy: Joi.string()
+  scotlandCertification: countryCertificationSchema.description(
+    'Scotland certification status'
+  ),
+  walesCertification: countryCertificationSchema.description(
+    'Wales certification status'
+  ),
+  nIrelandCertification: countryCertificationSchema.description(
+    'Northern Ireland certification status'
+  ),
+  // Fields for frontends
+  isVisible: Joi.boolean()
+    .default(true)
+    .description('Should this appliance be visible to the public?'),
+  // todo: need to put logic in to populate these fields
+  publishedDate: Joi.date()
     .optional()
-    .description('Scotland approved by'),
-  walesApprovedBy: Joi.string().optional().description('Wales approved by'),
-  nIrelandApprovedBy: Joi.string()
-    .optional()
-    .description('Northern Ireland approved by'),
-  englandDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('England date first authorised'),
-  scotlandDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('Scotland date first authorised'),
-  walesDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('Wales date first authorised'),
-  nIrelandDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('Northern Ireland date first authorised')
+    .description('The earliest date of certification'),
+  applianceStatus: Joi.string().description(
+    'Takes in account the technical review and country certifications, and isVisible to determine the overall status of the appliance'
+  )
 }).label('Appliance')
 
 // ============================================================================
@@ -174,69 +218,56 @@ export const fuelSchema = Joi.object({
   // Start of fuel application fields
   companyName: Joi.string().required().description('Manufacturer'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
-  companyAddress: Joi.string()
+  companyFullAddress: Joi.string()
     .when('isUkBased', {
       is: false,
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
-    .description('Manufacturer address for overseas non-UK-based companies'),
-  companyAddressLine1: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company address line 1'),
-  companyAddressLine2: Joi.string()
-    .optional()
-    .description('Company address line 2'),
-  companyAddressCity: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company city'),
-  companyAddressCounty: Joi.string().optional().description('Company county'),
-  companyAddressPostcode: Joi.string()
-    .when('isUkBased', {
-      is: true,
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Company postcode'),
-  companyContactName: Joi.string()
-    .required()
-    .description('Manufacturer contact name'),
-  companyContactEmail: Joi.string()
-    .required()
-    .description('Manufacturer contact email'),
-  companyAlternateEmail: Joi.string()
-    .optional()
-    .allow(null)
-    .empty(null) // allow null to be treated as missing
-    .description('Manufacturer alternate email'),
-  companyPhone: Joi.string()
-    .trim()
-    .optional()
-    .custom((value, helpers) => {
-      try {
-        // If you know the user's country, pass it here (e.g., 'GB', 'US')
-        const number = phoneUtil.parse(value, undefined) // undefined = expects +countrycode
-        if (!phoneUtil.isValidNumber(number)) {
-          return helpers.error(INVALID_PHONE_ERROR)
-        }
-        const e164 = phoneUtil.format(number, 1) // 1 = E164
-        return e164
-      } catch {
-        return helpers.error(INVALID_PHONE_ERROR)
-      }
-    }, 'libphonenumber validation')
-    .messages({
-      [INVALID_PHONE_ERROR]: 'Invalid phone number'
-    })
-    .description('Validated and normalized with google-libphonenumber'),
+    .description('Manufacturer address for overseas/non-UK-based companies'),
+  companyAddress: Joi.object({
+    line1: Joi.string()
+      .when(Joi.ref('/isUkBased'), {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company address line 1'),
+    line2: Joi.string().optional().description('Company address line 2'),
+    city: Joi.string()
+      .when(Joi.ref('/isUkBased'), {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company city'),
+    county: Joi.string().optional().description('Company county'),
+    postcode: Joi.string()
+      .when(Joi.ref('/isUkBased'), {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Company postcode')
+  }),
+  companyContact: Joi.object({
+    name: Joi.string().required().description('Manufacturer contact name'),
+    email: Joi.string().required().description('Manufacturer contact email'),
+    alternativeEmail: Joi.string()
+      .optional()
+      .allow(null)
+      .empty(null) // allow null to be treated as missing i.e optional
+      .description('Manufacturer alternative contact email'),
+    phone: Joi.string()
+      .trim()
+      .optional()
+      .allow(null)
+      .empty(null)
+      .pattern(/^\+?\d{1,11}$/)
+      .description(
+        'Company contact phone number, accepts E.164 format (e.g., +447537328906) and up to 11 digits'
+      )
+  }),
   responsibleName: Joi.string().required().description('Responsible name'),
   responsibleEmailAddress: Joi.string()
     .optional()
@@ -330,55 +361,48 @@ export const fuelSchema = Joi.object({
   //End of manufacturer/reseller
   declaration: Joi.boolean().required().description('Declaration'),
   // End of fuel application fields
-  submittedBy: Joi.string().optional().description('Submitted by'),
-  publishedDate: Joi.date().optional().description('Published date'),
-  submittedDate: Joi.date().optional().description('Submitted date'),
-  technicalApproval: approvalField.description('Technical approval'),
-  englandApproval: approvalField.description('England approval status'),
-  scotlandApproval: approvalField.description('Scotland approval status'),
-  walesApproval: approvalField.description('Wales approval status'),
-  nIrelandApproval: approvalField.description(
-    'Northern Ireland approval status'
-  ),
-  englandApprovedBy: Joi.string().optional().description('England approved by'),
-  scotlandApprovedBy: Joi.string()
-    .optional()
-    .description('Scotland approved by'),
-  walesApprovedBy: Joi.string().optional().description('Wales approved by'),
-  nIrelandApprovedBy: Joi.string()
-    .optional()
-    .description('Northern Ireland approved by'),
-  englandDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('England date first authorised'),
-  scotlandDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('Scotland date first authorised'),
-  walesDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('Wales date first authorised'),
-  nIrelandDateFirstAuthorised: Joi.date()
-    .optional()
-    .description('Northern Ireland date first authorised'),
-  walesDateLastUpdated: Joi.date()
-    .optional()
-    .description('Wales date last updated (last certified or revoked)'),
-  nIrelandDateLastUpdated: Joi.date()
-    .optional()
+  //Reviews/Certifications
+  technicalReview: Joi.object({
+    status: Joi.string()
+      .allow('', null)
+      .empty(['', null])
+      .default('new')
+      .valid('new', 'in_review', 'accepted', 'rejected')
+      .optional(), //needs to be an optional field to allow it to be omitted and default to pending
+    reviewer: Joi.object({
+      name: Joi.string()
+        .optional()
+        .description('Name of the technical reviewer'),
+      email: Joi.string()
+        .optional()
+        .description('Email of the technical reviewer')
+    }),
+    updatedAt: Joi.date()
+      .optional()
+      .description('Date technical review status changed')
+  })
+    .default(() => ({ status: 'new' }))
     .description(
-      'Northern Ireland date last updated (last certified or revoked)'
+      'This technical review happens during the application stage, compromises of several checks including test reports, comformity mark etc.'
     ),
-  scotlandDateLastUpdated: Joi.date()
-    .optional()
-    .description('Scotland date last updated (last certified or revoked)'),
-  englandDateLastUpdated: Joi.date()
-    .optional()
-    .description('England date last updated (last certified or revoked)'),
+  englandCertification: countryCertificationSchema.description(
+    'England certification status'
+  ),
+  scotlandCertification: countryCertificationSchema.description(
+    'Scotland certification status'
+  ),
+  walesCertification: countryCertificationSchema.description(
+    'Wales certification status'
+  ),
+  nIrelandCertification: countryCertificationSchema.description(
+    'Northern Ireland certification status'
+  ),
   legacyRecord: Joi.boolean()
     .default(false)
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
-    )
+    ),
+  publishedDate: Joi.date().optional().description('Published date')
 }).label('Fuel')
 
 // ============================================================================
@@ -392,21 +416,20 @@ export const applicationsSchema = Joi.object({
   id: Joi.string()
     .optional()
     .description('Unique application identifier (server-generated)'),
-  submittedDate: Joi.date()
+  submittedAt: Joi.date()
     .optional()
     .description(
       'When the application was submitted by a company, date comes from Defra forms'
+    ),
+  createdAt: Joi.date()
+    .optional()
+    .description(
+      'When the application was created in our system (server-generated)'
     ),
   referenceNumber: Joi.string()
     .optional()
     .description(
       'Reference number from Defra forms, keep record of it incase any issues with the forms'
-    ),
-  //do we need this:
-  createdAt: Joi.date()
-    .optional()
-    .description(
-      'When the application was created in our system (server-generated)'
     ),
   //Are the above both needed - check defra forms payload
   status: Joi.string()
@@ -414,11 +437,10 @@ export const applicationsSchema = Joi.object({
     .optional()
     .default('new')
     .description(
-      'Application status (server-generated, defaults to "new". Complete when all items (applinances/fuels) have been reviewed (approved/rejected) and the application is submitted)'
+      'Application status (server-generated, defaults to "new". Complete when all items (appliances/fuels) have been reviewed (approved/rejected) and the application is submitted)'
     ),
-  appliances: Joi.array().items(applianceSchema).optional(),
-  //needs to be changed to items: Joi.array().items(itemSchema).optional() when do fuels applications
-  //later in the applicaiton flow:
+  appliances: Joi.array().items(applianceSchema).optional(), //needs to be changed to items: Joi.array().items(itemSchema).optional() when do fuels applications
+  //later in the application flow:
   reviewer: Joi.object({
     name: Joi.string().optional().description('Name of the reviewer'),
     email: Joi.string().optional().description('Email of the reviewer')
