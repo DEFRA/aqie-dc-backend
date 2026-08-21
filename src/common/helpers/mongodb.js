@@ -49,8 +49,6 @@ async function createIndexes(db, logger) {
 
   // Setup Appliances and Fuels collections if they don't exist
   await ensureAppliancesAndFuelsCollections(db, logger)
-
-  //
 }
 
 async function ensureAppliancesAndFuelsCollections(db, logger) {
