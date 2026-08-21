@@ -167,6 +167,9 @@ export const applianceSchema = Joi.object({
     .description('Northern Ireland date first authorised')
 }).label('Appliance')
 
+// ============================================================================
+// FUEL SCHEMA
+// ============================================================================
 export const fuelSchema = Joi.object({
   // Start of fuel application fields
   companyName: Joi.string().required().description('Manufacturer'),
@@ -378,7 +381,9 @@ export const fuelSchema = Joi.object({
     )
 }).label('Fuel')
 
-//appliances application schema
+// ============================================================================
+// APPLICATION SCHEMA
+// ============================================================================
 export const applicationsSchema = Joi.object({
   type: Joi.string()
     .valid('appliance', 'fuel')
