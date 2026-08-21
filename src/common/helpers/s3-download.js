@@ -13,14 +13,39 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { config } from '../../config.js'
 
-//Get s3 key from metadata, the file will have the metadata key "encodedfilename" with value "MasterList.xlsx"
+// Initialize the S3 Client.
+// it will automatically inherit permissions from the IAM Task Role.
+const region = config.get('aws.region') //in PRTR its s3.region
+const cdpEnvironment = config.get('cdpEnvironment')
+const s3Bucket = config.get('cdpUploader.s3Bucket')
+
+// Configure S3 client based on environment
+const s3ClientConfig = {
+  region
+}
+
+// For local development, use LocalStack endpoint
+if (cdpEnvironment === 'local') {
+  s3ClientConfig.endpoint = 'http://localhost:4566'
+  s3ClientConfig.forcePathStyle = true
+}
+
+export const s3Client = new S3Client(s3ClientConfig)
+
+/**
+ * Find the S3 key from metadata by matching the object's `encodedfilename` metadata.
+ *
+ * @param {string} bucketName S3 bucket name to search
+ * @returns {Promise<string>} S3 object key that matches the metadata value `MasterList.xlsx`
+ * @throws {Error} If no object with the matching metadata is found
+ */
 export const findKeyByMetadataFilename = async (bucketName) => {
   const encodedFilename = `MasterList.xlsx`
 
   let continuationToken
 
   do {
-    const { Contents, NextContinuationToken } = await S3Client.send(
+    const { Contents, NextContinuationToken } = await s3Client.send(
       new ListObjectsV2Command({
         Bucket: bucketName,
         ContinuationToken: continuationToken
@@ -28,7 +53,7 @@ export const findKeyByMetadataFilename = async (bucketName) => {
     )
 
     for (const { Key } of Contents || []) {
-      const { Metadata } = await S3Client.send(
+      const { Metadata } = await s3Client.send(
         new HeadObjectCommand({
           Bucket: bucketName,
           Key
@@ -36,7 +61,7 @@ export const findKeyByMetadataFilename = async (bucketName) => {
       )
 
       if (Metadata?.encodedfilename === encodedFilename) {
-        return Key // ✅ found match
+        return Key
       }
     }
 
@@ -48,29 +73,11 @@ export const findKeyByMetadataFilename = async (bucketName) => {
 
 /**
  * Download file from S3 to temporary location
- * @param {string} s3Bucket S3 bucket name
- * @param {string} s3Key S3 object key
  * @param {object} logger Logger instance
  * @returns {Promise<string>} Path to downloaded file
  */
 export async function downloadFromS3(logger) {
-  const region = config.get('aws.region')
-  const cdpEnvironment = config.get('cdpEnvironment')
-  const s3Bucket = config.get('cdpUploader.s3Bucket')
   const s3Key = await findKeyByMetadataFilename(s3Bucket)
-
-  // Configure S3 client based on environment
-  const s3ClientConfig = {
-    region
-  }
-
-  // For local development, use LocalStack endpoint
-  if (cdpEnvironment === 'local') {
-    s3ClientConfig.endpoint = 'http://localhost:4566'
-    s3ClientConfig.forcePathStyle = true
-  }
-
-  const s3Client = new S3Client(s3ClientConfig)
 
   const command = new GetObjectCommand({
     Bucket: s3Bucket,
