@@ -69,10 +69,10 @@ export const getFullAddress = (item) => {
   return item.isUkBased === false
     ? filterLines(item.companyAddress)
     : filterLines(
-        item.companyAddressLine1,
-        item.companyAddressLine2,
-        item.companyAddressCity,
-        item.companyAddressCounty,
-        item.companyAddressPostcode
+        item.companyAddress.line1,
+        item.companyAddress.line2,
+        item.companyAddress.city,
+        item.companyAddress.county,
+        item.companyAddress.postcode
       )
 }

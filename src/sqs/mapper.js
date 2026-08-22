@@ -4,13 +4,13 @@ const keyMapAppliance = {
   TbMaXV: 'isUkBased',
 
   mwGItn: 'addressObject', //Address comes in this block
-  addressLine1: 'companyAddressLine1',
-  addressLine2: 'companyAddressLine2',
-  town: 'companyAddressCity',
-  county: 'companyAddressCounty',
-  postcode: 'companyAddressPostcode',
+  addressLine1: 'companyAddress.line1',
+  addressLine2: 'companyAddress.line2',
+  town: 'companyAddress.city',
+  county: 'companyAddress.county',
+  postcode: 'companyAddress.postcode',
 
-  kIndJV: 'companyAddress', // non‑UK
+  kIndJV: 'companyFullAddress', // non‑UK
 
   CfdMSm: 'companyContactName',
   gTshkc: 'companyContactEmail',
@@ -39,13 +39,13 @@ const keyMapFuel = {
   IIQWii: 'isUkBased',
 
   mwGItn: 'addressObject', //Address comes in this block
-  addressLine1: 'companyAddressLine1',
-  addressLine2: 'companyAddressLine2',
-  town: 'companyAddressCity',
-  county: 'companyAddressCounty',
-  postcode: 'companyAddressPostcode',
+  addressLine1: 'companyAddress.line1',
+  addressLine2: 'companyAddress.line2',
+  town: 'companyAddress.city',
+  county: 'companyAddress.county',
+  postcode: 'companyAddress.postcode',
 
-  uCHKMq: 'companyAddress', // non‑UK
+  uCHKMq: 'companyFullAddress', // non‑UK
 
   lhhoTX: 'companyContactName',
   zCPkvh: 'companyContactEmail',

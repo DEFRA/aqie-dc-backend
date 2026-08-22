@@ -325,8 +325,10 @@ describe('fuels-controller', () => {
         ...fuelExample,
         fuelId: 'FUEL-001',
         isUkBased: true,
-        companyAddressLine1: '789 Industrial Est',
-        companyAddressCity: 'Manchester',
+        companyAddress: {
+          line1: '789 Industrial Est',
+          city: 'Manchester'
+        },
         englandApproval: 'Certified'
       }
 

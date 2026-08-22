@@ -377,8 +377,10 @@ describe('appliances-controller', () => {
         ...applianceExample,
         applianceId: 'APP-001',
         isUkBased: true,
-        companyAddressLine1: '123 Main St',
-        companyAddressCity: 'London',
+        companyAddress: {
+          line1: '123 Main St',
+          city: 'London'
+        },
         englandApproval: 'Certified'
       }
 

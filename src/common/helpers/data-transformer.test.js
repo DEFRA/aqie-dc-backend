@@ -27,11 +27,13 @@ describe('getFullAddress', () => {
   test('returns UK address lines array', () => {
     const item = {
       isUkBased: true,
-      companyAddressLine1: ADDRESS_LINE_1,
-      companyAddressLine2: ADDRESS_LINE_2,
-      companyAddressCity: ADDRESS_CITY,
-      companyAddressCounty: ADDRESS_COUNTY,
-      companyAddressPostcode: ADDRESS_POSTCODE
+      companyAddress: {
+        line1: ADDRESS_LINE_1,
+        line2: ADDRESS_LINE_2,
+        city: ADDRESS_CITY,
+        county: ADDRESS_COUNTY,
+        postcode: ADDRESS_POSTCODE
+      }
     }
     expect(getFullAddress(item)).toEqual([
       ADDRESS_LINE_1,
@@ -45,7 +47,7 @@ describe('getFullAddress', () => {
   test('returns non-UK address as single-element array', () => {
     const item = {
       isUkBased: false,
-      companyAddress: '456 Rue de Paris, Paris, France'
+      companyFullAddress: '456 Rue de Paris, Paris, France'
     }
     expect(getFullAddress(item)).toEqual(['456 Rue de Paris, Paris, France'])
   })
@@ -53,11 +55,13 @@ describe('getFullAddress', () => {
   test('filters out empty or null address lines', () => {
     const item = {
       isUkBased: true,
-      companyAddressLine1: ADDRESS_LINE_1,
-      companyAddressLine2: '',
-      companyAddressCity: null,
-      companyAddressCounty: ADDRESS_COUNTY,
-      companyAddressPostcode: ADDRESS_POSTCODE
+      companyAddress: {
+        line1: ADDRESS_LINE_1,
+        line2: '',
+        city: null,
+        county: ADDRESS_COUNTY,
+        postcode: ADDRESS_POSTCODE
+      }
     }
     expect(getFullAddress(item)).toEqual([
       ADDRESS_LINE_1,
