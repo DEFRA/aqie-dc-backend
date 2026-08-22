@@ -6,17 +6,22 @@ export default {
   // createdAt: new Date('2026-07-01T10:00:00Z'),
   // updatedAt: new Date('2026-07-01T10:00:00Z'),
   companyName: 'ACME',
-  companyContactName: 'John Doe',
-  companyContactEmail: 'john@acme.com',
-  companyAlternateEmail: 'alt@acme.com',
-  companyPhone: '+447537328906',
+  companyContact: {
+    name: 'John Doe',
+    email: 'john@acme.com',
+    alternativeEmail: 'alt@acme.com',
+    phone: '+447537328906'
+  },
   isUkBased: true,
-  companyAddress: '123 Street',
-  companyAddressLine1: '456 Factory Road',
-  companyAddressLine2: 'Unit 7',
-  companyAddressCity: 'Birmingham',
-  companyAddressCounty: 'West Midlands',
-  companyAddressPostcode: 'B1 2AB',
+  //companyFullAddress: '456 Factory Road, Unit 7, Birmingham, West Midlands, B1 2AB',
+  companyAddress: {
+    uprn: '10012345678',
+    line1: '456 Factory Road',
+    line2: 'Unit 7',
+    city: 'Birmingham',
+    county: 'West Midlands',
+    postcode: 'B1 2AB'
+  },
   modelName: 'Model X',
   modelNumber: '123',
   applianceType: 'heat',
@@ -25,31 +30,106 @@ export default {
   nominalOutput: 10,
   multifuelAppliance: true,
   allowedFuels: 'Wood Pellets',
-  instructionManualTitle: 'Manual X',
-  instructionManualDate: '2026-02-03',
-  instructionManualVersion: 'Version 1',
-  instructionManualAdditionalInfo: 'Extra info',
   declaration: true,
-  submittedBy: 'John Doe',
-  submittedDate: '2026-02-02',
-  publishedDate: '2026-02-11',
-  technicalApproval: 'Certified',
+  // Admin Flow fields
   ratedOutput: 10,
-  testedOutputRated: 10.5,
-  testedOutputLow: 5.2,
-  smokeEmissionOutputRated: 2.3,
-  smokeEmissionOutputLow: 1.1,
-  englandApproval: 'Certified',
-  scotlandApproval: 'Certified',
-  walesApproval: 'Certified',
-  nIrelandApproval: 'Certified',
-  walesApprovedBy: 'Wales Approver',
-  nIrelandApprovedBy: 'NI Approver',
-  scotlandApprovedBy: 'Scotland Approver',
-  englandApprovedBy: 'England Approver',
-  walesDateFirstAuthorised: '2026-02-04',
-  nIrelandDateFirstAuthorised: '2026-02-05',
-  scotlandDateFirstAuthorised: '2026-02-06',
-  englandDateFirstAuthorised: '2026-02-07',
-  legacyRecord: true
+  testedOutput: {
+    rated: 10.5,
+    low: 5.2
+  },
+  smokeEmissionOutput: {
+    rated: 2.3,
+    low: 1.1
+  },
+  airControlModifications: 'Modified secondary air controls',
+  instructionManual: {
+    title: 'Manual X',
+    date: '2026-02-03',
+    version: 'Version 1',
+    additionalInfo: 'Extra info'
+  },
+  // Additional fields from DB migration
+  servicingManual: {
+    title: 'Service Manual X',
+    date: '2026-02-01',
+    version: 'Version 2',
+    additionalInfo: 'Servicing instructions'
+  },
+  legacyRecord: true,
+  legacy: {
+    comments: 'Migrated from legacy database',
+    applianceId: 'LEG-12345',
+    applicationId: 'LEG-APP-12345',
+    linkedApplications: 'LEG-APP-54321'
+  },
+  //Reviews and certifications
+  technicalReview: {
+    status: 'accepted',
+    reviewer: {
+      name: 'John Reviewer',
+      email: 'john.reviewer@example.com'
+    },
+    updatedAt: '2026-02-10',
+
+    documentationReviewed: {
+      testReports: true,
+      technicalDrawings: true,
+      conformityMark: true,
+      instructionManual: true
+    },
+
+    checksCompleted: {
+      applianceDetails: true,
+      permittedFuels: true,
+      additionalConditions: true
+    }
+  },
+
+  englandCertification: {
+    status: 'certified',
+    decidedAt: '2026-02-07T10:00:00Z',
+    decidedBy: {
+      name: 'England Approver',
+      email: 'england@example.com'
+    },
+    firstCertifiedAt: '2026-02-07',
+    lastCertifiedAt: '2026-02-15'
+  },
+
+  scotlandCertification: {
+    status: 'certified',
+    decidedAt: '2026-02-06T10:00:00Z',
+    decidedBy: {
+      name: 'Scotland Approver',
+      email: 'scotland@example.com'
+    },
+    firstCertifiedAt: '2026-02-06',
+    lastCertifiedAt: '2026-02-14'
+  },
+
+  walesCertification: {
+    status: 'certified',
+    decidedAt: '2026-02-04T10:00:00Z',
+    decidedBy: {
+      name: 'Wales Approver',
+      email: 'wales@example.com'
+    },
+    firstCertifiedAt: '2026-02-04',
+    lastCertifiedAt: '2026-02-12'
+  },
+
+  nIrelandCertification: {
+    status: 'certified',
+    decidedAt: '2026-02-05T10:00:00Z',
+    decidedBy: {
+      name: 'NI Approver',
+      email: 'ni@example.com'
+    },
+    firstCertifiedAt: '2026-02-05',
+    lastCertifiedAt: '2026-02-13'
+  },
+  // Additional fields for FE presentation
+  isVisible: true,
+  publishedDate: '2026-02-11',
+  applianceStatus: 'certified'
 }
