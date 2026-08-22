@@ -191,7 +191,7 @@ describe('PATCH /appliances/{applianceId}', () => {
       expect(error).toBeDefined()
     })
 
-    test('requires at least one update field', () => {
+    test('Rejects empty payload - requires at least one update field', () => {
       const payloadSchema = updateAppliance.options.validate.payload
       const { error } = payloadSchema.validate({})
       expect(error).toBeDefined()

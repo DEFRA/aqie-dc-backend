@@ -47,29 +47,15 @@ export const applianceSchema = Joi.object({
     uprn: Joi.string()
       .optional()
       .description('Company address UPRN (Unique Property Reference Number)'),
-    line1: Joi.string()
-      .when(Joi.ref('/isUkBased'), {
-        is: true,
-        then: Joi.string().required(),
-        otherwise: Joi.string().optional()
-      })
-      .description('Company address line 1'),
+    line1: Joi.string().required().description('Company address line 1'),
     line2: Joi.string().optional().description('Company address line 2'),
-    city: Joi.string()
-      .when(Joi.ref('/isUkBased'), {
-        is: true,
-        then: Joi.string().required(),
-        otherwise: Joi.string().optional()
-      })
-      .description('Company city'),
+    city: Joi.string().required().description('Company city'),
     county: Joi.string().optional().description('Company county'),
-    postcode: Joi.string()
-      .when(Joi.ref('/isUkBased'), {
-        is: true,
-        then: Joi.string().required(),
-        otherwise: Joi.string().optional()
-      })
-      .description('Company postcode')
+    postcode: Joi.string().required().description('Company postcode')
+  }).when('isUkBased', {
+    is: true,
+    then: Joi.object().required(),
+    otherwise: Joi.object().optional()
   }),
   companyContact: Joi.object({
     name: Joi.string().required().description('Company contact name'),
@@ -84,9 +70,9 @@ export const applianceSchema = Joi.object({
       .optional()
       .allow(null)
       .empty(null)
-      .pattern(/^\+?\d{1,11}$/)
+      .pattern(/^(0\d{10}|\+\d{11,13})$/)
       .description(
-        'Company contact phone number, accepts E.164 format (e.g., +447537328906) and up to 11 digits'
+        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432) and international numbers with an optional leading + (e.g. +445398914260).'
       )
   }),
   modelName: Joi.string().required().description('Model name'),
@@ -224,31 +210,20 @@ export const fuelSchema = Joi.object({
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
-    .description('Manufacturer address for overseas/non-UK-based companies'),
+    .description('Company address for overseas/non-UK-based companies'),
   companyAddress: Joi.object({
-    line1: Joi.string()
-      .when(Joi.ref('/isUkBased'), {
-        is: true,
-        then: Joi.string().required(),
-        otherwise: Joi.string().optional()
-      })
-      .description('Company address line 1'),
+    uprn: Joi.string()
+      .optional()
+      .description('Company address UPRN (Unique Property Reference Number)'),
+    line1: Joi.string().required().description('Company address line 1'),
     line2: Joi.string().optional().description('Company address line 2'),
-    city: Joi.string()
-      .when(Joi.ref('/isUkBased'), {
-        is: true,
-        then: Joi.string().required(),
-        otherwise: Joi.string().optional()
-      })
-      .description('Company city'),
+    city: Joi.string().required().description('Company city'),
     county: Joi.string().optional().description('Company county'),
-    postcode: Joi.string()
-      .when(Joi.ref('/isUkBased'), {
-        is: true,
-        then: Joi.string().required(),
-        otherwise: Joi.string().optional()
-      })
-      .description('Company postcode')
+    postcode: Joi.string().required().description('Company postcode')
+  }).when('isUkBased', {
+    is: true,
+    then: Joi.object().required(),
+    otherwise: Joi.object().optional()
   }),
   companyContact: Joi.object({
     name: Joi.string().required().description('Manufacturer contact name'),
@@ -263,9 +238,9 @@ export const fuelSchema = Joi.object({
       .optional()
       .allow(null)
       .empty(null)
-      .pattern(/^\+?\d{1,11}$/)
+      .pattern(/^(0\d{10}|\+\d{11,13})$/)
       .description(
-        'Company contact phone number, accepts E.164 format (e.g., +447537328906) and up to 11 digits'
+        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432) and international numbers with an optional leading + (e.g. +445398914260).'
       )
   }),
   responsibleName: Joi.string().required().description('Responsible name'),
