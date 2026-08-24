@@ -1,5 +1,5 @@
 // Example appliance payload for tests and API documentation
-export default {
+/* export default {
   // Auto-generated fields
   // id: 'APP-abc123def456',
   // applicationId: 'app-uuid-12345',
@@ -128,4 +128,28 @@ export default {
     firstCertifiedAt: '2026-02-05',
     lastCertifiedAt: '2026-02-13'
   }
+}
+*/
+
+// Minimum required to create a new appliance (for testing purposes)
+export default {
+  companyName: 'ACME',
+  isUkBased: true,
+  //companyFullAddress: '456 Factory Road, Unit 7, Birmingham, West Midlands, B1 2AB',
+  companyAddress: {
+    uprn: '10012345678',
+    line1: '456 Factory Road',
+    line2: 'Unit 7',
+    city: 'Birmingham',
+    county: 'West Midlands',
+    postcode: 'B1 2AB'
+  },
+  modelName: 'Model X',
+  applianceType: 'heat',
+  isVariant: false,
+  existingAuthorisedAppliance: 'Old Model',
+  nominalOutput: 10,
+  multifuelAppliance: true,
+  allowedFuels: 'Wood Pellets',
+  declaration: true
 }

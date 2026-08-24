@@ -1,5 +1,5 @@
 // Example fuel payload for tests and API documentation
-export default {
+/* export default {
   companyName: 'FuelCo',
   isUkBased: true,
   //companyFullAddress: '789 Industrial Estate, Building C, Manchester, Greater Manchester, M1 3CD',
@@ -95,4 +95,32 @@ export default {
   },
 
   legacyRecord: true
+}
+*/ 
+
+//Simplified version for testing purposes
+export default {
+  companyName: 'FuelCo',
+  isUkBased: false,
+  companyFullAddress: '789 Industrial Estate, Building C, Manchester, Greater Manchester, M1 3CD',
+  responsibleName: 'Rep Name',
+  responsibleEmailAddress: 'rep@co.com',
+  customerComplaints: false,
+  fuelBagging: 'Bagged',
+  fuelDescription: 'Premium pellets',
+  manufacturerOrReseller: 'Manufacturer',
+  //If manufacturer:
+  fuelWeight: 20,
+  fuelComposition: 'Wood 100%',
+  sulphurContent: 0.7,
+  manufacturingProcess: 'Kiln-dried',
+  qualityControlSystem: 'ISO certified',
+  brandNames: 'PelletBrand',
+  //If reseller:
+  // originalFuelManufacturer: 'Fuels LTD',
+  // originalFuelNameOrBrand: 'FireFuel',
+  // changedFromOriginalFuel: false,
+  // changesMade: 'The fuels was turned into love hearts',
+  // resellBrandName: 'PelletBrand',
+  declaration: true
 }
