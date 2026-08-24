@@ -142,7 +142,7 @@ export const applianceSchema = Joi.object({
     comments: Joi.string().optional().description('Legacy comments'),
     applianceId: Joi.string().optional().description('Legacy appliance ID'),
     applicationId: Joi.string().optional().description('Legacy application ID'),
-    linkedApplications: Joi.string()
+    linkedApplications: Joi.array().items(Joi.string())
       .optional()
       .description('Legacy linked applications')
   }).optional(),
