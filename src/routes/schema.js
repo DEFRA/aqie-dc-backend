@@ -96,6 +96,11 @@ export const applianceSchema = Joi.object({
     .required()
     .description('The fuels the appliance will be certified to burn'),
   declaration: Joi.boolean().required().description('Declaration'),
+  createdAt: Joi.date()
+    .optional()
+    .description(
+      'When the appliance was created in our system (server-generated)'
+    ),
   // Fields from admin FE input
   ratedOutput: Joi.number().optional().description('Rated Output'),
   testedOutput: Joi.object({
@@ -147,7 +152,7 @@ export const applianceSchema = Joi.object({
       .default('new')
       .valid('new', 'in_review', 'accepted', 'rejected')
       .optional(), //needs to be an optional field to allow it to be omitted and default to pending
-    reviewer: Joi.object({
+    reviewedBy: Joi.object({
       name: Joi.string()
         .optional()
         .description('Name of the technical reviewer'),
@@ -155,7 +160,7 @@ export const applianceSchema = Joi.object({
         .optional()
         .description('Email of the technical reviewer')
     }),
-    updatedAt: Joi.date()
+    reviewedAt: Joi.date()
       .optional()
       .description('Date technical review status changed'),
     documentationReviewed: Joi.object({
@@ -172,7 +177,7 @@ export const applianceSchema = Joi.object({
   })
     .default(() => ({ status: 'new' }))
     .description(
-      'This technical review happens during the application stage, compromises of several checks including test reports, comformity mark etc.'
+      'This technical review happens during the application stage, comprises of several checks including test reports, conformity mark etc.'
     ),
   englandCertification: countryCertificationSchema.description(
     'England certification status'
@@ -186,6 +191,12 @@ export const applianceSchema = Joi.object({
   nIrelandCertification: countryCertificationSchema.description(
     'Northern Ireland certification status'
   ),
+  //
+  updatedAt: Joi.date()
+    .optional()
+    .description(
+      'When the appliance was last updated in our system (server-generated), best practice to use this field when anything is updated in the appliance'
+    ),
   // Fields for frontends
   isVisible: Joi.boolean()
     .default(true)
@@ -337,6 +348,11 @@ export const fuelSchema = Joi.object({
     .description('Brand name(s)'),
   //End of manufacturer/reseller
   declaration: Joi.boolean().required().description('Declaration'),
+  createdAt: Joi.date()
+    .optional()
+    .description(
+      'When the appliance was created in our system (server-generated)'
+    ),
   // End of fuel application fields
   //Reviews/Certifications
   technicalReview: Joi.object({
@@ -346,7 +362,7 @@ export const fuelSchema = Joi.object({
       .default('new')
       .valid('new', 'in_review', 'accepted', 'rejected')
       .optional(), //needs to be an optional field to allow it to be omitted and default to pending
-    reviewer: Joi.object({
+    reviewedBy: Joi.object({
       name: Joi.string()
         .optional()
         .description('Name of the technical reviewer'),
@@ -354,7 +370,7 @@ export const fuelSchema = Joi.object({
         .optional()
         .description('Email of the technical reviewer')
     }),
-    updatedAt: Joi.date()
+    reviewedAt: Joi.date()
       .optional()
       .description('Date technical review status changed')
   })
@@ -374,6 +390,12 @@ export const fuelSchema = Joi.object({
   nIrelandCertification: countryCertificationSchema.description(
     'Northern Ireland certification status'
   ),
+  //
+  updatedAt: Joi.date()
+    .optional()
+    .description(
+      'When the fuel was last updated in our system (server-generated), best practice to use this field when anything is updated in the appliance'
+    ),
   legacyRecord: Joi.boolean()
     .default(false)
     .description(
@@ -418,7 +440,7 @@ export const applicationsSchema = Joi.object({
     ),
   appliances: Joi.array().items(applianceSchema).optional(), //needs to be changed to items: Joi.array().items(itemSchema).optional() when do fuels applications
   //later in the application flow:
-  reviewer: Joi.object({
+  reviewedBy: Joi.object({
     name: Joi.string().optional().description('Name of the reviewer'),
     email: Joi.string().optional().description('Email of the reviewer')
   })
@@ -426,6 +448,15 @@ export const applicationsSchema = Joi.object({
     .allow(null)
     .description(
       'Assigned to this application, will be null first then comes from SSO'
+    ),
+  reviewedAt: Joi.date()
+    .optional()
+    .description('Date application was reviewed'),
+  //
+  updatedAt: Joi.date()
+    .optional()
+    .description(
+      'When the application was last updated in our system (server-generated), best practice to use this field when anything is updated in the application'
     )
 })
   .unknown(false)

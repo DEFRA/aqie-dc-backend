@@ -29,11 +29,11 @@ async function createAppliance(db, item, logger) {
 
     // Build appliance document
     const appliance = {
-      ...item,
       id: item.id || `APP-${generateSecureId()}`,
+      applicationId: item.applicationId || null,
+      ...item,
       createdAt: item.createdAt || now,
-      updatedAt: now,
-      applicationId: item.applicationId || null
+      updatedAt: now
     }
 
     // Insert into database
