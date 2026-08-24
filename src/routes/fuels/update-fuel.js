@@ -9,9 +9,9 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 
 const updateFuelSchema = fuelSchema
   .fork(Object.keys(fuelSchema.describe().keys), (schema) => schema.optional())
+  .prefs({ noDefaults: true })
   .min(1)
   .unknown(false)
-  .prefs({ noDefaults: true })
 
 export const updateFuel = {
   method: 'PATCH',

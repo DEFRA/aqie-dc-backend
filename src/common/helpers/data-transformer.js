@@ -26,16 +26,16 @@ export const findCertified = (
 ) => {
   const approvedRegions = []
 
-  if (englandCertification.status === 'certified') {
+  if (englandCertification?.status === 'certified') {
     approvedRegions.push('England')
   }
-  if (scotlandCertification.status === 'certified') {
+  if (scotlandCertification?.status === 'certified') {
     approvedRegions.push('Scotland')
   }
-  if (walesCertification.status === 'certified') {
+  if (walesCertification?.status === 'certified') {
     approvedRegions.push('Wales')
   }
-  if (nIrelandCertification.status === 'certified') {
+  if (nIrelandCertification?.status === 'certified') {
     approvedRegions.push('Northern Ireland')
   }
 

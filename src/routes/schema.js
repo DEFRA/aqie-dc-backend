@@ -11,9 +11,7 @@ const countryCertificationSchema = Joi.object({
       'rejected' // Denied initial certification
     )
     .default('new'),
-  decidedAt: Joi.date()
-    .iso()
-    .default(() => new Date()),
+  decidedAt: Joi.date().iso().allow(null).default(null),
   decidedBy: Joi.object({
     name: Joi.string().optional(),
     email: Joi.string().email().optional()
@@ -55,9 +53,9 @@ export const applianceSchema = Joi.object({
     county: Joi.string().optional().description('Company county'),
     postcode: Joi.string().required().description('Company postcode')
   }).when('isUkBased', {
-    is: true,
-    then: Joi.object().required(),
-    otherwise: Joi.object().optional()
+    is: false,
+    then: Joi.object().optional(),
+    otherwise: Joi.object().required()
   }),
   companyContact: Joi.object({
     name: Joi.string().required().description('Company contact name'),
@@ -116,7 +114,9 @@ export const applianceSchema = Joi.object({
     .description('Air control modifications'),
   instructionManual: Joi.object({
     title: Joi.string().optional().description('Instruction manual title'),
-    date: Joi.date().optional().description('Instruction manual date'),
+    publicationDate: Joi.date()
+      .optional()
+      .description('Instruction manual publication date'),
     version: Joi.string().optional().description('Instruction manual version'),
     additionalInfo: Joi.string()
       .optional()
@@ -125,7 +125,9 @@ export const applianceSchema = Joi.object({
   //Legacy record fields (additional fields from DB migration that no longer exist in the new admin system)
   servicingManual: Joi.object({
     title: Joi.string().optional().description('Servicing manual title'),
-    date: Joi.date().optional().description('Servicing manual date'),
+    publicationDate: Joi.date()
+      .optional()
+      .description('Servicing manual publication date'),
     version: Joi.string().optional().description('Servicing manual version'),
     additionalInfo: Joi.string()
       .optional()
@@ -175,7 +177,7 @@ export const applianceSchema = Joi.object({
       additionalConditions: Joi.boolean().default(false)
     })
   })
-    .default(() => ({ status: 'new' }))
+    .default()
     .description(
       'This technical review happens during the application stage, comprises of several checks including test reports, conformity mark etc.'
     ),
@@ -374,10 +376,8 @@ export const fuelSchema = Joi.object({
       .optional()
       .description('Date technical review status changed')
   })
-    .default(() => ({ status: 'new' }))
-    .description(
-      'This technical review happens during the application stage, compromises of several checks including test reports, comformity mark etc.'
-    ),
+    .default()
+    .description('This technical review happens during the application stage'),
   englandCertification: countryCertificationSchema.description(
     'England certification status'
   ),
@@ -403,7 +403,6 @@ export const fuelSchema = Joi.object({
     ),
   publishedDate: Joi.date().optional().description('Published date')
 }).label('Fuel')
-
 // ============================================================================
 // APPLICATION SCHEMA
 // ============================================================================

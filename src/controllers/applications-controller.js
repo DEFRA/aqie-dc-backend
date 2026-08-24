@@ -47,7 +47,7 @@ function buildApplication(applicationData) {
     id,
     type: applicationData.type,
     status: applicationData.status || 'new',
-    reviewer: applicationData.reviewer || null,
+    reviewedBy: applicationData.reviewedBy || null,
     submittedAt: applicationData.submittedAt
       ? new Date(applicationData.submittedAt)
       : null,
@@ -232,9 +232,9 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
     const searchQuery = {
       $or: [
         { status: { $regex: query, $options: 'i' } },
-        { reviewer: { $regex: query, $options: 'i' } },
-        { 'reviewer.name': { $regex: query, $options: 'i' } },
-        { 'reviewer.email': { $regex: query, $options: 'i' } },
+        { reviewedBy: { $regex: query, $options: 'i' } },
+        { 'reviewedBy.name': { $regex: query, $options: 'i' } },
+        { 'reviewedBy.email': { $regex: query, $options: 'i' } },
         { id: { $regex: query, $options: 'i' } }
       ]
     }

@@ -166,7 +166,7 @@ describe('applicationsSchema - reviewer', () => {
   test('reviewer object is accepted', () => {
     const payload = {
       ...applicationExample,
-      reviewer: {
+      reviewedBy: {
         name: 'John Reviewer',
         email: 'john@reviewer.com'
       }
@@ -175,16 +175,16 @@ describe('applicationsSchema - reviewer', () => {
     const { value, error } = applicationsSchema.validate(payload)
 
     expect(error).toBeUndefined()
-    expect(value.reviewer).toEqual({
+    expect(value.reviewedBy).toEqual({
       name: 'John Reviewer',
       email: 'john@reviewer.com'
     })
   })
 
-  test('reviewer string is rejected because reviewer must be an object or null', () => {
+  test('reviewedBy string is rejected because reviewedBy must be an object or null', () => {
     const payload = {
       ...applicationExample,
-      reviewer: 'John Reviewer'
+      reviewedBy: 'John Reviewer'
     }
 
     const { error } = applicationsSchema.validate(payload)
@@ -372,9 +372,14 @@ describe('fuelSchema', () => {
   test('isUkBased true -> companyAddress.city required', () => {
     const payload = {
       ...baseFuelPayload,
+      isUkBased: true,
       companyAddress: {
-        ...baseFuelPayload.companyAddress,
-        city: undefined
+        uprn: '10012345678',
+        line1: '456 Factory Road',
+        line2: 'Unit 7',
+        city: undefined,
+        county: 'West Midlands',
+        postcode: 'B1 2AB'
       }
     }
 
@@ -388,7 +393,11 @@ describe('fuelSchema', () => {
     const payload = {
       ...baseFuelPayload,
       companyAddress: {
-        ...baseFuelPayload.companyAddress,
+        uprn: '10012345678',
+        line1: '456 Factory Road',
+        line2: 'Unit 7',
+        city: 'Liverpool',
+        county: 'West Midlands',
         postcode: undefined
       }
     }

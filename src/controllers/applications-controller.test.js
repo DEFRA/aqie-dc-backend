@@ -247,9 +247,6 @@ describe('applications-controller', () => {
       const payload = {
         type: 'appliance',
         status: 'new',
-        reviewer: 'John',
-        reviewNotes: 'Test',
-        additionalMetadata: {},
         appliances: [
           {
             companyName: 'ACME',
@@ -484,12 +481,12 @@ describe('applications-controller', () => {
       docs.push({
         id: 'app-1',
         status: 'new',
-        reviewer: 'John'
+        reviewedBy: 'John'
       })
       docs.push({
         id: 'app-2',
         status: 'in_progress',
-        reviewer: 'Jane'
+        reviewedBy: 'Jane'
       })
 
       const result = await searchApplications(
@@ -510,7 +507,7 @@ describe('applications-controller', () => {
         docs.push({
           id: `app-${i}`,
           status: 'new',
-          reviewer: 'Test'
+          reviewedBy: 'Test'
         })
       }
 

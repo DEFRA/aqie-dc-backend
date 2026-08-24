@@ -43,7 +43,7 @@
 
   technicalReview: {
     status: 'accepted',
-    reviewer: {
+    reviewedBy: {
       name: 'Fuel Reviewer',
       email: 'reviewer@fuel.com'
     },
@@ -96,13 +96,18 @@
 
   legacyRecord: true
 }
-*/ 
+*/
 
 //Simplified version for testing purposes
 export default {
   companyName: 'FuelCo',
   isUkBased: false,
-  companyFullAddress: '789 Industrial Estate, Building C, Manchester, Greater Manchester, M1 3CD',
+  companyFullAddress:
+    '789 Industrial Estate, Building C, Manchester, Greater Manchester, M1 3CD',
+  companyContact: {
+    name: 'Fuel Person',
+    email: 'JD@email.com'
+  },
   responsibleName: 'Rep Name',
   responsibleEmailAddress: 'rep@co.com',
   customerComplaints: false,

@@ -42,12 +42,12 @@ describe('GET /applications/search', () => {
         {
           id: 'app-001',
           status: 'new',
-          reviewer: 'John'
+          reviewedBy: { name: 'John' }
         },
         {
           id: 'app-002',
           status: 'in_progress',
-          reviewer: 'Jane'
+          reviewedBy: { name: 'Jane' }
         }
       ]
 
@@ -192,7 +192,7 @@ describe('GET /applications/search', () => {
 
     test('searches across multiple fields', async () => {
       // Test searching by different query terms
-      const queries = ['status: new', 'reviewer: John', 'app-123']
+      const queries = ['status: new', 'reviewedBy: {name: John}', 'app-123']
 
       for (const queryTerm of queries) {
         applicationsController.searchApplications.mockResolvedValueOnce({

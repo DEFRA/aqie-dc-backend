@@ -113,24 +113,27 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
     // And uncomment pagination object in return statement
 
     // Get all certified appliances (pagination disabled)
-    const certificationFilter = {
-      'technicalReview.status': 'accepted',
-      $or: [
-        { 'englandCertification.status': 'certified' },
-        { 'scotlandCertification.status': 'certified' },
-        { 'walesCertification.status': 'certified' },
-        { 'nIrelandCertification.status': 'certified' }
-      ]
+    const CERTIFICATION_FIELDS = [
+      'englandCertification',
+      'scotlandCertification',
+      'walesCertification',
+      'nIrelandCertification'
+    ]
+
+    const certifiedFilter = {
+      $or: CERTIFICATION_FIELDS.map((field) => ({
+        [`${field}.status`]: 'certified'
+      }))
     }
 
     const appliances = await collection
-      .find(certificationFilter)
+      .find(certifiedFilter)
       .sort({ createdAt: -1 })
       // .skip(skip)        // PAGINATION: Uncomment if needed
       // .limit(limit)      // PAGINATION: Uncomment if needed
       .toArray()
 
-    //const total = await collection.countDocuments(certificationFilter) //part of pagnation metadata if needed
+    //const total = await collection.countDocuments(certifiedFilter) //part of pagnation metadata if needed
 
     return {
       success: true,

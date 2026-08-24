@@ -101,15 +101,30 @@ describe('data-transformer', () => {
   test('findCertified returns correct regions', () => {
     // All certified
     expect(
-      findCertified('Certified', 'Certified', 'Certified', 'Certified')
+      findCertified(
+        { status: 'certified' },
+        { status: 'certified' },
+        { status: 'certified' },
+        { status: 'certified' }
+      )
     ).toEqual(['England', 'Scotland', 'Wales', 'Northern Ireland'])
     // England and Wales only
     expect(
-      findCertified('Certified', 'Uncertified', 'Certified', 'Uncertified')
+      findCertified(
+        { status: 'certified' },
+        { status: 'uncertified' },
+        { status: 'certified' },
+        { status: 'uncertified' }
+      )
     ).toEqual(['England', 'Wales'])
     // None certified
     expect(
-      findCertified('Uncertified', 'Uncertified', 'Uncertified', 'Uncertified')
+      findCertified(
+        { status: 'uncertified' },
+        { status: 'uncertified' },
+        { status: 'uncertified' },
+        { status: 'uncertified' }
+      )
     ).toEqual([])
     // All undefined
     expect(findCertified(undefined, undefined, undefined, undefined)).toEqual(

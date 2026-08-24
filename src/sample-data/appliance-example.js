@@ -65,7 +65,7 @@
   //Reviews and certifications
   technicalReview: {
     status: 'accepted',
-    reviewer: {
+    reviewedBy: {
       name: 'John Reviewer',
       email: 'john.reviewer@example.com'
     },
@@ -143,6 +143,10 @@ export default {
     city: 'Birmingham',
     county: 'West Midlands',
     postcode: 'B1 2AB'
+  },
+  companyContact: {
+    name: 'John Doe',
+    email: 'JD@email.com'
   },
   modelName: 'Model X',
   applianceType: 'heat',

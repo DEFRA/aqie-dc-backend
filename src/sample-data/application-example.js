@@ -5,7 +5,7 @@ export default {
   submittedAt: new Date('2026-04-24T12:00:00Z'),
   // createdAt: new Date('2026-07-01T10:00:00Z'),
   status: 'new', //auto-generated but can be set for Swagger input
-  reviewer: {
+  reviewedBy: {
     name: 'John Reviewer',
     email: 'john@reviewer.com'
   },
@@ -44,7 +44,7 @@ export default {
       allowedFuels: 'Wood Pellets',
       instructionManual: {
         title: 'Manual X',
-        date: new Date('2026-02-03'),
+        publicationDate: new Date('2026-02-03'),
         version: 'Version 1',
         additionalInfo: 'Extra info'
       },
@@ -97,7 +97,7 @@ export default {
       allowedFuels: 'Wood Pellets',
       instructionManual: {
         title: 'Beta Manual',
-        date: new Date('2026-03-10')
+        publicationDate: new Date('2026-03-10')
       },
       declaration: true,
       // NOTE: Certification fields (optional) - Added for testing/demo purposes

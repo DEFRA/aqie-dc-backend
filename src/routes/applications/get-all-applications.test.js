@@ -39,14 +39,14 @@ describe('GET /applications', () => {
           id: 'app-001',
           type: 'appliance',
           status: 'new',
-          reviewer: 'John',
+          reviewedBy: 'John',
           createdAt: new Date()
         },
         {
           id: 'app-002',
           type: 'fuel',
           status: 'in_progress',
-          reviewer: 'Jane',
+          reviewedBy: 'Jane',
           createdAt: new Date()
         }
       ]
@@ -91,9 +91,7 @@ describe('GET /applications', () => {
           id: 'app-001',
           type: 'appliance',
           status: 'new',
-          reviewer: 'John',
-          reviewNotes: 'Pending review',
-          additionalMetadata: { notes: 'Test' },
+          reviewedBy: 'John',
           submittedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date()
@@ -111,7 +109,7 @@ describe('GET /applications', () => {
       expect(result.data[0].id).toBeDefined()
       expect(result.data[0].type).toBeDefined()
       expect(result.data[0].status).toBeDefined()
-      expect(result.data[0].reviewer).toBeDefined()
+      expect(result.data[0].reviewedBy).toBeDefined()
     })
 
     test('handles controller error and returns 500', async () => {
