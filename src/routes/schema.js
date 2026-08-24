@@ -203,7 +203,7 @@ export const applianceSchema = Joi.object({
   isVisible: Joi.boolean()
     .default(true)
     .description('Should this appliance be visible to the public?'),
-  // todo: need to put logic in to populate these fields
+  // need to put logic in to populate these fields
   publishedDate: Joi.date()
     .optional()
     .description('The earliest date of certification'),
