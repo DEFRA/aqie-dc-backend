@@ -1,7 +1,7 @@
 // Example appliance payload for tests and API documentation
 export default {
   // Auto-generated fields
-  // applianceId: 'APP-abc123def456',
+  // id: 'APP-abc123def456',
   // applicationId: 'app-uuid-12345',
   // createdAt: new Date('2026-07-01T10:00:00Z'),
   // updatedAt: new Date('2026-07-01T10:00:00Z'),
@@ -58,7 +58,7 @@ export default {
   legacyRecord: true,
   legacy: {
     comments: 'Migrated from legacy database',
-    applianceId: 'LEG-12345',
+    id: 'LEG-12345',
     applicationId: 'LEG-APP-12345',
     linkedApplications: 'LEG-APP-54321'
   },

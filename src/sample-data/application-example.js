@@ -14,7 +14,7 @@ export default {
     {
       // NOTE: These fields are auto-generated/set by server
       // applicationId: 'app-uuid-12345',
-      // applianceId: 'APP-abc123def456',
+      // id: 'APP-abc123def456',
       // createdAt: new Date('2026-07-01T10:00:00Z'),
       // updatedAt: new Date('2026-07-01T10:00:00Z'),
 
@@ -72,7 +72,7 @@ export default {
     {
       // NOTE: These fields are auto-generated/set by server
       // applicationId: 'app-uuid-12345',
-      // applianceId: 'APP-xyz789uvw012',
+      // id: 'APP-xyz789uvw012',
       // createdAt: new Date('2026-07-01T10:00:00Z'),
       // updatedAt: new Date('2026-07-01T10:00:00Z'),
 

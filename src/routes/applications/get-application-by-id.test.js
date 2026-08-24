@@ -47,7 +47,7 @@ describe('GET /applications/{applicationId}', () => {
         updatedAt: new Date(),
         appliances: [
           {
-            applianceId: 'APP-001',
+            id: 'APP-001',
             companyName: 'ACME',
             modelName: 'Model X'
           }
@@ -131,8 +131,8 @@ describe('GET /applications/{applicationId}', () => {
         type: 'appliance',
         status: 'new',
         linkedItems: [
-          { applianceId: 'APP-001', companyName: 'ACME' },
-          { applianceId: 'APP-002', companyName: 'Beta' }
+          { id: 'APP-001', companyName: 'ACME' },
+          { id: 'APP-002', companyName: 'Beta' }
         ]
       }
 
@@ -153,7 +153,7 @@ describe('GET /applications/{applicationId}', () => {
         id: 'app-appliance-1',
         type: 'appliance',
         status: 'new',
-        linkedItems: [{ applianceId: 'APP-001' }]
+        linkedItems: [{ id: 'APP-001' }]
       }
 
       const fuelApp = {

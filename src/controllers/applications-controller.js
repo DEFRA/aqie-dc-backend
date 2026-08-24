@@ -85,7 +85,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   if (Array.isArray(appliances) && appliances.length > 0) {
     const appliancesToInsert = appliances.map((appliance) => ({
       ...appliance,
-      applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
+      id: appliance.id || `APP-${generateSecureId()}`,
       applicationId: application.id
     }))
 
@@ -468,7 +468,7 @@ async function getApplicationsWithSummary(
         appliances: appliances
           .filter((appliance) => appliance.applicationId === app.id)
           .map((appliance) => ({
-            applianceId: appliance._id,
+            id: appliance._id,
             modelName: appliance.modelName
           }))
       }

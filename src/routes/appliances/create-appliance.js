@@ -62,7 +62,7 @@ export const createAppliance = {
         .response({
           success: true,
           message,
-          data: { applianceId: data.applianceId }
+          data: { id: data.id }
         })
         .code(statusCodes.created)
     } catch (err) {

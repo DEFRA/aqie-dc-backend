@@ -461,7 +461,7 @@ describe('applications-controller', () => {
         status: 'new'
       }
       collection.findOne.mockResolvedValueOnce(mockApp)
-      applianceDocs.push({ applianceId: 'app-001', applicationId: 'app-123' })
+      applianceDocs.push({ id: 'app-001', applicationId: 'app-123' })
 
       const result = await getApplicationById(db, 'app-123', mockLogger)
 
@@ -618,11 +618,11 @@ describe('applications-controller', () => {
       )
       applianceDocs.push(
         {
-          applianceId: 'appl-1',
+          id: 'appl-1',
           applicationId: 'app-1'
         },
         {
-          applianceId: 'appl-2',
+          id: 'appl-2',
           applicationId: 'app-3',
           legacyRecord: true
         }
@@ -643,7 +643,7 @@ describe('applications-controller', () => {
         status: 'new'
       })
       applianceDocs.push({
-        applianceId: 'app-001',
+        id: 'app-001',
         applicationId: 'app-1',
         companyName: 'ACME'
       })
@@ -677,11 +677,11 @@ describe('applications-controller', () => {
       )
       applianceDocs.push(
         {
-          applianceId: 'app-001',
+          id: 'app-001',
           applicationId: 'app-1'
         },
         {
-          applianceId: 'app-002',
+          id: 'app-002',
           applicationId: 'app-2'
         }
       )
@@ -753,11 +753,11 @@ describe('applications-controller', () => {
       )
       applianceDocs.push(
         {
-          applianceId: 'app-001',
+          id: 'app-001',
           applicationId: 'app-1'
         },
         {
-          applianceId: 'app-002',
+          id: 'app-002',
           applicationId: 'app-2'
         }
       )

@@ -30,7 +30,7 @@ async function createAppliance(db, item, logger) {
     // Build appliance document
     const appliance = {
       ...item,
-      applianceId: item.applianceId || `APP-${generateSecureId()}`,
+      id: item.id || `APP-${generateSecureId()}`,
       createdAt: item.createdAt || now,
       updatedAt: now,
       applicationId: item.applicationId || null
@@ -43,7 +43,7 @@ async function createAppliance(db, item, logger) {
       throw new Error('Failed to insert appliance')
     }
 
-    logger.info(`Appliance created: ${appliance.applianceId}`)
+    logger.info(`Appliance created: ${appliance.id}`)
 
     return {
       success: true,
@@ -69,7 +69,7 @@ function mapApplianceDetail(item) {
       item.nIrelandCertification
     ),
     name: item.modelName || '',
-    id: item.applianceId || '',
+    id: item.id || '',
     manufacturer: item.companyName || '',
     fullAddress: getFullAddress(item)
   }
@@ -79,7 +79,7 @@ function mapApplianceDetail(item) {
 function mapApplianceSummary(item) {
   return {
     name: item.modelName || '',
-    id: item.applianceId || '',
+    id: item.id || '',
     manufacturer: item.companyName || '',
     fuels: Array.isArray(item.allowedFuels)
       ? item.allowedFuels.join(', ')
@@ -152,13 +152,13 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
 /**
  * Get a single appliance by ID
  */
-async function getApplianceById(db, applianceId, logger) {
+async function getApplianceById(db, id, logger) {
   if (!logger) {
     throw new Error('logger is required')
   }
   try {
     const collection = db.collection('Appliances')
-    const item = await collection.findOne({ applianceId })
+    const item = await collection.findOne({ id })
 
     if (!item) {
       return {
@@ -181,7 +181,7 @@ async function getApplianceById(db, applianceId, logger) {
 /**
  * Update an appliance
  */
-async function updateAppliance(db, applianceId, updates, logger) {
+async function updateAppliance(db, id, updates, logger) {
   if (!logger) {
     throw new Error('logger is required')
   }
@@ -190,7 +190,7 @@ async function updateAppliance(db, applianceId, updates, logger) {
     const now = new Date()
 
     const result = await collection.updateOne(
-      { applianceId },
+      { id },
       { $set: { ...updates, updatedAt: now } }
     )
 
@@ -198,8 +198,8 @@ async function updateAppliance(db, applianceId, updates, logger) {
       return { notFound: true }
     }
 
-    const updated = await collection.findOne({ applianceId })
-    logger.info(`Appliance updated: ${applianceId}`)
+    const updated = await collection.findOne({ id })
+    logger.info(`Appliance updated: ${id}`)
 
     return { updated }
   } catch (error) {
@@ -211,19 +211,19 @@ async function updateAppliance(db, applianceId, updates, logger) {
 /**
  * Delete an appliance
  */
-async function deleteAppliance(db, applianceId, logger) {
+async function deleteAppliance(db, id, logger) {
   if (!logger) {
     throw new Error('logger is required')
   }
   try {
     const collection = db.collection('Appliances')
-    const result = await collection.deleteOne({ applianceId })
+    const result = await collection.deleteOne({ id })
 
     if (result.deletedCount === 0) {
       return { notFound: true }
     }
 
-    logger.info(`Appliance deleted: ${applianceId}`)
+    logger.info(`Appliance deleted: ${id}`)
 
     return { deleted: true }
   } catch (error) {
@@ -285,12 +285,12 @@ async function searchAppliances(
  * Get appliance with all related items (applications, etc.)
  * @deprecated Relationship queries may need review for current schema
  */
-async function getApplianceWithRelatedItems(db, applianceId, logger) {
+async function getApplianceWithRelatedItems(db, id, logger) {
   if (!logger) {
     throw new Error('logger is required')
   }
   try {
-    const appliance = await db.collection('Appliances').findOne({ applianceId })
+    const appliance = await db.collection('Appliances').findOne({ id })
 
     if (!appliance) {
       return {
@@ -301,7 +301,7 @@ async function getApplianceWithRelatedItems(db, applianceId, logger) {
     }
 
     // TODO: Get related items (currently commented pending review)
-    // const applianceApplications = await db.collection('ApplianceApplications').find({ applianceId }).toArray()
+    // const applianceApplications = await db.collection('ApplianceApplications').find({ id }).toArray()
     // const applicationIds = applianceApplications.map((aa) => aa.applicationId)
     // const applications = applicationIds.length > 0
     //   ? await db.collection('Applications').find({ applicationId: { $in: applicationIds } }).toArray()

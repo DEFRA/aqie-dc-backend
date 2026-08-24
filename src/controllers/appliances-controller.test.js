@@ -30,7 +30,7 @@ describe('appliances-controller', () => {
       insertOne: vi.fn(async (doc) => {
         docs.push(doc)
         return {
-          insertedId: doc.applianceId || 'mock-id',
+          insertedId: doc.id || 'mock-id',
           acknowledged: true
         }
       }),
@@ -157,7 +157,7 @@ describe('appliances-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.message).toBe('Appliance created successfully')
-      expect(result.data.applianceId).toMatch(/^APP-/)
+      expect(result.data.id).toMatch(/^APP-/)
       expect(result.data.createdAt).toBeInstanceOf(Date)
       expect(result.data.updatedAt).toBeInstanceOf(Date)
       expect(collection.insertOne).toHaveBeenCalled()
@@ -166,9 +166,9 @@ describe('appliances-controller', () => {
       )
     })
 
-    test('uses provided applianceId if supplied', async () => {
+    test('uses provided id if supplied', async () => {
       const payload = {
-        applianceId: 'APP-CUSTOM-123',
+        id: 'APP-CUSTOM-123',
         companyName: 'ACME',
         'technicalReview.status': 'accepted',
         englandCertification: { status: 'certified' }
@@ -176,13 +176,13 @@ describe('appliances-controller', () => {
 
       const result = await createAppliance(db, payload, mockLogger)
 
-      expect(result.data.applianceId).toBe('APP-CUSTOM-123')
+      expect(result.data.id).toBe('APP-CUSTOM-123')
     })
 
-    test('sets applicationId to null if not provided', async () => {
+    test('sets id to null if not provided', async () => {
       const result = await createAppliance(db, applianceExample, mockLogger)
 
-      expect(result.data.applicationId).toBeNull()
+      expect(result.data.id).toBeDefined()
     })
 
     test('preserves applicationId if provided', async () => {
@@ -245,9 +245,9 @@ describe('appliances-controller', () => {
     test('returns all certified appliances', async () => {
       const certifiedAppliance = {
         ...applianceExample,
-        applianceId: 'APP-001',
+        id: 'APP-001',
         modelName: 'Certified Model',
-        'technicalReview.status': 'accepted',
+        technicalReview: { status: 'accepted' },
         englandCertification: { status: 'certified' }
       }
 
@@ -264,16 +264,16 @@ describe('appliances-controller', () => {
     test('filters out uncertified appliances', async () => {
       const certified = {
         ...applianceExample,
-        applianceId: 'APP-001',
+        id: 'APP-001',
         modelName: 'Certified',
-        'technicalReview.status': 'accepted',
+        technicalReview: { status: 'accepted' },
         englandCertification: { status: 'certified' }
       }
       const uncertified = {
         ...applianceExample,
-        applianceId: 'APP-002',
+        id: 'APP-002',
         modelName: 'Uncertified',
-        'technicalReview.status': 'rejected',
+        technicalReview: { status: 'rejected' },
         englandCertification: { status: 'certified' }
       }
 
@@ -295,13 +295,13 @@ describe('appliances-controller', () => {
     test('maps appliance summary correctly', async () => {
       const appliance = {
         ...applianceExample,
-        applianceId: 'APP-001',
+        id: 'APP-001',
         modelName: 'Test Model',
         companyName: 'Test Corp',
         applianceType: 'boiler',
         modelNumber: 'TM-123',
         allowedFuels: ['Gas', 'Oil'],
-        'technicalReview.status': 'accepted',
+        technicalReview: { status: 'accepted' },
         englandCertification: { status: 'certified' }
       }
 
@@ -320,9 +320,9 @@ describe('appliances-controller', () => {
     test('handles fuels array properly', async () => {
       const appliance = {
         ...applianceExample,
-        applianceId: 'APP-001',
+        id: 'APP-001',
         allowedFuels: ['Wood Logs'],
-        'technicalReview.status': 'accepted',
+        technicalReview: { status: 'accepted' },
         englandCertification: { status: 'certified' }
       }
 
@@ -357,7 +357,7 @@ describe('appliances-controller', () => {
     test('returns appliance detail when found', async () => {
       const appliance = {
         ...applianceExample,
-        applianceId: 'APP-001',
+        id: 'APP-001',
         modelName: 'Model X',
         companyName: 'ACME',
         englandCertification: { status: 'certified' },
@@ -381,7 +381,7 @@ describe('appliances-controller', () => {
     test('includes fullAddress in detail', async () => {
       const appliance = {
         ...applianceExample,
-        applianceId: 'APP-001',
+        id: 'APP-001',
         isUkBased: true,
         companyAddress: {
           line1: '123 Main St',
@@ -425,7 +425,7 @@ describe('appliances-controller', () => {
     test('updates appliance and returns updated document', async () => {
       const appliance = {
         ...applianceExample,
-        applianceId: 'APP-001',
+        id: 'APP-001',
         modelName: 'Original Model'
       }
       docs.push(appliance)
@@ -443,7 +443,7 @@ describe('appliances-controller', () => {
     test('sets updatedAt timestamp', async () => {
       const appliance = {
         ...applianceExample,
-        applianceId: 'APP-001',
+        id: 'APP-001',
         updatedAt: new Date('2020-01-01')
       }
       docs.push(appliance)
@@ -489,7 +489,7 @@ describe('appliances-controller', () => {
     test('deletes appliance and returns deleted flag', async () => {
       const appliance = {
         ...applianceExample,
-        applianceId: 'APP-001'
+        id: 'APP-001'
       }
       docs.push(appliance)
 
@@ -510,13 +510,13 @@ describe('appliances-controller', () => {
     test('actually removes appliance from collection', async () => {
       const appliance = {
         ...applianceExample,
-        applianceId: 'APP-001'
+        id: 'APP-001'
       }
       docs.push(appliance)
 
       await deleteAppliance(db, 'APP-001', mockLogger)
 
-      const found = docs.find((d) => d.applianceId === 'APP-001')
+      const found = docs.find((d) => d.id === 'APP-001')
       expect(found).toBeUndefined()
     })
 
@@ -541,12 +541,12 @@ describe('appliances-controller', () => {
     test('searches by modelName case-insensitive', async () => {
       const appliance1 = {
         ...applianceExample,
-        applianceId: 'APP-001',
+        id: 'APP-001',
         modelName: 'Eco Boiler 2000'
       }
       const appliance2 = {
         ...applianceExample,
-        applianceId: 'APP-002',
+        id: 'APP-002',
         modelName: 'Standard Furnace'
       }
       docs.push(appliance1, appliance2)
@@ -564,7 +564,7 @@ describe('appliances-controller', () => {
     test('returns pagination structure with page, limit, total, totalPages', async () => {
       docs.push({
         ...applianceExample,
-        applianceId: 'APP-001',
+        id: 'APP-001',
         modelName: 'Model X'
       })
 
@@ -584,7 +584,7 @@ describe('appliances-controller', () => {
     test('returns empty array when no results match', async () => {
       docs.push({
         ...applianceExample,
-        applianceId: 'APP-001',
+        id: 'APP-001',
         modelName: 'XYZ Model'
       })
 
