@@ -63,10 +63,10 @@ describe('appliances-controller', () => {
             // Filter docs based on query
             if (!query) return docs
             return docs.filter((doc) => {
-              // Handle technicalApproval && $or filters
+              // Handle technicalReview && $or filters
               if (
-                query.technicalApproval &&
-                doc.technicalApproval !== query.technicalApproval
+                query['technicalReview.status'] &&
+                doc.technicalReview?.status !== query['technicalReview.status']
               ) {
                 return false
               }
@@ -120,8 +120,8 @@ describe('appliances-controller', () => {
         return docs.filter((doc) => {
           // Basic query matching
           if (
-            query.technicalApproval &&
-            doc.technicalApproval !== query.technicalApproval
+            query['technicalReview.status'] &&
+            doc.technicalReview?.status !== query['technicalReview.status']
           ) {
             return false
           }
@@ -146,11 +146,11 @@ describe('appliances-controller', () => {
       const payload = {
         companyName: 'ACME',
         modelName: 'Model X',
-        technicalApproval: 'Certified',
-        walesApproval: 'Certified',
-        nIrelandApproval: 'Certified',
-        scotlandApproval: 'Certified',
-        englandApproval: 'Certified'
+        'technicalReview.status': 'accepted',
+        walesCertification: { status: 'certified' },
+        nIrelandCertification: { status: 'certified' },
+        scotlandCertification: { status: 'certified' },
+        englandCertification: { status: 'certified' }
       }
 
       const result = await createAppliance(db, payload, mockLogger)
@@ -170,8 +170,8 @@ describe('appliances-controller', () => {
       const payload = {
         applianceId: 'APP-CUSTOM-123',
         companyName: 'ACME',
-        technicalApproval: 'Certified',
-        englandApproval: 'Certified'
+        'technicalReview.status': 'accepted',
+        englandCertification: { status: 'certified' }
       }
 
       const result = await createAppliance(db, payload, mockLogger)
@@ -194,7 +194,10 @@ describe('appliances-controller', () => {
     })
 
     test('throws error when db is missing', async () => {
-      const payload = { companyName: 'ACME', technicalApproval: 'Certified' }
+      const payload = {
+        companyName: 'ACME',
+        'technicalReview.status': 'accepted'
+      }
 
       await expect(createAppliance(null, payload, mockLogger)).rejects.toThrow(
         'db is required'
@@ -208,7 +211,10 @@ describe('appliances-controller', () => {
     })
 
     test('throws error when logger is missing', async () => {
-      const payload = { companyName: 'ACME', technicalApproval: 'Certified' }
+      const payload = {
+        companyName: 'ACME',
+        'technicalReview.status': 'accepted'
+      }
 
       await expect(createAppliance(db, payload, null)).rejects.toThrow(
         'logger is required'
@@ -241,8 +247,8 @@ describe('appliances-controller', () => {
         ...applianceExample,
         applianceId: 'APP-001',
         modelName: 'Certified Model',
-        technicalApproval: 'Certified',
-        englandApproval: 'Certified'
+        'technicalReview.status': 'accepted',
+        englandCertification: { status: 'certified' }
       }
 
       docs.push(certifiedAppliance)
@@ -260,15 +266,15 @@ describe('appliances-controller', () => {
         ...applianceExample,
         applianceId: 'APP-001',
         modelName: 'Certified',
-        technicalApproval: 'Certified',
-        englandApproval: 'Certified'
+        'technicalReview.status': 'accepted',
+        englandCertification: { status: 'certified' }
       }
       const uncertified = {
         ...applianceExample,
         applianceId: 'APP-002',
         modelName: 'Uncertified',
-        technicalApproval: 'Uncertified',
-        englandApproval: 'Certified'
+        'technicalReview.status': 'rejected',
+        englandCertification: { status: 'certified' }
       }
 
       docs.push(certified, uncertified)
@@ -295,8 +301,8 @@ describe('appliances-controller', () => {
         applianceType: 'boiler',
         modelNumber: 'TM-123',
         allowedFuels: ['Gas', 'Oil'],
-        technicalApproval: 'Certified',
-        englandApproval: 'Certified'
+        'technicalReview.status': 'accepted',
+        englandCertification: { status: 'certified' }
       }
 
       docs.push(appliance)
@@ -316,8 +322,8 @@ describe('appliances-controller', () => {
         ...applianceExample,
         applianceId: 'APP-001',
         allowedFuels: ['Wood Logs'],
-        technicalApproval: 'Certified',
-        englandApproval: 'Certified'
+        'technicalReview.status': 'accepted',
+        englandCertification: { status: 'certified' }
       }
 
       docs.push(appliance)
@@ -354,10 +360,10 @@ describe('appliances-controller', () => {
         applianceId: 'APP-001',
         modelName: 'Model X',
         companyName: 'ACME',
-        englandApproval: 'Certified',
-        scotlandApproval: 'Certified',
-        walesApproval: 'Uncertified',
-        nIrelandApproval: 'Uncertified'
+        englandCertification: { status: 'certified' },
+        scotlandCertification: { status: 'certified' },
+        walesCertification: { status: 'uncertified' },
+        nIrelandCertification: { status: 'uncertified' }
       }
 
       docs.push(appliance)
@@ -381,7 +387,7 @@ describe('appliances-controller', () => {
           line1: '123 Main St',
           city: 'London'
         },
-        englandApproval: 'Certified'
+        englandCertification: { status: 'certified' }
       }
 
       docs.push(appliance)

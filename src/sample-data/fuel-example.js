@@ -94,7 +94,5 @@ export default {
     lastCertifiedAt: '2026-02-13'
   },
 
-  legacyRecord: true,
-
-  publishedDate: '2026-02-11'
+  legacyRecord: true
 }

@@ -253,10 +253,12 @@ describe('applications-controller', () => {
         appliances: [
           {
             companyName: 'ACME',
-            companyContactName: 'John Doe',
-            companyContactEmail: 'john@acme.com',
-            companyAlternateEmail: 'alt@acme.com',
-            companyPhone: '+447537328906',
+            companyContact: {
+              name: 'John Doe',
+              email: 'john@acme.com',
+              alternateEmail: 'alt@acme.com',
+              phone: '+447537328906'
+            },
             isUkBased: true,
             companyFullAddress: '123 Street',
             companyAddress: {
@@ -272,9 +274,11 @@ describe('applications-controller', () => {
             isVariant: false,
             nominalOutput: 10,
             allowedFuels: ['Wood Logs'],
-            instructionManualTitle: 'Manual X',
-            instructionManualDate: new Date('2026-02-03'),
-            instructionManualVersion: 'Version 1',
+            instructionManual: {
+              title: 'Manual X',
+              date: new Date('2026-02-03'),
+              version: 'Version 1'
+            },
             declaration: true
           }
         ]
@@ -375,14 +379,14 @@ describe('applications-controller', () => {
         type: 'appliance',
         status: 'new',
         createdAt: new Date(),
-        submittedDate: new Date()
+        submittedAt: new Date()
       })
       docs.push({
         id: 'app-2',
         type: 'fuel',
         status: 'in_progress',
         createdAt: new Date(),
-        submittedDate: new Date()
+        submittedAt: new Date()
       })
 
       const result = await getAllApplications(db, {}, mockLogger)
@@ -400,7 +404,7 @@ describe('applications-controller', () => {
       expect(result.data).toEqual([])
     })
 
-    test('sorts applications by submittedDate and createdAt descending', async () => {
+    test('sorts applications by submittedAt and createdAt descending', async () => {
       await getAllApplications(db, {}, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({})
@@ -775,14 +779,14 @@ describe('applications-controller', () => {
           id: 'app-1',
           type: 'appliance',
           status: 'new',
-          submittedDate: new Date('2026-01-01'),
+          submittedAt: new Date('2026-01-01'),
           createdAt: new Date('2026-01-02')
         },
         {
           id: 'app-2',
           type: 'appliance',
           status: 'in_progress',
-          submittedDate: new Date('2026-01-03'),
+          submittedAt: new Date('2026-01-03'),
           createdAt: new Date('2026-01-04')
         }
       )

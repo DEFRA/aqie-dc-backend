@@ -51,21 +51,13 @@ const applicationsValidator = {
         description:
           'Assigned to this application, will be null first then comes from SSO'
       },
-      reviewNotes: {
-        bsonType: ['string', 'null'],
-        description: 'Notes from reviewer - optional'
-      },
-      submittedDate: {
+      submittedAt: {
         bsonType: ['date', 'null'],
         description: 'When the application was submitted - optional'
       },
       reviewedAt: {
         bsonType: ['date', 'null'],
         description: 'When the application was reviewed - optional'
-      },
-      additionalMetadata: {
-        bsonType: ['object', 'null'],
-        description: 'Optional additional metadata - optional'
       },
       createdAt: {
         bsonType: 'date',

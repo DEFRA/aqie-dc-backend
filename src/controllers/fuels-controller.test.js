@@ -37,8 +37,8 @@ describe('fuels-controller', () => {
           if (!query) return docsToFilter
           return docsToFilter.filter((doc) => {
             if (
-              query.technicalApproval &&
-              doc.technicalApproval !== query.technicalApproval
+              query['technicalReview.status'] &&
+              doc.technicalReview?.status !== query['technicalReview.status']
             ) {
               return false
             }
@@ -113,8 +113,8 @@ describe('fuels-controller', () => {
         if (!query) return docs.length
         return docs.filter((doc) => {
           if (
-            query.technicalApproval &&
-            doc.technicalApproval !== query.technicalApproval
+            query['technicalReview.status'] &&
+            doc.technicalReview?.status !== query['technicalReview.status']
           ) {
             return false
           }
@@ -139,8 +139,8 @@ describe('fuels-controller', () => {
       const payload = {
         companyName: 'FuelCorp',
         brandNames: 'FuelBrand',
-        technicalApproval: 'Certified',
-        englandApproval: 'Certified'
+        technicalReview: { status: 'accepted' },
+        englandCertification: { status: 'certified' }
       }
 
       const result = await createFuel(db, payload, mockLogger)
@@ -160,7 +160,7 @@ describe('fuels-controller', () => {
       const payload = {
         fuelId: 'FUEL-CUSTOM-123',
         companyName: 'FuelCorp',
-        technicalApproval: 'Certified'
+        technicalReview: { status: 'accepted' }
       }
 
       const result = await createFuel(db, payload, mockLogger)
@@ -212,8 +212,8 @@ describe('fuels-controller', () => {
         ...fuelExample,
         fuelId: 'FUEL-001',
         brandNames: 'Certified Brand',
-        technicalApproval: 'Certified',
-        englandApproval: 'Certified'
+        technicalReview: { status: 'accepted' },
+        englandCertification: { status: 'certified' }
       }
 
       docs.push(certifiedFuel)
@@ -231,15 +231,15 @@ describe('fuels-controller', () => {
         ...fuelExample,
         fuelId: 'FUEL-001',
         brandNames: 'Certified',
-        technicalApproval: 'Certified',
-        englandApproval: 'Certified'
+        technicalReview: { status: 'accepted' },
+        englandCertification: { status: 'certified' }
       }
       const uncertified = {
         ...fuelExample,
         fuelId: 'FUEL-002',
         brandNames: 'Uncertified',
-        technicalApproval: 'Uncertified',
-        englandApproval: 'Certified'
+        technicalReview: { status: 'rejected' },
+        englandCertification: { status: 'certified' }
       }
 
       docs.push(certified, uncertified)
@@ -263,11 +263,11 @@ describe('fuels-controller', () => {
         fuelId: 'FUEL-001',
         brandNames: 'Premium Pellets',
         companyName: 'PelletCorp',
-        technicalApproval: 'Certified',
-        englandApproval: 'Certified',
-        scotlandApproval: 'Certified',
-        walesApproval: 'Uncertified',
-        nIrelandApproval: 'Uncertified'
+        technicalReview: { status: 'accepted' },
+        englandCertification: { status: 'certified' },
+        scotlandCertification: { status: 'certified' },
+        walesCertification: { status: 'uncertified' },
+        nIrelandCertification: { status: 'uncertified' }
       }
 
       docs.push(fuel)
@@ -303,10 +303,10 @@ describe('fuels-controller', () => {
         fuelId: 'FUEL-001',
         brandNames: 'Brand X',
         companyName: 'FuelCo',
-        englandApproval: 'Certified',
-        scotlandApproval: 'Certified',
-        walesApproval: 'Uncertified',
-        nIrelandApproval: 'Uncertified'
+        englandCertification: { status: 'certified' },
+        scotlandCertification: { status: 'certified' },
+        walesCertification: { status: 'uncertified' },
+        nIrelandCertification: { status: 'uncertified' }
       }
 
       docs.push(fuel)
@@ -329,7 +329,7 @@ describe('fuels-controller', () => {
           line1: '789 Industrial Est',
           city: 'Manchester'
         },
-        englandApproval: 'Certified'
+        englandCertification: { status: 'certified' }
       }
 
       docs.push(fuel)

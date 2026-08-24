@@ -12,10 +12,10 @@ const keyMapAppliance = {
 
   kIndJV: 'companyFullAddress', // non‑UK
 
-  CfdMSm: 'companyContactName',
-  gTshkc: 'companyContactEmail',
-  eDOPFB: 'companyAlternateEmail',
-  JIeTGU: 'companyPhone',
+  CfdMSm: 'companyContact.name',
+  gTshkc: 'companyContact.email',
+  eDOPFB: 'companyContact.alternateEmail',
+  JIeTGU: 'companyContact.phone',
 
   cciwNV: 'modelName',
   oSUxHw: 'modelNumber',
@@ -47,10 +47,10 @@ const keyMapFuel = {
 
   uCHKMq: 'companyFullAddress', // non‑UK
 
-  lhhoTX: 'companyContactName',
-  zCPkvh: 'companyContactEmail',
-  FwtbfD: 'companyAlternateEmail',
-  OIMWWP: 'companyPhone',
+  lhhoTX: 'companyContact.name',
+  zCPkvh: 'companyContact.email',
+  FwtbfD: 'companyContact.alternateEmail',
+  OIMWWP: 'companyContact.phone',
 
   ChfkKZ: 'responsibleName',
   OOrscG: 'responsibleEmailAddress',

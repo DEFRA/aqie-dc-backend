@@ -127,9 +127,5 @@ export default {
     },
     firstCertifiedAt: '2026-02-05',
     lastCertifiedAt: '2026-02-13'
-  },
-  // Additional fields for FE presentation
-  isVisible: true,
-  publishedDate: '2026-02-11',
-  applianceStatus: 'certified'
+  }
 }

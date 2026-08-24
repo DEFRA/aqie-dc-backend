@@ -48,8 +48,8 @@ function buildApplication(applicationData) {
     type: applicationData.type,
     status: applicationData.status || 'new',
     reviewer: applicationData.reviewer || null,
-    submittedDate: applicationData.submittedDate
-      ? new Date(applicationData.submittedDate)
+    submittedAt: applicationData.submittedAt
+      ? new Date(applicationData.submittedAt)
       : null,
     referenceNumber: applicationData.referenceNumber,
     createdAt: applicationData.createdAt
@@ -148,7 +148,7 @@ async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
     // Get all applications (pagination disabled)
     const applications = await collection
       .find({})
-      .sort({ submittedDate: -1, createdAt: -1 })
+      .sort({ submittedAt: -1, createdAt: -1 })
       // .skip(skip)        // PAGINATION: Uncomment if needed
       // .limit(limit)      // PAGINATION: Uncomment if needed
       .toArray()
@@ -241,7 +241,7 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
 
     const applications = await collection
       .find(searchQuery)
-      .sort({ submittedDate: -1, createdAt: -1 })
+      .sort({ submittedAt: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .toArray()
@@ -430,7 +430,7 @@ async function getApplicationsWithSummary(
     // 1. Fetch all applications with specified statuses
     const applications = await appCollection
       .find({ status: { $in: statuses } })
-      .sort({ submittedDate: -1, createdAt: -1 })
+      .sort({ submittedAt: -1, createdAt: -1 })
       .toArray()
 
     // If no applications found, return early
@@ -464,7 +464,7 @@ async function getApplicationsWithSummary(
         id: app.id,
         type: app.type,
         status: app.status,
-        submittedDate: app.submittedDate,
+        submittedAt: app.submittedAt,
         appliances: appliances
           .filter((appliance) => appliance.applicationId === app.id)
           .map((appliance) => ({

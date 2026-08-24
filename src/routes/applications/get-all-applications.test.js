@@ -94,7 +94,7 @@ describe('GET /applications', () => {
           reviewer: 'John',
           reviewNotes: 'Pending review',
           additionalMetadata: { notes: 'Test' },
-          submittedDate: new Date(),
+          submittedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date()
         }

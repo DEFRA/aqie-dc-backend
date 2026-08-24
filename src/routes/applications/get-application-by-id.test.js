@@ -42,7 +42,7 @@ describe('GET /applications/{applicationId}', () => {
         status: 'new',
         reviewer: 'John',
         reviewNotes: 'Pending review',
-        submittedDate: new Date(),
+        submittedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
         appliances: [

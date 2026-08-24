@@ -19,23 +19,23 @@ export const generateSecureId = () => {
 }
 
 export const findCertified = (
-  englandApproval,
-  scotlandApproval,
-  walesApproval,
-  nIrelandApproval
+  englandCertification,
+  scotlandCertification,
+  walesCertification,
+  nIrelandCertification
 ) => {
   const approvedRegions = []
 
-  if (englandApproval === 'Certified') {
+  if (englandCertification.status === 'certified') {
     approvedRegions.push('England')
   }
-  if (scotlandApproval === 'Certified') {
+  if (scotlandCertification.status === 'certified') {
     approvedRegions.push('Scotland')
   }
-  if (walesApproval === 'Certified') {
+  if (walesCertification.status === 'certified') {
     approvedRegions.push('Wales')
   }
-  if (nIrelandApproval === 'Certified') {
+  if (nIrelandCertification.status === 'certified') {
     approvedRegions.push('Northern Ireland')
   }
 
@@ -67,7 +67,7 @@ export const getFullAddress = (item) => {
   const filterLines = (...lines) =>
     lines.filter((line) => typeof line === 'string' && line.trim() !== '')
   return item.isUkBased === false
-    ? filterLines(item.companyAddress)
+    ? filterLines(item.companyFullAddress)
     : filterLines(
         item.companyAddress.line1,
         item.companyAddress.line2,

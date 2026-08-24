@@ -63,10 +63,10 @@ function mapApplianceDetail(item) {
   return {
     ...item,
     authorisedIn: findCertified(
-      item.englandApproval,
-      item.scotlandApproval,
-      item.walesApproval,
-      item.nIrelandApproval
+      item.englandCertification,
+      item.scotlandCertification,
+      item.walesCertification,
+      item.nIrelandCertification
     ),
     name: item.modelName || '',
     id: item.applianceId || '',
@@ -87,10 +87,10 @@ function mapApplianceSummary(item) {
     type: item.applianceType,
     modelNumber: item.modelNumber,
     authorisedIn: findCertified(
-      item.englandApproval,
-      item.scotlandApproval,
-      item.walesApproval,
-      item.nIrelandApproval
+      item.englandCertification,
+      item.scotlandCertification,
+      item.walesCertification,
+      item.nIrelandCertification
     )
   }
 }
@@ -114,12 +114,12 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
 
     // Get all certified appliances (pagination disabled)
     const certificationFilter = {
-      technicalApproval: 'Certified',
+      'technicalReview.status': 'accepted',
       $or: [
-        { englandApproval: 'Certified' },
-        { scotlandApproval: 'Certified' },
-        { walesApproval: 'Certified' },
-        { nIrelandApproval: 'Certified' }
+        { 'englandCertification.status': 'certified' },
+        { 'scotlandCertification.status': 'certified' },
+        { 'walesCertification.status': 'certified' },
+        { 'nIrelandCertification.status': 'certified' }
       ]
     }
 
