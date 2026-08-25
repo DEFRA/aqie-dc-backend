@@ -11,19 +11,17 @@ import {
   getFuelWithRelatedItems
 } from './fuels-controller.js'
 
-import {
-  generateSecureId,
-  findCertified,
-  findLastUpdatedDate,
-  getFullAddress
-} from '../common/helpers/data-transformer.js'
+import { generateSecureId } from '../common/helpers/data-transformer.js'
 
-vi.mock('../common/helpers/data-transformer.js', () => ({
-  generateSecureId: vi.fn(),
-  findCertified: vi.fn(),
-  findLastUpdatedDate: vi.fn(),
-  getFullAddress: vi.fn()
-}))
+// Only fake the non-deterministic ID generator; keep findCertified/findLastUpdatedDate/
+// getFullAddress real so tests exercise (and can catch bugs in) the actual transform logic.
+vi.mock('../common/helpers/data-transformer.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    generateSecureId: vi.fn()
+  }
+})
 
 describe('fuels-controller', () => {
   let db
@@ -40,6 +38,7 @@ describe('fuels-controller', () => {
       insertOne: vi.fn(),
       findOne: vi.fn(),
       updateOne: vi.fn(),
+      findOneAndUpdate: vi.fn(),
       deleteOne: vi.fn(),
       countDocuments: vi.fn(),
       find: vi.fn()
@@ -50,9 +49,6 @@ describe('fuels-controller', () => {
     }
 
     generateSecureId.mockReturnValue('12345')
-    findCertified.mockReturnValue('England')
-    findLastUpdatedDate.mockReturnValue('2024-01-01')
-    getFullAddress.mockReturnValue('1 Test Street')
   })
 
   describe('createFuel', () => {
@@ -203,16 +199,21 @@ describe('fuels-controller', () => {
         fuelId: 'FUEL-001',
         brandNames: 'Premium Fuel',
         companyName: 'Fuel Company',
+        companyAddress: { line1: '1 Test Street' },
         englandCertification: {
+          status: 'certified',
           lastCertifiedAt: '2024-01-01'
         },
         scotlandCertification: {
+          status: 'certified',
           lastCertifiedAt: '2024-01-01'
         },
         walesCertification: {
+          status: 'certified',
           lastCertifiedAt: '2024-01-01'
         },
         nIrelandCertification: {
+          status: 'certified',
           lastCertifiedAt: '2024-01-01'
         }
       })
@@ -220,9 +221,16 @@ describe('fuels-controller', () => {
       const result = await getFuelById(db, 'FUEL-001', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.authorisedIn).toBe('England')
-      expect(result.data.lastUpdatedDate).toBe('2024-01-01')
-      expect(result.data.fullAddress).toBe('1 Test Street')
+      expect(result.data.authorisedIn).toEqual([
+        'England',
+        'Scotland',
+        'Wales',
+        'Northern Ireland'
+      ])
+      expect(result.data.lastUpdatedDate).toBe(
+        new Date('2024-01-01').toISOString()
+      )
+      expect(result.data.fullAddress).toEqual(['1 Test Street'])
     })
 
     test('returns not found', async () => {
@@ -244,13 +252,8 @@ describe('fuels-controller', () => {
 
   describe('updateFuel', () => {
     test('updates fuel successfully', async () => {
-      collection.updateOne.mockResolvedValue({
-        matchedCount: 1
-      })
-
-      collection.findOne.mockResolvedValue({
-        fuelId: 'FUEL-001',
-        brandNames: 'Updated Fuel'
+      collection.findOneAndUpdate.mockResolvedValue({
+        value: { fuelId: 'FUEL-001', brandNames: 'Updated Fuel' }
       })
 
       const result = await updateFuel(
@@ -260,12 +263,12 @@ describe('fuels-controller', () => {
         mockLogger
       )
 
-      expect(result.updated.brandNames).toBe('Updated Fuel')
+      expect(result.data.brandNames).toBe('Updated Fuel')
     })
 
     test('returns notFound when no match', async () => {
-      collection.updateOne.mockResolvedValue({
-        matchedCount: 0
+      collection.findOneAndUpdate.mockResolvedValue({
+        value: null
       })
 
       const result = await updateFuel(db, 'FUEL-001', {}, mockLogger)
@@ -274,7 +277,7 @@ describe('fuels-controller', () => {
     })
 
     test('handles update errors', async () => {
-      collection.updateOne.mockRejectedValue(new Error('update failed'))
+      collection.findOneAndUpdate.mockRejectedValue(new Error('update failed'))
 
       await expect(updateFuel(db, 'FUEL-001', {}, mockLogger)).rejects.toThrow(
         'update failed'
@@ -403,6 +406,7 @@ describe('fuels-controller', () => {
       collection.findOne.mockResolvedValue({
         fuelId: 'FUEL-001',
         brandNames: 'Related Fuel',
+        companyAddress: { line1: '1 Related Street' },
         englandCertification: {
           lastCertifiedAt: '2024-01-01'
         },

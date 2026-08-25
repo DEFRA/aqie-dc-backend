@@ -188,23 +188,33 @@ async function updateAppliance(db, id, updates, logger) {
   if (!logger) {
     throw new Error('logger is required')
   }
+
   try {
     const collection = db.collection('Appliances')
-    const now = new Date()
 
-    const result = await collection.updateOne(
+    const result = await collection.findOneAndUpdate(
       { id },
-      { $set: { ...updates, updatedAt: now } }
+      {
+        $set: {
+          ...updates,
+          updatedAt: new Date()
+        }
+      },
+      {
+        returnDocument: 'after'
+      }
     )
 
-    if (result.matchedCount === 0) {
+    if (!result.value) {
       return { notFound: true }
     }
 
-    const updated = await collection.findOne({ id })
     logger.info(`Appliance updated: ${id}`)
 
-    return { updated }
+    return {
+      success: true,
+      data: result.value
+    }
   } catch (error) {
     logger.error(error, 'Failed to update appliance')
     throw error

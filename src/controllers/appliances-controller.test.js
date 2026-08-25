@@ -10,17 +10,17 @@ import {
   getApplianceWithRelatedItems
 } from './appliances-controller.js'
 
-import {
-  generateSecureId,
-  findCertified,
-  getFullAddress
-} from '../common/helpers/data-transformer.js'
+import { generateSecureId } from '../common/helpers/data-transformer.js'
 
-vi.mock('../common/helpers/data-transformer.js', () => ({
-  generateSecureId: vi.fn(),
-  findCertified: vi.fn(),
-  getFullAddress: vi.fn()
-}))
+// Only fake the non-deterministic ID generator; keep findCertified/getFullAddress
+// real so tests exercise (and can catch bugs in) the actual transform logic.
+vi.mock('../common/helpers/data-transformer.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    generateSecureId: vi.fn()
+  }
+})
 
 describe('appliances-controller', () => {
   let db
@@ -37,6 +37,7 @@ describe('appliances-controller', () => {
       insertOne: vi.fn(),
       findOne: vi.fn(),
       updateOne: vi.fn(),
+      findOneAndUpdate: vi.fn(),
       deleteOne: vi.fn(),
       countDocuments: vi.fn(),
       find: vi.fn()
@@ -47,8 +48,6 @@ describe('appliances-controller', () => {
     }
 
     generateSecureId.mockReturnValue('12345')
-    findCertified.mockReturnValue('England')
-    getFullAddress.mockReturnValue('1 Test Street')
   })
 
   describe('createAppliance', () => {
@@ -202,7 +201,8 @@ describe('appliances-controller', () => {
             companyName: 'Test Corp',
             applianceType: 'boiler',
             modelNumber: 'M123',
-            allowedFuels: ['Wood', 'Coal']
+            allowedFuels: ['Wood', 'Coal'],
+            englandCertification: { status: 'certified' }
           }
         ])
       }
@@ -217,7 +217,7 @@ describe('appliances-controller', () => {
       expect(summary.manufacturer).toBe('Test Corp')
       expect(summary.type).toBe('boiler')
       expect(summary.modelNumber).toBe('M123')
-      expect(summary.authorisedIn).toBe('England')
+      expect(summary.authorisedIn).toEqual(['England'])
     })
 
     test('handles fuels array correctly', async () => {
@@ -260,14 +260,16 @@ describe('appliances-controller', () => {
       collection.findOne.mockResolvedValue({
         id: 'APP-001',
         modelName: 'Detail Model',
-        companyName: 'Detail Corp'
+        companyName: 'Detail Corp',
+        companyAddress: { line1: '1 Test Street' },
+        englandCertification: { status: 'certified' }
       })
 
       const result = await getApplianceById(db, 'APP-001', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.fullAddress).toBe('1 Test Street')
-      expect(result.data.authorisedIn).toBe('England')
+      expect(result.data.fullAddress).toEqual(['1 Test Street'])
+      expect(result.data.authorisedIn).toEqual(['England'])
     })
 
     test('returns not found', async () => {
@@ -281,13 +283,8 @@ describe('appliances-controller', () => {
 
   describe('updateAppliance', () => {
     test('updates appliance successfully', async () => {
-      collection.updateOne.mockResolvedValue({
-        matchedCount: 1
-      })
-
-      collection.findOne.mockResolvedValue({
-        id: 'APP-001',
-        modelName: 'Updated'
+      collection.findOneAndUpdate.mockResolvedValue({
+        value: { id: 'APP-001', modelName: 'Updated' }
       })
 
       const result = await updateAppliance(
@@ -297,12 +294,12 @@ describe('appliances-controller', () => {
         mockLogger
       )
 
-      expect(result.updated.modelName).toBe('Updated')
+      expect(result.data.modelName).toBe('Updated')
     })
 
     test('returns not found', async () => {
-      collection.updateOne.mockResolvedValue({
-        matchedCount: 0
+      collection.findOneAndUpdate.mockResolvedValue({
+        value: null
       })
 
       const result = await updateAppliance(db, 'APP-001', {}, mockLogger)
@@ -369,7 +366,8 @@ describe('appliances-controller', () => {
     test('returns appliance with details', async () => {
       collection.findOne.mockResolvedValue({
         id: 'APP-001',
-        modelName: 'Related Appliance'
+        modelName: 'Related Appliance',
+        companyAddress: { line1: '1 Related Street' }
       })
 
       const result = await getApplianceWithRelatedItems(

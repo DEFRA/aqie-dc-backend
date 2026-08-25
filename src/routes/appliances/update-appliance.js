@@ -12,7 +12,12 @@ const updateApplianceSchema = applianceSchema
   .fork(Object.keys(applianceSchema.describe().keys), (schema) =>
     schema.optional()
   )
-  .prefs({ noDefaults: true })
+  .keys({
+    id: Joi.forbidden(),
+    createdAt: Joi.forbidden(),
+    updatedAt: Joi.forbidden()
+  })
+  .prefs({ presence: 'optional', noDefaults: true })
   .min(1)
   .unknown(false)
 

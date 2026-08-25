@@ -9,6 +9,12 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 
 const updateFuelSchema = fuelSchema
   .fork(Object.keys(fuelSchema.describe().keys), (schema) => schema.optional())
+  .keys({
+    id: Joi.forbidden(),
+    createdAt: Joi.forbidden(),
+    updatedAt: Joi.forbidden()
+  })
+  //.prefs({ presence: 'optional', noDefaults: true })
   .prefs({ noDefaults: true })
   .min(1)
   .unknown(false)
