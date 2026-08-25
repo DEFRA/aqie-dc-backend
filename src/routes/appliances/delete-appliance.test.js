@@ -9,7 +9,7 @@ vi.mock('../../controllers/appliances-controller.js', () => ({
   deleteAppliance: vi.fn()
 }))
 
-describe('DELETE /appliances/{applianceId}', () => {
+describe('DELETE /appliances/{id}', () => {
   let mockRequest
   let mockToolkit
 
@@ -24,7 +24,7 @@ describe('DELETE /appliances/{applianceId}', () => {
 
     mockRequest = {
       params: {
-        applianceId: 'APP-123'
+        id: 'APP-123'
       },
       db: {},
       logger: {
@@ -75,12 +75,12 @@ describe('DELETE /appliances/{applianceId}', () => {
       expect(result.error).toBe('Delete failed')
     })
 
-    test('passes correct applianceId from params to controller', async () => {
+    test('passes correct id from params to controller', async () => {
       applianceController.deleteAppliance.mockResolvedValueOnce({
         deleted: true
       })
 
-      mockRequest.params.applianceId = 'APP-456'
+      mockRequest.params.id = 'APP-456'
       const h = mockToolkit
 
       await deleteAppliance.handler(mockRequest, h)
@@ -111,8 +111,8 @@ describe('DELETE /appliances/{applianceId}', () => {
   })
 
   describe('options.path', () => {
-    test('route path includes applianceId parameter', () => {
-      expect(deleteAppliance.path).toBe('/appliances/{applianceId}')
+    test('route path includes id parameter', () => {
+      expect(deleteAppliance.path).toBe('/appliances/{id}')
     })
   })
 
@@ -138,15 +138,15 @@ describe('DELETE /appliances/{applianceId}', () => {
       expect(deleteAppliance.options.validate.params).toBeDefined()
     })
 
-    test('requires applianceId param', () => {
+    test('requires id param', () => {
       const paramsSchema = deleteAppliance.options.validate.params
       const { error } = paramsSchema.validate({})
       expect(error).toBeDefined()
     })
 
-    test('accepts applianceId param as string', () => {
+    test('accepts id param as string', () => {
       const paramsSchema = deleteAppliance.options.validate.params
-      const { error } = paramsSchema.validate({ applianceId: 'APP-123' })
+      const { error } = paramsSchema.validate({ id: 'APP-123' })
       expect(error).toBeUndefined()
     })
   })

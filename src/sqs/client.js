@@ -122,7 +122,7 @@ const createNewApplicationRecord = async (message, server) => {
         ? 'fuel'
         : 'appliance',
     referenceNumber: messageBody.meta.referenceNumber,
-    submittedDate: messageBody.meta.timestamp,
+    submittedAt: messageBody.meta.timestamp,
     appliances: []
   }
 

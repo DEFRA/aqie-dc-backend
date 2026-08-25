@@ -47,9 +47,9 @@ function buildApplication(applicationData) {
     id,
     type: applicationData.type,
     status: applicationData.status || 'new',
-    reviewer: applicationData.reviewer || null,
-    submittedDate: applicationData.submittedDate
-      ? new Date(applicationData.submittedDate)
+    reviewedBy: applicationData.reviewedBy || null,
+    submittedAt: applicationData.submittedAt
+      ? new Date(applicationData.submittedAt)
       : null,
     referenceNumber: applicationData.referenceNumber,
     createdAt: applicationData.createdAt
@@ -85,7 +85,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   if (Array.isArray(appliances) && appliances.length > 0) {
     const appliancesToInsert = appliances.map((appliance) => ({
       ...appliance,
-      applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
+      id: appliance.id || `APP-${generateSecureId()}`,
       applicationId: application.id
     }))
 
@@ -148,7 +148,7 @@ async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
     // Get all applications (pagination disabled)
     const applications = await collection
       .find({})
-      .sort({ submittedDate: -1, createdAt: -1 })
+      .sort({ submittedAt: -1, createdAt: -1 })
       // .skip(skip)        // PAGINATION: Uncomment if needed
       // .limit(limit)      // PAGINATION: Uncomment if needed
       .toArray()
@@ -232,16 +232,16 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
     const searchQuery = {
       $or: [
         { status: { $regex: query, $options: 'i' } },
-        { reviewer: { $regex: query, $options: 'i' } },
-        { 'reviewer.name': { $regex: query, $options: 'i' } },
-        { 'reviewer.email': { $regex: query, $options: 'i' } },
+        { reviewedBy: { $regex: query, $options: 'i' } },
+        { 'reviewedBy.name': { $regex: query, $options: 'i' } },
+        { 'reviewedBy.email': { $regex: query, $options: 'i' } },
         { id: { $regex: query, $options: 'i' } }
       ]
     }
 
     const applications = await collection
       .find(searchQuery)
-      .sort({ submittedDate: -1, createdAt: -1 })
+      .sort({ submittedAt: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .toArray()
@@ -430,7 +430,7 @@ async function getApplicationsWithSummary(
     // 1. Fetch all applications with specified statuses
     const applications = await appCollection
       .find({ status: { $in: statuses } })
-      .sort({ submittedDate: -1, createdAt: -1 })
+      .sort({ submittedAt: -1, createdAt: -1 })
       .toArray()
 
     // If no applications found, return early
@@ -464,11 +464,11 @@ async function getApplicationsWithSummary(
         id: app.id,
         type: app.type,
         status: app.status,
-        submittedDate: app.submittedDate,
+        submittedAt: app.submittedAt,
         appliances: appliances
           .filter((appliance) => appliance.applicationId === app.id)
           .map((appliance) => ({
-            applianceId: appliance._id,
+            id: appliance._id,
             modelName: appliance.modelName
           }))
       }

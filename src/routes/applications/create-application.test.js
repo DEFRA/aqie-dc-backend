@@ -193,8 +193,8 @@ describe('POST /applications', () => {
           id: 'uuid-123',
           type: 'appliance',
           appliances: [
-            { applianceId: 'APP-001', companyName: 'ACME' },
-            { applianceId: 'APP-002', companyName: 'Beta' }
+            { id: 'APP-001', companyName: 'ACME' },
+            { id: 'APP-002', companyName: 'Beta' }
           ]
         }
       }
@@ -204,7 +204,7 @@ describe('POST /applications', () => {
       const result = await createApplication.handler(mockRequest, mockToolkit)
 
       expect(result.data.appliances).toHaveLength(2)
-      expect(result.data.appliances[0].applianceId).toBe('APP-001')
+      expect(result.data.appliances[0].id).toBe('APP-001')
     })
 
     test('logs error when controller throws', async () => {

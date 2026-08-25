@@ -62,16 +62,16 @@ function mapFuelDetail(item) {
   return {
     ...item,
     authorisedIn: findCertified(
-      item.englandApproval,
-      item.scotlandApproval,
-      item.walesApproval,
-      item.nIrelandApproval
+      item.englandCertification,
+      item.scotlandCertification,
+      item.walesCertification,
+      item.nIrelandCertification
     ),
     lastUpdatedDate: findLastUpdatedDate(
-      item.englandUpdatedDate,
-      item.scotlandUpdatedDate,
-      item.walesUpdatedDate,
-      item.nIrelandUpdatedDate
+      item.englandCertification.lastCertifiedAt,
+      item.scotlandCertification.lastCertifiedAt,
+      item.walesCertification.lastCertifiedAt,
+      item.nIrelandCertification.lastCertifiedAt
     ),
     name: item.brandNames || '',
     id: item.fuelId,
@@ -87,16 +87,16 @@ function mapFuelSummary(item) {
     id: item.fuelId,
     manufacturer: item.companyName || '',
     authorisedIn: findCertified(
-      item.englandApproval,
-      item.scotlandApproval,
-      item.walesApproval,
-      item.nIrelandApproval
+      item.englandCertification,
+      item.scotlandCertification,
+      item.walesCertification,
+      item.nIrelandCertification
     ),
     lastUpdatedDate: findLastUpdatedDate(
-      item.englandUpdatedDate,
-      item.scotlandUpdatedDate,
-      item.walesUpdatedDate,
-      item.nIrelandUpdatedDate
+      item.englandCertification.lastCertifiedAt,
+      item.scotlandCertification.lastCertifiedAt,
+      item.walesCertification.lastCertifiedAt,
+      item.nIrelandCertification.lastCertifiedAt
     )
   }
 }
@@ -111,12 +111,12 @@ async function getAllFuels(db, logger) {
 
     // Get all certified fuels
     const certificationFilter = {
-      technicalApproval: 'Certified',
+      'technicalReview.status': 'accepted',
       $or: [
-        { englandApproval: 'Certified' },
-        { scotlandApproval: 'Certified' },
-        { walesApproval: 'Certified' },
-        { nIrelandApproval: 'Certified' }
+        { 'englandCertification.status': 'certified' },
+        { 'scotlandCertification.status': 'certified' },
+        { 'walesCertification.status': 'certified' },
+        { 'nIrelandCertification.status': 'certified' }
       ]
     }
 
@@ -173,16 +173,30 @@ async function updateFuel(db, fuelId, updates, logger) {
   }
   try {
     const collection = db.collection('Fuels')
-    const now = new Date()
-    const result = await collection.updateOne(
+
+    const result = await collection.findOneAndUpdate(
       { fuelId },
-      { $set: { ...updates, updatedAt: now } }
+      {
+        $set: {
+          ...updates,
+          updatedAt: new Date()
+        }
+      },
+      {
+        returnDocument: 'after'
+      }
     )
-    if (result.matchedCount === 0) {
+
+    if (!result.value) {
       return { notFound: true }
     }
-    const updated = await collection.findOne({ fuelId })
-    return { updated }
+
+    logger.info(`Fuel updated: ${fuelId}`)
+
+    return {
+      success: true,
+      data: result.value
+    }
   } catch (error) {
     logger.error(error, 'Failed to update fuel')
     throw error
@@ -227,12 +241,12 @@ async function getAllFuelsWithPagination(
 
     // Get all certified fuels
     const certificationFilter = {
-      technicalApproval: 'Certified',
+      'technicalReview.status': 'accepted',
       $or: [
-        { englandApproval: 'Certified' },
-        { scotlandApproval: 'Certified' },
-        { walesApproval: 'Certified' },
-        { nIrelandApproval: 'Certified' }
+        { englandCertification: { status: 'certified' } },
+        { scotlandCertification: { status: 'certified' } },
+        { walesCertification: { status: 'certified' } },
+        { nIrelandCertification: { status: 'certified' } }
       ]
     }
 

@@ -2,10 +2,10 @@
 export default {
   type: 'appliance',
   // id: 'app-uuid-12345',
-  submittedDate: new Date('2026-04-24T12:00:00Z'),
+  submittedAt: new Date('2026-04-24T12:00:00Z'),
   // createdAt: new Date('2026-07-01T10:00:00Z'),
   status: 'new', //auto-generated but can be set for Swagger input
-  reviewer: {
+  reviewedBy: {
     name: 'John Reviewer',
     email: 'john@reviewer.com'
   },
@@ -14,22 +14,26 @@ export default {
     {
       // NOTE: These fields are auto-generated/set by server
       // applicationId: 'app-uuid-12345',
-      // applianceId: 'APP-abc123def456',
+      // id: 'APP-abc123def456',
       // createdAt: new Date('2026-07-01T10:00:00Z'),
       // updatedAt: new Date('2026-07-01T10:00:00Z'),
 
       companyName: 'ACME',
-      companyContactName: 'John Doe',
-      companyContactEmail: 'john@acme.com',
-      companyAlternateEmail: 'alt@acme.com',
-      companyPhone: '+44753732890',
+      companyContact: {
+        name: 'John Doe',
+        email: 'john@acme.com',
+        alternativeEmail: 'alt@acme.com',
+        phone: '+44753732890'
+      },
       isUkBased: true,
-      companyAddress: '123 Street',
-      companyAddressLine1: '456 Factory Road',
-      companyAddressLine2: 'Unit 7',
-      companyAddressCity: 'Birmingham',
-      companyAddressCounty: 'West Midlands',
-      companyAddressPostcode: 'B1 2AB',
+      // companyFullAddress: '456 Factory Road, Unit 7, Birmingham, West Midlands, B1 2AB',
+      companyAddress: {
+        line1: '456 Factory Road',
+        line2: 'Unit 7',
+        city: 'Birmingham',
+        county: 'West Midlands',
+        postcode: 'B1 2AB'
+      },
       modelName: 'Model X',
       modelNumber: '123',
       applianceType: 'heat',
@@ -38,32 +42,52 @@ export default {
       nominalOutput: 10,
       multifuelAppliance: true,
       allowedFuels: 'Wood Pellets',
-      instructionManualTitle: 'Manual X',
-      instructionManualDate: new Date('2026-02-03'),
-      instructionManualVersion: 'Version 1',
-      instructionManualAdditionalInfo: 'Extra info',
+      instructionManual: {
+        title: 'Manual X',
+        publicationDate: new Date('2026-02-03'),
+        version: 'Version 1',
+        additionalInfo: 'Extra info'
+      },
       declaration: true,
       // NOTE: Certification fields (optional) - Added for testing/demo purposes
       // In real workflows, these are populated later in the approval process
-      technicalApproval: 'Certified',
-      englandApproval: 'Certified',
-      scotlandApproval: 'Certified',
-      walesApproval: 'Certified',
-      nIrelandApproval: 'Certified'
+      technicalReview: {
+        status: 'accepted'
+      },
+      englandCertification: {
+        status: 'certified'
+      },
+      scotlandCertification: {
+        status: 'certified'
+      },
+      walesCertification: {
+        status: 'certified'
+      },
+      nIrelandCertification: {
+        status: 'certified'
+      }
+
       //legacyRecord: false //default to false
     },
     {
       // NOTE: These fields are auto-generated/set by server
       // applicationId: 'app-uuid-12345',
-      // applianceId: 'APP-xyz789uvw012',
+      // id: 'APP-xyz789uvw012',
       // createdAt: new Date('2026-07-01T10:00:00Z'),
       // updatedAt: new Date('2026-07-01T10:00:00Z'),
 
       companyName: 'Beta Heating',
-      companyContactName: 'Jane Smith',
-      companyContactEmail: 'jane@beta.com',
+      companyContact: {
+        name: 'Jane Smith',
+        email: 'jane@beta.com'
+      },
       isUkBased: false,
-      companyAddress: '789 International Ave',
+      companyFullAddress: '789 International Ave',
+      // companyAddress: {
+      //   line1: '789 International Ave',
+      //   city: 'London',
+      //   postcode: 'W1A 1AA'
+      // },
       modelName: 'Beta 2000',
       applianceType: 'heat',
       isVariant: true,
@@ -71,16 +95,28 @@ export default {
       nominalOutput: 12,
       multifuelAppliance: false,
       allowedFuels: 'Wood Pellets',
-      instructionManualTitle: 'Beta Manual',
-      instructionManualDate: new Date('2026-03-10'),
+      instructionManual: {
+        title: 'Beta Manual',
+        publicationDate: new Date('2026-03-10')
+      },
       declaration: true,
       // NOTE: Certification fields (optional) - Added for testing/demo purposes
       // In real workflows, these are populated later in the approval process
-      technicalApproval: 'Certified',
-      englandApproval: 'Certified',
-      scotlandApproval: 'Certified',
-      walesApproval: 'Revoked',
-      nIrelandApproval: 'Uncertified'
+      technicalReview: {
+        status: 'accepted'
+      },
+      englandCertification: {
+        status: 'certified'
+      },
+      scotlandCertification: {
+        status: 'certified'
+      },
+      walesCertification: {
+        status: 'revoked'
+      },
+      nIrelandCertification: {
+        status: 'rejected'
+      }
       //legacyRecord: false //default to false
     }
   ]

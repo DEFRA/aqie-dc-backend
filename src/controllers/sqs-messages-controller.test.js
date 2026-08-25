@@ -52,7 +52,7 @@ describe('createSqsMessage - additional coverage', () => {
       messageId: 'msg-123',
       messageBody: '{}',
       mappedPayload: JSON.stringify({
-        applianceId: 'APP-001',
+        id: 'APP-001',
         status: 'approved'
       })
     }

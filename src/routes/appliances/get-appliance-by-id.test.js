@@ -9,7 +9,7 @@ vi.mock('../../controllers/appliances-controller.js', () => ({
   getApplianceById: vi.fn()
 }))
 
-describe('GET /appliances/{applianceId}', () => {
+describe('GET /appliances/{id}', () => {
   let mockRequest
   let mockToolkit
 
@@ -24,7 +24,7 @@ describe('GET /appliances/{applianceId}', () => {
 
     mockRequest = {
       params: {
-        applianceId: 'APP-123'
+        id: 'APP-123'
       },
       db: {},
       logger: {
@@ -96,13 +96,13 @@ describe('GET /appliances/{applianceId}', () => {
       )
     })
 
-    test('passes applianceId from params to controller', async () => {
+    test('passes id from params to controller', async () => {
       applianceController.getApplianceById.mockResolvedValueOnce({
         success: true,
         data: { id: 'APP-456' }
       })
 
-      mockRequest.params.applianceId = 'APP-456'
+      mockRequest.params.id = 'APP-456'
       const h = mockToolkit
 
       await getApplianceById.handler(mockRequest, h)
@@ -137,8 +137,8 @@ describe('GET /appliances/{applianceId}', () => {
   })
 
   describe('options.path', () => {
-    test('route path includes applianceId parameter', () => {
-      expect(getApplianceById.path).toBe('/appliances/{applianceId}')
+    test('route path includes id parameter', () => {
+      expect(getApplianceById.path).toBe('/appliances/{id}')
     })
   })
 
@@ -161,15 +161,15 @@ describe('GET /appliances/{applianceId}', () => {
       expect(getApplianceById.options.validate.params).toBeDefined()
     })
 
-    test('requires applianceId param', () => {
+    test('requires id param', () => {
       const paramsSchema = getApplianceById.options.validate.params
       const { error } = paramsSchema.validate({})
       expect(error).toBeDefined()
     })
 
-    test('accepts applianceId param as string', () => {
+    test('accepts id param as string', () => {
       const paramsSchema = getApplianceById.options.validate.params
-      const { error } = paramsSchema.validate({ applianceId: 'APP-123' })
+      const { error } = paramsSchema.validate({ id: 'APP-123' })
       expect(error).toBeUndefined()
     })
   })

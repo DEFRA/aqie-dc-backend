@@ -12,30 +12,35 @@ const updateApplianceSchema = applianceSchema
   .fork(Object.keys(applianceSchema.describe().keys), (schema) =>
     schema.optional()
   )
+  .keys({
+    id: Joi.forbidden(),
+    createdAt: Joi.forbidden(),
+    updatedAt: Joi.forbidden()
+  })
+  .prefs({ presence: 'optional', noDefaults: true })
   .min(1)
   .unknown(false)
-  .prefs({ noDefaults: true })
 
 export const updateAppliance = {
   method: 'PATCH',
-  path: '/appliances/{applianceId}',
+  path: '/appliances/{id}',
   options: {
     tags: ['api', 'appliances'],
     description: 'Update appliance fields',
     validate: {
       params: Joi.object({
-        applianceId: Joi.string().required()
+        id: Joi.string().required()
       }),
       payload: updateApplianceSchema
     }
   },
   handler: async (request, h) => {
-    const { applianceId } = request.params
+    const { id } = request.params
 
     try {
       const result = await applianceController.updateAppliance(
         request.db,
-        applianceId,
+        id,
         request.payload,
         request.logger
       )

@@ -9,6 +9,22 @@ import {
  * Business logic for appliance-related operations
  */
 
+const LOGGER_REQUIRED_ERROR = 'logger is required'
+
+const TECHNICAL_REVIEW_CHECKLIST_PATHS = {
+  documentationReviewed: [
+    'testReports',
+    'technicalDrawings',
+    'conformityMark',
+    'instructionManual'
+  ],
+  checksCompleted: [
+    'applianceDetails',
+    'permittedFuels',
+    'additionalConditions'
+  ]
+}
+
 /**
  * Create a new appliance
  */
@@ -20,7 +36,7 @@ async function createAppliance(db, item, logger) {
     throw new Error('item is required')
   }
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -30,10 +46,10 @@ async function createAppliance(db, item, logger) {
     // Build appliance document
     const appliance = {
       ...item,
-      applianceId: item.applianceId || `APP-${generateSecureId()}`,
+      id: item.id || `APP-${generateSecureId()}`,
+      applicationId: item.applicationId || null,
       createdAt: item.createdAt || now,
-      updatedAt: now,
-      applicationId: item.applicationId || null
+      updatedAt: now
     }
 
     // Insert into database
@@ -43,7 +59,7 @@ async function createAppliance(db, item, logger) {
       throw new Error('Failed to insert appliance')
     }
 
-    logger.info(`Appliance created: ${appliance.applianceId}`)
+    logger.info(`Appliance created: ${appliance.id}`)
 
     return {
       success: true,
@@ -63,13 +79,13 @@ function mapApplianceDetail(item) {
   return {
     ...item,
     authorisedIn: findCertified(
-      item.englandApproval,
-      item.scotlandApproval,
-      item.walesApproval,
-      item.nIrelandApproval
+      item.englandCertification,
+      item.scotlandCertification,
+      item.walesCertification,
+      item.nIrelandCertification
     ),
     name: item.modelName || '',
-    id: item.applianceId || '',
+    id: item.id || '',
     manufacturer: item.companyName || '',
     fullAddress: getFullAddress(item)
   }
@@ -79,7 +95,7 @@ function mapApplianceDetail(item) {
 function mapApplianceSummary(item) {
   return {
     name: item.modelName || '',
-    id: item.applianceId || '',
+    id: item.id || '',
     manufacturer: item.companyName || '',
     fuels: Array.isArray(item.allowedFuels)
       ? item.allowedFuels.join(', ')
@@ -87,10 +103,10 @@ function mapApplianceSummary(item) {
     type: item.applianceType,
     modelNumber: item.modelNumber,
     authorisedIn: findCertified(
-      item.englandApproval,
-      item.scotlandApproval,
-      item.walesApproval,
-      item.nIrelandApproval
+      item.englandCertification,
+      item.scotlandCertification,
+      item.walesCertification,
+      item.nIrelandCertification
     )
   }
 }
@@ -101,7 +117,7 @@ function mapApplianceSummary(item) {
  */
 async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -113,24 +129,27 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
     // And uncomment pagination object in return statement
 
     // Get all certified appliances (pagination disabled)
-    const certificationFilter = {
-      technicalApproval: 'Certified',
-      $or: [
-        { englandApproval: 'Certified' },
-        { scotlandApproval: 'Certified' },
-        { walesApproval: 'Certified' },
-        { nIrelandApproval: 'Certified' }
-      ]
+    const CERTIFICATION_FIELDS = [
+      'englandCertification',
+      'scotlandCertification',
+      'walesCertification',
+      'nIrelandCertification'
+    ]
+
+    const certifiedFilter = {
+      $or: CERTIFICATION_FIELDS.map((field) => ({
+        [`${field}.status`]: 'certified'
+      }))
     }
 
     const appliances = await collection
-      .find(certificationFilter)
+      .find(certifiedFilter)
       .sort({ createdAt: -1 })
       // .skip(skip)        // PAGINATION: Uncomment if needed
       // .limit(limit)      // PAGINATION: Uncomment if needed
       .toArray()
 
-    //const total = await collection.countDocuments(certificationFilter) //part of pagnation metadata if needed
+    //const total = await collection.countDocuments(certifiedFilter) //part of pagnation metadata if needed
 
     return {
       success: true,
@@ -152,13 +171,13 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
 /**
  * Get a single appliance by ID
  */
-async function getApplianceById(db, applianceId, logger) {
+async function getApplianceById(db, id, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
-    const item = await collection.findOne({ applianceId })
+    const item = await collection.findOne({ id })
 
     if (!item) {
       return {
@@ -181,27 +200,37 @@ async function getApplianceById(db, applianceId, logger) {
 /**
  * Update an appliance
  */
-async function updateAppliance(db, applianceId, updates, logger) {
+async function updateAppliance(db, id, updates, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
+
   try {
     const collection = db.collection('Appliances')
-    const now = new Date()
 
-    const result = await collection.updateOne(
-      { applianceId },
-      { $set: { ...updates, updatedAt: now } }
+    const result = await collection.findOneAndUpdate(
+      { id },
+      {
+        $set: {
+          ...updates,
+          updatedAt: new Date()
+        }
+      },
+      {
+        returnDocument: 'after'
+      }
     )
 
-    if (result.matchedCount === 0) {
+    if (!result.value) {
       return { notFound: true }
     }
 
-    const updated = await collection.findOne({ applianceId })
-    logger.info(`Appliance updated: ${applianceId}`)
+    logger.info(`Appliance updated: ${id}`)
 
-    return { updated }
+    return {
+      success: true,
+      data: result.value
+    }
   } catch (error) {
     logger.error(error, 'Failed to update appliance')
     throw error
@@ -209,21 +238,97 @@ async function updateAppliance(db, applianceId, updates, logger) {
 }
 
 /**
+ * Update one technical review checklist field on an appliance.
+ */
+async function updateApplianceTechnicalReviewChecklist(
+  db,
+  id,
+  checklistUpdate,
+  logger
+) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+
+  const getSingleChecklistFieldPath = (payload) => {
+    const updates = []
+
+    for (const section of Object.keys(TECHNICAL_REVIEW_CHECKLIST_PATHS)) {
+      const sectionPayload = payload?.[section]
+      if (!sectionPayload) {
+        continue
+      }
+
+      for (const field of TECHNICAL_REVIEW_CHECKLIST_PATHS[section]) {
+        if (typeof sectionPayload[field] === 'boolean') {
+          updates.push({
+            path: `technicalReview.${section}.${field}`,
+            value: sectionPayload[field]
+          })
+        }
+      }
+    }
+
+    return updates.length === 1 ? updates[0] : null
+  }
+
+  try {
+    const collection = db.collection('Appliances')
+    const now = new Date()
+    const fieldUpdate = getSingleChecklistFieldPath(checklistUpdate)
+
+    if (!fieldUpdate) {
+      return {
+        success: false,
+        message: 'Exactly one checklist field must be provided',
+        badRequest: true
+      }
+    }
+
+    const reviewedBy = checklistUpdate.reviewedBy ?? null
+
+    const result = await collection.updateOne(
+      { id },
+      {
+        $set: {
+          [fieldUpdate.path]: fieldUpdate.value,
+          'technicalReview.reviewedAt': now,
+          'technicalReview.reviewedBy': reviewedBy,
+          updatedAt: now
+        }
+      }
+    )
+
+    if (result.matchedCount === 0) {
+      return { notFound: true }
+    }
+
+    const updated = await collection.findOne({ id })
+    logger.info(`Appliance technical review checklist updated: ${id}`)
+
+    return { updated }
+  } catch (error) {
+    logger.error(error, 'Failed to update appliance technical review checklist')
+    throw error
+  }
+}
+
+/**
  * Delete an appliance
  */
-async function deleteAppliance(db, applianceId, logger) {
+async function deleteAppliance(db, id, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
-    const result = await collection.deleteOne({ applianceId })
+    const result = await collection.deleteOne({ id })
 
     if (result.deletedCount === 0) {
       return { notFound: true }
     }
 
-    logger.info(`Appliance deleted: ${applianceId}`)
+    logger.info(`Appliance deleted: ${id}`)
 
     return { deleted: true }
   } catch (error) {
@@ -241,7 +346,7 @@ async function searchAppliances(
   logger
 ) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -285,12 +390,12 @@ async function searchAppliances(
  * Get appliance with all related items (applications, etc.)
  * @deprecated Relationship queries may need review for current schema
  */
-async function getApplianceWithRelatedItems(db, applianceId, logger) {
+async function getApplianceWithRelatedItems(db, id, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const appliance = await db.collection('Appliances').findOne({ applianceId })
+    const appliance = await db.collection('Appliances').findOne({ id })
 
     if (!appliance) {
       return {
@@ -301,7 +406,7 @@ async function getApplianceWithRelatedItems(db, applianceId, logger) {
     }
 
     // TODO: Get related items (currently commented pending review)
-    // const applianceApplications = await db.collection('ApplianceApplications').find({ applianceId }).toArray()
+    // const applianceApplications = await db.collection('ApplianceApplications').find({ id }).toArray()
     // const applicationIds = applianceApplications.map((aa) => aa.applicationId)
     // const applications = applicationIds.length > 0
     //   ? await db.collection('Applications').find({ applicationId: { $in: applicationIds } }).toArray()
@@ -322,6 +427,7 @@ export {
   getAllAppliances,
   getApplianceById,
   updateAppliance,
+  updateApplianceTechnicalReviewChecklist,
   deleteAppliance,
   searchAppliances,
   getApplianceWithRelatedItems
