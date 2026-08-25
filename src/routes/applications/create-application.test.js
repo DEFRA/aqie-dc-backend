@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { createApplication } from './create-application.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
@@ -221,6 +222,30 @@ describe('POST /applications', () => {
       expect(mockRequest.logger.error).toHaveBeenCalledWith(
         error,
         'Failed to create application'
+      )
+    })
+
+    test('rethrows Boom errors without wrapping them', async () => {
+      const boomError = Boom.badRequest('Validation issue')
+
+      applicationsController.createApplication.mockRejectedValueOnce(boomError)
+
+      await expect(
+        createApplication.handler(mockRequest, mockToolkit)
+      ).rejects.toBe(boomError)
+    })
+
+    test('returns bad gateway when controller reports a downstream 502', async () => {
+      applicationsController.createApplication.mockRejectedValueOnce({
+        status: statusCodes.badGateway
+      })
+
+      const result = await createApplication.handler(mockRequest, mockToolkit)
+
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.badGateway)
+      expect(result.message).toBe(
+        'Application service is currently unavailable'
       )
     })
   })

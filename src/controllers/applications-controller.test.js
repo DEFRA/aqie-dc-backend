@@ -339,6 +339,50 @@ describe('applications-controller', () => {
       ).rejects.toThrow('Insert failed')
     })
 
+    test('throws when an application insert does not return an insertedId', async () => {
+      collection.insertOne.mockResolvedValueOnce({ insertedId: null })
+
+      await expect(
+        createApplication(
+          client,
+          db,
+          { type: 'fuel', appliances: [] },
+          mockLogger
+        )
+      ).rejects.toThrow('Failed to insert application')
+    })
+
+    test('throws when an appliance insert is not acknowledged', async () => {
+      applianceCollection.insertMany.mockResolvedValueOnce({
+        acknowledged: false,
+        insertedIds: {}
+      })
+
+      await expect(
+        createApplication(
+          client,
+          db,
+          { type: 'appliance', appliances: [{ companyName: 'ACME' }] },
+          mockLogger
+        )
+      ).rejects.toThrow('MongoDB did not acknowledge appliance insert')
+    })
+
+    test('uses default values for optional application fields', async () => {
+      const result = await createApplication(
+        client,
+        db,
+        { type: 'fuel', appliances: [] },
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data.status).toBe('new')
+      expect(result.data.reviewedBy).toBeNull()
+      expect(result.data.submittedAt).toBeNull()
+      expect(result.data.createdAt).toBeInstanceOf(Date)
+    })
+
     test('handles transaction fallback for standalone MongoDB', async () => {
       const sessionError = new Error(
         'Transactions are not allowed on this replset'
@@ -466,6 +510,52 @@ describe('applications-controller', () => {
       expect(result.data.linkedItems).toBeDefined()
     })
 
+    test('fetches linked fuel records when type is fuel', async () => {
+      const mockApp = {
+        id: 'app-456',
+        type: 'fuel',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+      const fuelCollection = {
+        find: vi.fn(() => ({
+          toArray: vi.fn(async () => [
+            { applicationId: 'app-456', fuelId: 'FUEL-1' }
+          ])
+        }))
+      }
+      db.collection = vi.fn((name) => {
+        if (name === 'Applications') return collection
+        if (name === 'Appliances') return applianceCollection
+        if (name === 'Fuels') return fuelCollection
+        return collection
+      })
+
+      const result = await getApplicationById(db, 'app-456', mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.linkedItems).toEqual([
+        { applicationId: 'app-456', fuelId: 'FUEL-1' }
+      ])
+    })
+
+    test('logs a warning and returns no linked items for unknown application types', async () => {
+      const mockApp = {
+        id: 'app-999',
+        type: 'unknown',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+
+      const result = await getApplicationById(db, 'app-999', mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.linkedItems).toEqual([])
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Unknown application type: unknown'
+      )
+    })
+
     test('handles database errors', async () => {
       collection.findOne.mockRejectedValueOnce(new Error('Query failed'))
 
@@ -544,6 +634,24 @@ describe('applications-controller', () => {
           mockLogger
         )
       ).rejects.toThrow('Search failed')
+    })
+
+    test('matches reviewedBy fields when searching', async () => {
+      docs.push({
+        id: 'app-nested',
+        status: 'new',
+        reviewedBy: 'Alice'
+      })
+
+      const result = await searchApplications(
+        db,
+        { query: 'Alice', page: 1, limit: 20 },
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0].id).toBe('app-nested')
     })
   })
 

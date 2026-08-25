@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { searchApplications } from './search-applications.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
@@ -250,6 +251,29 @@ describe('GET /applications/search', () => {
       expect(result).toHaveProperty('message')
       expect(result).toHaveProperty('data')
       expect(result).toHaveProperty('pagination')
+    })
+
+    test('rethrows Boom errors from the controller', async () => {
+      const boomError = Boom.badRequest('Search bad request')
+      applicationsController.searchApplications.mockRejectedValueOnce(boomError)
+
+      await expect(
+        searchApplications.handler(mockRequest, mockToolkit)
+      ).rejects.toBe(boomError)
+    })
+
+    test('returns bad gateway when controller reports a downstream 503', async () => {
+      applicationsController.searchApplications.mockRejectedValueOnce({
+        status: statusCodes.serviceUnavailable
+      })
+
+      const result = await searchApplications.handler(mockRequest, mockToolkit)
+
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.badGateway)
+      expect(result.message).toBe(
+        'Application search service is currently unavailable'
+      )
     })
   })
 

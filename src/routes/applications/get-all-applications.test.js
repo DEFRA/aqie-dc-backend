@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { getAllApplications } from './get-all-applications.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
@@ -187,6 +188,29 @@ describe('GET /applications', () => {
       // The test verifies the response structure expected
       expect(result).toHaveProperty('success')
       expect(result).toHaveProperty('data')
+    })
+
+    test('rethrows Boom errors from the controller', async () => {
+      const boomError = Boom.badRequest('Bad request')
+      applicationsController.getAllApplications.mockRejectedValueOnce(boomError)
+
+      await expect(
+        getAllApplications.handler(mockRequest, mockToolkit)
+      ).rejects.toBe(boomError)
+    })
+
+    test('returns bad gateway when controller reports 502', async () => {
+      applicationsController.getAllApplications.mockRejectedValueOnce({
+        status: statusCodes.badGateway
+      })
+
+      const result = await getAllApplications.handler(mockRequest, mockToolkit)
+
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.badGateway)
+      expect(result.message).toBe(
+        'Application service is currently unavailable'
+      )
     })
   })
 
