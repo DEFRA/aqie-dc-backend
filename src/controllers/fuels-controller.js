@@ -29,8 +29,8 @@ async function createFuel(db, item, logger) {
 
     // Build fuel document
     const fuel = {
-      fuelId: item.fuelId || `FUEL-${generateSecureId()}`,
       ...item,
+      fuelId: item.fuelId || `FUEL-${generateSecureId()}`,
       createdAt: item.createdAt || now,
       updatedAt: now
     }

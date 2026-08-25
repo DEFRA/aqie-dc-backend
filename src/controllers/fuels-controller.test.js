@@ -121,6 +121,21 @@ describe('fuels-controller', () => {
 
       expect(mockLogger.error).toHaveBeenCalled()
     })
+
+    test('persists generated fuel id to database', async () => {
+      collection.insertOne.mockResolvedValue({
+        acknowledged: true,
+        insertedId: 'mongo-id'
+      })
+
+      await createFuel(db, { brandNames: 'Premium Fuel' }, mockLogger)
+
+      expect(collection.insertOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fuelId: 'FUEL-12345'
+        })
+      )
+    })
   })
 
   describe('getAllFuels', () => {

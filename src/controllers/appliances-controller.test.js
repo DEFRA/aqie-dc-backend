@@ -129,6 +129,21 @@ describe('appliances-controller', () => {
 
       expect(mockLogger.error).toHaveBeenCalled()
     })
+
+    test('persists generated appliance id to database', async () => {
+      collection.insertOne.mockResolvedValue({
+        acknowledged: true,
+        insertedId: 'mongo-id'
+      })
+
+      await createAppliance(db, { modelName: 'Test Appliance' }, mockLogger)
+
+      expect(collection.insertOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'APP-12345'
+        })
+      )
+    })
   })
 
   describe('getAllAppliances', () => {
