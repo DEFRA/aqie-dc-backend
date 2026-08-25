@@ -14,7 +14,7 @@ const keyMapAppliance = {
 
   CfdMSm: 'companyContact.name',
   gTshkc: 'companyContact.email',
-  eDOPFB: 'companyContact.alternateEmail',
+  eDOPFB: 'companyContact.alternativeEmail',
   JIeTGU: 'companyContact.phone',
 
   cciwNV: 'modelName',
@@ -80,6 +80,20 @@ const keyMapFuel = {
 
   userConfirmationEmailAddress: 'userConfirmationEmailAddress'
 }
+// Sets a value on an object using a dot-notation path, creating nested objects as needed
+function setByPath(obj, path, value) {
+  const keys = path.split('.')
+  const lastKey = keys.pop()
+  const target = keys.reduce((acc, key) => {
+    if (typeof acc[key] !== 'object' || acc[key] === null) {
+      acc[key] = {}
+    }
+    return acc[key]
+  }, obj)
+
+  target[lastKey] = value
+}
+
 // Mapper function
 export function mapKeys(input, type) {
   const result = {}
@@ -88,24 +102,25 @@ export function mapKeys(input, type) {
   for (const [key, value] of Object.entries(input)) {
     const mappedKey = keyMap[key]
 
-    if (mappedKey) {
-      // If value is an object (but not null or array), recursively map it
+    if (!mappedKey) {
+      continue
+    }
 
-      if (
-        typeof value === 'object' &&
-        value !== null &&
-        !Array.isArray(value)
-      ) {
-        const mappedValue = mapKeys(value, type)
+    // If value is an object (but not null or array), recursively map it
+    const isObject =
+      typeof value === 'object' && value !== null && !Array.isArray(value)
 
-        if (mappedKey === 'addressObject') {
-          Object.assign(result, mappedValue)
-        } else {
-          result[mappedKey] = mappedValue
-        }
-      } else {
-        result[mappedKey] = value
-      }
+    if (!isObject) {
+      setByPath(result, mappedKey, value)
+      continue
+    }
+
+    const mappedValue = mapKeys(value, type)
+
+    if (mappedKey === 'addressObject') {
+      Object.assign(result, mappedValue)
+    } else {
+      setByPath(result, mappedKey, mappedValue)
     }
   }
 
