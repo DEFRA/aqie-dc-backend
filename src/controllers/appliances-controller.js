@@ -9,6 +9,22 @@ import {
  * Business logic for appliance-related operations
  */
 
+const LOGGER_REQUIRED_ERROR = 'logger is required'
+
+const TECHNICAL_REVIEW_CHECKLIST_PATHS = {
+  documentationReviewed: [
+    'testReports',
+    'technicalDrawings',
+    'conformityMark',
+    'instructionManual'
+  ],
+  checksCompleted: [
+    'applianceDetails',
+    'permittedFuels',
+    'additionalConditions'
+  ]
+}
+
 /**
  * Create a new appliance
  */
@@ -20,7 +36,7 @@ async function createAppliance(db, item, logger) {
     throw new Error('item is required')
   }
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -101,7 +117,7 @@ function mapApplianceSummary(item) {
  */
 async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -157,7 +173,7 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
  */
 async function getApplianceById(db, id, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -186,7 +202,7 @@ async function getApplianceById(db, id, logger) {
  */
 async function updateAppliance(db, id, updates, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
 
   try {
@@ -222,11 +238,87 @@ async function updateAppliance(db, id, updates, logger) {
 }
 
 /**
+ * Update one technical review checklist field on an appliance.
+ */
+async function updateApplianceTechnicalReviewChecklist(
+  db,
+  id,
+  checklistUpdate,
+  logger
+) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+
+  const getSingleChecklistFieldPath = (payload) => {
+    const updates = []
+
+    for (const section of Object.keys(TECHNICAL_REVIEW_CHECKLIST_PATHS)) {
+      const sectionPayload = payload?.[section]
+      if (!sectionPayload) {
+        continue
+      }
+
+      for (const field of TECHNICAL_REVIEW_CHECKLIST_PATHS[section]) {
+        if (typeof sectionPayload[field] === 'boolean') {
+          updates.push({
+            path: `technicalReview.${section}.${field}`,
+            value: sectionPayload[field]
+          })
+        }
+      }
+    }
+
+    return updates.length === 1 ? updates[0] : null
+  }
+
+  try {
+    const collection = db.collection('Appliances')
+    const now = new Date()
+    const fieldUpdate = getSingleChecklistFieldPath(checklistUpdate)
+
+    if (!fieldUpdate) {
+      return {
+        success: false,
+        message: 'Exactly one checklist field must be provided',
+        badRequest: true
+      }
+    }
+
+    const reviewedBy = checklistUpdate.reviewedBy ?? null
+
+    const result = await collection.updateOne(
+      { id },
+      {
+        $set: {
+          [fieldUpdate.path]: fieldUpdate.value,
+          'technicalReview.reviewedAt': now,
+          'technicalReview.reviewedBy': reviewedBy,
+          updatedAt: now
+        }
+      }
+    )
+
+    if (result.matchedCount === 0) {
+      return { notFound: true }
+    }
+
+    const updated = await collection.findOne({ id })
+    logger.info(`Appliance technical review checklist updated: ${id}`)
+
+    return { updated }
+  } catch (error) {
+    logger.error(error, 'Failed to update appliance technical review checklist')
+    throw error
+  }
+}
+
+/**
  * Delete an appliance
  */
 async function deleteAppliance(db, id, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -254,7 +346,7 @@ async function searchAppliances(
   logger
 ) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -300,7 +392,7 @@ async function searchAppliances(
  */
 async function getApplianceWithRelatedItems(db, id, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const appliance = await db.collection('Appliances').findOne({ id })
@@ -335,6 +427,7 @@ export {
   getAllAppliances,
   getApplianceById,
   updateAppliance,
+  updateApplianceTechnicalReviewChecklist,
   deleteAppliance,
   searchAppliances,
   getApplianceWithRelatedItems

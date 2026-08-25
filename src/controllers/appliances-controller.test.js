@@ -5,6 +5,7 @@ import {
   getAllAppliances,
   getApplianceById,
   updateAppliance,
+  updateApplianceTechnicalReviewChecklist,
   deleteAppliance,
   searchAppliances,
   getApplianceWithRelatedItems
@@ -303,6 +304,131 @@ describe('appliances-controller', () => {
       })
 
       const result = await updateAppliance(db, 'APP-001', {}, mockLogger)
+
+      expect(result.notFound).toBe(true)
+    })
+  })
+
+  describe('updateApplianceTechnicalReviewChecklist', () => {
+    test('updates one documentationReviewed field and metadata', async () => {
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 1
+      })
+
+      collection.findOne.mockResolvedValue({
+        id: 'APP-001',
+        technicalReview: {
+          documentationReviewed: {
+            testReports: true
+          }
+        }
+      })
+
+      const result = await updateApplianceTechnicalReviewChecklist(
+        db,
+        'APP-001',
+        {
+          documentationReviewed: {
+            testReports: true
+          },
+          reviewedBy: {
+            name: 'QA Reviewer',
+            email: 'qa@example.com'
+          }
+        },
+        mockLogger
+      )
+
+      expect(collection.updateOne).toHaveBeenCalledWith(
+        { id: 'APP-001' },
+        {
+          $set: expect.objectContaining({
+            'technicalReview.documentationReviewed.testReports': true,
+            'technicalReview.reviewedBy': {
+              name: 'QA Reviewer',
+              email: 'qa@example.com'
+            },
+            updatedAt: expect.any(Date),
+            'technicalReview.reviewedAt': expect.any(Date)
+          })
+        }
+      )
+      expect(result.updated.id).toBe('APP-001')
+    })
+
+    test('returns badRequest when more than one field is provided', async () => {
+      const result = await updateApplianceTechnicalReviewChecklist(
+        db,
+        'APP-001',
+        {
+          documentationReviewed: {
+            testReports: true,
+            technicalDrawings: true
+          }
+        },
+        mockLogger
+      )
+
+      expect(result.badRequest).toBe(true)
+      expect(result.message).toBe(
+        'Exactly one checklist field must be provided'
+      )
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('updates one checklist field to false', async () => {
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 1
+      })
+
+      collection.findOne.mockResolvedValue({
+        id: 'APP-001',
+        technicalReview: {
+          documentationReviewed: {
+            technicalDrawings: false
+          }
+        }
+      })
+
+      const result = await updateApplianceTechnicalReviewChecklist(
+        db,
+        'APP-001',
+        {
+          documentationReviewed: {
+            technicalDrawings: false
+          }
+        },
+        mockLogger
+      )
+
+      expect(collection.updateOne).toHaveBeenCalledWith(
+        { id: 'APP-001' },
+        {
+          $set: expect.objectContaining({
+            'technicalReview.documentationReviewed.technicalDrawings': false,
+            updatedAt: expect.any(Date),
+            'technicalReview.reviewedAt': expect.any(Date)
+          })
+        }
+      )
+      expect(result.updated.id).toBe('APP-001')
+    })
+
+    test('returns not found when appliance does not exist', async () => {
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 0
+      })
+
+      const result = await updateApplianceTechnicalReviewChecklist(
+        db,
+        'APP-001',
+        {
+          checksCompleted: {
+            applianceDetails: true
+          }
+        },
+        mockLogger
+      )
 
       expect(result.notFound).toBe(true)
     })

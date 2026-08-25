@@ -16,6 +16,9 @@ import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { searchAppliances } from '../routes/appliances/search-appliances.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
+import { updateApplianceTechnicalReviewChecklist } from '../routes/appliances/update-appliance-technical-review-checklist.js'
+import { updateApplianceTechnicalReviewCheckByPath } from '../routes/appliances/update-appliance-technical-review-check-by-path.js'
+import { updateApplianceTechnicalReviewCheckByAlias } from '../routes/appliances/update-appliance-technical-review-check-alias.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
 import { getFuelById } from '../routes/fuels/get-fuel-by-id.js'
 import { searchFuels } from '../routes/fuels/search-fuels.js'
@@ -27,6 +30,56 @@ import { createSqsMessage } from '../routes/sqs-messages/create-sqs-message.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
 import { config } from '../config.js'
+
+const getAdminImportRoutes = () => [
+  {
+    method: 'POST',
+    path: '/admin/import/initiate',
+    ...initiateImportController
+  },
+  {
+    method: 'GET',
+    path: '/admin/import/status',
+    ...checkUploadStatusController
+  },
+  {
+    method: 'GET',
+    path: '/templates/{file*}',
+    handler: {
+      directory: {
+        path: 'templates',
+        redirectToSlash: true,
+        index: false
+      }
+    }
+  }
+]
+
+const getCdpUploaderProxyRoute = () => ({
+  method: 'POST',
+  path: '/upload-and-scan/{uploadId}',
+  options: {
+    auth: false,
+    payload: {
+      output: 'stream',
+      parse: false,
+      maxBytes: config.get('cdpUploader.maxFileSize')
+    }
+  },
+  handler: {
+    proxy: {
+      mapUri: (request) => {
+        const { uploadId } = request.params
+        const cdpUploaderUrl = config.get('cdpUploader.url')
+        return {
+          uri: `${cdpUploaderUrl}/upload-and-scan/${uploadId}`
+        }
+      },
+      passThrough: true,
+      xforward: true
+    }
+  }
+})
 
 const router = {
   plugin: {
@@ -46,58 +99,12 @@ const router = {
       server.route(uploadCallback)
 
       // Admin import routes
-      server.route([
-        {
-          method: 'POST',
-          path: '/admin/import/initiate',
-          ...initiateImportController
-        },
-        {
-          method: 'GET',
-          path: '/admin/import/status',
-          ...checkUploadStatusController
-        },
-        {
-          method: 'GET',
-          path: '/templates/{file*}',
-          handler: {
-            directory: {
-              path: 'templates',
-              redirectToSlash: true,
-              index: false
-            }
-          }
-        }
-      ])
+      server.route(getAdminImportRoutes())
 
       // Proxy route for CDP Uploader upload endpoint
       // Note: This route does NOT include the service name prefix
       // The gateway strips /aqie-dc-backend before routing to this service
-      server.route({
-        method: 'POST',
-        path: '/upload-and-scan/{uploadId}',
-        options: {
-          auth: false,
-          payload: {
-            output: 'stream',
-            parse: false,
-            maxBytes: config.get('cdpUploader.maxFileSize')
-          }
-        },
-        handler: {
-          proxy: {
-            mapUri: (request) => {
-              const { uploadId } = request.params
-              const cdpUploaderUrl = config.get('cdpUploader.url')
-              return {
-                uri: `${cdpUploaderUrl}/upload-and-scan/${uploadId}`
-              }
-            },
-            passThrough: true,
-            xforward: true
-          }
-        }
-      })
+      server.route(getCdpUploaderProxyRoute())
 
       // Application API routes
       server.route([
@@ -116,6 +123,9 @@ const router = {
         searchAppliances, // Must come before getApplianceById to avoid route conflict
         getApplianceById,
         updateAppliance,
+        updateApplianceTechnicalReviewChecklist,
+        updateApplianceTechnicalReviewCheckByPath,
+        updateApplianceTechnicalReviewCheckByAlias,
         deleteAppliance
       ])
 
