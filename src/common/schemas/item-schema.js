@@ -27,6 +27,9 @@ export const countryCertificationSchema = Joi.object({
 // APPLIANCE SCHEMA
 // ============================================================================
 export const applianceSchema = Joi.object({
+  id: Joi.string()
+    .pattern(/^APP-[A-Za-z0-9]+$/)
+    .description('Appliance ID (primary key) system-generated.'),
   // Fields from DXT form input
   applicationId: Joi.string()
     .optional()
@@ -59,8 +62,9 @@ export const applianceSchema = Joi.object({
   }),
   companyContact: Joi.object({
     name: Joi.string().required().description('Company contact name'),
-    email: Joi.string().required().description('Company contact email'),
+    email: Joi.string().email().required().description('Company contact email'),
     alternativeEmail: Joi.string()
+      .email()
       .optional()
       .allow(null)
       .empty(null) // allow null to be treated as missing i.e optional
@@ -150,33 +154,27 @@ export const applianceSchema = Joi.object({
   //Reviews/Certifications
   technicalReview: Joi.object({
     status: Joi.string()
-      .allow('', null)
-      .empty(['', null])
-      .default('new')
       .valid('new', 'in_review', 'accepted', 'rejected')
-      .optional(), //needs to be an optional field to allow it to be omitted and default to pending
-    reviewedBy: Joi.object({
-      name: Joi.string()
-        .optional()
-        .description('Name of the technical reviewer'),
-      email: Joi.string()
-        .optional()
-        .description('Email of the technical reviewer')
-    }),
+      .default('new'),
     reviewedAt: Joi.date()
-      .optional()
+      .iso()
+      .default(null)
       .description('Date technical review status changed'),
+    reviewedBy: Joi.object({
+      name: Joi.string().optional().default(null),
+      email: Joi.string().email().optional().default(null)
+    }).default(),
     documentationReviewed: Joi.object({
       testReports: Joi.boolean().default(false),
       technicalDrawings: Joi.boolean().default(false),
       conformityMark: Joi.boolean().default(false),
       instructionManual: Joi.boolean().default(false)
-    }),
+    }).default(),
     checksCompleted: Joi.object({
       applianceDetails: Joi.boolean().default(false),
       permittedFuels: Joi.boolean().default(false),
       additionalConditions: Joi.boolean().default(false)
-    })
+    }).default()
   })
     .default()
     .description(
@@ -217,6 +215,9 @@ export const applianceSchema = Joi.object({
 // FUEL SCHEMA
 // ============================================================================
 export const fuelSchema = Joi.object({
+  id: Joi.string()
+    .pattern(/^FUEL-[A-Za-z0-9]+$/)
+    .description('Fuel ID (primary key) system-generated.'),
   // Start of fuel application fields
   companyName: Joi.string().required().description('Manufacturer'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
@@ -243,8 +244,12 @@ export const fuelSchema = Joi.object({
   }),
   companyContact: Joi.object({
     name: Joi.string().required().description('Manufacturer contact name'),
-    email: Joi.string().required().description('Manufacturer contact email'),
+    email: Joi.string()
+      .email()
+      .required()
+      .description('Manufacturer contact email'),
     alternativeEmail: Joi.string()
+      .email()
       .optional()
       .allow(null)
       .empty(null) // allow null to be treated as missing i.e optional
@@ -259,10 +264,15 @@ export const fuelSchema = Joi.object({
         'Company contact phone number. Accepts local UK numbers (e.g. 07582812432) and international numbers with an optional leading + (e.g. +445398914260).'
       )
   }),
-  responsibleName: Joi.string().required().description('Responsible name'),
-  responsibleEmailAddress: Joi.string()
-    .optional()
-    .description('Responsible email address'),
+  responsiblePerson: Joi.object({
+    name: Joi.string().required().description('Responsible name'),
+    email: Joi.string()
+      .email()
+      .optional()
+      .allow(null)
+      .empty(null) // allow null to be treated as missing i.e optional
+      .description('Responsible email address')
+  }),
   customerComplaints: Joi.boolean()
     .required()
     .description('System for customer complaints in place'),
@@ -360,22 +370,19 @@ export const fuelSchema = Joi.object({
   //Reviews/Certifications
   technicalReview: Joi.object({
     status: Joi.string()
-      .allow('', null)
-      .empty(['', null])
-      .default('new')
       .valid('new', 'in_review', 'accepted', 'rejected')
-      .optional(), //needs to be an optional field to allow it to be omitted and default to pending
-    reviewedBy: Joi.object({
-      name: Joi.string()
-        .optional()
-        .description('Name of the technical reviewer'),
-      email: Joi.string()
-        .optional()
-        .description('Email of the technical reviewer')
-    }),
+      .default('new'),
     reviewedAt: Joi.date()
-      .optional()
-      .description('Date technical review status changed')
+      .iso()
+      .allow(null)
+      .default(null)
+      .description('Date technical review status changed'),
+    reviewedBy: Joi.object({
+      name: Joi.string().optional(),
+      email: Joi.string().email().optional()
+    })
+      .allow(null)
+      .default(null)
   })
     .default()
     .description('This technical review happens during the application stage'),
