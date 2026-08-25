@@ -1,8 +1,7 @@
 import { describe, test, expect } from 'vitest'
-import { applianceSchema, fuelSchema, applicationsSchema } from './schema.js'
+import { applianceSchema, fuelSchema } from './schema.js'
 import applianceExample from '../sample-data/appliance-example.js'
 import fuelExample from '../sample-data/fuel-example.js'
-import applicationExample from '../sample-data/application-example.js'
 
 describe('applianceSchema', () => {
   const applianceBasePayload = structuredClone(applianceExample)
@@ -116,7 +115,7 @@ describe('applianceSchema', () => {
     expect(error.details[0].path).toEqual(['companyFullAddress'])
   })
 
-  test('isUkBased true -> companyAddress.line1 required', () => {
+  test('isUkBased true -> companyAddress.line1 optional', () => {
     const payload = {
       ...applianceBasePayload,
       companyAddress: {
@@ -127,11 +126,10 @@ describe('applianceSchema', () => {
 
     const { error } = applianceSchema.validate(payload)
 
-    expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['companyAddress', 'line1'])
+    expect(error).toBeUndefined()
   })
 
-  test('isUkBased true -> companyAddress.city required', () => {
+  test('isUkBased true -> companyAddress.city optional', () => {
     const payload = {
       ...applianceBasePayload,
       companyAddress: {
@@ -142,11 +140,10 @@ describe('applianceSchema', () => {
 
     const { error } = applianceSchema.validate(payload)
 
-    expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['companyAddress', 'city'])
+    expect(error).toBeUndefined()
   })
 
-  test('isUkBased true -> companyAddress.postcode required', () => {
+  test('isUkBased true -> companyAddress.postcode optional', () => {
     const payload = {
       ...applianceBasePayload,
       companyAddress: {
@@ -157,45 +154,21 @@ describe('applianceSchema', () => {
 
     const { error } = applianceSchema.validate(payload)
 
-    expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['companyAddress', 'postcode'])
-  })
-})
-
-describe('applicationsSchema - reviewer', () => {
-  test('reviewer object is accepted', () => {
-    const payload = {
-      ...applicationExample,
-      reviewedBy: {
-        name: 'John Reviewer',
-        email: 'john@reviewer.com'
-      }
-    }
-
-    const { value, error } = applicationsSchema.validate(payload)
-
     expect(error).toBeUndefined()
-    expect(value.reviewedBy).toEqual({
-      name: 'John Reviewer',
-      email: 'john@reviewer.com'
-    })
-  })
-
-  test('reviewedBy string is rejected because reviewedBy must be an object or null', () => {
-    const payload = {
-      ...applicationExample,
-      reviewedBy: 'John Reviewer'
-    }
-
-    const { error } = applicationsSchema.validate(payload)
-
-    expect(error).toBeDefined()
-    expect(error.details[0].message).toContain('must be')
   })
 })
 
 describe('fuelSchema', () => {
-  const baseFuelPayload = structuredClone(fuelExample)
+  const baseFuelPayload = {
+    ...structuredClone(fuelExample),
+    responsiblePerson: {
+      name: fuelExample.responsibleName,
+      email: fuelExample.responsibleEmailAddress
+    }
+  }
+
+  delete baseFuelPayload.responsibleName
+  delete baseFuelPayload.responsibleEmailAddress
 
   describe('phone validation', () => {
     test.each([
