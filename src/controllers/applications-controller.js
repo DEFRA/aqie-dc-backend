@@ -133,40 +133,20 @@ async function performApplicationInsert(db, payload, logger, session) {
 }
 
 /**
- * Get all applications with pagination
+ * Get all applications (pagination not currently supported)
  */
-async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
+async function getAllApplications(db, _options, logger) {
   try {
     const collection = db.collection('Applications')
-    // TODO: DECISION REQUIRED - Should we implement pagination for applications?
-    // Currently disabled to return all applications. Enable pagination by uncommenting below:
-    // const skip = (page - 1) * limit
-    // .skip(skip)
-    // .limit(limit)
-    // And uncomment pagination object in return statement
-
-    // Get all applications (pagination disabled)
     const applications = await collection
       .find({})
       .sort({ submittedAt: -1, createdAt: -1 })
-      // .skip(skip)        // PAGINATION: Uncomment if needed
-      // .limit(limit)      // PAGINATION: Uncomment if needed
       .toArray()
-
-    // Get total count
-    //const total = await collection.countDocuments()
 
     return {
       success: true,
       message: 'Applications retrieved successfully',
       data: applications
-      // TODO: Pagination info - uncomment when pagination is decided
-      // pagination: {
-      //   page,
-      //   limit,
-      //   total,
-      //   totalPages: Math.ceil(total / limit)
-      // }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch applications')
