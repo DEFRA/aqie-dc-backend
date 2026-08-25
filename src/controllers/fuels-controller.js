@@ -9,6 +9,8 @@ import {
  * Business logic for fuel-related operations
  */
 
+const LOGGER_REQUIRED_ERROR = 'logger is required'
+
 /**
  * Create a new fuel
  */
@@ -20,7 +22,7 @@ async function createFuel(db, item, logger) {
     throw new Error('item is required')
   }
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -104,7 +106,7 @@ function mapFuelSummary(item) {
 //async function getAllFuel(db, type) {
 async function getAllFuels(db, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -140,7 +142,7 @@ async function getAllFuels(db, logger) {
  */
 async function getFuelById(db, fuelId, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -169,7 +171,7 @@ async function getFuelById(db, fuelId, logger) {
  */
 async function updateFuel(db, fuelId, updates, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -194,7 +196,7 @@ async function updateFuel(db, fuelId, updates, logger) {
  */
 async function deleteFuel(db, fuelId, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -219,7 +221,7 @@ async function getAllFuelsWithPagination(
   logger
 ) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -266,7 +268,7 @@ async function getAllFuelsWithPagination(
  */
 async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -311,7 +313,7 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
  */
 async function getFuelWithRelatedItems(db, fuelId, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     // Get fuel
@@ -324,13 +326,6 @@ async function getFuelWithRelatedItems(db, fuelId, logger) {
         notFound: true
       }
     }
-
-    // TODO: Get related items (currently commented pending schema review) - now its applications not users
-    // const userFuels = await db.collection('UserFuels').find({ fuelId }).toArray()
-    // const userIds = userFuels.map((uf) => uf.userId)
-    // const users = userIds.length > 0
-    //   ? await db.collection('Users').find({ userId: { $in: userIds } }).toArray()
-    //   : []
 
     return {
       success: true,

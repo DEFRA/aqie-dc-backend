@@ -9,6 +9,8 @@ import {
  * Business logic for appliance-related operations
  */
 
+const LOGGER_REQUIRED_ERROR = 'logger is required'
+
 /**
  * Create a new appliance
  */
@@ -20,7 +22,7 @@ async function createAppliance(db, item, logger) {
     throw new Error('item is required')
   }
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -96,23 +98,16 @@ function mapApplianceSummary(item) {
 }
 
 /**
- * Get all appliances with pagination
+ * Get all appliances (pagination not currently supported)
  * Returns only certified appliances per business requirements
  */
-async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
+async function getAllAppliances(db, _options, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
-    // TODO: DECISION REQUIRED - Should we implement pagination for appliances?
-    // Currently disabled to return all certified appliances. Enable pagination by uncommenting below:
-    // const skip = (page - 1) * limit
-    // .skip(skip)
-    // .limit(limit)
-    // And uncomment pagination object in return statement
 
-    // Get all certified appliances (pagination disabled)
     const CERTIFICATION_FIELDS = [
       'englandCertification',
       'scotlandCertification',
@@ -129,22 +124,11 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
     const appliances = await collection
       .find(certifiedFilter)
       .sort({ createdAt: -1 })
-      // .skip(skip)        // PAGINATION: Uncomment if needed
-      // .limit(limit)      // PAGINATION: Uncomment if needed
       .toArray()
-
-    //const total = await collection.countDocuments(certifiedFilter) //part of pagnation metadata if needed
 
     return {
       success: true,
       data: appliances.map((item) => mapApplianceSummary(item))
-      // TODO: Pagination info - uncomment when pagination is decided
-      // pagination: {
-      //   page,
-      //   limit,
-      //   total,
-      //   totalPages: Math.ceil(total / limit)
-      // }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch appliances')
@@ -157,7 +141,7 @@ async function getAllAppliances(db, { page = 1, limit = 20 } = {}, logger) {
  */
 async function getApplianceById(db, id, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -186,7 +170,7 @@ async function getApplianceById(db, id, logger) {
  */
 async function updateAppliance(db, id, updates, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -216,7 +200,7 @@ async function updateAppliance(db, id, updates, logger) {
  */
 async function deleteAppliance(db, id, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -244,7 +228,7 @@ async function searchAppliances(
   logger
 ) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Appliances')
@@ -290,7 +274,7 @@ async function searchAppliances(
  */
 async function getApplianceWithRelatedItems(db, id, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const appliance = await db.collection('Appliances').findOne({ id })
@@ -302,13 +286,6 @@ async function getApplianceWithRelatedItems(db, id, logger) {
         notFound: true
       }
     }
-
-    // TODO: Get related items (currently commented pending review)
-    // const applianceApplications = await db.collection('ApplianceApplications').find({ id }).toArray()
-    // const applicationIds = applianceApplications.map((aa) => aa.applicationId)
-    // const applications = applicationIds.length > 0
-    //   ? await db.collection('Applications').find({ applicationId: { $in: applicationIds } }).toArray()
-    //   : []
 
     return {
       success: true,

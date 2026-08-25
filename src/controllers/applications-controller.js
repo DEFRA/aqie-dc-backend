@@ -3,7 +3,7 @@
  * Business logic for application-related operations
  */
 
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 import { generateSecureId } from '../common/helpers/data-transformer.js'
 import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
 
@@ -110,7 +110,7 @@ async function performApplicationInsert(db, payload, logger, session) {
     savedAppliances = appliancesToInsert.map((appliance, index) => {
       const result = { ...appliance }
       // insertedIds may be undefined if collection was auto-created
-      if (applianceResult.insertedIds && applianceResult.insertedIds[index]) {
+      if (applianceResult.insertedIds?.[index]) {
         result._id = applianceResult.insertedIds[index]
       }
       return result

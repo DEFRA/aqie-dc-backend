@@ -19,7 +19,7 @@ export const getAllApplications = {
     try {
       const result = await applicationsController.getAllApplications(
         request.db,
-        {},
+        { page: 1, limit: 999999 },
         request.logger
       )
 
