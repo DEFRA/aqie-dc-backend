@@ -10,17 +10,35 @@ import {
   getApplianceWithRelatedItems
 } from './appliances-controller.js'
 
-import {
-  generateSecureId,
-  findCertified,
-  getFullAddress
-} from '../common/helpers/data-transformer.js'
+import { generateSecureId } from '../common/helpers/data-transformer.js'
 
-vi.mock('../common/helpers/data-transformer.js', () => ({
-  generateSecureId: vi.fn(),
-  findCertified: vi.fn(),
-  getFullAddress: vi.fn()
-}))
+// Only generateSecureId is non-deterministic (uses crypto), so it's the only
+// helper mocked here. findCertified/getFullAddress run for real so tests
+// exercise the actual mapping logic instead of asserting on fake data.
+vi.mock('../common/helpers/data-transformer.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    generateSecureId: vi.fn()
+  }
+})
+
+const certifiedInEngland = {
+  englandCertification: { status: 'certified' },
+  scotlandCertification: { status: 'awaiting_decision' },
+  walesCertification: { status: 'awaiting_decision' },
+  nIrelandCertification: { status: 'awaiting_decision' }
+}
+
+const ukAddress = {
+  companyAddress: {
+    line1: '1 Test Street',
+    line2: '',
+    city: 'Testville',
+    county: '',
+    postcode: 'AB1 2CD'
+  }
+}
 
 describe('appliances-controller', () => {
   let db
@@ -47,8 +65,6 @@ describe('appliances-controller', () => {
     }
 
     generateSecureId.mockReturnValue('12345')
-    findCertified.mockReturnValue('England')
-    getFullAddress.mockReturnValue('1 Test Street')
   })
 
   describe('createAppliance', () => {
@@ -153,7 +169,8 @@ describe('appliances-controller', () => {
           id: 'APP-001',
           modelName: 'Certified Model',
           companyName: 'Test Company',
-          allowedFuels: ['Wood']
+          allowedFuels: ['Wood'],
+          ...certifiedInEngland
         }
       ]
 
@@ -170,6 +187,7 @@ describe('appliances-controller', () => {
       expect(result.data).toHaveLength(1)
       expect(result.data[0].name).toBe('Certified Model')
       expect(result.data[0].id).toBe('APP-001')
+      expect(result.data[0].authorisedIn).toEqual(['England'])
     })
 
     test('queries certified appliances only', async () => {
@@ -202,7 +220,8 @@ describe('appliances-controller', () => {
             companyName: 'Test Corp',
             applianceType: 'boiler',
             modelNumber: 'M123',
-            allowedFuels: ['Wood', 'Coal']
+            allowedFuels: ['Wood', 'Coal'],
+            ...certifiedInEngland
           }
         ])
       }
@@ -217,7 +236,7 @@ describe('appliances-controller', () => {
       expect(summary.manufacturer).toBe('Test Corp')
       expect(summary.type).toBe('boiler')
       expect(summary.modelNumber).toBe('M123')
-      expect(summary.authorisedIn).toBe('England')
+      expect(summary.authorisedIn).toEqual(['England'])
     })
 
     test('handles fuels array correctly', async () => {
@@ -260,14 +279,20 @@ describe('appliances-controller', () => {
       collection.findOne.mockResolvedValue({
         id: 'APP-001',
         modelName: 'Detail Model',
-        companyName: 'Detail Corp'
+        companyName: 'Detail Corp',
+        ...certifiedInEngland,
+        ...ukAddress
       })
 
       const result = await getApplianceById(db, 'APP-001', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.fullAddress).toBe('1 Test Street')
-      expect(result.data.authorisedIn).toBe('England')
+      expect(result.data.fullAddress).toEqual([
+        '1 Test Street',
+        'Testville',
+        'AB1 2CD'
+      ])
+      expect(result.data.authorisedIn).toEqual(['England'])
     })
 
     test('returns not found', async () => {
@@ -369,7 +394,9 @@ describe('appliances-controller', () => {
     test('returns appliance with details', async () => {
       collection.findOne.mockResolvedValue({
         id: 'APP-001',
-        modelName: 'Related Appliance'
+        modelName: 'Related Appliance',
+        ...certifiedInEngland,
+        ...ukAddress
       })
 
       const result = await getApplianceWithRelatedItems(
@@ -379,6 +406,12 @@ describe('appliances-controller', () => {
       )
 
       expect(result.success).toBe(true)
+      expect(result.data.authorisedIn).toEqual(['England'])
+      expect(result.data.fullAddress).toEqual([
+        '1 Test Street',
+        'Testville',
+        'AB1 2CD'
+      ])
     })
 
     test('returns not found when appliance missing', async () => {
