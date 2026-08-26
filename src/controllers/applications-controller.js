@@ -511,7 +511,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       .collection(collectionName)
       .find(
         { applicationId },
-        { projection: { modelName: 1, 'technicalReview.status': 1, _id: 0 } }
+        { projection: { modelName: 1, technicalReview: 1, _id: 0 } }
       )
       .toArray()
 
