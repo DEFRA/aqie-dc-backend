@@ -450,7 +450,8 @@ async function getApplicationsWithSummary(
           .map((appliance) => ({
             id: appliance._id,
             modelName: appliance.modelName
-          }))
+          })),
+        reviewedBy: app.reviewedBy
       }
 
       if (app.status === 'new') {
