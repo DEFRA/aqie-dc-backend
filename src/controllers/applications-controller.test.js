@@ -1,3 +1,4 @@
+// Unit tests for the applications-controller.js module using Vitest
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import {
   createApplication,
