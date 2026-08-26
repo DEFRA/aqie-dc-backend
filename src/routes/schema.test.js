@@ -132,7 +132,7 @@ describe('applianceSchema', () => {
     expect(error.details[0].path).toEqual(['companyFullAddress'])
   })
 
-  test('isUkBased true -> companyAddress.line1 optional', () => {
+  test('isUkBased true -> companyAddress.line1 required', () => {
     const payload = {
       ...applianceBasePayload,
       companyAddress: {
@@ -143,10 +143,11 @@ describe('applianceSchema', () => {
 
     const { error } = applianceSchema.validate(payload)
 
-    expect(error).toBeUndefined()
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['companyAddress', 'line1'])
   })
 
-  test('isUkBased true -> companyAddress.city optional', () => {
+  test('isUkBased true -> companyAddress.city required', () => {
     const payload = {
       ...applianceBasePayload,
       companyAddress: {
@@ -157,10 +158,11 @@ describe('applianceSchema', () => {
 
     const { error } = applianceSchema.validate(payload)
 
-    expect(error).toBeUndefined()
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['companyAddress', 'city'])
   })
 
-  test('isUkBased true -> companyAddress.postcode optional', () => {
+  test('isUkBased true -> companyAddress.postcode required', () => {
     const payload = {
       ...applianceBasePayload,
       companyAddress: {
@@ -171,7 +173,8 @@ describe('applianceSchema', () => {
 
     const { error } = applianceSchema.validate(payload)
 
-    expect(error).toBeUndefined()
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['companyAddress', 'postcode'])
   })
 })
 
