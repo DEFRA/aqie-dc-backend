@@ -50,11 +50,11 @@ export const applianceSchema = Joi.object({
       .description(
         'Company address UPRN (Unique Property Reference Number, when address comes for address finder on DEFRA form)'
       ),
-    line1: Joi.string().description('Company address line 1'),
+    line1: Joi.string().required().description('Company address line 1'),
     line2: Joi.string().optional().description('Company address line 2'),
-    city: Joi.string().description('Company city'),
+    city: Joi.string().required().description('Company city'),
     county: Joi.string().optional().description('Company county'),
-    postcode: Joi.string().description('Company postcode')
+    postcode: Joi.string().required().description('Company postcode')
   }).when('isUkBased', {
     is: true,
     then: Joi.object().required(),
@@ -137,19 +137,14 @@ export const applianceSchema = Joi.object({
       .optional()
       .description('Servicing manual additional information')
   }).optional(),
-  legacyRecord: Joi.boolean()
-    .default(false)
-    .description(
-      'Records that have been migrated to the DB are deemed as legacy records'
-    ),
   legacy: Joi.object({
-    comments: Joi.string().optional().description('Legacy comments'),
+    comments: Joi.array().optional().description('Legacy comments'),
     applianceId: Joi.string().optional().description('Legacy appliance ID'),
     applicationId: Joi.string().optional().description('Legacy application ID'),
-    linkedApplications: Joi.array()
+    linkedApplicationIds: Joi.array()
       .items(Joi.string())
       .optional()
-      .description('Legacy linked applications')
+      .description('Legacy linked application IDs')
   }).optional(),
   //Reviews/Certifications
   technicalReview: Joi.object({
@@ -199,6 +194,11 @@ export const applianceSchema = Joi.object({
       'When the appliance was last updated in our system (server-generated), best practice to use this field when anything is updated in the appliance'
     ),
   // Fields for frontends
+  isLegacyRecord: Joi.boolean()
+    .default(false)
+    .description(
+      'Records that have been migrated to the DB are deemed as legacy records'
+    ),
   isVisible: Joi.boolean()
     .default(true)
     .description('Should this appliance be visible to the public?'),
@@ -404,7 +404,7 @@ export const fuelSchema = Joi.object({
     .description(
       'When the fuel was last updated in our system (server-generated), best practice to use this field when anything is updated in the appliance'
     ),
-  legacyRecord: Joi.boolean()
+  isLegacyRecord: Joi.boolean()
     .default(false)
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
