@@ -26,7 +26,7 @@ export const createApplication = {
     pre: [
       {
         assign: 'validationResult',
-        method: (request, h) => {
+        method: (request, _h) => {
           const { value, error } = applicationsSchema.validate(
             request.payload,
             {

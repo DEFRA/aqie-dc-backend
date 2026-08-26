@@ -8,23 +8,23 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const deleteAppliance = {
   method: 'DELETE',
-  path: '/appliances/{applianceId}',
+  path: '/appliances/{id}',
   options: {
     tags: ['api', 'appliances'],
     description: 'Delete appliance by ID',
     validate: {
       params: Joi.object({
-        applianceId: Joi.string().required()
+        id: Joi.string().required()
       })
     }
   },
   handler: async (request, h) => {
-    const { applianceId } = request.params
+    const { id } = request.params
 
     try {
       const result = await applianceController.deleteAppliance(
         request.db,
-        applianceId,
+        id,
         request.logger
       )
 
