@@ -51,7 +51,7 @@ describe('POST /appliances', () => {
         success: true,
         message: 'Appliance created successfully',
         data: {
-          applianceId: mockId,
+          id: mockId,
           ...applianceExample
         }
       })
@@ -61,7 +61,7 @@ describe('POST /appliances', () => {
 
       expect(result.success).toBe(true)
       expect(result.message).toBe('Appliance created successfully')
-      expect(result.data.applianceId).toBe(mockId)
+      expect(result.data.id).toBe(mockId)
       expect(result.statusCode).toBe(statusCodes.created)
       expect(applianceController.createAppliance).toHaveBeenCalledWith(
         mockRequest.db,
@@ -96,7 +96,7 @@ describe('POST /appliances', () => {
       applianceController.createAppliance.mockResolvedValueOnce({
         success: true,
         message: 'Appliance created successfully',
-        data: { applianceId: 'APP-123' }
+        data: { id: 'APP-123' }
       })
 
       const h = mockToolkit
@@ -109,13 +109,13 @@ describe('POST /appliances', () => {
       )
     })
 
-    test('includes applianceId in response data', async () => {
-      const applianceId = 'APP-xyz789'
+    test('includes id in response data', async () => {
+      const id = 'APP-xyz789'
       applianceController.createAppliance.mockResolvedValueOnce({
         success: true,
         message: 'Appliance created successfully',
         data: {
-          applianceId,
+          id,
           ...applianceExample
         }
       })
@@ -123,7 +123,7 @@ describe('POST /appliances', () => {
       const h = mockToolkit
       const result = await createAppliance.handler(mockRequest, h)
 
-      expect(result.data).toEqual({ applianceId })
+      expect(result.data).toEqual({ id })
     })
   })
 

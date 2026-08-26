@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { getApplicationById } from './get-application-by-id.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
@@ -40,14 +41,13 @@ describe('GET /applications/{applicationId}', () => {
         id: 'app-123',
         type: 'appliance',
         status: 'new',
-        reviewer: 'John',
-        reviewNotes: 'Pending review',
-        submittedDate: new Date(),
+        reviewedBy: 'John',
+        submittedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
         appliances: [
           {
-            applianceId: 'APP-001',
+            id: 'APP-001',
             companyName: 'ACME',
             modelName: 'Model X'
           }
@@ -131,8 +131,8 @@ describe('GET /applications/{applicationId}', () => {
         type: 'appliance',
         status: 'new',
         linkedItems: [
-          { applianceId: 'APP-001', companyName: 'ACME' },
-          { applianceId: 'APP-002', companyName: 'Beta' }
+          { id: 'APP-001', companyName: 'ACME' },
+          { id: 'APP-002', companyName: 'Beta' }
         ]
       }
 
@@ -153,7 +153,7 @@ describe('GET /applications/{applicationId}', () => {
         id: 'app-appliance-1',
         type: 'appliance',
         status: 'new',
-        linkedItems: [{ applianceId: 'APP-001' }]
+        linkedItems: [{ id: 'APP-001' }]
       }
 
       const fuelApp = {
@@ -197,6 +197,43 @@ describe('GET /applications/{applicationId}', () => {
       expect(mockRequest.logger.error).toHaveBeenCalledWith(
         error,
         'Failed to fetch application'
+      )
+    })
+
+    test('returns notFound status when controller reports not found', async () => {
+      applicationsController.getApplicationById.mockResolvedValueOnce({
+        success: false,
+        message: 'Application not found',
+        notFound: true
+      })
+
+      const h = mockToolkit
+      const result = await getApplicationById.handler(mockRequest, h)
+
+      expect(result.statusCode).toBe(statusCodes.notFound)
+      expect(result.notFound).toBe(true)
+    })
+
+    test('rethrows Boom errors from the controller', async () => {
+      const boomError = Boom.badRequest('Bad request')
+      applicationsController.getApplicationById.mockRejectedValueOnce(boomError)
+
+      await expect(
+        getApplicationById.handler(mockRequest, mockToolkit)
+      ).rejects.toBe(boomError)
+    })
+
+    test('returns bad gateway when controller reports a downstream 502', async () => {
+      applicationsController.getApplicationById.mockRejectedValueOnce({
+        status: statusCodes.badGateway
+      })
+
+      const result = await getApplicationById.handler(mockRequest, mockToolkit)
+
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.badGateway)
+      expect(result.message).toBe(
+        'Application service is currently unavailable'
       )
     })
   })

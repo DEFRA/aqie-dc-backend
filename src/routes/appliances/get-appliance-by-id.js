@@ -8,23 +8,23 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const getApplianceById = {
   method: 'GET',
-  path: '/appliances/{applianceId}',
+  path: '/appliances/{id}',
   options: {
     tags: ['api', 'read'],
     description: 'Fetch appliance fields for the given appliance ID',
     validate: {
       params: Joi.object({
-        applianceId: Joi.string().required()
+        id: Joi.string().required()
       })
     }
   },
   handler: async (request, h) => {
-    const { applianceId } = request.params
+    const { id } = request.params
 
     try {
       const result = await applianceController.getApplianceById(
         request.db,
-        applianceId,
+        id,
         request.logger
       )
 

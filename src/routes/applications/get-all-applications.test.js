@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { getAllApplications } from './get-all-applications.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
@@ -39,14 +40,14 @@ describe('GET /applications', () => {
           id: 'app-001',
           type: 'appliance',
           status: 'new',
-          reviewer: 'John',
+          reviewedBy: 'John',
           createdAt: new Date()
         },
         {
           id: 'app-002',
           type: 'fuel',
           status: 'in_progress',
-          reviewer: 'Jane',
+          reviewedBy: 'Jane',
           createdAt: new Date()
         }
       ]
@@ -91,10 +92,8 @@ describe('GET /applications', () => {
           id: 'app-001',
           type: 'appliance',
           status: 'new',
-          reviewer: 'John',
-          reviewNotes: 'Pending review',
-          additionalMetadata: { notes: 'Test' },
-          submittedDate: new Date(),
+          reviewedBy: 'John',
+          submittedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date()
         }
@@ -111,7 +110,7 @@ describe('GET /applications', () => {
       expect(result.data[0].id).toBeDefined()
       expect(result.data[0].type).toBeDefined()
       expect(result.data[0].status).toBeDefined()
-      expect(result.data[0].reviewer).toBeDefined()
+      expect(result.data[0].reviewedBy).toBeDefined()
     })
 
     test('handles controller error and returns 500', async () => {
@@ -189,6 +188,29 @@ describe('GET /applications', () => {
       // The test verifies the response structure expected
       expect(result).toHaveProperty('success')
       expect(result).toHaveProperty('data')
+    })
+
+    test('rethrows Boom errors from the controller', async () => {
+      const boomError = Boom.badRequest('Bad request')
+      applicationsController.getAllApplications.mockRejectedValueOnce(boomError)
+
+      await expect(
+        getAllApplications.handler(mockRequest, mockToolkit)
+      ).rejects.toBe(boomError)
+    })
+
+    test('returns bad gateway when controller reports 502', async () => {
+      applicationsController.getAllApplications.mockRejectedValueOnce({
+        status: statusCodes.badGateway
+      })
+
+      const result = await getAllApplications.handler(mockRequest, mockToolkit)
+
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.badGateway)
+      expect(result.message).toBe(
+        'Application service is currently unavailable'
+      )
     })
   })
 

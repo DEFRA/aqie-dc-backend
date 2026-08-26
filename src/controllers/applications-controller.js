@@ -3,7 +3,7 @@
  * Business logic for application-related operations
  */
 
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'node:crypto'
 import { generateSecureId } from '../common/helpers/data-transformer.js'
 import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
 
@@ -47,9 +47,9 @@ function buildApplication(applicationData) {
     id,
     type: applicationData.type,
     status: applicationData.status || 'new',
-    reviewer: applicationData.reviewer || null,
-    submittedDate: applicationData.submittedDate
-      ? new Date(applicationData.submittedDate)
+    reviewedBy: applicationData.reviewedBy || null,
+    submittedAt: applicationData.submittedAt
+      ? new Date(applicationData.submittedAt)
       : null,
     referenceNumber: applicationData.referenceNumber,
     createdAt: applicationData.createdAt
@@ -85,7 +85,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   if (Array.isArray(appliances) && appliances.length > 0) {
     const appliancesToInsert = appliances.map((appliance) => ({
       ...appliance,
-      applianceId: appliance.applianceId || `APP-${generateSecureId()}`,
+      id: appliance.id || `APP-${generateSecureId()}`,
       applicationId: application.id
     }))
 
@@ -110,7 +110,7 @@ async function performApplicationInsert(db, payload, logger, session) {
     savedAppliances = appliancesToInsert.map((appliance, index) => {
       const result = { ...appliance }
       // insertedIds may be undefined if collection was auto-created
-      if (applianceResult.insertedIds && applianceResult.insertedIds[index]) {
+      if (applianceResult.insertedIds?.[index]) {
         result._id = applianceResult.insertedIds[index]
       }
       return result
@@ -133,40 +133,20 @@ async function performApplicationInsert(db, payload, logger, session) {
 }
 
 /**
- * Get all applications with pagination
+ * Get all applications (pagination not currently supported)
  */
-async function getAllApplications(db, { page = 1, limit = 20 }, logger) {
+async function getAllApplications(db, _options, logger) {
   try {
     const collection = db.collection('Applications')
-    // TODO: DECISION REQUIRED - Should we implement pagination for applications?
-    // Currently disabled to return all applications. Enable pagination by uncommenting below:
-    // const skip = (page - 1) * limit
-    // .skip(skip)
-    // .limit(limit)
-    // And uncomment pagination object in return statement
-
-    // Get all applications (pagination disabled)
     const applications = await collection
       .find({})
-      .sort({ submittedDate: -1, createdAt: -1 })
-      // .skip(skip)        // PAGINATION: Uncomment if needed
-      // .limit(limit)      // PAGINATION: Uncomment if needed
+      .sort({ submittedAt: -1, createdAt: -1 })
       .toArray()
-
-    // Get total count
-    //const total = await collection.countDocuments()
 
     return {
       success: true,
       message: 'Applications retrieved successfully',
       data: applications
-      // TODO: Pagination info - uncomment when pagination is decided
-      // pagination: {
-      //   page,
-      //   limit,
-      //   total,
-      //   totalPages: Math.ceil(total / limit)
-      // }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch applications')
@@ -232,16 +212,16 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
     const searchQuery = {
       $or: [
         { status: { $regex: query, $options: 'i' } },
-        { reviewer: { $regex: query, $options: 'i' } },
-        { 'reviewer.name': { $regex: query, $options: 'i' } },
-        { 'reviewer.email': { $regex: query, $options: 'i' } },
+        { reviewedBy: { $regex: query, $options: 'i' } },
+        { 'reviewedBy.name': { $regex: query, $options: 'i' } },
+        { 'reviewedBy.email': { $regex: query, $options: 'i' } },
         { id: { $regex: query, $options: 'i' } }
       ]
     }
 
     const applications = await collection
       .find(searchQuery)
-      .sort({ submittedDate: -1, createdAt: -1 })
+      .sort({ submittedAt: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .toArray()
@@ -389,7 +369,7 @@ async function getApplicationsWithSummary(
     // 1. Fetch all applications with specified statuses
     const applications = await appCollection
       .find({ status: { $in: statuses } })
-      .sort({ submittedDate: -1, createdAt: -1 })
+      .sort({ submittedAt: -1, createdAt: -1 })
       .toArray()
 
     // If no applications found, return early
@@ -423,11 +403,11 @@ async function getApplicationsWithSummary(
         id: app.id,
         type: app.type,
         status: app.status,
-        submittedDate: app.submittedDate,
+        submittedAt: app.submittedAt,
         appliances: appliances
           .filter((appliance) => appliance.applicationId === app.id)
           .map((appliance) => ({
-            applianceId: appliance._id,
+            id: appliance._id,
             modelName: appliance.modelName
           }))
       }

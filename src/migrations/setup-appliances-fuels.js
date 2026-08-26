@@ -69,9 +69,7 @@ export async function setupAppliancesAndFuels(
     console.log('   ✓ Collection created')
 
     // Create indexes for Appliances
-    await db
-      .collection('Appliances')
-      .createIndex({ applianceId: 1 }, { unique: true })
+    await db.collection('Appliances').createIndex({ id: 1 }, { unique: true })
     await db.collection('Appliances').createIndex({ manufacturer: 1 })
     await db.collection('Appliances').createIndex({ modelName: 1 })
     await db.collection('Appliances').createIndex({ applianceType: 1 })

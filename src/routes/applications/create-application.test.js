@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { createApplication } from './create-application.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
@@ -193,8 +194,8 @@ describe('POST /applications', () => {
           id: 'uuid-123',
           type: 'appliance',
           appliances: [
-            { applianceId: 'APP-001', companyName: 'ACME' },
-            { applianceId: 'APP-002', companyName: 'Beta' }
+            { id: 'APP-001', companyName: 'ACME' },
+            { id: 'APP-002', companyName: 'Beta' }
           ]
         }
       }
@@ -204,7 +205,7 @@ describe('POST /applications', () => {
       const result = await createApplication.handler(mockRequest, mockToolkit)
 
       expect(result.data.appliances).toHaveLength(2)
-      expect(result.data.appliances[0].applianceId).toBe('APP-001')
+      expect(result.data.appliances[0].id).toBe('APP-001')
     })
 
     test('logs error when controller throws', async () => {
@@ -221,6 +222,30 @@ describe('POST /applications', () => {
       expect(mockRequest.logger.error).toHaveBeenCalledWith(
         error,
         'Failed to create application'
+      )
+    })
+
+    test('rethrows Boom errors without wrapping them', async () => {
+      const boomError = Boom.badRequest('Validation issue')
+
+      applicationsController.createApplication.mockRejectedValueOnce(boomError)
+
+      await expect(
+        createApplication.handler(mockRequest, mockToolkit)
+      ).rejects.toBe(boomError)
+    })
+
+    test('returns bad gateway when controller reports a downstream 502', async () => {
+      applicationsController.createApplication.mockRejectedValueOnce({
+        status: statusCodes.badGateway
+      })
+
+      const result = await createApplication.handler(mockRequest, mockToolkit)
+
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.badGateway)
+      expect(result.message).toBe(
+        'Application service is currently unavailable'
       )
     })
   })
