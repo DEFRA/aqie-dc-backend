@@ -4,12 +4,70 @@ import applianceExample from '../../sample-data/appliance-example.js'
 import fuelExample from '../../sample-data/fuel-example.js'
 
 describe('item-schema applianceSchema', () => {
+  const applianceBasePayload = structuredClone(applianceExample)
+
   test('accepts valid appliance payload from sample data', () => {
-    const payload = structuredClone(applianceExample)
+    const payload = structuredClone(applianceBasePayload)
 
     const { error } = applianceSchema.validate(payload)
 
     expect(error).toBeUndefined()
+  })
+
+  test('optional phone -> undefined passes', () => {
+    const payload = structuredClone(applianceBasePayload)
+
+    delete payload.companyContact.phone
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.companyContact.phone).toBeUndefined()
+  })
+
+  test('valid phone string passes', () => {
+    const payload = {
+      ...applianceBasePayload,
+      companyContact: {
+        ...applianceBasePayload.companyContact,
+        phone: '07405122344'
+      }
+    }
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.companyContact.phone).toBe('07405122344')
+  })
+
+  test('non-phone string returns error', () => {
+    const payload = {
+      ...applianceBasePayload,
+      companyContact: {
+        ...applianceBasePayload.companyContact,
+        phone: 'not-a-phone'
+      }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].type).toBe('string.pattern.base')
+  })
+
+  test('phone longer than allowed length -> validation error', () => {
+    const payload = {
+      ...applianceBasePayload,
+      companyContact: {
+        ...applianceBasePayload.companyContact,
+        phone: '+12345678901276'
+      }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].type).toBe('string.pattern.base')
   })
 
   test('defaults country certification status to new', () => {
@@ -37,6 +95,78 @@ describe('item-schema applianceSchema', () => {
     expect(error).toBeDefined()
     expect(error.details[0].message).toContain('must be one of')
   })
+
+  test('isUkBased false -> companyAddress fields optional', () => {
+    const payload = {
+      ...applianceBasePayload,
+      isUkBased: false,
+      companyFullAddress: '789 International Ave'
+    }
+
+    delete payload.companyAddress
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+  })
+
+  test('isUkBased false -> companyFullAddress required', () => {
+    const payload = {
+      ...applianceBasePayload,
+      isUkBased: false,
+      companyFullAddress: undefined
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['companyFullAddress'])
+  })
+
+  test('isUkBased true -> companyAddress.line1 required', () => {
+    const payload = {
+      ...applianceBasePayload,
+      companyAddress: {
+        ...applianceBasePayload.companyAddress,
+        line1: undefined
+      }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['companyAddress', 'line1'])
+  })
+
+  test('isUkBased true -> companyAddress.city required', () => {
+    const payload = {
+      ...applianceBasePayload,
+      companyAddress: {
+        ...applianceBasePayload.companyAddress,
+        city: undefined
+      }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['companyAddress', 'city'])
+  })
+
+  test('isUkBased true -> companyAddress.postcode required', () => {
+    const payload = {
+      ...applianceBasePayload,
+      companyAddress: {
+        ...applianceBasePayload.companyAddress,
+        postcode: undefined
+      }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['companyAddress', 'postcode'])
+  })
 })
 
 describe('item-schema fuelSchema', () => {
@@ -59,26 +189,40 @@ describe('item-schema fuelSchema', () => {
     expect(error).toBeUndefined()
   })
 
-  test('accepts valid company phone values', () => {
-    const payload = {
-      ...structuredClone(validFuelPayload),
-      companyContact: {
-        ...validFuelPayload.companyContact,
-        phone: '+447576796260'
+  test.each(['07576796260', '+17576796260', '+447576796260', '+3537576796260'])(
+    'accepts valid phone: %s',
+    (phone) => {
+      const payload = {
+        ...structuredClone(validFuelPayload),
+        companyContact: {
+          ...validFuelPayload.companyContact,
+          phone
+        }
       }
+
+      const { error } = fuelSchema.validate(payload)
+
+      expect(error).toBeUndefined()
     }
+  )
 
-    const { error } = fuelSchema.validate(payload)
-
-    expect(error).toBeUndefined()
-  })
-
-  test('rejects invalid company phone values', () => {
+  test.each([
+    '0757679626',
+    '075767962600',
+    '+7576796260',
+    '+123456789',
+    '+1234567890123456',
+    '447576796260',
+    '+44 7576796260',
+    '+44-7576796260',
+    'abc123',
+    'not-a-number'
+  ])('rejects invalid phone: %s', (phone) => {
     const payload = {
       ...structuredClone(validFuelPayload),
       companyContact: {
         ...validFuelPayload.companyContact,
-        phone: 'invalid-phone'
+        phone
       }
     }
 
@@ -86,5 +230,169 @@ describe('item-schema fuelSchema', () => {
 
     expect(error).toBeDefined()
     expect(error.details[0].type).toBe('string.pattern.base')
+  })
+
+  test('changesMade field is accepted as string', () => {
+    const payload = {
+      ...structuredClone(validFuelPayload),
+      changesMade: 'Changed bagging method'
+    }
+
+    const { value, error } = fuelSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.changesMade).toBe('Changed bagging method')
+  })
+
+  test('valid phone with country code passes', () => {
+    const payload = {
+      ...structuredClone(validFuelPayload),
+      companyContact: {
+        ...validFuelPayload.companyContact,
+        phone: '+447405334441'
+      }
+    }
+
+    const { value, error } = fuelSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.companyContact.phone).toBe('+447405334441')
+  })
+
+  test('optional phone -> undefined passes', () => {
+    const payload = structuredClone(validFuelPayload)
+
+    delete payload.companyContact.phone
+
+    const { value, error } = fuelSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.companyContact.phone).toBeUndefined()
+  })
+
+  test('invalid phone -> validation error', () => {
+    const payload = {
+      ...structuredClone(validFuelPayload),
+      companyContact: {
+        ...validFuelPayload.companyContact,
+        phone: '###bad###'
+      }
+    }
+
+    const { error } = fuelSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].type).toBe('string.pattern.base')
+  })
+
+  test('invalid phone format -> validation error', () => {
+    const payload = {
+      ...structuredClone(validFuelPayload),
+      companyContact: {
+        ...validFuelPayload.companyContact,
+        phone: '!!!invalid!!!'
+      }
+    }
+
+    const { error } = fuelSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].type).toBe('string.pattern.base')
+  })
+
+  test('phone longer than allowed length -> validation error', () => {
+    const payload = {
+      ...structuredClone(validFuelPayload),
+      companyContact: {
+        ...validFuelPayload.companyContact,
+        phone: '+12345678901276'
+      }
+    }
+
+    const { error } = fuelSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].type).toBe('string.pattern.base')
+  })
+
+  test('isUkBased false -> companyAddress fields optional', () => {
+    const payload = {
+      ...structuredClone(validFuelPayload),
+      isUkBased: false,
+      companyFullAddress: '789 International Ave'
+    }
+
+    delete payload.companyAddress
+
+    const { error } = fuelSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+  })
+
+  test('isUkBased false -> companyFullAddress required', () => {
+    const payload = {
+      ...structuredClone(validFuelPayload),
+      isUkBased: false,
+      companyFullAddress: undefined
+    }
+
+    const { error } = fuelSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['companyFullAddress'])
+  })
+
+  test('isUkBased true -> companyAddress.line1 required', () => {
+    const payload = {
+      ...structuredClone(validFuelPayload),
+      companyAddress: {
+        ...validFuelPayload.companyAddress,
+        line1: undefined
+      }
+    }
+
+    const { error } = fuelSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['companyAddress', 'line1'])
+  })
+
+  test('isUkBased true -> companyAddress.city required', () => {
+    const payload = {
+      ...structuredClone(validFuelPayload),
+      isUkBased: true,
+      companyAddress: {
+        uprn: '10012345678',
+        line1: '456 Factory Road',
+        line2: 'Unit 7',
+        city: undefined,
+        county: 'West Midlands',
+        postcode: 'B1 2AB'
+      }
+    }
+
+    const { error } = fuelSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['companyAddress', 'city'])
+  })
+
+  test('isUkBased true -> companyAddress.postcode required', () => {
+    const payload = {
+      ...structuredClone(validFuelPayload),
+      companyAddress: {
+        uprn: '10012345678',
+        line1: '456 Factory Road',
+        line2: 'Unit 7',
+        city: 'Liverpool',
+        county: 'West Midlands',
+        postcode: undefined
+      }
+    }
+
+    const { error } = fuelSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['companyAddress', 'postcode'])
   })
 })

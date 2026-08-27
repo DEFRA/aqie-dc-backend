@@ -7,7 +7,8 @@ import {
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getApplicationsWithSummary
+  getApplicationsWithSummary,
+  getApplicationSummaryById
 } from './applications-controller.js'
 
 // Mock logger for testing
@@ -24,6 +25,7 @@ describe('applications-controller', () => {
   let applianceCollection
   let docs
   let applianceDocs
+  let fuelDocs
 
   beforeEach(() => {
     // Reset logger mocks
@@ -32,6 +34,7 @@ describe('applications-controller', () => {
     // In-memory mock documents
     docs = []
     applianceDocs = []
+    fuelDocs = []
 
     const matchesQuery = (doc, query) => {
       if (!query) return true
@@ -96,6 +99,9 @@ describe('applications-controller', () => {
           })),
           toArray: vi.fn(async () => runToArray())
         }
+      }),
+      findOne: vi.fn(async (query) => {
+        return applianceDocs.find((doc) => matchesQuery(doc, query))
       }),
       countDocuments: vi.fn(async (query) => {
         return applianceDocs.filter((doc) => matchesQuery(doc, query)).length
@@ -221,10 +227,22 @@ describe('applications-controller', () => {
         if (name === 'Fuel' || name === 'Fuels') {
           // Return a fuel collection mock with same structure as appliance
           return {
-            countDocuments: vi.fn(async () => 0),
-            find: vi.fn((query) => ({
-              toArray: vi.fn(async () => [])
-            }))
+            countDocuments: vi.fn(async (query) => {
+              return fuelDocs.filter((doc) => matchesQuery(doc, query)).length
+            }),
+            findOne: vi.fn(async (query) => {
+              return fuelDocs.find((doc) => matchesQuery(doc, query))
+            }),
+            find: vi.fn((query) => {
+              const runToArray = async () =>
+                fuelDocs.filter((doc) => matchesQuery(doc, query))
+              return {
+                project: vi.fn(() => ({
+                  toArray: vi.fn(async () => runToArray())
+                })),
+                toArray: vi.fn(async () => runToArray())
+              }
+            })
           }
         }
         return collection
@@ -381,6 +399,43 @@ describe('applications-controller', () => {
       expect(result.data.reviewedBy).toBeNull()
       expect(result.data.submittedAt).toBeNull()
       expect(result.data.createdAt).toBeInstanceOf(Date)
+    })
+
+    test('preserves provided submittedAt, createdAt and referenceNumber', async () => {
+      const payload = {
+        type: 'fuel',
+        status: 'in_progress',
+        reviewedBy: { name: 'Reviewer', email: 'reviewer@example.com' },
+        submittedAt: '2026-01-15T00:00:00.000Z',
+        createdAt: '2026-01-10T00:00:00.000Z',
+        referenceNumber: 'REF-001',
+        appliances: []
+      }
+
+      const result = await createApplication(client, db, payload, mockLogger)
+
+      expect(result.data.status).toBe('in_progress')
+      expect(result.data.reviewedBy).toEqual(payload.reviewedBy)
+      expect(result.data.submittedAt).toEqual(new Date(payload.submittedAt))
+      expect(result.data.createdAt).toEqual(new Date(payload.createdAt))
+      expect(result.data.referenceNumber).toBe('REF-001')
+    })
+
+    test('handles appliance insert results without insertedIds (auto-created collection)', async () => {
+      applianceCollection.insertMany.mockImplementationOnce(async (docs) => {
+        applianceDocs.push(...docs)
+        return { acknowledged: true }
+      })
+
+      const payload = {
+        type: 'appliance',
+        appliances: [{ companyName: 'ACME' }]
+      }
+
+      const result = await createApplication(client, db, payload, mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.appliances[0]._id).toBeUndefined()
     })
 
     test('handles transaction fallback for standalone MongoDB', async () => {
@@ -703,6 +758,24 @@ describe('applications-controller', () => {
       expect(mockLogger.error).toHaveBeenCalled()
     })
 
+    test('ignores status counts for types not tracked in the counts map', async () => {
+      docs.push({
+        id: 'app-1',
+        type: 'unknownType',
+        status: 'new'
+      })
+      docs.push({
+        id: 'app-2',
+        type: 'appliance',
+        status: 'new'
+      })
+
+      const result = await getCounts(db, mockLogger)
+
+      expect(result.data.appliance.new).toBe(1)
+      expect(result.data).not.toHaveProperty('unknownType')
+    })
+
     test('counts complete application records and legacy appliance records', async () => {
       docs.push(
         {
@@ -864,6 +937,125 @@ describe('applications-controller', () => {
       await expect(getApplicationsWithSummary(db, mockLogger)).rejects.toThrow(
         'Summary fetch failed'
       )
+      expect(mockLogger.error).toHaveBeenCalled()
+    })
+
+    test('logs a warning and omits applications with an unknown status', async () => {
+      docs.push({
+        id: 'app-1',
+        type: 'appliance',
+        status: 'archived'
+      })
+
+      const result = await getApplicationsWithSummary(db, mockLogger, [
+        'archived'
+      ])
+
+      expect(result.data.new).toEqual([])
+      expect(result.data.inProgress).toEqual([])
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Unknown application status: archived'
+      )
+    })
+  })
+
+  describe('getApplicationSummaryById', () => {
+    test('returns notFound when application does not exist', async () => {
+      const result = await getApplicationSummaryById(
+        db,
+        'app-missing',
+        'appliance',
+        mockLogger
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Application not found')
+      expect(result.notFound).toBe(true)
+    })
+
+    test('returns summary with company details and linked appliances', async () => {
+      docs.push({ id: 'app-1', type: 'appliance' })
+      applianceDocs.push({
+        applicationId: 'app-1',
+        companyName: 'ACME',
+        companyFullAddress: '123 Street',
+        companyAddress: { city: 'London' },
+        companyContact: { name: 'Jane', email: 'jane@acme.com' },
+        modelName: 'Model A',
+        technicalReview: { status: 'accepted' }
+      })
+
+      const result = await getApplicationSummaryById(
+        db,
+        'app-1',
+        'appliance',
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.message).toBe('Application summary retrieved successfully')
+      expect(result.data.id).toBe('app-1')
+      expect(result.data.companyName).toBe('ACME')
+      expect(result.data.companyFullAddress).toBe('123 Street')
+      expect(result.data.companyAddress).toEqual({ city: 'London' })
+      expect(result.data.companyContact).toEqual({
+        name: 'Jane',
+        email: 'jane@acme.com'
+      })
+      expect(result.data.linkedItems).toHaveLength(1)
+      expect(result.data.linkedItems[0]).toMatchObject({
+        modelName: 'Model A',
+        technicalReview: { status: 'accepted' }
+      })
+    })
+
+    test('returns summary with linked fuels when type is fuel', async () => {
+      docs.push({ id: 'app-2', type: 'fuel' })
+      fuelDocs.push({
+        applicationId: 'app-2',
+        companyName: 'Fuel Co',
+        modelName: 'Fuel A',
+        technicalReview: { status: 'new' }
+      })
+
+      const result = await getApplicationSummaryById(
+        db,
+        'app-2',
+        'fuel',
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data.companyName).toBe('Fuel Co')
+      expect(result.data.linkedItems).toHaveLength(1)
+      expect(result.data.linkedItems[0].modelName).toBe('Fuel A')
+    })
+
+    test('returns null company fields when no linked item exists', async () => {
+      docs.push({ id: 'app-3', type: 'appliance' })
+
+      const result = await getApplicationSummaryById(
+        db,
+        'app-3',
+        'appliance',
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data.companyName).toBeUndefined()
+      expect(result.data.companyFullAddress).toBeNull()
+      expect(result.data.companyAddress).toBeNull()
+      expect(result.data.linkedItems).toEqual([])
+    })
+
+    test('handles database errors', async () => {
+      collection.findOne.mockRejectedValueOnce(
+        new Error('Summary query failed')
+      )
+
+      await expect(
+        getApplicationSummaryById(db, 'app-1', 'appliance', mockLogger)
+      ).rejects.toThrow('Summary query failed')
       expect(mockLogger.error).toHaveBeenCalled()
     })
   })
