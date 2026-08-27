@@ -457,21 +457,8 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       }
     }
 
-    // Map incoming parameter ('appliance' / 'fuel') to MongoDB collection names
-    const collectionMap = {
-      appliance: 'Appliances',
-      fuel: 'Fuels'
-    }
-
-    const collectionName = collectionMap[type]
-
-    if (!collectionName) {
-      logger.warn(`Unknown or unsupported application type parameter: ${type}`)
-      return {
-        success: false,
-        message: `Invalid type parameter provided: ${type}`
-      }
-    }
+    // type is validated by the route's Joi schema ('appliance' | 'fuel')
+    const collectionName = { appliance: 'Appliances', fuel: 'Fuels' }[type]
 
     // Fetch address from just one linked item - as they all have the same address
     const companyDetails = await db.collection(collectionName).findOne(
