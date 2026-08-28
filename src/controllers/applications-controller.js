@@ -353,47 +353,6 @@ async function getAllApplicationsWithAppliances(db, logger) {
     throw error
   }
 }
-//is this being used?
-async function getCertainApplicationsWithAppliances(
-  db,
-  logger,
-  status = 'new'
-) {
-  try {
-    const appCollection = db.collection('Applications')
-    const itemCollection = db.collection('Appliances')
-
-    // 1. Fetch only applications where status is 'new'
-    const newApplications = await appCollection.find({ status }).toArray()
-
-    // If no new applications found, return an empty array early
-    if (newApplications.length === 0) {
-      return []
-    }
-
-    // 2. Extract the IDs of only the 'new' applications
-    const applicationIds = newApplications.map((app) => app.id)
-
-    // 3. Fetch all appliances linked to those specific application IDs
-    const associatedAppliances = await itemCollection
-      .find({ applicationId: { $in: applicationIds } })
-      .toArray()
-
-    // 4. Stitch the appliances into their respective applications
-    const result = newApplications.map((app) => ({
-      ...app,
-      appliances: associatedAppliances.filter(
-        (appliance) => appliance.applicationId === app.id
-      )
-    }))
-
-    logger.info(`Found ${result.length} new applications.`)
-    return result
-  } catch (error) {
-    logger.error(error, 'Failed to fetch new applications')
-    throw error
-  }
-}
 
 /**
  * Get (uncomplete) applications grouped by status and with summary (returns only appliance names)
@@ -450,7 +409,8 @@ async function getApplicationsWithSummary(
           .map((appliance) => ({
             id: appliance._id,
             modelName: appliance.modelName
-          }))
+          })),
+        reviewedBy: app.reviewedBy
       }
 
       if (app.status === 'new') {
@@ -476,6 +436,71 @@ async function getApplicationsWithSummary(
   }
 }
 
+/**
+ * Get application with linked items (appliances or fuels) summary (technical review status and name only) by application ID
+ * @param {Db} db - MongoDB database instance
+ * @param {string} applicationId - Application ID to fetch summary for
+ * @param {string} type - Type of associated items to fetch summary for ('appliance' | 'fuel')
+ * @param {object} logger - Logger instance
+ */
+async function getApplicationSummaryById(db, applicationId, type, logger) {
+  try {
+    const application = await db
+      .collection('Applications')
+      .findOne({ id: applicationId })
+
+    if (!application) {
+      return {
+        success: false,
+        message: 'Application not found',
+        notFound: true
+      }
+    }
+
+    // type is validated by the route's Joi schema ('appliance' | 'fuel')
+    const collectionName = { appliance: 'Appliances', fuel: 'Fuels' }[type]
+
+    // Fetch address from just one linked item - as they all have the same address
+    const companyDetails = await db.collection(collectionName).findOne(
+      { applicationId },
+      {
+        projection: {
+          companyName: 1,
+          companyFullAddress: 1,
+          companyAddress: 1,
+          companyContact: 1,
+          _id: 0
+        }
+      }
+    )
+
+    // Fetch summary of linked items (only name and technicalApproval)
+    const linkedItems = await db
+      .collection(collectionName)
+      .find(
+        { applicationId },
+        { projection: { id: 1, modelName: 1, technicalReview: 1, _id: 0 } }
+      )
+      .toArray()
+
+    return {
+      success: true,
+      message: 'Application summary retrieved successfully',
+      data: {
+        id: application.id,
+        companyName: companyDetails?.companyName,
+        companyFullAddress: companyDetails?.companyFullAddress || null,
+        companyAddress: companyDetails?.companyAddress || null,
+        companyContact: companyDetails?.companyContact,
+        linkedItems // Contains item name and technicalReview
+      }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to fetch application summary')
+    throw error
+  }
+}
+
 export {
   createApplication,
   getAllApplications,
@@ -483,6 +508,6 @@ export {
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getCertainApplicationsWithAppliances,
-  getApplicationsWithSummary
+  getApplicationsWithSummary, //getApplicationsSummaryByStatus?
+  getApplicationSummaryById
 }
