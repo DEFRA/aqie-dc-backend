@@ -1,5 +1,7 @@
 /**
  * Get application by ID
+ * /applications/12345?include=groupedByTechStatus
+ * groupedByTechReviewStatus - Optionally return object with a groupedByTechStatus property containing the unreviewed, accepted, rejected arrays.
  */
 
 import Joi from 'joi'
@@ -17,17 +19,27 @@ export const getApplicationById = {
     validate: {
       params: Joi.object({
         applicationId: Joi.string().required().description('Application ID')
+      }),
+      query: Joi.object({
+        include: Joi.string()
+          .valid('groupedByTechReviewStatus')
+          .optional()
+          .description(
+            'Optionally group linked items by technical review status'
+          )
       })
     }
   },
   handler: async (request, h) => {
     const { applicationId } = request.params
+    const { include } = request.query
 
     try {
       const result = await applicationsController.getApplicationById(
         request.db,
         applicationId,
-        request.logger
+        request.logger,
+        { include }
       )
 
       if (result.notFound) {
