@@ -1,5 +1,5 @@
 import { describe, test, expect, vi } from 'vitest'
-import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
+import { getCompleteApplicationRecordsFilter } from '../complete-application-records-filter.js'
 
 describe('getCompleteApplicationRecordsFilter', () => {
   test('returns a filter with completed application IDs', async () => {

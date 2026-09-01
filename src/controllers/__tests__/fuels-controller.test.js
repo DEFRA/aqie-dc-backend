@@ -9,14 +9,14 @@ import {
   getAllFuelsWithPagination,
   searchFuels,
   getFuelWithRelatedItems
-} from './fuels-controller.js'
+} from '../fuels-controller.js'
 
 import {
   generateSecureId,
   findCertified,
   findLastUpdatedDate,
   getFullAddress
-} from '../common/helpers/data-transformer.js'
+} from '../../common/helpers/data-transformer.js'
 
 vi.mock('../common/helpers/data-transformer.js', () => ({
   generateSecureId: vi.fn(),
