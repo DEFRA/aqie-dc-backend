@@ -619,6 +619,79 @@ describe('applications-controller', () => {
       ).rejects.toThrow('Query failed')
       expect(mockLogger.error).toHaveBeenCalled()
     })
+
+    test('groups linked items by tech review status when requested', async () => {
+      const mockApp = {
+        id: 'app-123',
+        type: 'appliance',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+      applianceDocs.push(
+        {
+          id: 'app-001',
+          applicationId: 'app-123',
+          technical: { status: 'accepted' }
+        },
+        {
+          id: 'app-002',
+          applicationId: 'app-123',
+          technical: { status: 'rejected' }
+        },
+        {
+          id: 'app-003',
+          applicationId: 'app-123',
+          technical: { status: 'in_review' }
+        },
+        { id: 'app-004', applicationId: 'app-123' }
+      )
+
+      const result = await getApplicationById(db, 'app-123', mockLogger, {
+        include: 'groupedByTechReviewStatus'
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.data.linkedItems).toBeUndefined()
+      expect(result.data.groupedByTechReviewStatus.accepted).toHaveLength(1)
+      expect(result.data.groupedByTechReviewStatus.rejected).toHaveLength(1)
+      expect(result.data.groupedByTechReviewStatus.unreviewed).toHaveLength(2)
+    })
+
+    test('returns empty groups when no linked items exist and grouping is requested', async () => {
+      const mockApp = {
+        id: 'app-999',
+        type: 'unknown',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+
+      const result = await getApplicationById(db, 'app-999', mockLogger, {
+        include: 'groupedByTechReviewStatus'
+      })
+
+      expect(result.data.groupedByTechReviewStatus).toEqual({
+        unreviewed: [],
+        accepted: [],
+        rejected: []
+      })
+    })
+
+    test('returns linkedItems (not grouped) when include is not groupedByTechReviewStatus', async () => {
+      const mockApp = {
+        id: 'app-123',
+        type: 'appliance',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+      applianceDocs.push({ id: 'app-001', applicationId: 'app-123' })
+
+      const result = await getApplicationById(db, 'app-123', mockLogger, {
+        include: 'somethingElse'
+      })
+
+      expect(result.data.linkedItems).toBeDefined()
+      expect(result.data.groupedByTechReviewStatus).toBeUndefined()
+    })
   })
 
   describe('searchApplications', () => {
