@@ -1,7 +1,7 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 
 import { getApplianceReview } from '../get-appliance-review.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
+import { statusCodes } from '../../../common/constants/status-codes.js'
 
 const { getApplianceReviewMock } = vi.hoisted(() => ({
   getApplianceReviewMock: vi.fn()

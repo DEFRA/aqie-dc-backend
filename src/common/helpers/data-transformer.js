@@ -81,8 +81,8 @@ export const getFullAddress = (item) => {
  * Flattens a nested object into MongoDB dot-notation paths, so an update
  * touches only the fields supplied.
  *
- *   { technicalReview: { status: 'accepted' } }
- *     becomes { 'technicalReview.status': 'accepted' }
+ * {technicalReview: {status:'accepted'}}
+ * becomes{'technicalReview.status':'accepted'}
  *
  * Without this, $set replaces the whole technicalReview object and loses any
  * sibling fields it already held. Arrays and dates are treated as single

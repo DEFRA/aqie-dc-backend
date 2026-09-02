@@ -10,7 +10,7 @@ import {
   getApplianceWithRelatedItems
 } from '../appliances-controller.js'
 
-import { generateSecureId } from '../common/helpers/data-transformer.js'
+import { generateSecureId } from '../../common/helpers/'
 
 // Only generateSecureId is non-deterministic (uses crypto), so it's the only
 // helper mocked here. findCertified/getFullAddress run for real so tests
