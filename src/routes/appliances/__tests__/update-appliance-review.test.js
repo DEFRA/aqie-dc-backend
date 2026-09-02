@@ -123,10 +123,6 @@ describe('PATCH /appliances/{id}/technical-review', () => {
       expect(validatePayload({ status: 'rejected' }).error).toBeUndefined()
     })
 
-    test('accepts in_review to mark the review as started', () => {
-      expect(validatePayload({ status: 'in_review' }).error).toBeUndefined()
-    })
-
     test('accepts a decision with a reviewer', () => {
       const { error } = validatePayload({
         status: 'accepted',
@@ -136,8 +132,8 @@ describe('PATCH /appliances/{id}/technical-review', () => {
       expect(error).toBeUndefined()
     })
 
-    test('rejects new as a decision', () => {
-      expect(validatePayload({ status: 'new' }).error).toBeDefined()
+    test('rejects any other status', () => {
+      expect(validatePayload({ status: 'in_review' }).error).toBeDefined()
     })
 
     test('requires a status', () => {

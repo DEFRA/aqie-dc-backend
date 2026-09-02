@@ -10,9 +10,9 @@ const MAX_LENGTH = 255
 
 const reviewDecisionSchema = Joi.object({
   status: Joi.string()
-    .valid('in_review', 'accepted', 'rejected')
+    .valid('accepted', 'rejected')
     .required()
-    .description('The reviewer decision, or in_review to mark it as started'),
+    .description('The reviewer decision'),
   reviewedBy: Joi.object({
     name: Joi.string().max(MAX_LENGTH).required(),
     email: Joi.string().email().max(MAX_LENGTH).required()

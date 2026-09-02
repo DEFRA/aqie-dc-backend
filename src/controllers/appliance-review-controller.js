@@ -78,18 +78,6 @@ async function updateApplianceReview(db, id, decision, logger) {
 
     const { status, reviewedBy } = decision
 
-    // Saving progress must not undo a decision that has already been made
-    if (status === 'in_review' && item.technicalReview?.status !== 'new') {
-      return {
-        success: true,
-        data: {
-          id,
-          status: item.technicalReview?.status,
-          reviewedAt: item.technicalReview?.reviewedAt ?? null
-        }
-      }
-    }
-
     if (status === 'accepted' && !canAcceptReview(item.technicalReview)) {
       return {
         success: false,
