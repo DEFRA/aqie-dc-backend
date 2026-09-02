@@ -76,3 +76,28 @@ export const getFullAddress = (item) => {
         item.companyAddress.postcode
       )
 }
+
+/**
+ * Flattens a nested object into MongoDB dot-notation paths, so an update
+ * touches only the fields supplied.
+ *
+ *   { technicalReview: { status: 'accepted' } }
+ *     becomes { 'technicalReview.status': 'accepted' }
+ *
+ * Without this, $set replaces the whole technicalReview object and loses any
+ * sibling fields it already held. Arrays and dates are treated as single
+ * values; empty objects are dropped so they cannot overwrite existing data.
+ */
+export const toDotted = (source, prefix = '') =>
+  Object.entries(source).reduce((paths, [key, value]) => {
+    const path = prefix ? `${prefix}.${key}` : key
+    const isNestedObject =
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      !(value instanceof Date)
+
+    return isNestedObject
+      ? { ...paths, ...toDotted(value, path) }
+      : { ...paths, [path]: value }
+  }, {})

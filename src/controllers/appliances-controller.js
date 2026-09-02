@@ -1,7 +1,8 @@
 import {
   generateSecureId,
   findCertified,
-  getFullAddress
+  getFullAddress,
+  toDotted
 } from '../common/helpers/data-transformer.js'
 
 /**
@@ -178,7 +179,7 @@ async function updateAppliance(db, id, updates, logger) {
 
     const result = await collection.updateOne(
       { id },
-      { $set: { ...updates, updatedAt: now } }
+      { $set: { ...toDotted(updates), updatedAt: now } }
     )
 
     if (result.matchedCount === 0) {

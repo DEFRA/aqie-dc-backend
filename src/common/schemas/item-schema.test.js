@@ -396,3 +396,68 @@ describe('item-schema fuelSchema', () => {
     expect(error.details[0].path).toEqual(['companyAddress', 'postcode'])
   })
 })
+
+describe('applianceSchema - technicalReview checks', () => {
+  const basePayload = { ...applianceExample }
+
+  test('defaults every documentation check to null', () => {
+    const { value, error } = applianceSchema.validate(basePayload)
+
+    expect(error).toBeUndefined()
+    expect(value.technicalReview.documentationReviewed).toEqual({
+      testReports: null,
+      technicalDrawings: null,
+      conformityMark: null,
+      instructionManual: null
+    })
+  })
+
+  test('defaults every listing check to null', () => {
+    const { value } = applianceSchema.validate(basePayload)
+
+    expect(value.technicalReview.checksCompleted).toEqual({
+      applianceDetails: null,
+      permittedFuels: null,
+      additionalConditions: null
+    })
+  })
+
+  test('accepts a check being set back to null', () => {
+    const payload = {
+      ...basePayload,
+      technicalReview: { documentationReviewed: { testReports: null } }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+  })
+
+  test('accepts a passed and a failed check', () => {
+    const payload = {
+      ...basePayload,
+      technicalReview: {
+        documentationReviewed: { testReports: true, conformityMark: false }
+      }
+    }
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.technicalReview.documentationReviewed.testReports).toBe(true)
+    expect(value.technicalReview.documentationReviewed.conformityMark).toBe(
+      false
+    )
+  })
+
+  test('rejects a non-boolean check value', () => {
+    const payload = {
+      ...basePayload,
+      technicalReview: { checksCompleted: { permittedFuels: 'maybe' } }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+  })
+})

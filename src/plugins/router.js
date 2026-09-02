@@ -24,6 +24,8 @@ import { createFuel } from '../routes/fuels/create-fuel.js'
 import { getAllFuels } from '../routes/fuels/get-all-fuels.js'
 import { updateFuel } from '../routes/fuels/update-fuel.js'
 import { deleteFuel } from '../routes/fuels/delete-fuel.js'
+import { getApplianceReview } from '../routes/appliances/get-appliance-review.js'
+import { updateApplianceReview } from '../routes/appliances/update-appliance-review.js'
 import { createSqsMessage } from '../routes/sqs-messages/create-sqs-message.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
@@ -117,6 +119,8 @@ const router = {
         getAllAppliances,
         searchAppliances, // Must come before getApplianceById to avoid route conflict
         getApplianceById,
+        getApplianceReview,
+        updateApplianceReview,
         updateAppliance,
         deleteAppliance
       ])

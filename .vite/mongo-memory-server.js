@@ -5,7 +5,7 @@ beforeAll(async () => {
   // Setup mongo mock
   await setup({
     binary: {
-      version: 'latest'
+      version: '7.0.24'
     },
     serverOptions: {}
   })

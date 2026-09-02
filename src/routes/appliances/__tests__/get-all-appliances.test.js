@@ -1,7 +1,7 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { getAllAppliances } from './get-all-appliances.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
-import * as applianceController from '../../controllers/appliances-controller.js'
+import { getAllAppliances } from '../get-all-appliances.js'
+import { statusCodes } from '../../../common/constants/status-codes.js'
+import * as applianceController from '../../../controllers/appliances-controller.js'
 
 // Mock the controller
 vi.mock('../../controllers/appliances-controller.js', () => ({
