@@ -22,7 +22,7 @@ export default defineConfig({
           ...shared,
           name: 'unit',
           include: ['src/**/*.test.js'], // Default excludes must be kept - setting exclude replaces them
-          exclude: [...configDefaults.exclude, 'src/**/*.integration.test.js'],
+          exclude: [...configDefaults.exclude, '**/*.integration.test.js'],
           setupFiles: ['.vite/setup-files.js']
         }
       },
