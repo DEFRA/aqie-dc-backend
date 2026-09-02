@@ -18,8 +18,6 @@ import {
   getFullAddress
 } from '#src/common/helpers/data-transformer.js'
 
-import { generateSecureId } from '#src/common/helpers/data-transformer.js'
-
 // Only generateSecureId is non-deterministic (uses crypto), so it's the only
 // helper mocked here. findCertified/getFullAddress run for real so tests
 // exercise the actual mapping logic instead of asserting on fake data.
