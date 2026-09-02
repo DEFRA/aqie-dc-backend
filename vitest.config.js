@@ -30,6 +30,7 @@ export default defineConfig({
         test: {
           ...shared,
           name: 'integration',
+          hookTimeout: 1200000,
           include: ['src/**/*.integration.test.js'],
           setupFiles: ['.vite/mongo-memory-server.js', '.vite/setup-files.js']
         }
