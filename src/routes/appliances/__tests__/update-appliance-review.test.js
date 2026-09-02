@@ -7,7 +7,7 @@ const { updateApplianceReviewMock } = vi.hoisted(() => ({
   updateApplianceReviewMock: vi.fn()
 }))
 
-vi.mock('../../controllers/appliance-review-controller.js', () => ({
+vi.mock('../../../controllers/appliance-review-controller.js', () => ({
   updateApplianceReview: updateApplianceReviewMock
 }))
 

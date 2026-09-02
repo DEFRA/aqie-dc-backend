@@ -1,10 +1,10 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { updateAppliance } from '../update-appliance.js'
-import { statusCodes } from '../../../common/constants/status-codes.js'
-import * as applianceController from '../../../controllers/appliances-controller.js'
+import { updateAppliance } from '#src/routes/appliances/update-appliance.js'
+import { statusCodes } from '#src/common/constants/status-codes.js'
+import * as applianceController from '#src/controllers/appliances-controller.js'
 
 // Mock the controller
-vi.mock('../../controllers/appliances-controller.js', () => ({
+vi.mock('#src/controllers/appliances-controller.js', () => ({
   default: {},
   updateAppliance: vi.fn()
 }))

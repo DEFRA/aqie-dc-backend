@@ -1,5 +1,5 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { createSqsMessage } from '../sqs-messages-controller.js'
+import { createSqsMessage } from '#src/controllers/sqs-messages-controller.js'
 
 const mockLogger = {
   info: vi.fn(),

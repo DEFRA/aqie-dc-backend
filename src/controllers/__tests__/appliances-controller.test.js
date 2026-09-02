@@ -8,14 +8,14 @@ import {
   deleteAppliance,
   searchAppliances,
   getApplianceWithRelatedItems
-} from '../appliances-controller.js'
+} from '#src/controllers/appliances-controller.js'
 
-import { generateSecureId } from '../../common/helpers/'
+import { generateSecureId } from '#src/common/helpers/data-transformer.js'
 
 // Only generateSecureId is non-deterministic (uses crypto), so it's the only
 // helper mocked here. findCertified/getFullAddress run for real so tests
 // exercise the actual mapping logic instead of asserting on fake data.
-vi.mock('../common/helpers/data-transformer.js', async (importOriginal) => {
+vi.mock('#src/common/helpers/data-transformer.js', async (importOriginal) => {
   const actual = await importOriginal()
   return {
     ...actual,

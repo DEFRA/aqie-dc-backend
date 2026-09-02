@@ -5,7 +5,7 @@ import {
   findLastUpdatedDate,
   getFullAddress,
   toDotted
-} from '../data-transformer.js'
+} from '#src/common/helpers/data-transformer.js'
 
 const ADDRESS_LINE_1 = '123 Main St'
 const ADDRESS_LINE_2 = 'Apt 4'

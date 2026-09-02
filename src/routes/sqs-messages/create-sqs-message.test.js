@@ -1,9 +1,9 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { createSqsMessage } from './create-sqs-message.js'
-import * as sqsMessagesController from '../../controllers/sqs-messages-controller.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
+import * as sqsMessagesController from '#src/controllers/sqs-messages-controller.js'
+import { statusCodes } from '#src/common/constants/status-codes.js'
 
-vi.mock('../../controllers/sqs-messages-controller.js', () => ({
+vi.mock('#src/controllers/sqs-messages-controller.js', () => ({
   createSqsMessage: vi.fn()
 }))
 

@@ -5,7 +5,7 @@ import {
   getOutstandingChecks,
   DOCUMENTATION_CHECKS,
   LISTING_CHECKS
-} from '../review-status.js'
+} from '#src/common/helpers/review-status.js'
 
 const allPassed = {
   documentationReviewed: {

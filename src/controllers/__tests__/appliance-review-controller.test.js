@@ -3,7 +3,7 @@ import { describe, test, expect, beforeEach, vi } from 'vitest'
 import {
   getApplianceReview,
   updateApplianceReview
-} from '../appliance-review-controller.js'
+} from '#src/controllers/appliance-review-controller.js'
 
 const allPassed = {
   documentationReviewed: {
