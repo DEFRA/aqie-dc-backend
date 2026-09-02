@@ -154,10 +154,31 @@ async function getAllApplications(db, _options, logger) {
   }
 }
 
+// Helper function to group items by technical status
+function groupItemsByTechReviewStatus(items = []) {
+  return items.reduce(
+    (acc, item) => {
+      const status = item.technicalReview?.status
+
+      if (status === 'accepted') {
+        acc.accepted.push(item)
+      } else if (status === 'rejected') {
+        acc.rejected.push(item)
+      } else {
+        //'new' or 'in_review'
+        acc.unreviewed.push(item)
+      }
+
+      return acc
+    },
+    { unreviewed: [], accepted: [], rejected: [] }
+  )
+}
+
 /**
- * Get application by id
+ * Get application by id, optionally grouped by technical review status
  */
-async function getApplicationById(db, applicationId, logger) {
+async function getApplicationById(db, applicationId, logger, options = {}) {
   try {
     const collection = db.collection('Applications')
     const application = await collection.findOne({ id: applicationId })
@@ -170,7 +191,7 @@ async function getApplicationById(db, applicationId, logger) {
       }
     }
 
-    // Also fetch associated appliances/fuels
+    // Fetch associated appliances/fuels
     let linkedItems = []
     if (application.type === 'appliance') {
       linkedItems = await db
@@ -186,12 +207,16 @@ async function getApplicationById(db, applicationId, logger) {
       logger.warn(`Unknown application type: ${application.type}`)
     }
 
+    const isGrouped = options.include === 'groupedByTechReviewStatus'
+
     return {
       success: true,
       message: 'Application retrieved successfully',
       data: {
         ...application,
-        linkedItems
+        appliances: isGrouped
+          ? groupItemsByTechReviewStatus(linkedItems)
+          : linkedItems
       }
     }
   } catch (error) {

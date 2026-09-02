@@ -27,6 +27,7 @@ describe('GET /applications/{applicationId}', () => {
       params: {
         applicationId: 'app-123'
       },
+      query: {},
       db: {},
       logger: {
         info: vi.fn(),
@@ -70,7 +71,8 @@ describe('GET /applications/{applicationId}', () => {
       expect(applicationsController.getApplicationById).toHaveBeenCalledWith(
         mockRequest.db,
         'app-123',
-        mockRequest.logger
+        mockRequest.logger,
+        { include: undefined }
       )
     })
 
@@ -121,7 +123,26 @@ describe('GET /applications/{applicationId}', () => {
       expect(applicationsController.getApplicationById).toHaveBeenCalledWith(
         mockRequest.db,
         'app-456',
-        mockRequest.logger
+        mockRequest.logger,
+        { include: undefined }
+      )
+    })
+
+    test('passes include query param to controller', async () => {
+      mockRequest.query = { include: 'groupedByTechReviewStatus' }
+      applicationsController.getApplicationById.mockResolvedValueOnce({
+        success: true,
+        data: { id: 'app-123' }
+      })
+
+      const h = mockToolkit
+      await getApplicationById.handler(mockRequest, h)
+
+      expect(applicationsController.getApplicationById).toHaveBeenCalledWith(
+        mockRequest.db,
+        'app-123',
+        mockRequest.logger,
+        { include: 'groupedByTechReviewStatus' }
       )
     })
 

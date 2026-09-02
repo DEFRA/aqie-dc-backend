@@ -562,7 +562,7 @@ describe('applications-controller', () => {
       const result = await getApplicationById(db, 'app-123', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.linkedItems).toBeDefined()
+      expect(result.data.appliances).toBeDefined()
     })
 
     test('fetches linked fuel records when type is fuel', async () => {
@@ -589,7 +589,7 @@ describe('applications-controller', () => {
       const result = await getApplicationById(db, 'app-456', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.linkedItems).toEqual([
+      expect(result.data.appliances).toEqual([
         { applicationId: 'app-456', fuelId: 'FUEL-1' }
       ])
     })
@@ -605,7 +605,7 @@ describe('applications-controller', () => {
       const result = await getApplicationById(db, 'app-999', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.linkedItems).toEqual([])
+      expect(result.data.appliances).toEqual([])
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'Unknown application type: unknown'
       )
@@ -618,6 +618,79 @@ describe('applications-controller', () => {
         getApplicationById(db, 'app-123', mockLogger)
       ).rejects.toThrow('Query failed')
       expect(mockLogger.error).toHaveBeenCalled()
+    })
+
+    test('groups linked items by tech review status when requested', async () => {
+      const mockApp = {
+        id: 'app-123',
+        type: 'appliance',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+      applianceDocs.push(
+        {
+          id: 'app-001',
+          applicationId: 'app-123',
+          technicalReview: { status: 'accepted' }
+        },
+        {
+          id: 'app-002',
+          applicationId: 'app-123',
+          technicalReview: { status: 'rejected' }
+        },
+        {
+          id: 'app-003',
+          applicationId: 'app-123',
+          technicalReview: { status: 'in_review' }
+        },
+        { id: 'app-004', applicationId: 'app-123' }
+      )
+
+      const result = await getApplicationById(db, 'app-123', mockLogger, {
+        include: 'groupedByTechReviewStatus'
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.data.appliances.accepted).toHaveLength(1)
+      expect(result.data.appliances.rejected).toHaveLength(1)
+      expect(result.data.appliances.unreviewed).toHaveLength(2)
+    })
+
+    test('returns empty groups when no linked items exist and grouping is requested', async () => {
+      const mockApp = {
+        id: 'app-999',
+        type: 'unknown',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+
+      const result = await getApplicationById(db, 'app-999', mockLogger, {
+        include: 'groupedByTechReviewStatus'
+      })
+
+      expect(result.data.appliances).toEqual({
+        unreviewed: [],
+        accepted: [],
+        rejected: []
+      })
+    })
+
+    test('returns appliances as a flat array when include is not groupedByTechReviewStatus', async () => {
+      const mockApp = {
+        id: 'app-123',
+        type: 'appliance',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+      applianceDocs.push({ id: 'app-001', applicationId: 'app-123' })
+
+      const result = await getApplicationById(db, 'app-123', mockLogger, {
+        include: 'somethingElse'
+      })
+
+      expect(result.data.appliances).toEqual([
+        { id: 'app-001', applicationId: 'app-123' }
+      ])
     })
   })
 
