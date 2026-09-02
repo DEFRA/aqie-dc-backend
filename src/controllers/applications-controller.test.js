@@ -562,7 +562,7 @@ describe('applications-controller', () => {
       const result = await getApplicationById(db, 'app-123', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.linkedItems).toBeDefined()
+      expect(result.data.appliances).toBeDefined()
     })
 
     test('fetches linked fuel records when type is fuel', async () => {
@@ -589,7 +589,7 @@ describe('applications-controller', () => {
       const result = await getApplicationById(db, 'app-456', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.linkedItems).toEqual([
+      expect(result.data.appliances).toEqual([
         { applicationId: 'app-456', fuelId: 'FUEL-1' }
       ])
     })
@@ -605,7 +605,7 @@ describe('applications-controller', () => {
       const result = await getApplicationById(db, 'app-999', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.linkedItems).toEqual([])
+      expect(result.data.appliances).toEqual([])
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'Unknown application type: unknown'
       )
@@ -631,17 +631,17 @@ describe('applications-controller', () => {
         {
           id: 'app-001',
           applicationId: 'app-123',
-          technical: { status: 'accepted' }
+          technicalReview: { status: 'accepted' }
         },
         {
           id: 'app-002',
           applicationId: 'app-123',
-          technical: { status: 'rejected' }
+          technicalReview: { status: 'rejected' }
         },
         {
           id: 'app-003',
           applicationId: 'app-123',
-          technical: { status: 'in_review' }
+          technicalReview: { status: 'in_review' }
         },
         { id: 'app-004', applicationId: 'app-123' }
       )
@@ -651,10 +651,9 @@ describe('applications-controller', () => {
       })
 
       expect(result.success).toBe(true)
-      expect(result.data.linkedItems).toBeUndefined()
-      expect(result.data.groupedByTechReviewStatus.accepted).toHaveLength(1)
-      expect(result.data.groupedByTechReviewStatus.rejected).toHaveLength(1)
-      expect(result.data.groupedByTechReviewStatus.unreviewed).toHaveLength(2)
+      expect(result.data.appliances.accepted).toHaveLength(1)
+      expect(result.data.appliances.rejected).toHaveLength(1)
+      expect(result.data.appliances.unreviewed).toHaveLength(2)
     })
 
     test('returns empty groups when no linked items exist and grouping is requested', async () => {
@@ -669,14 +668,14 @@ describe('applications-controller', () => {
         include: 'groupedByTechReviewStatus'
       })
 
-      expect(result.data.groupedByTechReviewStatus).toEqual({
+      expect(result.data.appliances).toEqual({
         unreviewed: [],
         accepted: [],
         rejected: []
       })
     })
 
-    test('returns linkedItems (not grouped) when include is not groupedByTechReviewStatus', async () => {
+    test('returns appliances as a flat array when include is not groupedByTechReviewStatus', async () => {
       const mockApp = {
         id: 'app-123',
         type: 'appliance',
@@ -689,8 +688,9 @@ describe('applications-controller', () => {
         include: 'somethingElse'
       })
 
-      expect(result.data.linkedItems).toBeDefined()
-      expect(result.data.groupedByTechReviewStatus).toBeUndefined()
+      expect(result.data.appliances).toEqual([
+        { id: 'app-001', applicationId: 'app-123' }
+      ])
     })
   })
 

@@ -1,7 +1,7 @@
 /**
  * Get application by ID
- * /applications/12345?include=groupedByTechStatus
- * groupedByTechReviewStatus - Optionally return object with a groupedByTechStatus property containing the unreviewed, accepted, rejected arrays.
+ * /applications/12345?include=groupedByTechReviewStatus
+ * groupedByTechReviewStatus - Optionally return `appliances` as { unreviewed, accepted, rejected } instead of a flat appliances array.
  */
 
 import Joi from 'joi'

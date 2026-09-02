@@ -158,7 +158,7 @@ async function getAllApplications(db, _options, logger) {
 function groupItemsByTechReviewStatus(items = []) {
   return items.reduce(
     (acc, item) => {
-      const status = item.technical?.status
+      const status = item.technicalReview?.status
 
       if (status === 'accepted') {
         acc.accepted.push(item)
@@ -214,7 +214,7 @@ async function getApplicationById(db, applicationId, logger, options = {}) {
       message: 'Application retrieved successfully',
       data: {
         ...application,
-        [isGrouped ? 'groupedByTechReviewStatus' : 'linkedItems']: isGrouped
+        appliances: isGrouped
           ? groupItemsByTechReviewStatus(linkedItems)
           : linkedItems
       }
