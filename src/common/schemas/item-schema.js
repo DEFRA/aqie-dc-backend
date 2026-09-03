@@ -159,13 +159,13 @@ export const applianceSchema = Joi.object({
       name: Joi.string().optional().default(null),
       email: Joi.string().email().optional().default(null)
     }).default(),
-    documentationReviewed: Joi.object({
+    documentationChecks: Joi.object({
       testReports: Joi.boolean().allow(null).default(null),
       technicalDrawings: Joi.boolean().allow(null).default(null),
       conformityMark: Joi.boolean().allow(null).default(null),
       instructionManual: Joi.boolean().allow(null).default(null)
     }).default(),
-    checksCompleted: Joi.object({
+    listingChecks: Joi.object({
       applianceDetails: Joi.boolean().allow(null).default(null),
       permittedFuels: Joi.boolean().allow(null).default(null),
       additionalConditions: Joi.boolean().allow(null).default(null)

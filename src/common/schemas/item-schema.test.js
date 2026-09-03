@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { applianceSchema, fuelSchema } from './item-schema.js'
-import applianceExample from '../../sample-data/appliance-example.js'
-import fuelExample from '../../sample-data/fuel-example.js'
+import applianceExample from '#src/sample-data/appliance-example.js'
+import fuelExample from '#src/sample-data/fuel-example.js'
 
 describe('item-schema applianceSchema', () => {
   const applianceBasePayload = structuredClone(applianceExample)
@@ -404,7 +404,7 @@ describe('applianceSchema - technicalReview checks', () => {
     const { value, error } = applianceSchema.validate(basePayload)
 
     expect(error).toBeUndefined()
-    expect(value.technicalReview.documentationReviewed).toEqual({
+    expect(value.technicalReview.documentationChecks).toEqual({
       testReports: null,
       technicalDrawings: null,
       conformityMark: null,
@@ -415,7 +415,7 @@ describe('applianceSchema - technicalReview checks', () => {
   test('defaults every listing check to null', () => {
     const { value } = applianceSchema.validate(basePayload)
 
-    expect(value.technicalReview.checksCompleted).toEqual({
+    expect(value.technicalReview.listingChecks).toEqual({
       applianceDetails: null,
       permittedFuels: null,
       additionalConditions: null
@@ -425,7 +425,7 @@ describe('applianceSchema - technicalReview checks', () => {
   test('accepts a check being set back to null', () => {
     const payload = {
       ...basePayload,
-      technicalReview: { documentationReviewed: { testReports: null } }
+      technicalReview: { documentationChecks: { testReports: null } }
     }
 
     const { error } = applianceSchema.validate(payload)
@@ -437,23 +437,21 @@ describe('applianceSchema - technicalReview checks', () => {
     const payload = {
       ...basePayload,
       technicalReview: {
-        documentationReviewed: { testReports: true, conformityMark: false }
+        documentationChecks: { testReports: true, conformityMark: false }
       }
     }
 
     const { value, error } = applianceSchema.validate(payload)
 
     expect(error).toBeUndefined()
-    expect(value.technicalReview.documentationReviewed.testReports).toBe(true)
-    expect(value.technicalReview.documentationReviewed.conformityMark).toBe(
-      false
-    )
+    expect(value.technicalReview.documentationChecks.testReports).toBe(true)
+    expect(value.technicalReview.documentationChecks.conformityMark).toBe(false)
   })
 
   test('rejects a non-boolean check value', () => {
     const payload = {
       ...basePayload,
-      technicalReview: { checksCompleted: { permittedFuels: 'maybe' } }
+      technicalReview: { listingChecks: { permittedFuels: 'maybe' } }
     }
 
     const { error } = applianceSchema.validate(payload)

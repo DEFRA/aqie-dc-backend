@@ -143,7 +143,7 @@ describe('PATCH /appliances/{id}/technical-review', () => {
     test('rejects unknown keys', () => {
       const { error } = validatePayload({
         status: 'accepted',
-        'technicalReview.documentationReviewed.testReports': true
+        'technicalReview.documentationChecks.testReports': true
       })
 
       expect(error).toBeDefined()

@@ -8,13 +8,13 @@ import {
 } from '#src/common/helpers/review-status.js'
 
 const allPassed = {
-  documentationReviewed: {
+  documentationChecks: {
     testReports: true,
     technicalDrawings: true,
     conformityMark: true,
     instructionManual: true
   },
-  checksCompleted: {
+  listingChecks: {
     applianceDetails: true,
     permittedFuels: true,
     additionalConditions: true
@@ -36,8 +36,8 @@ describe('getOutstandingChecks', () => {
   test('treats a failed check as outstanding', () => {
     const technicalReview = {
       ...allPassed,
-      documentationReviewed: {
-        ...allPassed.documentationReviewed,
+      documentationChecks: {
+        ...allPassed.documentationChecks,
         conformityMark: false
       }
     }
@@ -48,7 +48,7 @@ describe('getOutstandingChecks', () => {
   test('treats an unreviewed check as outstanding', () => {
     const technicalReview = {
       ...allPassed,
-      checksCompleted: { ...allPassed.checksCompleted, permittedFuels: null }
+      listingChecks: { ...allPassed.listingChecks, permittedFuels: null }
     }
 
     expect(getOutstandingChecks(technicalReview)).toEqual(['permittedFuels'])
@@ -56,8 +56,8 @@ describe('getOutstandingChecks', () => {
 
   test('reports documentation and listing checks together', () => {
     const technicalReview = {
-      documentationReviewed: { testReports: false },
-      checksCompleted: { applianceDetails: true }
+      documentationChecks: { testReports: false },
+      listingChecks: { applianceDetails: true }
     }
 
     expect(getOutstandingChecks(technicalReview)).toEqual([
@@ -85,8 +85,8 @@ describe('canAcceptReview', () => {
   test('refuses when a check has failed', () => {
     const technicalReview = {
       ...allPassed,
-      documentationReviewed: {
-        ...allPassed.documentationReviewed,
+      documentationChecks: {
+        ...allPassed.documentationChecks,
         testReports: false
       }
     }
@@ -95,7 +95,7 @@ describe('canAcceptReview', () => {
   })
 
   test('refuses when a check has not been reviewed', () => {
-    expect(canAcceptReview({ ...allPassed, checksCompleted: {} })).toBe(false)
+    expect(canAcceptReview({ ...allPassed, listingChecks: {} })).toBe(false)
   })
 
   test('refuses when there is no review at all', () => {

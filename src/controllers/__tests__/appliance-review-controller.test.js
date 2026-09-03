@@ -6,13 +6,13 @@ import {
 } from '#src/controllers/appliance-review-controller.js'
 
 const allPassed = {
-  documentationReviewed: {
+  documentationChecks: {
     testReports: true,
     technicalDrawings: true,
     conformityMark: true,
     instructionManual: true
   },
-  checksCompleted: {
+  listingChecks: {
     applianceDetails: true,
     permittedFuels: true,
     additionalConditions: true
@@ -48,7 +48,7 @@ describe('appliance-review-controller', () => {
         applicationId: '1084',
         technicalReview: {
           status: 'in_review',
-          documentationReviewed: { testReports: true }
+          documentationChecks: { testReports: true }
         }
       })
 
@@ -157,8 +157,8 @@ describe('appliance-review-controller', () => {
       collection.findOne.mockResolvedValue({
         technicalReview: {
           ...allPassed,
-          documentationReviewed: {
-            ...allPassed.documentationReviewed,
+          documentationChecks: {
+            ...allPassed.documentationChecks,
             conformityMark: false
           }
         }
@@ -211,7 +211,7 @@ describe('appliance-review-controller', () => {
       expect(update.$set).toHaveProperty('technicalReview.reviewedAt')
       expect(update.$set).not.toHaveProperty('technicalReview')
       expect(update.$set).not.toHaveProperty(
-        'technicalReview.documentationReviewed'
+        'technicalReview.documentationChecks'
       )
     })
 

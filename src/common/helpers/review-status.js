@@ -25,10 +25,10 @@ const findOutstanding = (checks, names) =>
 //Names of the checks that have not yet passed.
 export const getOutstandingChecks = (technicalReview) => [
   ...findOutstanding(
-    technicalReview?.documentationReviewed,
+    technicalReview?.documentationChecks,
     DOCUMENTATION_CHECKS
   ),
-  ...findOutstanding(technicalReview?.checksCompleted, LISTING_CHECKS)
+  ...findOutstanding(technicalReview?.listingChecks, LISTING_CHECKS)
 ]
 
 // An appliance can only be accepted once every check has passed.
