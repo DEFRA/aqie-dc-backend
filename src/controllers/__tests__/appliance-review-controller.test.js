@@ -2,7 +2,8 @@ import { describe, test, expect, beforeEach, vi } from 'vitest'
 
 import {
   getApplianceReview,
-  updateApplianceReview
+  updateApplianceReview,
+  recordApplianceCheck
 } from '#src/controllers/appliance-review-controller.js'
 
 const allPassed = {
@@ -310,6 +311,196 @@ describe('appliance-review-controller', () => {
     test('throws when logger is missing', async () => {
       await expect(
         updateApplianceReview(db, 'APP-1', { status: 'rejected' })
+      ).rejects.toThrow('logger is required')
+    })
+  })
+
+  describe('recordApplianceCheck', () => {
+    function existingReview(status) {
+      collection.findOne
+        .mockResolvedValueOnce({ technicalReview: { status } })
+        .mockResolvedValueOnce({ id: 'APP-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+    }
+
+    test('records a documentation check as passed', async () => {
+      existingReview('in_review')
+
+      const result = await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        true,
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual({
+        id: 'APP-1',
+        check: 'technicalDrawings',
+        result: true
+      })
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.technicalDrawings',
+        true
+      )
+    })
+
+    test('records a check as failed', async () => {
+      existingReview('in_review')
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        false,
+        mockLogger
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(
+        update.$set['technicalReview.documentationChecks.technicalDrawings']
+      ).toBe(false)
+    })
+
+    test('clears a check when the result is null', async () => {
+      existingReview('in_review')
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        null,
+        mockLogger
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(
+        update.$set['technicalReview.documentationChecks.technicalDrawings']
+      ).toBeNull()
+    })
+
+    test('routes a listing check to the right group', async () => {
+      existingReview('in_review')
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'permittedFuels',
+        true,
+        mockLogger
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.listingChecks.permittedFuels',
+        true
+      )
+    })
+
+    test('starts the review when the appliance is new', async () => {
+      existingReview('new')
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        true,
+        mockLogger
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty('technicalReview.status', 'in_review')
+    })
+
+    test('does not change the status once a review is in progress', async () => {
+      existingReview('in_review')
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        true,
+        mockLogger
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).not.toHaveProperty('technicalReview.status')
+    })
+
+    test('does not undo a decision that has already been made', async () => {
+      existingReview('accepted')
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        true,
+        mockLogger
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).not.toHaveProperty('technicalReview.status')
+    })
+
+    test('leaves the other checks untouched', async () => {
+      existingReview('in_review')
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        true,
+        mockLogger
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).not.toHaveProperty('technicalReview')
+      expect(update.$set).not.toHaveProperty(
+        'technicalReview.documentationChecks'
+      )
+    })
+
+    test('throws an unknown check name before touching the database', async () => {
+      await expect(
+        recordApplianceCheck(db, 'APP-1', 'something else', true, mockLogger)
+      ).rejects.toThrow('Unrecognised check: something else')
+      expect(collection.findOne).not.toHaveBeenCalled()
+    })
+
+    test('returns notFound when the appliance does not exist', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const result = await recordApplianceCheck(
+        db,
+        'missing',
+        'technicalDrawings',
+        true,
+        mockLogger
+      )
+
+      expect(result.notFound).toBe(true)
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('logs and rethrows on database failure', async () => {
+      const error = new Error('Database error')
+      collection.findOne.mockRejectedValue(error)
+
+      await expect(
+        recordApplianceCheck(db, 'APP-1', 'technicalDrawings', true, mockLogger)
+      ).rejects.toThrow('Database error')
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to record appliance check'
+      )
+    })
+
+    test('throws when logger is missing', async () => {
+      await expect(
+        recordApplianceCheck(db, 'APP-1', 'technicalDrawings', true)
       ).rejects.toThrow('logger is required')
     })
   })
