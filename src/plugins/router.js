@@ -118,9 +118,8 @@ const router = {
       server.route([
         createAppliance,
         getAllAppliances,
-        searchAppliances,
+        searchAppliances, // Must come before getApplianceById to avoid route conflict
         getApplianceReview,
-        // Must come before getApplianceById to avoid route conflict
         getApplianceById,
         recordApplianceCheck,
         updateApplianceReview,

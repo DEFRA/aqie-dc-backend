@@ -19,10 +19,9 @@ export const LISTING_CHECKS = [
   'additionalConditions'
 ]
 
-export const ALL_CHECKS = [
-  ...DOCUMENTATION_CHECKS,
-  ...LISTING_CHECKS
-] /* Which group a check belongs to, or null if the name is not recognised.
+export const ALL_CHECKS = [...DOCUMENTATION_CHECKS, ...LISTING_CHECKS]
+
+/* Which group a check belongs to, or null if the name is not recognised.
  */
 
 export const getCheckGroup = (check) => {

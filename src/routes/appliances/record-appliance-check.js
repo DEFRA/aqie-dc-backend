@@ -44,9 +44,6 @@ export const recordApplianceCheck = {
       if (outcome.notFound) {
         return h.response(outcome).code(statusCodes.notFound)
       }
-      if (outcome.unknownCheck) {
-        return h.response(outcome).code(statusCodes.badRequest)
-      }
 
       return h.response(outcome).code(statusCodes.ok)
     } catch (error) {
