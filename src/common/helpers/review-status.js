@@ -19,6 +19,22 @@ export const LISTING_CHECKS = [
   'additionalConditions'
 ]
 
+export const ALL_CHECKS = [
+  ...DOCUMENTATION_CHECKS,
+  ...LISTING_CHECKS
+] /* Which group a check belongs to, or null if the name is not recognised.
+ */
+
+export const getCheckGroup = (check) => {
+  if (DOCUMENTATION_CHECKS.includes(check)) {
+    return 'documentationChecks'
+  }
+  if (LISTING_CHECKS.includes(check)) {
+    return 'listingChecks'
+  }
+  return null
+}
+
 const findOutstanding = (checks, names) =>
   names.filter((name) => checks?.[name] !== true)
 

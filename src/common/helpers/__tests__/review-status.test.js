@@ -4,7 +4,9 @@ import {
   canAcceptReview,
   getOutstandingChecks,
   DOCUMENTATION_CHECKS,
-  LISTING_CHECKS
+  LISTING_CHECKS,
+  ALL_CHECKS,
+  getCheckGroup
 } from '#src/common/helpers/review-status.js'
 
 const allPassed = {
@@ -100,5 +102,36 @@ describe('canAcceptReview', () => {
 
   test('refuses when there is no review at all', () => {
     expect(canAcceptReview(undefined)).toBe(false)
+  })
+})
+describe('ALL_CHECKS', () => {
+  test('contains every documentation and listing check', () => {
+    expect(ALL_CHECKS).toHaveLength(
+      DOCUMENTATION_CHECKS.length + LISTING_CHECKS.length
+    )
+  })
+
+  test('has no duplicates', () => {
+    expect(new Set(ALL_CHECKS).size).toBe(ALL_CHECKS.length)
+  })
+})
+
+describe('getCheckGroup', () => {
+  test('resolves a documentation check', () => {
+    expect(getCheckGroup('technicalDrawings')).toBe('documentationChecks')
+  })
+
+  test('resolves a listing check', () => {
+    expect(getCheckGroup('permittedFuels')).toBe('listingChecks')
+  })
+
+  test('resolves every known check', () => {
+    ALL_CHECKS.forEach((check) => {
+      expect(getCheckGroup(check)).not.toBeNull()
+    })
+  })
+
+  test('returns null for an unknown check', () => {
+    expect(getCheckGroup('somethingElse')).toBeNull()
   })
 })
