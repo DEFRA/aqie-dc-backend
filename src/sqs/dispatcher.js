@@ -2,7 +2,7 @@
 // INTERNAL ROUTE / API CALLS (Hapi inject)
 // -------------------------------
 
-import { statusCodes } from '../common/constants/status-codes.js'
+import { statusCodes } from '#src/common/constants/status-codes.js'
 
 // --- Fuel Management Routes ---
 

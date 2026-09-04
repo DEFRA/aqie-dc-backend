@@ -7,7 +7,7 @@ import {
 } from '@aws-sdk/client-sqs'
 
 import { config } from '../config.js'
-import { createLogger } from '../common/helpers/logging/logger.js'
+import { createLogger } from '#src/common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
 import {

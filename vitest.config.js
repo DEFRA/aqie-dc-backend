@@ -1,11 +1,14 @@
 import { defineConfig, configDefaults } from 'vitest/config'
 
+const shared = {
+  globals: true,
+  environment: 'node',
+  clearMocks: true,
+  fileParallelism: false
+}
+
 export default defineConfig({
   test: {
-    globals: true,
-    environment: 'node',
-    clearMocks: true,
-    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reportsDirectory: './coverage',
@@ -13,6 +16,25 @@ export default defineConfig({
       include: ['src/**/*.js'],
       exclude: [...configDefaults.exclude, 'coverage']
     },
-    setupFiles: ['.vite/mongo-memory-server.js', '.vite/setup-files.js']
+    projects: [
+      {
+        test: {
+          ...shared,
+          name: 'unit',
+          include: ['src/**/*.test.js'], // Default excludes must be kept - setting exclude replaces them
+          exclude: [...configDefaults.exclude, '**/*.integration.test.js'],
+          setupFiles: ['.vite/setup-files.js']
+        }
+      },
+      {
+        test: {
+          ...shared,
+          name: 'integration',
+          hookTimeout: 1200000,
+          include: ['src/**/*.integration.test.js'],
+          setupFiles: ['.vite/mongo-memory-server.js', '.vite/setup-files.js']
+        }
+      }
+    ]
   }
 })

@@ -9,21 +9,28 @@ import {
   getAllFuelsWithPagination,
   searchFuels,
   getFuelWithRelatedItems
-} from './fuels-controller.js'
+} from '#src/controllers/fuels-controller.js'
 
 import {
   generateSecureId,
   findCertified,
   findLastUpdatedDate,
   getFullAddress
-} from '../common/helpers/data-transformer.js'
+} from '#src/common/helpers/data-transformer.js'
 
-vi.mock('../common/helpers/data-transformer.js', () => ({
-  generateSecureId: vi.fn(),
-  findCertified: vi.fn(),
-  findLastUpdatedDate: vi.fn(),
-  getFullAddress: vi.fn()
-}))
+// Only generateSecureId is non-deterministic (uses crypto), so it's the only
+// helper mocked here. findCertified/getFullAddress run for real so tests
+// exercise the actual mapping logic instead of asserting on fake data.
+vi.mock('#src/common/helpers/data-transformer.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    generateSecureId: vi.fn(),
+    findCertified: vi.fn(),
+    findLastUpdatedDate: vi.fn(),
+    getFullAddress: vi.fn()
+  }
+})
 
 describe('fuels-controller', () => {
   let db

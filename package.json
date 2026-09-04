@@ -7,6 +7,9 @@
   "engines": {
     "node": ">=24"
   },
+  "imports": {
+    "#src/*": "./src/*"
+  },
   "scripts": {
     "dev": "cross-env NODE_ENV=development npm run server:watch",
     "dev:debug": "cross-env NODE_ENV=development npm run server:debug",
@@ -25,6 +28,8 @@
     "setup:husky": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module",
     "start": "cross-env NODE_ENV=production node --use-strict .",
     "test": "cross-env TZ=UTC vitest run --coverage",
+    "test:unit": "cross-env TZ=UTC vitest run --project unit",
+    "test:integration": "cross-env TZ=UTC vitest run --project integration",
     "test:watch": "cross-env TZ=UTC vitest",
     "import:appliances": "node src/migrations/import-from-excel.js --type appliances --file",
     "import:fuels": "node src/migrations/import-from-excel.js --type fuels --file",
