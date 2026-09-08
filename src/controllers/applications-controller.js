@@ -349,7 +349,7 @@ async function getAllApplicationsWithAppliances(db, logger) {
     const combinedData = applications.map((app) => {
       return {
         ...app,
-        appliances: allAppliances.filter(
+        linkedItems: allAppliances.filter(
           (appliance) => appliance.applicationId === app.id
         )
       }
