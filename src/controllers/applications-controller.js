@@ -166,19 +166,20 @@ function groupItemsByTechReviewStatus(items = []) {
         acc.rejected.push(item)
       } else {
         //'new' or 'in_review'
-        acc.unreviewed.push(item)
+        acc.pending.push(item)
       }
 
       return acc
     },
-    { unreviewed: [], accepted: [], rejected: [] }
+    { pending: [], accepted: [], rejected: [] }
   )
 }
 
 /**
  * Get application by id, optionally grouped by technical review status
+ * @param {string} [groupBy] - 'techReviewStatus' to group linked items by review status
  */
-async function getApplicationById(db, applicationId, logger, options = {}) {
+async function getApplicationById(db, applicationId, logger, groupBy) {
   try {
     const collection = db.collection('Applications')
     const application = await collection.findOne({ id: applicationId })
@@ -207,7 +208,7 @@ async function getApplicationById(db, applicationId, logger, options = {}) {
       logger.warn(`Unknown application type: ${application.type}`)
     }
 
-    const isGrouped = options.include === 'groupedByTechReviewStatus'
+    const isGrouped = groupBy === 'techReviewStatus'
 
     return {
       success: true,
@@ -349,32 +350,35 @@ async function getAllApplicationsWithAppliances(db, logger) {
     // 1. Fetch all applications
     const applications = await appCollection.find({}).toArray()
 
-    // 2. Fetch all appliances that belong to these applications
-    // We get all application IDs first to limit the appliances query
+    // 2. Fetch all linked items (appliances or fuels) that belong to these applications
+    // We get all application IDs first to limit the linked items query
     const applicationIds = applications.map((app) => app.id)
 
-    const allAppliances = await itemCollection
+    const allLinkedItems = await itemCollection
       .find({ applicationId: { $in: applicationIds } })
       .toArray()
 
     // 3. Stitch them together
-    // We map through the applications and filter the appliances array for matches
+    // We map through the applications and filter the linked items array for matches
     const combinedData = applications.map((app) => {
       return {
         ...app,
-        appliances: allAppliances.filter(
-          (appliance) => appliance.applicationId === app.id
+        linkedItems: allLinkedItems.filter(
+          (item) => item.applicationId === app.id
         )
       }
     })
 
     logger.info(
-      `Retrieved ${combinedData.length} applications with nested appliances`
+      `Retrieved ${combinedData.length} applications with nested linked items`
     )
 
     return combinedData
   } catch (error) {
-    logger.error(error, 'Failed to retrieve all applications with appliances')
+    logger.error(
+      error,
+      'Failed to retrieve all applications with linked items'
+    )
     throw error
   }
 }

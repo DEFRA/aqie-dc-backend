@@ -72,7 +72,7 @@ describe('GET /applications/{applicationId}', () => {
         mockRequest.db,
         'app-123',
         mockRequest.logger,
-        { include: undefined }
+        undefined
       )
     })
 
@@ -124,12 +124,12 @@ describe('GET /applications/{applicationId}', () => {
         mockRequest.db,
         'app-456',
         mockRequest.logger,
-        { include: undefined }
+        undefined
       )
     })
 
-    test('passes include query param to controller', async () => {
-      mockRequest.query = { include: 'groupedByTechReviewStatus' }
+    test('passes groupBy query param to controller', async () => {
+      mockRequest.query = { groupBy: 'techReviewStatus' }
       applicationsController.getApplicationById.mockResolvedValueOnce({
         success: true,
         data: { id: 'app-123' }
@@ -142,7 +142,7 @@ describe('GET /applications/{applicationId}', () => {
         mockRequest.db,
         'app-123',
         mockRequest.logger,
-        { include: 'groupedByTechReviewStatus' }
+        'techReviewStatus'
       )
     })
 

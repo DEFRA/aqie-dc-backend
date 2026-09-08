@@ -1,7 +1,7 @@
 /**
  * Get application by ID
- * /applications/12345?include=groupedByTechReviewStatus
- * groupedByTechReviewStatus - Optionally return `appliances` as { unreviewed, accepted, rejected } instead of a flat appliances array.
+ * /applications/12345?groupBy=techReviewStatus
+ * groupBy=techReviewStatus - Reshape `appliances` as { pending, accepted, rejected } instead of a flat appliances array.
  */
 
 import Joi from 'joi'
@@ -21,8 +21,8 @@ export const getApplicationById = {
         applicationId: Joi.string().required().description('Application ID')
       }),
       query: Joi.object({
-        include: Joi.string()
-          .valid('groupedByTechReviewStatus')
+        groupBy: Joi.string()
+          .valid('techReviewStatus')
           .optional()
           .description(
             'Optionally group linked items by technical review status'
@@ -32,14 +32,14 @@ export const getApplicationById = {
   },
   handler: async (request, h) => {
     const { applicationId } = request.params
-    const { include } = request.query
+    const { groupBy } = request.query
 
     try {
       const result = await applicationsController.getApplicationById(
         request.db,
         applicationId,
         request.logger,
-        { include }
+        groupBy
       )
 
       if (result.notFound) {

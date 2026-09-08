@@ -646,14 +646,17 @@ describe('applications-controller', () => {
         { id: 'app-004', applicationId: 'app-123' }
       )
 
-      const result = await getApplicationById(db, 'app-123', mockLogger, {
-        include: 'groupedByTechReviewStatus'
-      })
+      const result = await getApplicationById(
+        db,
+        'app-123',
+        mockLogger,
+        'techReviewStatus'
+      )
 
       expect(result.success).toBe(true)
       expect(result.data.appliances.accepted).toHaveLength(1)
       expect(result.data.appliances.rejected).toHaveLength(1)
-      expect(result.data.appliances.unreviewed).toHaveLength(2)
+      expect(result.data.appliances.pending).toHaveLength(2)
     })
 
     test('returns empty groups when no linked items exist and grouping is requested', async () => {
@@ -664,18 +667,21 @@ describe('applications-controller', () => {
       }
       collection.findOne.mockResolvedValueOnce(mockApp)
 
-      const result = await getApplicationById(db, 'app-999', mockLogger, {
-        include: 'groupedByTechReviewStatus'
-      })
+      const result = await getApplicationById(
+        db,
+        'app-999',
+        mockLogger,
+        'techReviewStatus'
+      )
 
       expect(result.data.appliances).toEqual({
-        unreviewed: [],
+        pending: [],
         accepted: [],
         rejected: []
       })
     })
 
-    test('returns appliances as a flat array when include is not groupedByTechReviewStatus', async () => {
+    test('returns appliances as a flat array when groupBy is not techReviewStatus', async () => {
       const mockApp = {
         id: 'app-123',
         type: 'appliance',
@@ -684,9 +690,12 @@ describe('applications-controller', () => {
       collection.findOne.mockResolvedValueOnce(mockApp)
       applianceDocs.push({ id: 'app-001', applicationId: 'app-123' })
 
-      const result = await getApplicationById(db, 'app-123', mockLogger, {
-        include: 'somethingElse'
-      })
+      const result = await getApplicationById(
+        db,
+        'app-123',
+        mockLogger,
+        'somethingElse'
+      )
 
       expect(result.data.appliances).toEqual([
         { id: 'app-001', applicationId: 'app-123' }
@@ -902,7 +911,7 @@ describe('applications-controller', () => {
       const result = await getAllApplicationsWithAppliances(db, mockLogger)
 
       expect(Array.isArray(result)).toBe(true)
-      expect(result[0].appliances).toBeDefined()
+      expect(result[0].linkedItems).toBeDefined()
       expect(mockLogger.info).toHaveBeenCalled()
     })
 
@@ -939,8 +948,8 @@ describe('applications-controller', () => {
 
       const result = await getAllApplicationsWithAppliances(db, mockLogger)
 
-      expect(result[0].appliances).toHaveLength(1)
-      expect(result[0].appliances[0].applicationId).toBe('app-1')
+      expect(result[0].linkedItems).toHaveLength(1)
+      expect(result[0].linkedItems[0].applicationId).toBe('app-1')
     })
 
     test('handles database errors', async () => {
