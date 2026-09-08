@@ -706,7 +706,6 @@ describe('applications-controller', () => {
       )
 
       expect(result.data.appliances).toEqual({
-        pending: [],
         accepted: [],
         rejected: []
       })
