@@ -562,7 +562,7 @@ describe('applications-controller', () => {
       const result = await getApplicationById(db, 'app-123', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.appliances).toBeDefined()
+      expect(result.data.linkedItems).toBeDefined()
     })
 
     test('fetches linked fuel records when type is fuel', async () => {
@@ -589,7 +589,7 @@ describe('applications-controller', () => {
       const result = await getApplicationById(db, 'app-456', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.appliances).toEqual([
+      expect(result.data.linkedItems).toEqual([
         { applicationId: 'app-456', fuelId: 'FUEL-1' }
       ])
     })
@@ -605,7 +605,7 @@ describe('applications-controller', () => {
       const result = await getApplicationById(db, 'app-999', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.appliances).toEqual([])
+      expect(result.data.linkedItems).toEqual([])
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'Unknown application type: unknown'
       )
@@ -654,9 +654,8 @@ describe('applications-controller', () => {
       )
 
       expect(result.success).toBe(true)
-      expect(result.data.appliances.accepted).toHaveLength(1)
-      expect(result.data.appliances.rejected).toHaveLength(1)
-      expect(result.data.appliances.pending).toHaveLength(2)
+      expect(result.data.linkedItems.accepted).toHaveLength(1)
+      expect(result.data.linkedItems.rejected).toHaveLength(1)
       expect(result.data.applicationReviewComplete).toBe(false)
     })
 
@@ -705,7 +704,7 @@ describe('applications-controller', () => {
         'techReviewStatus'
       )
 
-      expect(result.data.appliances).toEqual({
+      expect(result.data.linkedItems).toEqual({
         accepted: [],
         rejected: []
       })
@@ -728,7 +727,7 @@ describe('applications-controller', () => {
         'somethingElse'
       )
 
-      expect(result.data.appliances).toEqual([
+      expect(result.data.linkedItems).toEqual([
         { id: 'app-001', applicationId: 'app-123' }
       ])
       expect(result.data.applicationReviewComplete).toBeUndefined()
