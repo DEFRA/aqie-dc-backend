@@ -6,6 +6,7 @@ import {
   checkUploadStatusController
 } from '../routes/admin-import.js'
 import { createApplication } from '../routes/applications/create-application.js'
+import { completeApplication } from '../routes/applications/complete-application.js'
 import { getAllApplications } from '../routes/applications/get-all-applications.js'
 import { getApplicationById } from '../routes/applications/get-application-by-id.js'
 import { getApplicationsWithSummary } from '../routes/applications/get-applications-with-summary.js'
@@ -106,6 +107,7 @@ const router = {
       // Application API routes
       server.route([
         createApplication,
+        completeApplication,
         getAllApplications,
         getCounts,
         getApplicationsWithSummary,
