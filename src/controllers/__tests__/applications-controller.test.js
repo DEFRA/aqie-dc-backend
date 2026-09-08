@@ -657,6 +657,37 @@ describe('applications-controller', () => {
       expect(result.data.appliances.accepted).toHaveLength(1)
       expect(result.data.appliances.rejected).toHaveLength(1)
       expect(result.data.appliances.pending).toHaveLength(2)
+      expect(result.data.applicationReviewComplete).toBe(false)
+    })
+
+    test('sets applicationReviewComplete to true when no items are pending', async () => {
+      const mockApp = {
+        id: 'app-123',
+        type: 'appliance',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+      applianceDocs.push(
+        {
+          id: 'app-001',
+          applicationId: 'app-123',
+          technicalReview: { status: 'accepted' }
+        },
+        {
+          id: 'app-002',
+          applicationId: 'app-123',
+          technicalReview: { status: 'rejected' }
+        }
+      )
+
+      const result = await getApplicationById(
+        db,
+        'app-123',
+        mockLogger,
+        'techReviewStatus'
+      )
+
+      expect(result.data.applicationReviewComplete).toBe(true)
     })
 
     test('returns empty groups when no linked items exist and grouping is requested', async () => {
@@ -679,6 +710,7 @@ describe('applications-controller', () => {
         accepted: [],
         rejected: []
       })
+      expect(result.data.applicationReviewComplete).toBe(true)
     })
 
     test('returns appliances as a flat array when groupBy is not techReviewStatus', async () => {
@@ -700,6 +732,7 @@ describe('applications-controller', () => {
       expect(result.data.appliances).toEqual([
         { id: 'app-001', applicationId: 'app-123' }
       ])
+      expect(result.data.applicationReviewComplete).toBeUndefined()
     })
   })
 

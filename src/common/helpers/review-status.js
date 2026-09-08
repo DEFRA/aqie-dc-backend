@@ -1,4 +1,11 @@
 // Technical review status helpers
+//
+// Two levels of review:
+// - Item level (one appliance or fuel): every DOCUMENTATION_CHECKS and LISTING_CHECKS
+//   entry must be `true` before that item can be accepted; it can be rejected at any time.
+// - Application level (many items): the application is review-complete once every one
+//   of its items has reached `accepted` or `rejected` - not before.
+//
 // Each documentation and listing check is `true` when it has four possible states:
 // - true: the check has passed/completed
 // - false: the check has failed
@@ -46,6 +53,35 @@ export const getOutstandingChecks = (technicalReview) => [
   ...findOutstanding(technicalReview?.listingChecks, LISTING_CHECKS)
 ]
 
-// An appliance can only be accepted once every check has passed.
+// Item level: an item can only be accepted once every check has passed.
 export const canAcceptReview = (technicalReview) =>
   getOutstandingChecks(technicalReview).length === 0
+
+// Application level: splits an application's items into accepted/rejected groups.
+// Items still outstanding ('new'/'in_review') are excluded from both groups - see
+// isApplicationReviewComplete to check whether every item has reached a final status.
+export const groupItemsByTechReviewStatus = (items = []) =>
+  items.reduce(
+    (acc, item) => {
+      const status = item.technicalReview?.status
+
+      if (status === 'accepted') {
+        acc.accepted.push(item)
+      } else if (status === 'rejected') {
+        acc.rejected.push(item)
+      } else {
+        // 'new'/'in_review' items are outstanding, and intentionally excluded from both groups
+      }
+
+      return acc
+    },
+    { accepted: [], rejected: [] }
+  )
+
+// Application level: true once every item (appliance or fuel) has reached
+// accepted/rejected - none are still outstanding.
+export const isApplicationReviewComplete = (items = []) =>
+  items.every((item) => {
+    const status = item.technicalReview?.status
+    return status === 'accepted' || status === 'rejected'
+  })
