@@ -8,14 +8,14 @@ import {
   deleteAppliance,
   searchAppliances,
   getApplianceWithRelatedItems
-} from './appliances-controller.js'
+} from '#src/controllers/appliances-controller.js'
 
-import { generateSecureId } from '../common/helpers/data-transformer.js'
+import { generateSecureId } from '#src/common/helpers/data-transformer.js'
 
 // Only generateSecureId is non-deterministic (uses crypto), so it's the only
 // helper mocked here. findCertified/getFullAddress run for real so tests
 // exercise the actual mapping logic instead of asserting on fake data.
-vi.mock('../common/helpers/data-transformer.js', async (importOriginal) => {
+vi.mock('#src/common/helpers/data-transformer.js', async (importOriginal) => {
   const actual = await importOriginal()
   return {
     ...actual,
@@ -305,24 +305,36 @@ describe('appliances-controller', () => {
   })
 
   describe('updateAppliance', () => {
-    test('updates appliance successfully', async () => {
-      collection.updateOne.mockResolvedValue({
-        matchedCount: 1
-      })
+    test('updating one nested field leaves its siblings alone', async () => {
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+      collection.findOne.mockResolvedValue({ id: 'APP-1' })
 
-      collection.findOne.mockResolvedValue({
-        id: 'APP-001',
-        modelName: 'Updated'
-      })
-
-      const result = await updateAppliance(
+      await updateAppliance(
         db,
-        'APP-001',
-        { modelName: 'Updated' },
+        'APP-1',
+        { englandCertification: { status: 'certified' } },
         mockLogger
       )
 
-      expect(result.updated.modelName).toBe('Updated')
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).toHaveProperty(
+        'englandCertification.status',
+        'certified'
+      )
+      expect(update.$set).not.toHaveProperty('englandCertification')
+    })
+
+    test('still writes flat fields unchanged', async () => {
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+      collection.findOne.mockResolvedValue({ id: 'APP-1' })
+
+      await updateAppliance(db, 'APP-1', { modelName: 'Model Y' }, mockLogger)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set.modelName).toBe('Model Y')
+      expect(update.$set.updatedAt).toBeInstanceOf(Date)
     })
 
     test('returns not found', async () => {

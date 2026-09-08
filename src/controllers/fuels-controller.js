@@ -2,7 +2,8 @@ import {
   generateSecureId,
   findCertified,
   findLastUpdatedDate,
-  getFullAddress
+  getFullAddress,
+  toDotted
 } from '../common/helpers/data-transformer.js'
 /**
  * Fuels Controller
@@ -178,7 +179,7 @@ async function updateFuel(db, fuelId, updates, logger) {
     const now = new Date()
     const result = await collection.updateOne(
       { fuelId },
-      { $set: { ...updates, updatedAt: now } }
+      { $set: { ...toDotted(updates), updatedAt: now } }
     )
     if (result.matchedCount === 0) {
       return { notFound: true }

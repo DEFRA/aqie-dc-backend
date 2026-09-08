@@ -71,14 +71,14 @@
     },
     updatedAt: '2026-02-10',
 
-    documentationReviewed: {
+    documentationChecks: {
       testReports: true,
       technicalDrawings: true,
       conformityMark: true,
       instructionManual: true
     },
 
-    checksCompleted: {
+    listingChecks: {
       applianceDetails: true,
       permittedFuels: true,
       additionalConditions: true

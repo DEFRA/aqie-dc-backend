@@ -3,8 +3,9 @@ import {
   generateSecureId,
   findCertified,
   findLastUpdatedDate,
-  getFullAddress
-} from './data-transformer.js'
+  getFullAddress,
+  toDotted
+} from '#src/common/helpers/data-transformer.js'
 
 const ADDRESS_LINE_1 = '123 Main St'
 const ADDRESS_LINE_2 = 'Apt 4'
@@ -160,5 +161,64 @@ describe('data-transformer', () => {
     test('returns null if all arguments are missing', () => {
       expect(findLastUpdatedDate()).toBeNull()
     })
+  })
+})
+
+describe('toDotted', () => {
+  test('leaves flat fields unchanged', () => {
+    expect(toDotted({ modelName: 'Model X', ratedOutput: 10 })).toEqual({
+      modelName: 'Model X',
+      ratedOutput: 10
+    })
+  })
+
+  test('flattens a nested object into dot paths', () => {
+    expect(toDotted({ technicalReview: { status: 'accepted' } })).toEqual({
+      'technicalReview.status': 'accepted'
+    })
+  })
+
+  test('flattens more than one level deep', () => {
+    expect(
+      toDotted({ technicalReview: { reviewedBy: { name: 'A Reviewer' } } })
+    ).toEqual({ 'technicalReview.reviewedBy.name': 'A Reviewer' })
+  })
+
+  test('flattens sibling branches independently', () => {
+    expect(
+      toDotted({
+        englandCertification: { status: 'certified' },
+        walesCertification: { status: 'rejected' }
+      })
+    ).toEqual({
+      'englandCertification.status': 'certified',
+      'walesCertification.status': 'rejected'
+    })
+  })
+
+  test('keeps arrays whole', () => {
+    expect(toDotted({ allowedFuels: ['wood', 'pellets'] })).toEqual({
+      allowedFuels: ['wood', 'pellets']
+    })
+  })
+
+  test('keeps dates whole', () => {
+    const submittedAt = new Date('2026-08-27')
+
+    expect(toDotted({ submittedAt })).toEqual({ submittedAt })
+  })
+
+  test('sets null without recursing into it', () => {
+    expect(toDotted({ companyFullAddress: null })).toEqual({
+      companyFullAddress: null
+    })
+  })
+
+  test('drops empty objects so they cannot overwrite existing data', () => {
+    expect(toDotted({ scotlandCertification: {} })).toEqual({})
+  })
+
+  test('returns an empty object for an empty input', () => {
+    expect(toDotted({})).toEqual({})
   })
 })

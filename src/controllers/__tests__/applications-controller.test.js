@@ -9,7 +9,7 @@ import {
   getAllApplicationsWithAppliances,
   getApplicationsWithSummary,
   getApplicationSummaryById
-} from './applications-controller.js'
+} from '#src/controllers/applications-controller.js'
 
 // Mock logger for testing
 const mockLogger = {
