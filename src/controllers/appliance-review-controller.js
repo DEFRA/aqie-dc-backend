@@ -1,5 +1,6 @@
 import {
   canAcceptReview,
+  getCheckGroup,
   getOutstandingChecks
 } from '../common/helpers/review-status.js'
 import { updateAppliance } from './appliances-controller.js'
@@ -51,6 +52,62 @@ async function getApplianceReview(db, id, logger) {
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch appliance review')
+    throw error
+  }
+}
+
+/**
+ * Record the result of one documentation or listing check.
+ * Recording the first result also moves the appliance from 'new' to
+ * 'in_review', so the applications list can show "Continue review".
+ */
+async function recordApplianceCheck(db, id, check, result, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+  try {
+    const group = getCheckGroup(check)
+
+    if (!group) {
+      throw new Error(`Unrecognised check: ${check}`)
+    }
+
+    const item = await db
+      .collection('Appliances')
+      .findOne({ id }, { projection: { technicalReview: 1, _id: 0 } })
+
+    if (!item) {
+      return {
+        success: false,
+        message: APPLIANCE_NOT_FOUND,
+        notFound: true
+      }
+    }
+
+    const updates = { technicalReview: { [group]: { [check]: result } } }
+
+    if (item.technicalReview?.status === 'new') {
+      updates.technicalReview.status = 'in_review'
+    }
+
+    const updated = await updateAppliance(db, id, updates, logger)
+
+    if (updated.notFound) {
+      return {
+        success: false,
+        message: APPLIANCE_NOT_FOUND,
+        notFound: true
+      }
+    }
+
+    logger.info(`Appliance check ${check} recorded as ${result}: ${id}`)
+
+    return {
+      success: true,
+      data: { id, check, result }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to record appliance check')
     throw error
   }
 }
@@ -119,4 +176,4 @@ async function updateApplianceReview(db, id, decision, logger) {
   }
 }
 
-export { getApplianceReview, updateApplianceReview }
+export { getApplianceReview, updateApplianceReview, recordApplianceCheck }

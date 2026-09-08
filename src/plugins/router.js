@@ -15,6 +15,7 @@ import { searchApplications } from '../routes/applications/search-applications.j
 import { createAppliance } from '../routes/appliances/create-appliance.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
+import { recordApplianceCheck } from '../routes/appliances/record-appliance-check.js'
 import { searchAppliances } from '../routes/appliances/search-appliances.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
@@ -118,8 +119,9 @@ const router = {
         createAppliance,
         getAllAppliances,
         searchAppliances, // Must come before getApplianceById to avoid route conflict
-        getApplianceById,
         getApplianceReview,
+        getApplianceById,
+        recordApplianceCheck,
         updateApplianceReview,
         updateAppliance,
         deleteAppliance
