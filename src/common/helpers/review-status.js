@@ -68,11 +68,11 @@ export const groupItemsByTechReviewStatus = (items = []) => ({
 
 // Application level: true once every item (appliance or fuel) has reached
 // accepted/rejected - none are still outstanding.
-const REVIEWED_STATUSES = ['accepted', 'rejected']
+const REVIEWED_STATUSES = new Set(['accepted', 'rejected'])
 
 // True once an item's review has reached a final status (accepted/rejected).
 export const isItemReviewed = (item) =>
-  REVIEWED_STATUSES.includes(item.technicalReview?.status)
+  REVIEWED_STATUSES.has(item.technicalReview?.status)
 
 export const isApplicationReviewComplete = (items = []) =>
   items.length > 0 && items.every(isItemReviewed)
