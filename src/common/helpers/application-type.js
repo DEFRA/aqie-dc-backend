@@ -6,10 +6,7 @@ const TYPE_TO_COLLECTION = {
   fuel: 'Fuels'
 }
 
-export function getItemsCollectionName(type, logger) {
-  const collectionName = TYPE_TO_COLLECTION[type]
-  if (!collectionName) {
-    logger.warn(`Unknown application type: ${type}`)
-  }
-  return collectionName
+// Returns undefined for an unrecognised type - callers decide how to log/handle that.
+export function getItemsCollectionName(type) {
+  return TYPE_TO_COLLECTION[type]
 }

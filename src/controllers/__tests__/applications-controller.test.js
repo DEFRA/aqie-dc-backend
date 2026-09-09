@@ -942,16 +942,20 @@ describe('applications-controller', () => {
 
       const result = await getAllApplicationsWithAppliances(db, mockLogger)
 
-      expect(Array.isArray(result)).toBe(true)
-      expect(result[0].linkedItems).toBeDefined()
+      expect(result.success).toBe(true)
+      expect(result.message).toBe(
+        'Applications with linked items retrieved successfully'
+      )
+      expect(Array.isArray(result.data)).toBe(true)
+      expect(result.data[0].linkedItems).toBeDefined()
       expect(mockLogger.info).toHaveBeenCalled()
     })
 
     test('handles empty collections', async () => {
       const result = await getAllApplicationsWithAppliances(db, mockLogger)
 
-      expect(Array.isArray(result)).toBe(true)
-      expect(result).toEqual([])
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual([])
     })
 
     test('filters appliances by applicationId', async () => {
@@ -980,8 +984,8 @@ describe('applications-controller', () => {
 
       const result = await getAllApplicationsWithAppliances(db, mockLogger)
 
-      expect(result[0].linkedItems).toHaveLength(1)
-      expect(result[0].linkedItems[0].applicationId).toBe('app-1')
+      expect(result.data[0].linkedItems).toHaveLength(1)
+      expect(result.data[0].linkedItems[0].applicationId).toBe('app-1')
     })
 
     test('handles database errors', async () => {
