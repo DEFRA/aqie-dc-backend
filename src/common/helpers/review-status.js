@@ -62,9 +62,7 @@ export const canAcceptReview = (technicalReview) =>
 // isApplicationReviewComplete to check whether every item has reached a final status.
 // FE only needs array of accepted and rejected items; 'new'/'in_review' items are outstanding and array of them not needed
 export const groupItemsByTechReviewStatus = (items = []) => ({
-  accepted: items.filter(
-    (item) => item.technicalReview?.status === 'accepted'
-  ),
+  accepted: items.filter((item) => item.technicalReview?.status === 'accepted'),
   rejected: items.filter((item) => item.technicalReview?.status === 'rejected')
 })
 
