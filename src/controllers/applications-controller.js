@@ -9,6 +9,7 @@ import {
   groupItemsByTechReviewStatus,
   isApplicationReviewComplete
 } from '../common/helpers/review-status.js'
+import { getItemsCollectionName } from '../common/helpers/application-type.js'
 import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
 
 const APPLICATION_NOT_FOUND = 'Application not found'
@@ -179,18 +180,12 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
 
     // Fetch associated appliances/fuels
     let linkedItems = []
-    if (application.type === 'appliance') {
+    const collectionName = getItemsCollectionName(application.type, logger)
+    if (collectionName) {
       linkedItems = await db
-        .collection('Appliances')
+        .collection(collectionName)
         .find({ applicationId })
         .toArray()
-    } else if (application.type === 'fuel') {
-      linkedItems = await db
-        .collection('Fuels')
-        .find({ applicationId })
-        .toArray()
-    } else {
-      logger.warn(`Unknown application type: ${application.type}`)
     }
 
     const isGrouped = groupBy === 'techReviewStatus'
@@ -471,8 +466,16 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       }
     }
 
-    // type is validated by the route's Joi schema ('appliance' | 'fuel')
-    const collectionName = { appliance: 'Appliances', fuel: 'Fuels' }[type]
+    // type is validated by the route's Joi schema ('appliance' | 'fuel'), guard kept for defense-in-depth
+    const collectionName = getItemsCollectionName(type, logger)
+
+    if (!collectionName) {
+      return {
+        success: false,
+        message: `Unknown application type: ${type}`,
+        notFound: true
+      }
+    }
 
     // Fetch address from just one linked item - as they all have the same address
     const companyDetails = await db.collection(collectionName).findOne(
@@ -532,8 +535,15 @@ async function completeApplication(db, id, payload, logger) {
       }
     }
 
-    const itemsCollectionName =
-      application.type === 'fuel' ? 'Fuels' : 'Appliances'
+    const itemsCollectionName = getItemsCollectionName(application.type, logger)
+
+    if (!itemsCollectionName) {
+      return {
+        success: false,
+        message: `Unknown application type: ${application.type}`,
+        notFound: true
+      }
+    }
 
     const linkedItems = await db
       .collection(itemsCollectionName)
