@@ -9,7 +9,8 @@ import {
   getAllApplicationsWithAppliances,
   getApplicationsWithSummary,
   getApplicationSummaryById,
-  completeApplication
+  completeApplication,
+  startApplication
 } from '#src/controllers/applications-controller.js'
 
 // Mock logger for testing
@@ -1399,6 +1400,88 @@ describe('completeApplication', () => {
   test('throws when logger is not provided', async () => {
     await expect(
       completeApplication(db, 'app-1', { reviewedBy }, null)
+    ).rejects.toThrow('logger is required')
+  })
+})
+
+describe('startApplication', () => {
+  let db
+  let applicationsCollection
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    applicationsCollection = {
+      findOne: vi.fn(),
+      updateOne: vi.fn().mockResolvedValue({ matchedCount: 1 })
+    }
+
+    db = {
+      collection: vi.fn(() => applicationsCollection)
+    }
+  })
+
+  const reviewedBy = { name: 'Jane Doe', email: 'jane.doe@example.com' }
+
+  test('returns notFound when the application does not exist', async () => {
+    applicationsCollection.findOne.mockResolvedValue(null)
+
+    const result = await startApplication(
+      db,
+      'missing',
+      { reviewedBy },
+      mockLogger
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.notFound).toBe(true)
+    expect(result.message).toBe('Application not found')
+    expect(applicationsCollection.updateOne).not.toHaveBeenCalled()
+  })
+
+  test('sets an application to in progress', async () => {
+    applicationsCollection.findOne.mockResolvedValue({
+      id: 'app-1',
+      type: 'appliance'
+    })
+
+    const result = await startApplication(
+      db,
+      'app-1',
+      { reviewedBy },
+      mockLogger
+    )
+
+    expect(applicationsCollection.updateOne).toHaveBeenCalledWith(
+      { id: 'app-1' },
+      {
+        $set: expect.objectContaining({
+          status: 'in_progress',
+          reviewedBy
+        })
+      }
+    )
+    expect(result.success).toBe(true)
+    expect(result.data.status).toBe('in_progress')
+    expect(result.data.reviewedBy).toEqual(reviewedBy)
+  })
+
+  test('logs and rethrows on database failure', async () => {
+    const error = new Error('Database error')
+    applicationsCollection.findOne.mockRejectedValue(error)
+
+    await expect(
+      startApplication(db, 'app-1', { reviewedBy }, mockLogger)
+    ).rejects.toThrow('Database error')
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      error,
+      'Failed to set application to in progress'
+    )
+  })
+
+  test('throws when logger is not provided', async () => {
+    await expect(
+      startApplication(db, 'app-1', { reviewedBy }, null)
     ).rejects.toThrow('logger is required')
   })
 })

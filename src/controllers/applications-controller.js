@@ -626,6 +626,53 @@ async function completeApplication(db, id, payload, logger) {
   }
 }
 
+/**
+ * Mark an application as in progress once a reviewer has started reviewing it.
+ * Records who is reviewing it (reviewedBy).
+ */
+async function startApplication(db, id, payload, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+  try {
+    const collection = db.collection('Applications')
+    const application = await collection.findOne({ id })
+
+    if (!application) {
+      return {
+        success: false,
+        message: APPLICATION_NOT_FOUND,
+        notFound: true
+      }
+    }
+
+    const { reviewedBy } = payload
+    const updatedAt = new Date()
+
+    await collection.updateOne(
+      { id },
+      {
+        $set: {
+          status: 'in_progress',
+          reviewedBy,
+          updatedAt
+        }
+      }
+    )
+
+    logger.info(`Application set to in progress: ${id}`)
+
+    return {
+      success: true,
+      message: 'Application set to in progress successfully',
+      data: { id, status: 'in_progress', reviewedBy, updatedAt }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to set application to in progress')
+    throw error
+  }
+}
+
 export {
   createApplication,
   getAllApplications,
@@ -635,5 +682,6 @@ export {
   getAllApplicationsWithAppliances,
   getApplicationsWithSummary, //getApplicationsSummaryByStatus?
   getApplicationSummaryById,
-  completeApplication
+  completeApplication,
+  startApplication
 }
