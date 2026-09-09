@@ -2,10 +2,10 @@ import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { completeApplication } from '#src/routes/applications/complete-application.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
-import * as applicationsController from '#src/controllers/applications-controller.js'
+import * as applicationReviewController from '#src/controllers/application-review-controller.js'
 
 // Mock the controller
-vi.mock('#src/controllers/applications-controller.js', () => ({
+vi.mock('#src/controllers/application-review-controller.js', () => ({
   default: {},
   completeApplication: vi.fn()
 }))
@@ -39,7 +39,7 @@ describe('PATCH /applications/{id}/complete', () => {
   })
 
   test('returns 200 when the application is completed', async () => {
-    applicationsController.completeApplication.mockResolvedValue({
+    applicationReviewController.completeApplication.mockResolvedValue({
       success: true,
       data: { id: 'APPLICATION-123', status: 'complete' }
     })
@@ -50,14 +50,14 @@ describe('PATCH /applications/{id}/complete', () => {
   })
 
   test('passes the payload through to the controller', async () => {
-    applicationsController.completeApplication.mockResolvedValue({
+    applicationReviewController.completeApplication.mockResolvedValue({
       success: true,
       data: {}
     })
 
     await completeApplication.handler(mockRequest, mockToolkit)
 
-    expect(applicationsController.completeApplication).toHaveBeenCalledWith(
+    expect(applicationReviewController.completeApplication).toHaveBeenCalledWith(
       mockRequest.db,
       'APPLICATION-123',
       mockRequest.payload,
@@ -66,7 +66,7 @@ describe('PATCH /applications/{id}/complete', () => {
   })
 
   test('returns 404 when the application does not exist', async () => {
-    applicationsController.completeApplication.mockResolvedValue({
+    applicationReviewController.completeApplication.mockResolvedValue({
       success: false,
       notFound: true,
       message: 'Application not found'
@@ -78,7 +78,7 @@ describe('PATCH /applications/{id}/complete', () => {
   })
 
   test('returns 409 when linked items have not all been reviewed', async () => {
-    applicationsController.completeApplication.mockResolvedValue({
+    applicationReviewController.completeApplication.mockResolvedValue({
       success: false,
       incomplete: true,
       message:
@@ -92,7 +92,7 @@ describe('PATCH /applications/{id}/complete', () => {
 
   test('rethrows Boom errors from the controller', async () => {
     const boomError = Boom.badRequest('bad request')
-    applicationsController.completeApplication.mockRejectedValue(boomError)
+    applicationReviewController.completeApplication.mockRejectedValue(boomError)
 
     await expect(
       completeApplication.handler(mockRequest, mockToolkit)
@@ -100,7 +100,7 @@ describe('PATCH /applications/{id}/complete', () => {
   })
 
   test('wraps unexpected errors in a Boom internal error', async () => {
-    applicationsController.completeApplication.mockRejectedValue(
+    applicationReviewController.completeApplication.mockRejectedValue(
       new Error('boom')
     )
 

@@ -3,7 +3,7 @@
  */
 import Boom from '@hapi/boom'
 import Joi from 'joi'
-import * as applicationsController from '../../controllers/applications-controller.js'
+import * as applicationReviewController from '../../controllers/application-review-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
 const MAX_LENGTH = 255
@@ -37,7 +37,7 @@ export const completeApplication = {
     const { id } = request.params
 
     try {
-      const result = await applicationsController.completeApplication(
+      const result = await applicationReviewController.completeApplication(
         request.db,
         id,
         request.payload,

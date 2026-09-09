@@ -2,10 +2,10 @@ import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { startApplication } from '#src/routes/applications/start-application.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
-import * as applicationsController from '#src/controllers/applications-controller.js'
+import * as applicationReviewController from '#src/controllers/application-review-controller.js'
 
 // Mock the controller
-vi.mock('#src/controllers/applications-controller.js', () => ({
+vi.mock('#src/controllers/application-review-controller.js', () => ({
   default: {},
   startApplication: vi.fn()
 }))
@@ -39,7 +39,7 @@ describe('PATCH /applications/{id}/in-progress', () => {
   })
 
   test('returns 200 when the application is set to in progress', async () => {
-    applicationsController.startApplication.mockResolvedValue({
+    applicationReviewController.startApplication.mockResolvedValue({
       success: true,
       data: { id: 'APPLICATION-123', status: 'in_progress' }
     })
@@ -50,14 +50,14 @@ describe('PATCH /applications/{id}/in-progress', () => {
   })
 
   test('passes the payload through to the controller', async () => {
-    applicationsController.startApplication.mockResolvedValue({
+    applicationReviewController.startApplication.mockResolvedValue({
       success: true,
       data: {}
     })
 
     await startApplication.handler(mockRequest, mockToolkit)
 
-    expect(applicationsController.startApplication).toHaveBeenCalledWith(
+    expect(applicationReviewController.startApplication).toHaveBeenCalledWith(
       mockRequest.db,
       'APPLICATION-123',
       mockRequest.payload,
@@ -66,7 +66,7 @@ describe('PATCH /applications/{id}/in-progress', () => {
   })
 
   test('returns 404 when the application does not exist', async () => {
-    applicationsController.startApplication.mockResolvedValue({
+    applicationReviewController.startApplication.mockResolvedValue({
       success: false,
       notFound: true,
       message: 'Application not found'
@@ -79,7 +79,7 @@ describe('PATCH /applications/{id}/in-progress', () => {
 
   test('rethrows Boom errors from the controller', async () => {
     const boomError = Boom.badRequest('bad request')
-    applicationsController.startApplication.mockRejectedValue(boomError)
+    applicationReviewController.startApplication.mockRejectedValue(boomError)
 
     await expect(
       startApplication.handler(mockRequest, mockToolkit)
@@ -87,7 +87,9 @@ describe('PATCH /applications/{id}/in-progress', () => {
   })
 
   test('wraps unexpected errors in a Boom internal error', async () => {
-    applicationsController.startApplication.mockRejectedValue(new Error('boom'))
+    applicationReviewController.startApplication.mockRejectedValue(
+      new Error('boom')
+    )
 
     const result = await startApplication.handler(mockRequest, mockToolkit)
 
