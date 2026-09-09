@@ -60,28 +60,21 @@ export const canAcceptReview = (technicalReview) =>
 // Application level: splits an application's items into accepted/rejected groups.
 // Items still outstanding ('new'/'in_review') are excluded from both groups - see
 // isApplicationReviewComplete to check whether every item has reached a final status.
-export const groupItemsByTechReviewStatus = (items = []) =>
-  items.reduce(
-    (acc, item) => {
-      const status = item.technicalReview?.status
-
-      if (status === 'accepted') {
-        acc.accepted.push(item)
-      } else if (status === 'rejected') {
-        acc.rejected.push(item)
-      } else {
-        // 'new'/'in_review' items are outstanding, and intentionally excluded from both groups
-      }
-
-      return acc
-    },
-    { accepted: [], rejected: [] }
-  )
+// FE only needs array of accepted and rejected items; 'new'/'in_review' items are outstanding and array of them not needed
+export const groupItemsByTechReviewStatus = (items = []) => ({
+  accepted: items.filter(
+    (item) => item.technicalReview?.status === 'accepted'
+  ),
+  rejected: items.filter((item) => item.technicalReview?.status === 'rejected')
+})
 
 // Application level: true once every item (appliance or fuel) has reached
 // accepted/rejected - none are still outstanding.
+const REVIEWED_STATUSES = ['accepted', 'rejected']
+
+// True once an item's review has reached a final status (accepted/rejected).
+export const isItemReviewed = (item) =>
+  REVIEWED_STATUSES.includes(item.technicalReview?.status)
+
 export const isApplicationReviewComplete = (items = []) =>
-  items.every((item) => {
-    const status = item.technicalReview?.status
-    return status === 'accepted' || status === 'rejected'
-  })
+  items.length > 0 && items.every(isItemReviewed)
