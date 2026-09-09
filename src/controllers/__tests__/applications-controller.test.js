@@ -709,7 +709,8 @@ describe('applications-controller', () => {
         accepted: [],
         rejected: []
       })
-      expect(result.data.applicationReviewComplete).toBe(true)
+      // no items means nothing has been reviewed, so it can't be complete
+      expect(result.data.applicationReviewComplete).toBe(false)
     })
 
     test('returns appliances as a flat array when groupBy is not techReviewStatus', async () => {
