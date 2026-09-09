@@ -57,7 +57,9 @@ describe('PATCH /applications/{id}/complete', () => {
 
     await completeApplication.handler(mockRequest, mockToolkit)
 
-    expect(applicationReviewController.completeApplication).toHaveBeenCalledWith(
+    expect(
+      applicationReviewController.completeApplication
+    ).toHaveBeenCalledWith(
       mockRequest.db,
       'APPLICATION-123',
       mockRequest.payload,
