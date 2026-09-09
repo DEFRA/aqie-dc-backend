@@ -1,4 +1,11 @@
 // Technical review status helpers
+//
+// Two levels of review:
+// - Item level (one appliance or fuel): every DOCUMENTATION_CHECKS and LISTING_CHECKS
+//   entry must be `true` before that item can be accepted; it can be rejected at any time.
+// - Application level (many items): the application is review-complete once every one
+//   of its items has reached `accepted` or `rejected` - not before.
+//
 // Each documentation and listing check is `true` when it has four possible states:
 // - true: the check has passed/completed
 // - false: the check has failed
@@ -46,6 +53,26 @@ export const getOutstandingChecks = (technicalReview) => [
   ...findOutstanding(technicalReview?.listingChecks, LISTING_CHECKS)
 ]
 
-// An appliance can only be accepted once every check has passed.
+// Item level: an item can only be accepted once every check has passed.
 export const canAcceptReview = (technicalReview) =>
   getOutstandingChecks(technicalReview).length === 0
+
+// Application level: splits an application's items into accepted/rejected groups.
+// Items still outstanding ('new'/'in_review') are excluded from both groups - see
+// isApplicationReviewComplete to check whether every item has reached a final status.
+// FE only needs array of accepted and rejected items; 'new'/'in_review' items are outstanding and array of them not needed
+export const groupItemsByTechReviewStatus = (items = []) => ({
+  accepted: items.filter((item) => item.technicalReview?.status === 'accepted'),
+  rejected: items.filter((item) => item.technicalReview?.status === 'rejected')
+})
+
+// Application level: true once every item (appliance or fuel) has reached
+// accepted/rejected - none are still outstanding.
+const REVIEWED_STATUSES = new Set(['accepted', 'rejected'])
+
+// True once an item's review has reached a final status (accepted/rejected).
+export const isItemReviewed = (item) =>
+  REVIEWED_STATUSES.has(item.technicalReview?.status)
+
+export const isApplicationReviewComplete = (items = []) =>
+  items.length > 0 && items.every(isItemReviewed)

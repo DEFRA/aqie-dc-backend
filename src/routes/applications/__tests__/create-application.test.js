@@ -1,12 +1,12 @@
 import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { createApplication } from './create-application.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
-import applicationExample from '../../sample-data/application-example.js'
-import * as applicationsController from '../../controllers/applications-controller.js'
+import { createApplication } from '#src/routes/applications/create-application.js'
+import { statusCodes } from '#src/common/constants/status-codes.js'
+import applicationExample from '#src/sample-data/application-example.js'
+import * as applicationsController from '#src/controllers/applications-controller.js'
 
 // Mock the controller
-vi.mock('../../controllers/applications-controller.js', () => ({
+vi.mock('#src/controllers/applications-controller.js', () => ({
   default: {},
   createApplication: vi.fn()
 }))
