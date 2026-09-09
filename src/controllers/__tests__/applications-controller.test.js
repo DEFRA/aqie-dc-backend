@@ -439,6 +439,12 @@ describe('applications-controller', () => {
       expect(result.data.appliances[0]._id).toBeUndefined()
     })
 
+    test('throws when logger is not provided', async () => {
+      await expect(
+        createApplication(client, db, { type: 'fuel', appliances: [] }, null)
+      ).rejects.toThrow('logger is required')
+    })
+
     test('handles transaction fallback for standalone MongoDB', async () => {
       const sessionError = new Error(
         'Transactions are not allowed on this replset'
@@ -518,6 +524,12 @@ describe('applications-controller', () => {
         'Database connection failed'
       )
       expect(mockLogger.error).toHaveBeenCalled()
+    })
+
+    test('throws when logger is not provided', async () => {
+      await expect(getAllApplications(db, {}, null)).rejects.toThrow(
+        'logger is required'
+      )
     })
   })
 
@@ -734,6 +746,12 @@ describe('applications-controller', () => {
       ])
       expect(result.data.applicationReviewComplete).toBeUndefined()
     })
+
+    test('throws when logger is not provided', async () => {
+      await expect(getApplicationById(db, 'app-123', null)).rejects.toThrow(
+        'logger is required'
+      )
+    })
   })
 
   describe('searchApplications', () => {
@@ -822,6 +840,12 @@ describe('applications-controller', () => {
       expect(result.success).toBe(true)
       expect(result.data).toHaveLength(1)
       expect(result.data[0].id).toBe('app-nested')
+    })
+
+    test('throws when logger is not provided', async () => {
+      await expect(
+        searchApplications(db, { query: 'test', page: 1, limit: 20 }, null)
+      ).rejects.toThrow('logger is required')
     })
   })
 
@@ -926,6 +950,10 @@ describe('applications-controller', () => {
       expect(result.data.appliance.records).toBe(2)
       expect(result.data.fuel.records).toBe(0)
     })
+
+    test('throws when logger is not provided', async () => {
+      await expect(getCounts(db, null)).rejects.toThrow('logger is required')
+    })
   })
 
   describe('getAllApplicationsWithAppliances', () => {
@@ -997,6 +1025,12 @@ describe('applications-controller', () => {
       await expect(
         getAllApplicationsWithAppliances(db, mockLogger)
       ).rejects.toThrow('Fetch failed')
+    })
+
+    test('throws when logger is not provided', async () => {
+      await expect(getAllApplicationsWithAppliances(db, null)).rejects.toThrow(
+        'logger is required'
+      )
     })
   })
 
@@ -1074,6 +1108,12 @@ describe('applications-controller', () => {
       expect(result.data.inProgress).toEqual([])
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'Unknown application status: archived'
+      )
+    })
+
+    test('throws when logger is not provided', async () => {
+      await expect(getApplicationsWithSummary(db, null)).rejects.toThrow(
+        'logger is required'
       )
     })
   })
@@ -1176,6 +1216,30 @@ describe('applications-controller', () => {
         getApplicationSummaryById(db, 'app-1', 'appliance', mockLogger)
       ).rejects.toThrow('Summary query failed')
       expect(mockLogger.error).toHaveBeenCalled()
+    })
+
+    test('returns notFound for an unknown application type', async () => {
+      docs.push({ id: 'app-4', type: 'unknown' })
+
+      const result = await getApplicationSummaryById(
+        db,
+        'app-4',
+        'unknown',
+        mockLogger
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.notFound).toBe(true)
+      expect(result.message).toBe('Unknown application type: unknown')
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Unknown application type: unknown'
+      )
+    })
+
+    test('throws when logger is not provided', async () => {
+      await expect(
+        getApplicationSummaryById(db, 'app-1', 'appliance', null)
+      ).rejects.toThrow('logger is required')
     })
   })
 })
@@ -1309,5 +1373,32 @@ describe('completeApplication', () => {
       error,
       'Failed to complete application'
     )
+  })
+
+  test('returns notFound for an unknown application type', async () => {
+    applicationsCollection.findOne.mockResolvedValue({
+      id: 'app-3',
+      type: 'unknown'
+    })
+
+    const result = await completeApplication(
+      db,
+      'app-3',
+      { reviewedBy },
+      mockLogger
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.notFound).toBe(true)
+    expect(result.message).toBe('Unknown application type: unknown')
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      'Unknown application type: unknown'
+    )
+  })
+
+  test('throws when logger is not provided', async () => {
+    await expect(
+      completeApplication(db, 'app-1', { reviewedBy }, null)
+    ).rejects.toThrow('logger is required')
   })
 })
