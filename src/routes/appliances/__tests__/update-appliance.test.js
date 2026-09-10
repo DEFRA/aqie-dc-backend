@@ -182,6 +182,15 @@ describe('PATCH /appliances/{id}', () => {
       expect(error).toBeUndefined()
     })
 
+    test('accepts allowedFuels and isPermittedToBurnWood in payload', () => {
+      const payloadSchema = updateAppliance.options.validate.payload
+      const { error } = payloadSchema.validate({
+        allowedFuels: 'Wood logs',
+        isPermittedToBurnWood: true
+      })
+      expect(error).toBeUndefined()
+    })
+
     test('rejects unknown payload fields', () => {
       const payloadSchema = updateAppliance.options.validate.payload
       const { error } = payloadSchema.validate({
