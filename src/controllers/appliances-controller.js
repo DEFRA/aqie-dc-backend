@@ -84,6 +84,7 @@ function mapApplianceSummary(item) {
     name: item.modelName || '',
     id: item.id || '',
     manufacturer: item.companyName || '',
+    permittedFuels: item.permittedFuels || '',
     type: item.applianceType,
     modelNumber: item.modelNumber,
     authorisedIn: findCertified(
