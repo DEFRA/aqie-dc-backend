@@ -29,7 +29,7 @@ async function getApplianceReview(db, id, logger) {
           id: 1,
           modelName: 1,
           applicationId: 1,
-          allowedFuels: 1,
+          permittedFuels: 1,
           isPermittedToBurnWood: 1,
           technicalReview: 1,
           _id: 0
