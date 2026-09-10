@@ -1,11 +1,11 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import Boom from '@hapi/boom'
 
-import { getApplicationSummary } from './get-application-summary.js'
-import * as applicationsController from '../../controllers/applications-controller.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
+import { getApplicationSummary } from '#src/routes/applications/get-application-summary.js'
+import * as applicationsController from '#src/controllers/applications-controller.js'
+import { statusCodes } from '#src/common/constants/status-codes.js'
 
-vi.mock('../../controllers/applications-controller.js')
+vi.mock('#src/controllers/applications-controller.js')
 
 describe('getApplicationSummary route', () => {
   let mockRequest

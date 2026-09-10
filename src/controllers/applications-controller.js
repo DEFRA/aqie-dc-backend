@@ -5,7 +5,15 @@
 
 import { randomUUID } from 'node:crypto'
 import { generateSecureId } from '../common/helpers/data-transformer.js'
+import {
+  groupItemsByTechReviewStatus,
+  isApplicationReviewComplete
+} from '../common/helpers/review-status.js'
+import { getItemsCollectionName } from '../common/helpers/application-type.js'
 import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
+
+const APPLICATION_NOT_FOUND = 'Application not found'
+const LOGGER_REQUIRED_ERROR = 'logger is required'
 
 /**
  * Create a new application with appliances using MongoDB transactions (if available)
@@ -16,6 +24,9 @@ import { getCompleteApplicationRecordsFilter } from './complete-application-reco
  * @param {Object} logger - Logger instance
  */
 async function createApplication(client, db, payload, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
   // Try to use transactions if client supports it, otherwise fall back to direct operations
   const session = client.startSession()
 
@@ -136,6 +147,9 @@ async function performApplicationInsert(db, payload, logger, session) {
  * Get all applications (pagination not currently supported)
  */
 async function getAllApplications(db, _options, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
   try {
     const collection = db.collection('Applications')
     const applications = await collection
@@ -155,9 +169,13 @@ async function getAllApplications(db, _options, logger) {
 }
 
 /**
- * Get application by id
+ * Get application by id, optionally grouped by technical review status
+ * @param {string} [groupBy] - 'techReviewStatus' to group linked items by review status
  */
-async function getApplicationById(db, applicationId, logger) {
+async function getApplicationById(db, applicationId, logger, groupBy) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
   try {
     const collection = db.collection('Applications')
     const application = await collection.findOne({ id: applicationId })
@@ -165,33 +183,36 @@ async function getApplicationById(db, applicationId, logger) {
     if (!application) {
       return {
         success: false,
-        message: 'Application not found',
+        message: APPLICATION_NOT_FOUND,
         notFound: true
       }
     }
 
-    // Also fetch associated appliances/fuels
+    // Fetch associated appliances/fuels
     let linkedItems = []
-    if (application.type === 'appliance') {
+    const collectionName = getItemsCollectionName(application.type)
+    if (collectionName) {
       linkedItems = await db
-        .collection('Appliances')
-        .find({ applicationId })
-        .toArray()
-    } else if (application.type === 'fuel') {
-      linkedItems = await db
-        .collection('Fuels')
+        .collection(collectionName)
         .find({ applicationId })
         .toArray()
     } else {
       logger.warn(`Unknown application type: ${application.type}`)
     }
 
+    const isGrouped = groupBy === 'techReviewStatus'
+
     return {
       success: true,
       message: 'Application retrieved successfully',
       data: {
         ...application,
-        linkedItems
+        linkedItems: isGrouped
+          ? groupItemsByTechReviewStatus(linkedItems)
+          : linkedItems,
+        ...(isGrouped && {
+          applicationReviewComplete: isApplicationReviewComplete(linkedItems)
+        })
       }
     }
   } catch (error) {
@@ -204,6 +225,9 @@ async function getApplicationById(db, applicationId, logger) {
  * Search applications by status or reviewer
  */
 async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
   try {
     const collection = db.collection('Applications')
     const skip = (page - 1) * limit
@@ -249,6 +273,9 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
  * Get count of applications with all status and types as required by dashboard
  */
 async function getCounts(db, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
   try {
     const applicationCounts = {
       appliance: { new: 0, inProgress: 0, records: 0 },
@@ -317,6 +344,9 @@ async function getCounts(db, logger) {
 }
 
 async function getAllApplicationsWithAppliances(db, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
   try {
     const appCollection = db.collection('Applications')
     const itemCollection = db.collection('Appliances')
@@ -337,7 +367,7 @@ async function getAllApplicationsWithAppliances(db, logger) {
     const combinedData = applications.map((app) => {
       return {
         ...app,
-        appliances: allAppliances.filter(
+        linkedItems: allAppliances.filter(
           (appliance) => appliance.applicationId === app.id
         )
       }
@@ -347,7 +377,11 @@ async function getAllApplicationsWithAppliances(db, logger) {
       `Retrieved ${combinedData.length} applications with nested appliances`
     )
 
-    return combinedData
+    return {
+      success: true,
+      message: 'Applications with linked items retrieved successfully',
+      data: combinedData
+    }
   } catch (error) {
     logger.error(error, 'Failed to retrieve all applications with appliances')
     throw error
@@ -362,6 +396,9 @@ async function getApplicationsWithSummary(
   logger,
   statuses = ['new', 'in_progress']
 ) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
   try {
     const appCollection = db.collection('Applications')
     const applianceCollection = db.collection('Appliances')
@@ -444,6 +481,9 @@ async function getApplicationsWithSummary(
  * @param {object} logger - Logger instance
  */
 async function getApplicationSummaryById(db, applicationId, type, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
   try {
     const application = await db
       .collection('Applications')
@@ -452,13 +492,22 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
     if (!application) {
       return {
         success: false,
-        message: 'Application not found',
+        message: APPLICATION_NOT_FOUND,
         notFound: true
       }
     }
 
-    // type is validated by the route's Joi schema ('appliance' | 'fuel')
-    const collectionName = { appliance: 'Appliances', fuel: 'Fuels' }[type]
+    // type is validated by the route's Joi schema ('appliance' | 'fuel'), guard kept for defense-in-depth
+    const collectionName = getItemsCollectionName(type)
+
+    if (!collectionName) {
+      logger.warn(`Unknown application type: ${type}`)
+      return {
+        success: false,
+        message: `Unknown application type: ${type}`,
+        notFound: true
+      }
+    }
 
     // Fetch address from just one linked item - as they all have the same address
     const companyDetails = await db.collection(collectionName).findOne(
@@ -501,6 +550,82 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
   }
 }
 
+/**
+ * Complete an application once every linked appliance/fuel has been reviewed.
+ * Records who completed it (reviewedBy) and when (reviewedAt).
+ */
+async function completeApplication(db, id, payload, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+  try {
+    const collection = db.collection('Applications')
+    const application = await collection.findOne({ id })
+
+    if (!application) {
+      return {
+        success: false,
+        message: APPLICATION_NOT_FOUND,
+        notFound: true
+      }
+    }
+
+    const itemsCollectionName = getItemsCollectionName(application.type)
+
+    if (!itemsCollectionName) {
+      logger.warn(`Unknown application type: ${application.type}`)
+      return {
+        success: false,
+        message: `Unknown application type: ${application.type}`,
+        notFound: true
+      }
+    }
+
+    const linkedItems = await db
+      .collection(itemsCollectionName)
+      .find(
+        { applicationId: id },
+        { projection: { technicalReview: 1, _id: 0 } }
+      )
+      .toArray()
+
+    if (!isApplicationReviewComplete(linkedItems)) {
+      return {
+        success: false,
+        message:
+          'Application cannot be completed until every item has been reviewed',
+        incomplete: true
+      }
+    }
+
+    const { reviewedBy } = payload
+    const reviewedAt = new Date()
+
+    await collection.updateOne(
+      { id },
+      {
+        $set: {
+          status: 'complete',
+          reviewedBy,
+          reviewedAt,
+          updatedAt: reviewedAt
+        }
+      }
+    )
+
+    logger.info(`Application completed: ${id}`)
+
+    return {
+      success: true,
+      message: 'Application completed successfully',
+      data: { id, status: 'complete', reviewedBy, reviewedAt }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to complete application')
+    throw error
+  }
+}
+
 export {
   createApplication,
   getAllApplications,
@@ -509,5 +634,6 @@ export {
   getCounts,
   getAllApplicationsWithAppliances,
   getApplicationsWithSummary, //getApplicationsSummaryByStatus?
-  getApplicationSummaryById
+  getApplicationSummaryById,
+  completeApplication
 }

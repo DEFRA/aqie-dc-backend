@@ -1,11 +1,11 @@
 import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { getApplicationById } from './get-application-by-id.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
-import * as applicationsController from '../../controllers/applications-controller.js'
+import { getApplicationById } from '#src/routes/applications/get-application-by-id.js'
+import { statusCodes } from '#src/common/constants/status-codes.js'
+import * as applicationsController from '#src/controllers/applications-controller.js'
 
 // Mock the controller
-vi.mock('../../controllers/applications-controller.js', () => ({
+vi.mock('#src/controllers/applications-controller.js', () => ({
   default: {},
   getApplicationById: vi.fn()
 }))
@@ -27,6 +27,7 @@ describe('GET /applications/{applicationId}', () => {
       params: {
         applicationId: 'app-123'
       },
+      query: {},
       db: {},
       logger: {
         info: vi.fn(),
@@ -70,7 +71,8 @@ describe('GET /applications/{applicationId}', () => {
       expect(applicationsController.getApplicationById).toHaveBeenCalledWith(
         mockRequest.db,
         'app-123',
-        mockRequest.logger
+        mockRequest.logger,
+        undefined
       )
     })
 
@@ -121,7 +123,26 @@ describe('GET /applications/{applicationId}', () => {
       expect(applicationsController.getApplicationById).toHaveBeenCalledWith(
         mockRequest.db,
         'app-456',
-        mockRequest.logger
+        mockRequest.logger,
+        undefined
+      )
+    })
+
+    test('passes groupBy query param to controller', async () => {
+      mockRequest.query = { groupBy: 'techReviewStatus' }
+      applicationsController.getApplicationById.mockResolvedValueOnce({
+        success: true,
+        data: { id: 'app-123' }
+      })
+
+      const h = mockToolkit
+      await getApplicationById.handler(mockRequest, h)
+
+      expect(applicationsController.getApplicationById).toHaveBeenCalledWith(
+        mockRequest.db,
+        'app-123',
+        mockRequest.logger,
+        'techReviewStatus'
       )
     })
 

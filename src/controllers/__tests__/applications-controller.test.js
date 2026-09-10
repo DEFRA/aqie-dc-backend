@@ -8,7 +8,8 @@ import {
   getCounts,
   getAllApplicationsWithAppliances,
   getApplicationsWithSummary,
-  getApplicationSummaryById
+  getApplicationSummaryById,
+  completeApplication
 } from '#src/controllers/applications-controller.js'
 
 // Mock logger for testing
@@ -288,7 +289,7 @@ describe('applications-controller', () => {
             applianceType: 'heat',
             isVariant: false,
             nominalOutput: 10,
-            allowedFuels: ['Wood Logs'],
+            permittedFuels: 'Wood Logs',
             instructionManual: {
               title: 'Manual X',
               date: new Date('2026-02-03'),
@@ -438,6 +439,12 @@ describe('applications-controller', () => {
       expect(result.data.appliances[0]._id).toBeUndefined()
     })
 
+    test('throws when logger is not provided', async () => {
+      await expect(
+        createApplication(client, db, { type: 'fuel', appliances: [] }, null)
+      ).rejects.toThrow('logger is required')
+    })
+
     test('handles transaction fallback for standalone MongoDB', async () => {
       const sessionError = new Error(
         'Transactions are not allowed on this replset'
@@ -517,6 +524,12 @@ describe('applications-controller', () => {
         'Database connection failed'
       )
       expect(mockLogger.error).toHaveBeenCalled()
+    })
+
+    test('throws when logger is not provided', async () => {
+      await expect(getAllApplications(db, {}, null)).rejects.toThrow(
+        'logger is required'
+      )
     })
   })
 
@@ -619,6 +632,126 @@ describe('applications-controller', () => {
       ).rejects.toThrow('Query failed')
       expect(mockLogger.error).toHaveBeenCalled()
     })
+
+    test('groups linked items by tech review status when requested', async () => {
+      const mockApp = {
+        id: 'app-123',
+        type: 'appliance',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+      applianceDocs.push(
+        {
+          id: 'app-001',
+          applicationId: 'app-123',
+          technicalReview: { status: 'accepted' }
+        },
+        {
+          id: 'app-002',
+          applicationId: 'app-123',
+          technicalReview: { status: 'rejected' }
+        },
+        {
+          id: 'app-003',
+          applicationId: 'app-123',
+          technicalReview: { status: 'in_review' }
+        },
+        { id: 'app-004', applicationId: 'app-123' }
+      )
+
+      const result = await getApplicationById(
+        db,
+        'app-123',
+        mockLogger,
+        'techReviewStatus'
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data.linkedItems.accepted).toHaveLength(1)
+      expect(result.data.linkedItems.rejected).toHaveLength(1)
+      expect(result.data.applicationReviewComplete).toBe(false)
+    })
+
+    test('sets applicationReviewComplete to true when no items are pending', async () => {
+      const mockApp = {
+        id: 'app-123',
+        type: 'appliance',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+      applianceDocs.push(
+        {
+          id: 'app-001',
+          applicationId: 'app-123',
+          technicalReview: { status: 'accepted' }
+        },
+        {
+          id: 'app-002',
+          applicationId: 'app-123',
+          technicalReview: { status: 'rejected' }
+        }
+      )
+
+      const result = await getApplicationById(
+        db,
+        'app-123',
+        mockLogger,
+        'techReviewStatus'
+      )
+
+      expect(result.data.applicationReviewComplete).toBe(true)
+    })
+
+    test('returns empty groups when no linked items exist and grouping is requested', async () => {
+      const mockApp = {
+        id: 'app-999',
+        type: 'unknown',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+
+      const result = await getApplicationById(
+        db,
+        'app-999',
+        mockLogger,
+        'techReviewStatus'
+      )
+
+      expect(result.data.linkedItems).toEqual({
+        accepted: [],
+        rejected: []
+      })
+      // no items means nothing has been reviewed, so it can't be complete
+      expect(result.data.applicationReviewComplete).toBe(false)
+    })
+
+    test('returns appliances as a flat array when groupBy is not techReviewStatus', async () => {
+      const mockApp = {
+        id: 'app-123',
+        type: 'appliance',
+        status: 'new'
+      }
+      collection.findOne.mockResolvedValueOnce(mockApp)
+      applianceDocs.push({ id: 'app-001', applicationId: 'app-123' })
+
+      const result = await getApplicationById(
+        db,
+        'app-123',
+        mockLogger,
+        'somethingElse'
+      )
+
+      expect(result.data.linkedItems).toEqual([
+        { id: 'app-001', applicationId: 'app-123' }
+      ])
+      expect(result.data.applicationReviewComplete).toBeUndefined()
+    })
+
+    test('throws when logger is not provided', async () => {
+      await expect(getApplicationById(db, 'app-123', null)).rejects.toThrow(
+        'logger is required'
+      )
+    })
   })
 
   describe('searchApplications', () => {
@@ -707,6 +840,12 @@ describe('applications-controller', () => {
       expect(result.success).toBe(true)
       expect(result.data).toHaveLength(1)
       expect(result.data[0].id).toBe('app-nested')
+    })
+
+    test('throws when logger is not provided', async () => {
+      await expect(
+        searchApplications(db, { query: 'test', page: 1, limit: 20 }, null)
+      ).rejects.toThrow('logger is required')
     })
   })
 
@@ -811,6 +950,10 @@ describe('applications-controller', () => {
       expect(result.data.appliance.records).toBe(2)
       expect(result.data.fuel.records).toBe(0)
     })
+
+    test('throws when logger is not provided', async () => {
+      await expect(getCounts(db, null)).rejects.toThrow('logger is required')
+    })
   })
 
   describe('getAllApplicationsWithAppliances', () => {
@@ -828,16 +971,20 @@ describe('applications-controller', () => {
 
       const result = await getAllApplicationsWithAppliances(db, mockLogger)
 
-      expect(Array.isArray(result)).toBe(true)
-      expect(result[0].appliances).toBeDefined()
+      expect(result.success).toBe(true)
+      expect(result.message).toBe(
+        'Applications with linked items retrieved successfully'
+      )
+      expect(Array.isArray(result.data)).toBe(true)
+      expect(result.data[0].linkedItems).toBeDefined()
       expect(mockLogger.info).toHaveBeenCalled()
     })
 
     test('handles empty collections', async () => {
       const result = await getAllApplicationsWithAppliances(db, mockLogger)
 
-      expect(Array.isArray(result)).toBe(true)
-      expect(result).toEqual([])
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual([])
     })
 
     test('filters appliances by applicationId', async () => {
@@ -866,8 +1013,8 @@ describe('applications-controller', () => {
 
       const result = await getAllApplicationsWithAppliances(db, mockLogger)
 
-      expect(result[0].appliances).toHaveLength(1)
-      expect(result[0].appliances[0].applicationId).toBe('app-1')
+      expect(result.data[0].linkedItems).toHaveLength(1)
+      expect(result.data[0].linkedItems[0].applicationId).toBe('app-1')
     })
 
     test('handles database errors', async () => {
@@ -878,6 +1025,12 @@ describe('applications-controller', () => {
       await expect(
         getAllApplicationsWithAppliances(db, mockLogger)
       ).rejects.toThrow('Fetch failed')
+    })
+
+    test('throws when logger is not provided', async () => {
+      await expect(getAllApplicationsWithAppliances(db, null)).rejects.toThrow(
+        'logger is required'
+      )
     })
   })
 
@@ -955,6 +1108,12 @@ describe('applications-controller', () => {
       expect(result.data.inProgress).toEqual([])
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'Unknown application status: archived'
+      )
+    })
+
+    test('throws when logger is not provided', async () => {
+      await expect(getApplicationsWithSummary(db, null)).rejects.toThrow(
+        'logger is required'
       )
     })
   })
@@ -1058,5 +1217,188 @@ describe('applications-controller', () => {
       ).rejects.toThrow('Summary query failed')
       expect(mockLogger.error).toHaveBeenCalled()
     })
+
+    test('returns notFound for an unknown application type', async () => {
+      docs.push({ id: 'app-4', type: 'unknown' })
+
+      const result = await getApplicationSummaryById(
+        db,
+        'app-4',
+        'unknown',
+        mockLogger
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.notFound).toBe(true)
+      expect(result.message).toBe('Unknown application type: unknown')
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Unknown application type: unknown'
+      )
+    })
+
+    test('throws when logger is not provided', async () => {
+      await expect(
+        getApplicationSummaryById(db, 'app-1', 'appliance', null)
+      ).rejects.toThrow('logger is required')
+    })
+  })
+})
+
+describe('completeApplication', () => {
+  let db
+  let applicationsCollection
+  let itemsCollection
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    applicationsCollection = {
+      findOne: vi.fn(),
+      updateOne: vi.fn().mockResolvedValue({ matchedCount: 1 })
+    }
+
+    itemsCollection = {
+      find: vi.fn().mockReturnValue({
+        toArray: vi.fn()
+      })
+    }
+
+    db = {
+      collection: vi.fn((name) =>
+        name === 'Applications' ? applicationsCollection : itemsCollection
+      )
+    }
+  })
+
+  const reviewedBy = { name: 'Jane Doe', email: 'jane.doe@example.com' }
+  const reviewedItems = [
+    { technicalReview: { status: 'accepted' } },
+    { technicalReview: { status: 'rejected' } }
+  ]
+
+  test('returns notFound when the application does not exist', async () => {
+    applicationsCollection.findOne.mockResolvedValue(null)
+
+    const result = await completeApplication(
+      db,
+      'missing',
+      { reviewedBy },
+      mockLogger
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.notFound).toBe(true)
+    expect(result.message).toBe('Application not found')
+  })
+
+  test('returns incomplete when a linked item has not been reviewed', async () => {
+    applicationsCollection.findOne.mockResolvedValue({
+      id: 'app-1',
+      type: 'appliance'
+    })
+    itemsCollection.find.mockReturnValue({
+      toArray: vi
+        .fn()
+        .mockResolvedValue([
+          ...reviewedItems,
+          { technicalReview: { status: 'in_review' } }
+        ])
+    })
+
+    const result = await completeApplication(
+      db,
+      'app-1',
+      { reviewedBy },
+      mockLogger
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.incomplete).toBe(true)
+    expect(applicationsCollection.updateOne).not.toHaveBeenCalled()
+  })
+
+  test('completes an appliance application once every item has been reviewed', async () => {
+    applicationsCollection.findOne.mockResolvedValue({
+      id: 'app-1',
+      type: 'appliance'
+    })
+    itemsCollection.find.mockReturnValue({
+      toArray: vi.fn().mockResolvedValue(reviewedItems)
+    })
+
+    const result = await completeApplication(
+      db,
+      'app-1',
+      { reviewedBy },
+      mockLogger
+    )
+
+    expect(db.collection).toHaveBeenCalledWith('Appliances')
+    expect(applicationsCollection.updateOne).toHaveBeenCalledWith(
+      { id: 'app-1' },
+      {
+        $set: expect.objectContaining({
+          status: 'complete',
+          reviewedBy
+        })
+      }
+    )
+    expect(result.success).toBe(true)
+    expect(result.data.status).toBe('complete')
+    expect(result.data.reviewedBy).toEqual(reviewedBy)
+  })
+
+  test('checks linked fuels for fuel-type applications', async () => {
+    applicationsCollection.findOne.mockResolvedValue({
+      id: 'app-2',
+      type: 'fuel'
+    })
+    itemsCollection.find.mockReturnValue({
+      toArray: vi.fn().mockResolvedValue(reviewedItems)
+    })
+
+    await completeApplication(db, 'app-2', { reviewedBy }, mockLogger)
+
+    expect(db.collection).toHaveBeenCalledWith('Fuels')
+  })
+
+  test('logs and rethrows on database failure', async () => {
+    const error = new Error('Database error')
+    applicationsCollection.findOne.mockRejectedValue(error)
+
+    await expect(
+      completeApplication(db, 'app-1', { reviewedBy }, mockLogger)
+    ).rejects.toThrow('Database error')
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      error,
+      'Failed to complete application'
+    )
+  })
+
+  test('returns notFound for an unknown application type', async () => {
+    applicationsCollection.findOne.mockResolvedValue({
+      id: 'app-3',
+      type: 'unknown'
+    })
+
+    const result = await completeApplication(
+      db,
+      'app-3',
+      { reviewedBy },
+      mockLogger
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.notFound).toBe(true)
+    expect(result.message).toBe('Unknown application type: unknown')
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      'Unknown application type: unknown'
+    )
+  })
+
+  test('throws when logger is not provided', async () => {
+    await expect(
+      completeApplication(db, 'app-1', { reviewedBy }, null)
+    ).rejects.toThrow('logger is required')
   })
 })
