@@ -169,7 +169,7 @@ describe('appliances-controller', () => {
           id: 'APP-001',
           modelName: 'Certified Model',
           companyName: 'Test Company',
-          allowedFuels: ['Wood'],
+          permittedFuels: 'Wood',
           ...certifiedInEngland
         }
       ]
@@ -220,7 +220,7 @@ describe('appliances-controller', () => {
             companyName: 'Test Corp',
             applianceType: 'boiler',
             modelNumber: 'M123',
-            allowedFuels: ['Wood', 'Coal'],
+            permittedFuels: 'Wood, Coal',
             ...certifiedInEngland
           }
         ])
@@ -245,7 +245,7 @@ describe('appliances-controller', () => {
         toArray: vi.fn().mockResolvedValue([
           {
             modelName: 'Fuel Test',
-            allowedFuels: ['Wood Logs']
+            permittedFuels: 'Wood Logs'
           }
         ])
       }
@@ -254,7 +254,7 @@ describe('appliances-controller', () => {
 
       const result = await getAllAppliances(db, {}, mockLogger)
 
-      expect(result.data[0].fuels).toBe('Wood Logs')
+      expect(result.data[0].permittedFuels).toBe('Wood Logs')
     })
 
     test('throws when logger missing', async () => {

@@ -92,7 +92,7 @@ export const applianceSchema = Joi.object({
   multifuelAppliance: Joi.boolean()
     .required()
     .description('Multifuel capability'),
-  allowedFuels: Joi.string()
+  permittedFuels: Joi.string()
     .trim()
     .min(1)
     .required()
