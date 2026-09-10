@@ -41,7 +41,7 @@
     rated: 2.3,
     low: 1.1
   },
-  airControlModifications: 'Modified secondary air controls',
+  additionalComments: 'Modified secondary air controls',
   instructionManual: {
     title: 'Manual X',
     date: '2026-02-03',

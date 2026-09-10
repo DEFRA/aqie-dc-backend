@@ -113,9 +113,11 @@ export const applianceSchema = Joi.object({
     rated: Joi.number().optional().description('Smoke emission output - rated'),
     low: Joi.number().optional().description('Smoke emission output - low')
   }).optional(),
-  airControlModifications: Joi.string()
+  additionalComments: Joi.string()
     .optional()
-    .description('Air control modifications'),
+    .description(
+      'Additional comments previously referred to as air control modifications'
+    ),
   instructionManual: Joi.object({
     title: Joi.string().optional().description('Instruction manual title'),
     publicationDate: Joi.date()
