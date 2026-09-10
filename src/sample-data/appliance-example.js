@@ -29,7 +29,7 @@
   existingAuthorisedAppliance: 'Old Model',
   nominalOutput: 10,
   multifuelAppliance: true,
-  allowedFuels: 'Wood Pellets',
+  permittedFuels: 'Wood Pellets',
   declaration: true,
   // Admin Flow fields
   ratedOutput: 10,
@@ -41,7 +41,7 @@
     rated: 2.3,
     low: 1.1
   },
-  airControlModifications: 'Modified secondary air controls',
+  additionalComments: 'Modified secondary air controls',
   instructionManual: {
     title: 'Manual X',
     date: '2026-02-03',
@@ -154,6 +154,6 @@ export default {
   existingAuthorisedAppliance: 'Old Model',
   nominalOutput: 10,
   multifuelAppliance: true,
-  allowedFuels: 'Wood Pellets',
+  permittedFuels: 'Wood Pellets',
   declaration: true
 }

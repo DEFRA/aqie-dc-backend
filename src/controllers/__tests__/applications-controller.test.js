@@ -289,7 +289,7 @@ describe('applications-controller', () => {
             applianceType: 'heat',
             isVariant: false,
             nominalOutput: 10,
-            allowedFuels: ['Wood Logs'],
+            permittedFuels: 'Wood Logs',
             instructionManual: {
               title: 'Manual X',
               date: new Date('2026-02-03'),

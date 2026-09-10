@@ -27,7 +27,7 @@ const keyMapAppliance = {
   GFREno: 'existingAuthorisedAppliance',
   jxCIYY: 'nominalOutput',
   Ltjqls: 'multifuelAppliance',
-  NGfXVf: 'allowedFuels',
+  NGfXVf: 'permittedFuels',
 
   tiRhSf: 'declaration',
 
