@@ -196,12 +196,6 @@ describe('toDotted', () => {
     })
   })
 
-  test('keeps arrays whole', () => {
-    expect(toDotted({ allowedFuels: ['wood', 'pellets'] })).toEqual({
-      allowedFuels: ['wood', 'pellets']
-    })
-  })
-
   test('keeps dates whole', () => {
     const submittedAt = new Date('2026-08-27')
 

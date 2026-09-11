@@ -41,7 +41,7 @@ export default {
       existingAuthorisedAppliance: 'Old Model',
       nominalOutput: 10,
       multifuelAppliance: true,
-      allowedFuels: 'Wood Pellets',
+      permittedFuels: 'Wood Pellets',
       instructionManual: {
         title: 'Manual X',
         publicationDate: new Date('2026-02-03'),
@@ -94,7 +94,7 @@ export default {
       existingAuthorisedAppliance: 'Beta 1000',
       nominalOutput: 12,
       multifuelAppliance: false,
-      allowedFuels: 'Wood Pellets',
+      permittedFuels: 'Wood Pellets',
       instructionManual: {
         title: 'Beta Manual',
         publicationDate: new Date('2026-03-10')

@@ -84,9 +84,7 @@ function mapApplianceSummary(item) {
     name: item.modelName || '',
     id: item.id || '',
     manufacturer: item.companyName || '',
-    fuels: Array.isArray(item.allowedFuels)
-      ? item.allowedFuels.join(', ')
-      : item.allowedFuels || '',
+    permittedFuels: item.permittedFuels || '',
     type: item.applianceType,
     modelNumber: item.modelNumber,
     authorisedIn: findCertified(
