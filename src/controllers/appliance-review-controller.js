@@ -63,7 +63,7 @@ async function getApplianceReview(db, id, logger) {
  * Recording the first result also moves the appliance from 'new' to
  * 'in_review', so the applications list can show "Continue review".
  */
-async function recordApplianceCheck(db, id, check, result, logger) {
+async function recordApplianceCheck(db, id, check, result, logger, data) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
@@ -87,6 +87,16 @@ async function recordApplianceCheck(db, id, check, result, logger) {
     }
 
     const updates = { technicalReview: { [group]: { [check]: result } } }
+
+    // Only permitted fuels check is allowed to carry appliance field updates.
+    if (check === 'permittedFuels') {
+      if (!data) {
+        throw new Error('Data is required for permittedFuels check')
+      }
+
+      updates.permittedFuels = data.permittedFuels
+      updates.isPermittedToBurnWood = data.isPermittedToBurnWood
+    }
 
     if (item.technicalReview?.status === 'new') {
       updates.technicalReview.status = 'in_review'

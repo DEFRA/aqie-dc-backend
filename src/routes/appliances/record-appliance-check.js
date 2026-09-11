@@ -7,6 +7,13 @@ import * as applianceReviewController from '../../controllers/appliance-review-c
 import { ALL_CHECKS } from '../../common/helpers/review-status.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
+const CHECK_DATA_SCHEMAS = {
+  permittedFuels: Joi.object({
+    permittedFuels: Joi.string().trim().min(1).max(3000).required(),
+    isPermittedToBurnWood: Joi.boolean().allow(null).required()
+  }).unknown(false)
+}
+
 export const recordApplianceCheck = {
   method: 'PATCH',
   path: '/appliances/{id}/technical-review/checks',
@@ -25,13 +32,20 @@ export const recordApplianceCheck = {
         result: Joi.boolean()
           .allow(null)
           .required()
-          .description('true passed, false failed, null not reviewed')
+          .description('true passed, false failed, null not reviewed'),
+        data: Joi.when('check', {
+          switch: Object.entries(CHECK_DATA_SCHEMAS).map(([check, schema]) => ({
+            is: check,
+            then: schema.required()
+          })),
+          otherwise: Joi.forbidden()
+        })
       }).unknown(false)
     }
   },
   handler: async (request, h) => {
     const { id } = request.params
-    const { check, result } = request.payload
+    const { check, result, data } = request.payload
 
     try {
       const outcome = await applianceReviewController.recordApplianceCheck(
@@ -39,7 +53,8 @@ export const recordApplianceCheck = {
         id,
         check,
         result,
-        request.logger
+        request.logger,
+        data
       )
       if (outcome.notFound) {
         return h.response(outcome).code(statusCodes.notFound)

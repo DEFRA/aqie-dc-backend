@@ -390,12 +390,36 @@ describe('appliance-review-controller', () => {
       await recordApplianceCheck(
         db,
         'APP-1',
-        'permittedFuels',
+        'applianceDetails',
         true,
         mockLogger
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.listingChecks.applianceDetails',
+        true
+      )
+    })
+
+    test('writes permitted fuels fields when provided for permittedFuels check', async () => {
+      existingReview('in_review')
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'permittedFuels',
+        true,
+        mockLogger,
+        {
+          permittedFuels: 'Wood logs',
+          isPermittedToBurnWood: false
+        }
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty('permittedFuels', 'Wood logs')
+      expect(update.$set).toHaveProperty('isPermittedToBurnWood', false)
       expect(update.$set).toHaveProperty(
         'technicalReview.listingChecks.permittedFuels',
         true

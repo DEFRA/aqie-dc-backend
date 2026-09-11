@@ -54,7 +54,34 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
         'APP-123',
         'technicalDrawings',
         true,
-        mockRequest.logger
+        mockRequest.logger,
+        undefined
+      )
+    })
+
+    test('passes check-specific data when provided', async () => {
+      recordApplianceCheckMock.mockResolvedValue({ success: true, data: {} })
+      mockRequest.payload = {
+        check: 'permittedFuels',
+        result: true,
+        data: {
+          permittedFuels: 'Wood logs',
+          isPermittedToBurnWood: false
+        }
+      }
+
+      await recordApplianceCheck.handler(mockRequest, mockToolkit)
+
+      expect(recordApplianceCheckMock).toHaveBeenCalledWith(
+        mockRequest.db,
+        'APP-123',
+        'permittedFuels',
+        true,
+        mockRequest.logger,
+        {
+          permittedFuels: 'Wood logs',
+          isPermittedToBurnWood: false
+        }
       )
     })
 
@@ -109,10 +136,42 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
       ).toBeUndefined()
     })
 
-    test('accepts a listing check', () => {
+    test('requires data for permittedFuels listing check', () => {
       expect(
         validate({ check: 'permittedFuels', result: true }).error
+      ).toBeDefined()
+    })
+
+    test('requires data for permittedFuels check', () => {
+      expect(
+        validate({ check: 'permittedFuels', result: true }).error
+      ).toBeDefined()
+    })
+
+    test('accepts permittedFuels with check-specific data', () => {
+      expect(
+        validate({
+          check: 'permittedFuels',
+          result: true,
+          data: {
+            permittedFuels: 'Wood logs',
+            isPermittedToBurnWood: true
+          }
+        }).error
       ).toBeUndefined()
+    })
+
+    test('forbids data for checks that do not support extra payload', () => {
+      expect(
+        validate({
+          check: 'technicalDrawings',
+          result: true,
+          data: {
+            permittedFuels: 'Wood logs',
+            isPermittedToBurnWood: true
+          }
+        }).error
+      ).toBeDefined()
     })
 
     test('rejects an unknown check name', () => {
