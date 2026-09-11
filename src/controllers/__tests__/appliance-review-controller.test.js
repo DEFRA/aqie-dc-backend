@@ -297,6 +297,22 @@ describe('appliance-review-controller', () => {
       expect(collection.updateOne).not.toHaveBeenCalled()
     })
 
+    test('returns notFound when update step cannot find appliance', async () => {
+      collection.findOne.mockResolvedValueOnce({ technicalReview: allPassed })
+      collection.updateOne.mockResolvedValue({ matchedCount: 0 })
+
+      const result = await updateApplianceReview(
+        db,
+        'APP-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.notFound).toBe(true)
+      expect(result.message).toBe('Appliance not found')
+    })
+
     test('logs and rethrows on database failure', async () => {
       const error = new Error('Database error')
       collection.findOne.mockRejectedValue(error)
@@ -509,6 +525,23 @@ describe('appliance-review-controller', () => {
 
       expect(result.notFound).toBe(true)
       expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('returns notFound when update step cannot find appliance', async () => {
+      collection.findOne.mockResolvedValueOnce({ technicalReview: {} })
+      collection.updateOne.mockResolvedValue({ matchedCount: 0 })
+
+      const result = await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        true,
+        mockLogger
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.notFound).toBe(true)
+      expect(result.message).toBe('Appliance not found')
     })
 
     test('logs and rethrows on database failure', async () => {
