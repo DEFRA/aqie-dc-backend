@@ -1,5 +1,5 @@
 /**
- * Complete an application once every linked appliance/fuel has been reviewed
+ * Mark an application as in progress once a reviewer has started reviewing it
  */
 import Boom from '@hapi/boom'
 import Joi from 'joi'
@@ -8,7 +8,7 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 
 const MAX_LENGTH = 255
 
-const completeApplicationSchema = Joi.object({
+const startApplicationSchema = Joi.object({
   reviewedBy: Joi.object({
     name: Joi.string().max(MAX_LENGTH).required(),
     email: Joi.string().email().max(MAX_LENGTH).required()
@@ -19,25 +19,25 @@ const completeApplicationSchema = Joi.object({
     )
 }).unknown(false)
 
-export const completeApplication = {
+export const startApplication = {
   method: 'PATCH',
-  path: '/applications/{id}/complete',
+  path: '/applications/{id}/in-progress',
   options: {
     tags: ['api', 'applications'],
     description:
-      'Mark an application as complete once every linked item has been reviewed',
+      'Mark an application as in progress once a reviewer has started reviewing it',
     validate: {
       params: Joi.object({
         id: Joi.string().max(64).required()
       }),
-      payload: completeApplicationSchema
+      payload: startApplicationSchema
     }
   },
   handler: async (request, h) => {
     const { id } = request.params
 
     try {
-      const result = await applicationReviewController.completeApplication(
+      const result = await applicationReviewController.startApplication(
         request.db,
         id,
         request.payload,
@@ -48,19 +48,15 @@ export const completeApplication = {
         return h.response(result).code(statusCodes.notFound)
       }
 
-      if (result.incomplete) {
-        return h.response(result).code(statusCodes.conflict)
-      }
-
       return h.response(result).code(statusCodes.ok)
     } catch (error) {
-      request.logger.error(error, 'Failed to complete application')
+      request.logger.error(error, 'Failed to set application to in progress')
 
       if (Boom.isBoom(error)) {
         throw error
       }
 
-      return Boom.internal('Failed to complete application')
+      return Boom.internal('Failed to set application to in progress')
     }
   }
 }

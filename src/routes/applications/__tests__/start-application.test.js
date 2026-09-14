@@ -1,16 +1,16 @@
 import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { completeApplication } from '#src/routes/applications/complete-application.js'
+import { startApplication } from '#src/routes/applications/start-application.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
 import * as applicationReviewController from '#src/controllers/application-review-controller.js'
 
 // Mock the controller
 vi.mock('#src/controllers/application-review-controller.js', () => ({
   default: {},
-  completeApplication: vi.fn()
+  startApplication: vi.fn()
 }))
 
-describe('PATCH /applications/{id}/complete', () => {
+describe('PATCH /applications/{id}/in-progress', () => {
   let mockRequest
   let mockToolkit
 
@@ -38,28 +38,26 @@ describe('PATCH /applications/{id}/complete', () => {
     }
   })
 
-  test('returns 200 when the application is completed', async () => {
-    applicationReviewController.completeApplication.mockResolvedValue({
+  test('returns 200 when the application is set to in progress', async () => {
+    applicationReviewController.startApplication.mockResolvedValue({
       success: true,
-      data: { id: 'APPLICATION-123', status: 'complete' }
+      data: { id: 'APPLICATION-123', status: 'in_progress' }
     })
 
-    const result = await completeApplication.handler(mockRequest, mockToolkit)
+    const result = await startApplication.handler(mockRequest, mockToolkit)
 
     expect(result.statusCode).toBe(statusCodes.ok)
   })
 
   test('passes the payload through to the controller', async () => {
-    applicationReviewController.completeApplication.mockResolvedValue({
+    applicationReviewController.startApplication.mockResolvedValue({
       success: true,
       data: {}
     })
 
-    await completeApplication.handler(mockRequest, mockToolkit)
+    await startApplication.handler(mockRequest, mockToolkit)
 
-    expect(
-      applicationReviewController.completeApplication
-    ).toHaveBeenCalledWith(
+    expect(applicationReviewController.startApplication).toHaveBeenCalledWith(
       mockRequest.db,
       'APPLICATION-123',
       mockRequest.payload,
@@ -68,45 +66,32 @@ describe('PATCH /applications/{id}/complete', () => {
   })
 
   test('returns 404 when the application does not exist', async () => {
-    applicationReviewController.completeApplication.mockResolvedValue({
+    applicationReviewController.startApplication.mockResolvedValue({
       success: false,
       notFound: true,
       message: 'Application not found'
     })
 
-    const result = await completeApplication.handler(mockRequest, mockToolkit)
+    const result = await startApplication.handler(mockRequest, mockToolkit)
 
     expect(result.statusCode).toBe(statusCodes.notFound)
   })
 
-  test('returns 409 when linked items have not all been reviewed', async () => {
-    applicationReviewController.completeApplication.mockResolvedValue({
-      success: false,
-      incomplete: true,
-      message:
-        'Application cannot be completed until every item has been reviewed'
-    })
-
-    const result = await completeApplication.handler(mockRequest, mockToolkit)
-
-    expect(result.statusCode).toBe(statusCodes.conflict)
-  })
-
   test('rethrows Boom errors from the controller', async () => {
     const boomError = Boom.badRequest('bad request')
-    applicationReviewController.completeApplication.mockRejectedValue(boomError)
+    applicationReviewController.startApplication.mockRejectedValue(boomError)
 
     await expect(
-      completeApplication.handler(mockRequest, mockToolkit)
+      startApplication.handler(mockRequest, mockToolkit)
     ).rejects.toThrow(boomError)
   })
 
   test('wraps unexpected errors in a Boom internal error', async () => {
-    applicationReviewController.completeApplication.mockRejectedValue(
+    applicationReviewController.startApplication.mockRejectedValue(
       new Error('boom')
     )
 
-    const result = await completeApplication.handler(mockRequest, mockToolkit)
+    const result = await startApplication.handler(mockRequest, mockToolkit)
 
     expect(result.isBoom).toBe(true)
     expect(result.output.statusCode).toBe(statusCodes.internalServerError)
