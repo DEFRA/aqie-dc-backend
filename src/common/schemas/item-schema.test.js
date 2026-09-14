@@ -167,6 +167,44 @@ describe('item-schema applianceSchema', () => {
     expect(error).toBeDefined()
     expect(error.details[0].path).toEqual(['companyAddress', 'postcode'])
   })
+
+  test('accepts nested testResults fields', () => {
+    const payload = {
+      ...applianceBasePayload,
+      testResults: {
+        ratedOutput: 10,
+        testedOutput: { rated: 10.5, low: 5.2 },
+        smokeEmissionOutput: { rated: 2.3, low: 1.1 }
+      }
+    }
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.testResults).toEqual({
+      ratedOutput: 10,
+      testedOutput: { rated: 10.5, low: 5.2 },
+      smokeEmissionOutput: { rated: 2.3, low: 1.1 }
+    })
+  })
+
+  test('rejects non-numeric testResults.testedOutput.rated', () => {
+    const payload = {
+      ...applianceBasePayload,
+      testResults: {
+        testedOutput: { rated: 'not-a-number' }
+      }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual([
+      'testResults',
+      'testedOutput',
+      'rated'
+    ])
+  })
 })
 
 describe('item-schema fuelSchema', () => {

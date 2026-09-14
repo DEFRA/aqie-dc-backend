@@ -104,14 +104,18 @@ export const applianceSchema = Joi.object({
       'When the appliance was created in our system (server-generated)'
     ),
   // Fields from admin FE input
-  ratedOutput: Joi.number().optional().description('Rated Output'),
-  testedOutput: Joi.object({
-    rated: Joi.number().optional().description('Tested Output - rated'),
-    low: Joi.number().optional().description('Tested Output - low')
-  }).optional(),
-  smokeEmissionOutput: Joi.object({
-    rated: Joi.number().optional().description('Smoke emission output - rated'),
-    low: Joi.number().optional().description('Smoke emission output - low')
+  testResults: Joi.object({
+    ratedOutput: Joi.number().optional().description('Rated Output'),
+    testedOutput: Joi.object({
+      rated: Joi.number().optional().description('Tested Output - rated'),
+      low: Joi.number().optional().description('Tested Output - low')
+    }).optional(),
+    smokeEmissionOutput: Joi.object({
+      rated: Joi.number()
+        .optional()
+        .description('Smoke emission output - rated'),
+      low: Joi.number().optional().description('Smoke emission output - low')
+    }).optional()
   }).optional(),
   additionalConditions: Joi.string()
     .optional()
