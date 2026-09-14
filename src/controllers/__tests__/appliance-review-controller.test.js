@@ -442,14 +442,26 @@ describe('appliance-review-controller', () => {
       )
     })
 
-    test('throws when permittedFuels check is sent without required data payload', async () => {
-      collection.findOne.mockResolvedValue({ technicalReview: {} })
+    test('ignores payload data when the caller does not supply any', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({ technicalReview: { status: 'in_review' } })
+        .mockResolvedValueOnce({ id: 'APP-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
 
-      await expect(
-        recordApplianceCheck(db, 'APP-1', 'permittedFuels', true, mockLogger)
-      ).rejects.toThrow('Data is required for permittedFuels check')
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        true,
+        mockLogger,
+        undefined
+      )
 
-      expect(collection.updateOne).not.toHaveBeenCalled()
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.technicalDrawings',
+        true
+      )
     })
 
     test('starts the review when the appliance is new', async () => {

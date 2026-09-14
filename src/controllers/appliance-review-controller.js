@@ -86,16 +86,9 @@ async function recordApplianceCheck(db, id, check, result, logger, data) {
       }
     }
 
-    const updates = { technicalReview: { [group]: { [check]: result } } }
-
-    // Only permitted fuels check is allowed to carry appliance field updates.
-    if (check === 'permittedFuels') {
-      if (!data) {
-        throw new Error('Data is required for permittedFuels check')
-      }
-
-      updates.permittedFuels = data.permittedFuels
-      updates.isPermittedToBurnWood = data.isPermittedToBurnWood
+    const updates = {
+      ...(data ?? {}),
+      technicalReview: { [group]: { [check]: result } }
     }
 
     if (item.technicalReview?.status === 'new') {

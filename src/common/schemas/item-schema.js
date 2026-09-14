@@ -129,10 +129,6 @@ export const applianceSchema = Joi.object({
       .description('Instruction manual additional information')
   }).optional(),
   //Legacy record fields (additional fields from DB migration that no longer exist in the new admin system)
-  isPermittedToBurnWood: Joi.boolean()
-    .allow(null)
-    .optional()
-    .description('Whether the appliance is permitted to burn wood'),
   servicingManual: Joi.object({
     title: Joi.string().optional().description('Servicing manual title'),
     publicationDate: Joi.date()
@@ -153,6 +149,10 @@ export const applianceSchema = Joi.object({
       .description('Legacy linked application IDs')
   }).optional(),
   //Reviews/Certifications
+  isPermittedToBurnWood: Joi.boolean()
+    .allow(null)
+    .optional()
+    .description('Whether the appliance is permitted to burn wood'),
   technicalReview: Joi.object({
     status: Joi.string()
       .valid('new', 'in_review', 'accepted', 'rejected')
