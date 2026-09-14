@@ -446,13 +446,7 @@ describe('appliance-review-controller', () => {
       collection.findOne.mockResolvedValue({ technicalReview: {} })
 
       await expect(
-        recordApplianceCheck(
-          db,
-          'APP-1',
-          'permittedFuels',
-          true,
-          mockLogger
-        )
+        recordApplianceCheck(db, 'APP-1', 'permittedFuels', true, mockLogger)
       ).rejects.toThrow('Data is required for permittedFuels check')
 
       expect(collection.updateOne).not.toHaveBeenCalled()
