@@ -7,9 +7,15 @@ import * as applianceReviewController from '../../controllers/appliance-review-c
 import { ALL_CHECKS } from '../../common/helpers/review-status.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
+const MAX_PERMITTED_FUELS_LENGTH = 3000
+
 const CHECK_DATA_SCHEMAS = {
   permittedFuels: Joi.object({
-    permittedFuels: Joi.string().trim().min(1).max(3000).required(),
+    permittedFuels: Joi.string()
+      .trim()
+      .min(1)
+      .max(MAX_PERMITTED_FUELS_LENGTH)
+      .required(),
     isPermittedToBurnWood: Joi.boolean().allow(null).required()
   }).unknown(false)
 }
