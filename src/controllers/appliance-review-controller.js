@@ -86,10 +86,12 @@ async function recordApplianceCheck(db, id, check, result, logger, data) {
       }
     }
 
-    const updates = {
-      ...(data ?? {}),
-      technicalReview: { [group]: { [check]: result } }
-    }
+    const updates = data
+      ? {
+          ...data,
+          technicalReview: { [group]: { [check]: result } }
+        }
+      : { technicalReview: { [group]: { [check]: result } } }
 
     if (item.technicalReview?.status === 'new') {
       updates.technicalReview.status = 'in_review'
