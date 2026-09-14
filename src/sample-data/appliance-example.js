@@ -32,16 +32,18 @@
   permittedFuels: 'Wood Pellets',
   declaration: true,
   // Admin Flow fields
-  ratedOutput: 10,
-  testedOutput: {
-    rated: 10.5,
-    low: 5.2
+  testResults: {
+    ratedOutput: 10,
+    testedOutput: {
+      rated: 10.5,
+      low: 5.2
+    },
+    smokeEmissionOutput: {
+      rated: 2.3,
+      low: 1.1
+    }
   },
-  smokeEmissionOutput: {
-    rated: 2.3,
-    low: 1.1
-  },
-  additionalComments: 'Modified secondary air controls',
+  additionalConditions: 'Modified secondary air controls',
   instructionManual: {
     title: 'Manual X',
     date: '2026-02-03',
