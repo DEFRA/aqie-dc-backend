@@ -29,6 +29,8 @@ async function getApplianceReview(db, id, logger) {
           id: 1,
           modelName: 1,
           applicationId: 1,
+          permittedFuels: 1,
+          isPermittedToBurnWood: 1,
           technicalReview: 1,
           _id: 0
         }
@@ -61,7 +63,7 @@ async function getApplianceReview(db, id, logger) {
  * Recording the first result also moves the appliance from 'new' to
  * 'in_review', so the applications list can show "Continue review".
  */
-async function recordApplianceCheck(db, id, check, result, logger) {
+async function recordApplianceCheck(db, id, check, result, logger, data) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
@@ -84,7 +86,12 @@ async function recordApplianceCheck(db, id, check, result, logger) {
       }
     }
 
-    const updates = { technicalReview: { [group]: { [check]: result } } }
+    const updates = data
+      ? {
+          ...data,
+          technicalReview: { [group]: { [check]: result } }
+        }
+      : { technicalReview: { [group]: { [check]: result } } }
 
     if (item.technicalReview?.status === 'new') {
       updates.technicalReview.status = 'in_review'

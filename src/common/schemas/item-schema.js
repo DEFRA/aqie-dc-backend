@@ -153,6 +153,10 @@ export const applianceSchema = Joi.object({
       .description('Legacy linked application IDs')
   }).optional(),
   //Reviews/Certifications
+  isPermittedToBurnWood: Joi.boolean()
+    .allow(null)
+    .optional()
+    .description('Whether the appliance is permitted to burn wood'),
   technicalReview: Joi.object({
     status: Joi.string()
       .valid('new', 'in_review', 'accepted', 'rejected')

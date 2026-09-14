@@ -84,6 +84,8 @@ describe('appliance-review-controller', () => {
         id: 1,
         modelName: 1,
         applicationId: 1,
+        permittedFuels: 1,
+        isPermittedToBurnWood: 1,
         technicalReview: 1,
         _id: 0
       })
@@ -295,6 +297,22 @@ describe('appliance-review-controller', () => {
       expect(collection.updateOne).not.toHaveBeenCalled()
     })
 
+    test('returns notFound when update step cannot find appliance', async () => {
+      collection.findOne.mockResolvedValueOnce({ technicalReview: allPassed })
+      collection.updateOne.mockResolvedValue({ matchedCount: 0 })
+
+      const result = await updateApplianceReview(
+        db,
+        'APP-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.notFound).toBe(true)
+      expect(result.message).toBe('Appliance not found')
+    })
+
     test('logs and rethrows on database failure', async () => {
       const error = new Error('Database error')
       collection.findOne.mockRejectedValue(error)
@@ -388,14 +406,60 @@ describe('appliance-review-controller', () => {
       await recordApplianceCheck(
         db,
         'APP-1',
-        'permittedFuels',
+        'applianceDetails',
         true,
         mockLogger
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
       expect(update.$set).toHaveProperty(
+        'technicalReview.listingChecks.applianceDetails',
+        true
+      )
+    })
+
+    test('writes permitted fuels fields when provided for permittedFuels check', async () => {
+      existingReview('in_review')
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'permittedFuels',
+        true,
+        mockLogger,
+        {
+          permittedFuels: 'Wood logs',
+          isPermittedToBurnWood: false
+        }
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty('permittedFuels', 'Wood logs')
+      expect(update.$set).toHaveProperty('isPermittedToBurnWood', false)
+      expect(update.$set).toHaveProperty(
         'technicalReview.listingChecks.permittedFuels',
+        true
+      )
+    })
+
+    test('ignores payload data when the caller does not supply any', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({ technicalReview: { status: 'in_review' } })
+        .mockResolvedValueOnce({ id: 'APP-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        true,
+        mockLogger,
+        undefined
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.technicalDrawings',
         true
       )
     })
@@ -483,6 +547,23 @@ describe('appliance-review-controller', () => {
 
       expect(result.notFound).toBe(true)
       expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('returns notFound when update step cannot find appliance', async () => {
+      collection.findOne.mockResolvedValueOnce({ technicalReview: {} })
+      collection.updateOne.mockResolvedValue({ matchedCount: 0 })
+
+      const result = await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        true,
+        mockLogger
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.notFound).toBe(true)
+      expect(result.message).toBe('Appliance not found')
     })
 
     test('logs and rethrows on database failure', async () => {
