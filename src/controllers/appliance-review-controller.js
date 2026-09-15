@@ -171,7 +171,7 @@ async function updateApplianceReview(db, id, decision, logger) {
       }
     }
 
-    logger.info(`Appliance review ${status}: ${id}`) // Only the decision is returned - the full record from updateAppliance
+    logger.info('Appliance review ${status}: ${id}') // Only the decision is returned - the full record from updateAppliance
     // carries company contact details this endpoint has no reason to expose.
 
     return {
