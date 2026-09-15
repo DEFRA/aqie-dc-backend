@@ -31,6 +31,7 @@ async function getApplianceReview(db, id, logger) {
           applicationId: 1,
           permittedFuels: 1,
           isPermittedToBurnWood: 1,
+          additionalConditions: 1,
           technicalReview: 1,
           _id: 0
         }
@@ -88,9 +89,9 @@ async function recordApplianceCheck(db, id, check, result, logger, data) {
 
     const updates = data
       ? {
-          ...data,
-          technicalReview: { [group]: { [check]: result } }
-        }
+        ...data,
+        technicalReview: { [group]: { [check]: result } }
+      }
       : { technicalReview: { [group]: { [check]: result } } }
 
     if (item.technicalReview?.status === 'new') {
