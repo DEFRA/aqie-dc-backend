@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import { applianceSchema } from './item-schema.js'
+import { applianceSchema, fuelSchema } from './item-schema.js'
 
 // ============================================================================
 // APPLICATION SCHEMA
@@ -35,7 +35,14 @@ export const applicationsSchema = Joi.object({
     .description(
       'Application status (server-generated, defaults to "new". Complete when all items (appliances/fuels) have been reviewed (approved/rejected) and the application is submitted)'
     ),
-  appliances: Joi.array().items(applianceSchema).optional(), //needs to be changed to items: Joi.array().items(itemSchema).optional() when do fuels applications
+  appliances: Joi.array().items(applianceSchema).optional().when('type', {
+    is: 'fuel',
+    then: Joi.forbidden()
+  }),
+  fuels: Joi.array().items(fuelSchema).optional().when('type', {
+    is: 'appliance',
+    then: Joi.forbidden()
+  }),
   //later in the application flow:
   reviewedBy: Joi.object({
     name: Joi.string().optional().description('Name of the reviewer'),

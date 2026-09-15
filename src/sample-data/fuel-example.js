@@ -108,8 +108,10 @@ export default {
     name: 'Fuel Person',
     email: 'JD@email.com'
   },
-  responsibleName: 'Rep Name',
-  responsibleEmailAddress: 'rep@co.com',
+  responsiblePerson: {
+    name: 'Rep Name',
+    email: 'rep@co.com'
+  },
   customerComplaints: false,
   fuelBagging: 'Bagged',
   fuelDescription: 'Premium pellets',

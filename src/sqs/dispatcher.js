@@ -4,9 +4,9 @@
 
 import { statusCodes } from '#src/common/constants/status-codes.js'
 
-// --- Fuel Management Routes ---
+// --- Application Management Routes (appliances or fuels, based on payload.type) ---
 
-export async function createFuelRecordViaRoute(server, payload) {
+export async function createApplicationRecordViaRoute(server, payload) {
   //This is for exploring mapping locally - delete later
   if (process.env.ENVIRONMENT === 'local') {
     console.log(payload)
@@ -15,26 +15,7 @@ export async function createFuelRecordViaRoute(server, payload) {
 
   const response = await server.inject({
     method: 'POST',
-    url: `/fuels`,
-    payload
-  })
-
-  if (response.statusCode !== statusCodes.created) {
-    throw new Error(
-      `Internal API error: ${response.statusCode} - ${response.result?.msg}`
-    )
-  }
-
-  return response.result
-}
-
-// --- Appliance Management Routes ---
-
-export async function createApplianceRecordViaRoute(server, payload) {
-  //pass in appliance as type here, once add fuels
-  const response = await server.inject({
-    method: 'POST',
-    url: `/applications`, //application instead, then dont do the validation just check
+    url: `/applications`,
     payload
   })
 

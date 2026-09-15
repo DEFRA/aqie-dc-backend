@@ -69,18 +69,27 @@ function buildApplication(applicationData) {
   }
 }
 
+// Maps application type to the id prefix used for its linked items
+const ID_PREFIX_BY_TYPE = {
+  appliance: 'APP',
+  fuel: 'FUEL'
+}
+
 /**
- * Perform the application and appliance insert
+ * Perform the application and linked items (appliances/fuels) insert
  * @param {Db} db - Database instance
  * @param {Object} payload - Application payload
  * @param {Object} logger - Logger
  * @param {ClientSession|null} session - MongoDB session for transactions (null if not available)
  */
 async function performApplicationInsert(db, payload, logger, session) {
-  const { appliances, ...applicationData } = payload
+  const { appliances, fuels, ...applicationData } = payload
+  const itemsKey = applicationData.type === 'fuel' ? 'fuels' : 'appliances'
+  const items = applicationData.type === 'fuel' ? fuels : appliances
 
   const appCollection = db.collection('Applications')
-  const applianceCollection = db.collection('Appliances')
+  const itemsCollectionName = getItemsCollectionName(applicationData.type)
+  const idPrefix = ID_PREFIX_BY_TYPE[applicationData.type]
 
   // Build and insert Application
   const application = buildApplication(applicationData)
@@ -91,54 +100,57 @@ async function performApplicationInsert(db, payload, logger, session) {
     throw new Error('Failed to insert application')
   }
 
-  // Insert appliances with applicationId link
-  let savedAppliances = []
-  if (Array.isArray(appliances) && appliances.length > 0) {
-    const appliancesToInsert = appliances.map((appliance) => ({
-      ...appliance,
-      id: appliance.id || `APP-${generateSecureId()}`,
+  // Insert linked items with applicationId link
+  let savedItems = []
+  if (Array.isArray(items) && items.length > 0) {
+    const itemsCollection = db.collection(itemsCollectionName)
+    const itemsToInsert = items.map((item) => ({
+      ...item,
+      id: item.id || `${idPrefix}-${generateSecureId()}`,
       applicationId: application.id
     }))
 
-    const applianceResult = await applianceCollection.insertMany(
-      appliancesToInsert,
+    const itemsResult = await itemsCollection.insertMany(
+      itemsToInsert,
       insertOptions
     )
 
     logger.info(
       {
-        acknowledged: applianceResult.acknowledged,
-        insertedIdCount: Object.keys(applianceResult.insertedIds || {}).length
+        acknowledged: itemsResult.acknowledged,
+        insertedIdCount: Object.keys(itemsResult.insertedIds || {}).length
       },
-      'Appliance insertMany result'
+      `${itemsCollectionName} insertMany result`
     )
 
-    if (!applianceResult.acknowledged) {
-      throw new Error('MongoDB did not acknowledge appliance insert')
+    if (!itemsResult.acknowledged) {
+      throw new Error(
+        `MongoDB did not acknowledge ${itemsCollectionName} insert`
+      )
     }
 
-    // Map appliances with their inserted _ids (if available)
-    savedAppliances = appliancesToInsert.map((appliance, index) => {
-      const result = { ...appliance }
+    // Map items with their inserted _ids (if available)
+    savedItems = itemsToInsert.map((item, index) => {
+      const result = { ...item }
       // insertedIds may be undefined if collection was auto-created
-      if (applianceResult.insertedIds?.[index]) {
-        result._id = applianceResult.insertedIds[index]
+      if (itemsResult.insertedIds?.[index]) {
+        result._id = itemsResult.insertedIds[index]
       }
       return result
     })
   }
 
   logger.info(
-    `Application created: ${application.id} with ${savedAppliances.length} appliances`
+    `Application created: ${application.id} with ${savedItems.length} ${itemsCollectionName || 'items'}`
   )
 
-  // Return detailed response with success message
+  // Return detailed response with success message, keyed by type (appliances or fuels)
   return {
     success: true,
-    message: 'Application and appliances created successfully',
+    message: 'Application and linked items created successfully',
     data: {
       ...application,
-      appliances: savedAppliances
+      [itemsKey]: savedItems
     }
   }
 }
