@@ -12,8 +12,7 @@ import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
 import {
   ingestSqsMessageViaRoute,
-  createApplianceRecordViaRoute,
-  createFuelRecordViaRoute
+  createApplicationRecordViaRoute
 } from './dispatcher.js'
 
 const logger = createLogger()
@@ -137,7 +136,8 @@ const createNewApplicationRecord = async (message, server) => {
       messageBody.data,
       applicationPayload
     ) //reference number instead of messageId?
-    await createFuelRecordViaRoute(server, applicationPayload)
+    await createApplicationRecordViaRoute(server, applicationPayload)
+    logger.info('Creating Fuel Application Record')
   } else {
     const repeaters = splitRepeaterJson(messageBody.data)
     repeaters.forEach((repeater) => {
@@ -145,7 +145,7 @@ const createNewApplicationRecord = async (message, server) => {
       application.appliances.push(mappedAppliance)
     })
     const applicationPayload = JSON.stringify(application)
-    await createApplianceRecordViaRoute(server, applicationPayload)
+    await createApplicationRecordViaRoute(server, applicationPayload)
     logger.info('Creating Appliance Application Record')
     await ingestSqsMessageViaRoute(
       server,
