@@ -85,6 +85,7 @@ describe('appliance-review-controller', () => {
         modelName: 1,
         applicationId: 1,
         permittedFuels: 1,
+        additionalConditions: 1,
         isPermittedToBurnWood: 1,
         technicalReview: 1,
         _id: 0
@@ -438,6 +439,31 @@ describe('appliance-review-controller', () => {
       expect(update.$set).toHaveProperty('isPermittedToBurnWood', false)
       expect(update.$set).toHaveProperty(
         'technicalReview.listingChecks.permittedFuels',
+        true
+      )
+    })
+
+    test('writes the additional conditions text when provided for additionalConditions check', async () => {
+      existingReview('in_review')
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'additionalConditions',
+        true,
+        mockLogger,
+        {
+          additionalConditions: 'Standard additional condition text'
+        }
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'additionalConditions',
+        'Standard additional condition text'
+      )
+      expect(update.$set).toHaveProperty(
+        'technicalReview.listingChecks.additionalConditions',
         true
       )
     })

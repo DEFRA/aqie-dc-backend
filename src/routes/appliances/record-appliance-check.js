@@ -8,6 +8,7 @@ import { ALL_CHECKS } from '../../common/helpers/review-status.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
 const MAX_PERMITTED_FUELS_LENGTH = 3000
+const MAX_ADDITIONAL_CONDITIONS_LENGTH = 1000
 
 const CHECK_DATA_SCHEMAS = {
   permittedFuels: Joi.object({
@@ -17,6 +18,13 @@ const CHECK_DATA_SCHEMAS = {
       .max(MAX_PERMITTED_FUELS_LENGTH)
       .required(),
     isPermittedToBurnWood: Joi.boolean().allow(null).required()
+  }).unknown(false),
+  additionalConditions: Joi.object({
+    additionalConditions: Joi.string()
+      .trim()
+      .min(1)
+      .max(MAX_ADDITIONAL_CONDITIONS_LENGTH)
+      .required()
   }).unknown(false)
 }
 
