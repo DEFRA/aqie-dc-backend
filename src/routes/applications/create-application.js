@@ -58,7 +58,7 @@ export const createApplication = {
       if (validationWarnings.length > 0) {
         request.logger.warn(
           {
-            validationWarnings
+            details: validationWarnings
           },
           'Application validation warnings'
         )
