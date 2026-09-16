@@ -114,20 +114,19 @@ const createNewApplicationRecord = async (message, server) => {
     return //need to continue the loop
   }
   //application details extraction
+  const isFuel =
+    messageBody.meta.formSlug ===
+    'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
   const application = {
-    type:
-      messageBody.meta.formSlug ===
-      'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
-        ? 'fuel'
-        : 'appliance',
+    type: isFuel ? 'fuel' : 'appliance',
     referenceNumber: messageBody.meta.referenceNumber,
     submittedAt: messageBody.meta.timestamp,
-    appliances: []
+    ...(isFuel ? { fuels: [] } : { appliances: [] })
   }
 
   if (application.type === 'fuel') {
     const mappedFuelData = mapKeys(messageBody.data.main, 'fuel')
-    application.appliances.push(mappedFuelData) //should be application.items.push
+    application.fuels.push(mappedFuelData)
     const applicationPayload = JSON.stringify(application)
     await ingestSqsMessageViaRoute(
       server,
