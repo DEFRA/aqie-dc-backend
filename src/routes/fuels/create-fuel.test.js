@@ -130,7 +130,9 @@ describe('POST /fuels', () => {
     })
 
     test('logs validation warnings but still creates fuel', async () => {
-      const warnings = [{ field: 'declaration', message: '"declaration" is required' }]
+      const warnings = [
+        { field: 'declaration', message: '"declaration" is required' }
+      ]
       mockRequest.pre.validationResult.validationWarnings = warnings
 
       fuelController.createFuel.mockResolvedValueOnce({

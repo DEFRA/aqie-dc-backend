@@ -130,7 +130,9 @@ describe('POST /appliances', () => {
     })
 
     test('logs validation warnings but still creates appliance', async () => {
-      const warnings = [{ field: 'modelName', message: '"modelName" is required' }]
+      const warnings = [
+        { field: 'modelName', message: '"modelName" is required' }
+      ]
       mockRequest.pre.validationResult.validationWarnings = warnings
 
       applianceController.createAppliance.mockResolvedValueOnce({
