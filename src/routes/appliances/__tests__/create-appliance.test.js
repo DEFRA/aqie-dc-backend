@@ -33,7 +33,10 @@ describe('POST /appliances', () => {
 
     mockRequest = {
       pre: {
-        validatedPayload: applianceExample
+        validationResult: {
+          payload: applianceExample,
+          validationWarnings: []
+        }
       },
       db: {},
       logger: {
@@ -86,12 +89,12 @@ describe('POST /appliances', () => {
       )
     })
 
-    test('returns request.pre.validatedPayload as newItem', async () => {
+    test('returns request.pre.validationResult.payload as newItem', async () => {
       const customPayload = {
         ...applianceExample,
         modelName: 'Custom Model'
       }
-      mockRequest.pre.validatedPayload = customPayload
+      mockRequest.pre.validationResult.payload = customPayload
 
       applianceController.createAppliance.mockResolvedValueOnce({
         success: true,
@@ -124,6 +127,27 @@ describe('POST /appliances', () => {
       const result = await createAppliance.handler(mockRequest, h)
 
       expect(result.data).toEqual({ id })
+    })
+
+    test('logs validation warnings but still creates appliance', async () => {
+      const warnings = [{ field: 'modelName', message: '"modelName" is required' }]
+      mockRequest.pre.validationResult.validationWarnings = warnings
+
+      applianceController.createAppliance.mockResolvedValueOnce({
+        success: true,
+        message: 'Appliance created successfully',
+        data: { id: 'APP-123' }
+      })
+
+      const h = mockToolkit
+      const result = await createAppliance.handler(mockRequest, h)
+
+      expect(mockRequest.logger.warn).toHaveBeenCalledWith(
+        { details: warnings },
+        'Appliance validation warnings'
+      )
+      expect(result.statusCode).toBe(statusCodes.created)
+      expect(applianceController.createAppliance).toHaveBeenCalled()
     })
   })
 
@@ -174,9 +198,9 @@ describe('POST /appliances', () => {
       expect(createAppliance.options.pre.length).toBeGreaterThan(0)
     })
 
-    test('pre assigns validatedPayload', () => {
+    test('pre assigns validationResult', () => {
       const preStep = createAppliance.options.pre[0]
-      expect(preStep.assign).toBe('validatedPayload')
+      expect(preStep.assign).toBe('validationResult')
     })
   })
 })
