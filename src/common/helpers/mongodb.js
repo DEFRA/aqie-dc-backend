@@ -83,8 +83,45 @@ async function ensureAppliancesAndFuelsCollections(db, logger) {
     } else {
       logger.info('Applications collection already exists')
     }
+
+    // (migrationTODO): existing Appliances/Fuels/Applications collections in
+    // some environments still carry an old $jsonSchema validator that predates
+    // the current SQS mapper field shape (e.g. applianceId/manufacturer vs
+    // companyName/modelName), causing MongoBulkWriteError: Document failed
+    // validation on insert. Relaxed here for now so ingestion keeps working;
+    // needs to be reconciled/removed properly as part of the migration work.
+    await relaxStaleValidators(db, collections, logger)
   } catch (error) {
     logger.error(error, 'Failed to setup collections')
     // Don't throw - allow the app to start even if migration fails
+  }
+}
+
+const VALIDATED_COLLECTIONS = ['Appliances', 'Fuels', 'Applications']
+
+async function relaxStaleValidators(db, collections, logger) {
+  for (const name of VALIDATED_COLLECTIONS) {
+    const info = collections.find((c) => c.name === name)
+    const hasValidator =
+      info?.options?.validator && Object.keys(info.options.validator).length
+
+    if (!hasValidator) {
+      continue
+    }
+
+    try {
+      await db.command({ collMod: name, validationLevel: 'off' })
+      logger.warn(
+        { collection: name },
+        'Relaxed stale $jsonSchema validator (validationLevel: off) pending migration cleanup'
+      )
+    } catch (error) {
+      // Likely missing privilege (e.g. collMod/dbAdmin) in this environment -
+      // don't block startup, just surface it so it can be actioned manually
+      logger.error(
+        { err: error, collection: name },
+        'Could not relax stale validator - may need manual/DBA intervention'
+      )
+    }
   }
 }

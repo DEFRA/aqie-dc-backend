@@ -116,7 +116,15 @@ async function performApplicationInsert(db, payload, logger, session) {
   // Build and insert Application
   const application = buildApplication(applicationData)
 
-  const insertOptions = session ? { session } : {}
+  //(migrationTODO): bypassDocumentValidation works around a stale
+  // $jsonSchema validator (old applianceId/manufacturer shape) still present
+  // on some environments' collections, which rejects the current SQS-mapped
+  // field shape (companyName/modelName/etc). Remove once the validator is
+  // reconciled/removed as part of the migration work.
+  const insertOptions = {
+    ...(session ? { session } : {}),
+    bypassDocumentValidation: true
+  }
   const appResult = await appCollection.insertOne(application, insertOptions)
   if (!appResult.insertedId) {
     throw new Error('Failed to insert application')
