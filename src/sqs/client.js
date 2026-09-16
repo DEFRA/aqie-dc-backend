@@ -138,7 +138,7 @@ const createNewApplicationRecord = async (message, server) => {
   await ingestSqsMessageViaRoute(
     server,
     message.MessageId, // reference number instead of messageId?
-    message.Body.data,
+    message.Body, // raw payload
     messageBody.data, //parsedMessageBody
     applicationPayload
   )
