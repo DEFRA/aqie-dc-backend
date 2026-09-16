@@ -89,9 +89,9 @@ async function recordApplianceCheck(db, id, check, result, logger, data) {
 
     const updates = data
       ? {
-        ...data,
-        technicalReview: { [group]: { [check]: result } }
-      }
+          ...data,
+          technicalReview: { [group]: { [check]: result } }
+        }
       : { technicalReview: { [group]: { [check]: result } } }
 
     if (item.technicalReview?.status === 'new') {
