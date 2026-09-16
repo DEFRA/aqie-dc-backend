@@ -134,14 +134,14 @@ const createNewApplicationRecord = async (message, server) => {
       application.appliances.push(mappedAppliance)
     })
   }
-    const applicationPayload = JSON.stringify(application)
-    await ingestSqsMessageViaRoute(
-      server,
-      message.MessageId, // reference number instead of messageId?
-      message.Body.data,
-      messageBody.data, //parsedMessageBody
-      applicationPayload
-    ) 
-    await createApplicationRecordViaRoute(server, applicationPayload)
-    logger.info(`Creating ${application.type} Application Record`)
+  const applicationPayload = JSON.stringify(application)
+  await ingestSqsMessageViaRoute(
+    server,
+    message.MessageId, // reference number instead of messageId?
+    message.Body.data,
+    messageBody.data, //parsedMessageBody
+    applicationPayload
+  )
+  await createApplicationRecordViaRoute(server, applicationPayload)
+  logger.info(`Creating ${application.type} Application Record`)
 }
