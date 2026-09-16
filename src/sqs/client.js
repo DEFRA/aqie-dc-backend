@@ -127,31 +127,21 @@ const createNewApplicationRecord = async (message, server) => {
   if (application.type === 'fuel') {
     const mappedFuelData = mapKeys(messageBody.data.main, 'fuel')
     application.fuels.push(mappedFuelData)
-    const applicationPayload = JSON.stringify(application)
-    await ingestSqsMessageViaRoute(
-      server,
-      message.MessageId,
-      message.Body.data,
-      messageBody.data,
-      applicationPayload
-    ) //reference number instead of messageId?
-    await createApplicationRecordViaRoute(server, applicationPayload)
-    logger.info('Creating Fuel Application Record')
   } else {
     const repeaters = splitRepeaterJson(messageBody.data)
     repeaters.forEach((repeater) => {
       const mappedAppliance = mapKeys(repeater, 'appliance')
       application.appliances.push(mappedAppliance)
     })
+  }
     const applicationPayload = JSON.stringify(application)
-    await createApplicationRecordViaRoute(server, applicationPayload)
-    logger.info('Creating Appliance Application Record')
     await ingestSqsMessageViaRoute(
       server,
-      message.MessageId,
-      message.Body,
-      messageBody.data,
+      message.MessageId, // reference number instead of messageId?
+      message.Body.data,
+      messageBody.data, //parsedMessageBody
       applicationPayload
-    )
-  }
+    ) 
+    await createApplicationRecordViaRoute(server, applicationPayload)
+    logger.info(`Creating ${application.type} Application Record`)
 }
