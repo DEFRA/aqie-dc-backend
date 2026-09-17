@@ -62,11 +62,10 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
     test('passes check-specific data when provided', async () => {
       recordApplianceCheckMock.mockResolvedValue({ success: true, data: {} })
       mockRequest.payload = {
-        check: 'permittedFuels',
+        check: 'additionalConditions',
         result: true,
         data: {
-          permittedFuels: 'Wood logs',
-          isPermittedToBurnWood: false
+          additionalConditions: 'Standard additional condition text'
         }
       }
 
@@ -75,12 +74,11 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
       expect(recordApplianceCheckMock).toHaveBeenCalledWith(
         mockRequest.db,
         'APP-123',
-        'permittedFuels',
+        'additionalConditions',
         true,
         mockRequest.logger,
         {
-          permittedFuels: 'Wood logs',
-          isPermittedToBurnWood: false
+          additionalConditions: 'Standard additional condition text'
         }
       )
     })
@@ -142,9 +140,9 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
       ).toBeDefined()
     })
 
-    test('requires data for permittedFuels check', () => {
+    test('requires data for additionalConditions check', () => {
       expect(
-        validate({ check: 'permittedFuels', result: true }).error
+        validate({ check: 'additionalConditions', result: true }).error
       ).toBeDefined()
     })
 
@@ -159,6 +157,30 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
           }
         }).error
       ).toBeUndefined()
+    })
+
+    test('accepts additionalConditions with check-specific data', () => {
+      expect(
+        validate({
+          check: 'additionalConditions',
+          result: true,
+          data: {
+            additionalConditions: 'Standard additional condition text'
+          }
+        }).error
+      ).toBeUndefined()
+    })
+
+    test('rejects empty additionalConditions text', () => {
+      expect(
+        validate({
+          check: 'additionalConditions',
+          result: true,
+          data: {
+            additionalConditions: '   '
+          }
+        }).error
+      ).toBeDefined()
     })
 
     test('forbids data for checks that do not support extra payload', () => {
