@@ -15,8 +15,7 @@ const allPassed = {
   },
   listingChecks: {
     applianceDetails: true,
-    permittedFuels: true,
-    additionalConditions: true
+    permittedFuels: true
   }
 }
 
@@ -92,7 +91,6 @@ describe('appliance-review-controller', () => {
         multifuelAppliance: 1,
         permittedFuels: 1,
         isPermittedToBurnWood: 1,
-        additionalConditions: 1,
         technicalReview: 1,
         _id: 0
       })
