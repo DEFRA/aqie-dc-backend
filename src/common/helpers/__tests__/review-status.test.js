@@ -67,8 +67,7 @@ describe('getOutstandingChecks', () => {
       'technicalDrawings',
       'conformityMark',
       'instructionManual',
-      'permittedFuels',
-      'additionalConditions'
+      'permittedFuels'
     ])
   })
 

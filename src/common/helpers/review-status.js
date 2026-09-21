@@ -22,8 +22,7 @@ export const DOCUMENTATION_CHECKS = [
 
 export const LISTING_CHECKS = [
   'applianceDetails',
-  'permittedFuels',
-  'additionalConditions'
+  'permittedFuels'
 ]
 
 export const ALL_CHECKS = [...DOCUMENTATION_CHECKS, ...LISTING_CHECKS]
