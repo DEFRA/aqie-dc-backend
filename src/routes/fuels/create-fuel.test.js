@@ -33,7 +33,10 @@ describe('POST /fuels', () => {
 
     mockRequest = {
       pre: {
-        validatedPayload: fuelExample
+        validationResult: {
+          payload: fuelExample,
+          validationWarnings: []
+        }
       },
       db: {},
       logger: {
@@ -86,12 +89,12 @@ describe('POST /fuels', () => {
       )
     })
 
-    test('returns request.pre.validatedPayload as newItem', async () => {
+    test('returns request.pre.validationResult.payload as newItem', async () => {
       const customPayload = {
         ...fuelExample,
         brandNames: 'Custom Brand'
       }
-      mockRequest.pre.validatedPayload = customPayload
+      mockRequest.pre.validationResult.payload = customPayload
 
       fuelController.createFuel.mockResolvedValueOnce({
         success: true,
@@ -124,6 +127,29 @@ describe('POST /fuels', () => {
       const result = await createFuel.handler(mockRequest, h)
 
       expect(result.data).toEqual({ fuelId })
+    })
+
+    test('logs validation warnings but still creates fuel', async () => {
+      const warnings = [
+        { field: 'declaration', message: '"declaration" is required' }
+      ]
+      mockRequest.pre.validationResult.validationWarnings = warnings
+
+      fuelController.createFuel.mockResolvedValueOnce({
+        success: true,
+        message: 'Fuel created successfully',
+        data: { fuelId: 'FUEL-123' }
+      })
+
+      const h = mockToolkit
+      const result = await createFuel.handler(mockRequest, h)
+
+      expect(mockRequest.logger.warn).toHaveBeenCalledWith(
+        { details: warnings },
+        'Fuel validation warnings'
+      )
+      expect(result.statusCode).toBe(statusCodes.created)
+      expect(fuelController.createFuel).toHaveBeenCalled()
     })
   })
 
@@ -168,9 +194,9 @@ describe('POST /fuels', () => {
       expect(createFuel.options.pre.length).toBeGreaterThan(0)
     })
 
-    test('pre assigns validatedPayload', () => {
+    test('pre assigns validationResult', () => {
       const preStep = createFuel.options.pre[0]
-      expect(preStep.assign).toBe('validatedPayload')
+      expect(preStep.assign).toBe('validationResult')
     })
   })
 })

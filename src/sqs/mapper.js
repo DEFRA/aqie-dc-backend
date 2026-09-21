@@ -51,7 +51,7 @@ const keyMapFuel = {
 
   lhhoTX: 'companyContact.name',
   zCPkvh: 'companyContact.email',
-  FwtbfD: 'companyContact.alternateEmail',
+  FwtbfD: 'companyContact.alternativeEmail',
   OIMWWP: 'companyContact.phone',
 
   ChfkKZ: 'responsiblePerson.name',
@@ -75,7 +75,7 @@ const keyMapFuel = {
   rIyajj: 'fuelComposition',
   kOXZSk: 'sulphurContent',
   Hdxrqy: 'manufacturingProcess',
-  dDwQia: 'qualityManufacturedSystem',
+  dDwQia: 'qualityControlSystem',
   GgFWEK: 'brandNames',
 
   dytkGm: 'declaration',

@@ -14,6 +14,7 @@ import { getCompleteApplicationRecordsFilter } from './complete-application-reco
 
 const APPLICATION_NOT_FOUND = 'Application not found'
 const LOGGER_REQUIRED_ERROR = 'logger is required'
+const MONGO_ILLEGAL_OPERATION_CODE = 20
 
 /**
  * Create a new application with appliances using MongoDB transactions (if available)
@@ -35,10 +36,20 @@ async function createApplication(client, db, payload, logger) {
       return performApplicationInsert(db, payload, logger, session)
     })
   } catch (transactionError) {
-    if (
-      transactionError.message.includes('Transaction') ||
-      transactionError.message.includes('replica set')
-    ) {
+    logger.error(
+      {
+        err: transactionError,
+        code: transactionError.code,
+        codeName: transactionError.codeName,
+        errorLabels: transactionError.errorLabels
+      },
+      'Transaction attempt failed'
+    )
+
+    // Transactions require a replica set/mongos deployment and pre-existing
+    // collections; fall back to direct operations for any deployment-level
+    // reason transactions can't run (message text varies by MongoDB version/deployment)
+    if (isTransactionUnsupportedError(transactionError)) {
       logger.warn(
         'Transactions not supported, falling back to direct operations'
       )
@@ -48,6 +59,17 @@ async function createApplication(client, db, payload, logger) {
   } finally {
     await session.endSession()
   }
+}
+
+function isTransactionUnsupportedError(error) {
+  const message = (error.message || '').toLowerCase()
+  return (
+    message.includes('transaction') ||
+    message.includes('replica set') ||
+    message.includes('mongos') ||
+    error.code === MONGO_ILLEGAL_OPERATION_CODE ||
+    error.codeName === 'IllegalOperation'
+  )
 }
 
 function buildApplication(applicationData) {
