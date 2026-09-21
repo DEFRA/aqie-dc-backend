@@ -20,7 +20,11 @@ export const DOCUMENTATION_CHECKS = [
   'instructionManual'
 ]
 
-export const LISTING_CHECKS = ['applianceDetails', 'permittedFuels']
+export const LISTING_CHECKS = [
+  'applianceDetails',
+  'permittedFuels',
+  'additionalConditions'
+]
 
 export const ALL_CHECKS = [...DOCUMENTATION_CHECKS, ...LISTING_CHECKS]
 

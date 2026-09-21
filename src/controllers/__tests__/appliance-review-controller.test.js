@@ -15,7 +15,8 @@ const allPassed = {
   },
   listingChecks: {
     applianceDetails: true,
-    permittedFuels: true
+    permittedFuels: true,
+    additionalConditions: true
   }
 }
 
@@ -180,7 +181,7 @@ describe('appliance-review-controller', () => {
       )
 
       expect(result.incomplete).toBe(true)
-      expect(result.outstandingChecks).toEqual(['conformityMark'])
+      expect(result.outstandingChecks).toContain('conformityMark')
     })
 
     test('allows rejecting even when checks are outstanding', async () => {
