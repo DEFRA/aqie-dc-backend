@@ -14,6 +14,7 @@ import { getCompleteApplicationRecordsFilter } from './complete-application-reco
 
 const APPLICATION_NOT_FOUND = 'Application not found'
 const LOGGER_REQUIRED_ERROR = 'logger is required'
+const MONGO_ILLEGAL_OPERATION_CODE = 20
 
 /**
  * Create a new application with appliances using MongoDB transactions (if available)
@@ -35,10 +36,20 @@ async function createApplication(client, db, payload, logger) {
       return performApplicationInsert(db, payload, logger, session)
     })
   } catch (transactionError) {
-    if (
-      transactionError.message.includes('Transaction') ||
-      transactionError.message.includes('replica set')
-    ) {
+    logger.error(
+      {
+        err: transactionError,
+        code: transactionError.code,
+        codeName: transactionError.codeName,
+        errorLabels: transactionError.errorLabels
+      },
+      'Transaction attempt failed'
+    )
+
+    // Transactions require a replica set/mongos deployment and pre-existing
+    // collections; fall back to direct operations for any deployment-level
+    // reason transactions can't run (message text varies by MongoDB version/deployment)
+    if (isTransactionUnsupportedError(transactionError)) {
       logger.warn(
         'Transactions not supported, falling back to direct operations'
       )
@@ -48,6 +59,17 @@ async function createApplication(client, db, payload, logger) {
   } finally {
     await session.endSession()
   }
+}
+
+function isTransactionUnsupportedError(error) {
+  const message = (error.message || '').toLowerCase()
+  return (
+    message.includes('transaction') ||
+    message.includes('replica set') ||
+    message.includes('mongos') ||
+    error.code === MONGO_ILLEGAL_OPERATION_CODE ||
+    error.codeName === 'IllegalOperation'
+  )
 }
 
 function buildApplication(applicationData) {
@@ -69,18 +91,27 @@ function buildApplication(applicationData) {
   }
 }
 
+// Maps application type to the id prefix used for its linked items
+const ID_PREFIX_BY_TYPE = {
+  appliance: 'APP',
+  fuel: 'FUEL'
+}
+
 /**
- * Perform the application and appliance insert
+ * Perform the application and linked items (appliances/fuels) insert
  * @param {Db} db - Database instance
  * @param {Object} payload - Application payload
  * @param {Object} logger - Logger
  * @param {ClientSession|null} session - MongoDB session for transactions (null if not available)
  */
 async function performApplicationInsert(db, payload, logger, session) {
-  const { appliances, ...applicationData } = payload
+  const { appliances, fuels, ...applicationData } = payload
+  const itemsKey = applicationData.type === 'fuel' ? 'fuels' : 'appliances'
+  const items = applicationData.type === 'fuel' ? fuels : appliances
 
   const appCollection = db.collection('Applications')
-  const applianceCollection = db.collection('Appliances')
+  const itemsCollectionName = getItemsCollectionName(applicationData.type)
+  const idPrefix = ID_PREFIX_BY_TYPE[applicationData.type]
 
   // Build and insert Application
   const application = buildApplication(applicationData)
@@ -91,54 +122,57 @@ async function performApplicationInsert(db, payload, logger, session) {
     throw new Error('Failed to insert application')
   }
 
-  // Insert appliances with applicationId link
-  let savedAppliances = []
-  if (Array.isArray(appliances) && appliances.length > 0) {
-    const appliancesToInsert = appliances.map((appliance) => ({
-      ...appliance,
-      id: appliance.id || `APP-${generateSecureId()}`,
+  // Insert linked items with applicationId link
+  let savedItems = []
+  if (Array.isArray(items) && items.length > 0) {
+    const itemsCollection = db.collection(itemsCollectionName)
+    const itemsToInsert = items.map((item) => ({
+      ...item,
+      id: item.id || `${idPrefix}-${generateSecureId()}`,
       applicationId: application.id
     }))
 
-    const applianceResult = await applianceCollection.insertMany(
-      appliancesToInsert,
+    const itemsResult = await itemsCollection.insertMany(
+      itemsToInsert,
       insertOptions
     )
 
     logger.info(
       {
-        acknowledged: applianceResult.acknowledged,
-        insertedIdCount: Object.keys(applianceResult.insertedIds || {}).length
+        acknowledged: itemsResult.acknowledged,
+        insertedIdCount: Object.keys(itemsResult.insertedIds || {}).length
       },
-      'Appliance insertMany result'
+      `${itemsCollectionName} insertMany result`
     )
 
-    if (!applianceResult.acknowledged) {
-      throw new Error('MongoDB did not acknowledge appliance insert')
+    if (!itemsResult.acknowledged) {
+      throw new Error(
+        `MongoDB did not acknowledge ${itemsCollectionName} insert`
+      )
     }
 
-    // Map appliances with their inserted _ids (if available)
-    savedAppliances = appliancesToInsert.map((appliance, index) => {
-      const result = { ...appliance }
+    // Map items with their inserted _ids (if available)
+    savedItems = itemsToInsert.map((item, index) => {
+      const result = { ...item }
       // insertedIds may be undefined if collection was auto-created
-      if (applianceResult.insertedIds?.[index]) {
-        result._id = applianceResult.insertedIds[index]
+      if (itemsResult.insertedIds?.[index]) {
+        result._id = itemsResult.insertedIds[index]
       }
       return result
     })
   }
 
   logger.info(
-    `Application created: ${application.id} with ${savedAppliances.length} appliances`
+    `Application created: ${application.id} with ${savedItems.length} ${itemsCollectionName || 'items'}`
   )
 
-  // Return detailed response with success message
+  // Return detailed response with success message, keyed by type (appliances or fuels)
   return {
     success: true,
-    message: 'Application and appliances created successfully',
+    message: 'Application and linked items created successfully',
     data: {
       ...application,
-      appliances: savedAppliances
+      [itemsKey]: savedItems
     }
   }
 }

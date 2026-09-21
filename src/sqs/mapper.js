@@ -4,6 +4,7 @@ const keyMapAppliance = {
   TbMaXV: 'isUkBased',
 
   mwGItn: 'addressObject', //Address comes in this block
+  uprn: 'companyAddress.uprn',
   addressLine1: 'companyAddress.line1',
   addressLine2: 'companyAddress.line2',
   town: 'companyAddress.city',
@@ -39,6 +40,7 @@ const keyMapFuel = {
   IIQWii: 'isUkBased',
 
   mwGItn: 'addressObject', //Address comes in this block
+  uprn: 'companyAddress.uprn',
   addressLine1: 'companyAddress.line1',
   addressLine2: 'companyAddress.line2',
   town: 'companyAddress.city',
@@ -49,11 +51,11 @@ const keyMapFuel = {
 
   lhhoTX: 'companyContact.name',
   zCPkvh: 'companyContact.email',
-  FwtbfD: 'companyContact.alternateEmail',
+  FwtbfD: 'companyContact.alternativeEmail',
   OIMWWP: 'companyContact.phone',
 
-  ChfkKZ: 'responsibleName',
-  OOrscG: 'responsibleEmailAddress',
+  ChfkKZ: 'responsiblePerson.name',
+  OOrscG: 'responsiblePerson.email',
 
   Buaprr: 'customerComplaints',
   gefTHa: 'fuelBagging',
@@ -73,7 +75,7 @@ const keyMapFuel = {
   rIyajj: 'fuelComposition',
   kOXZSk: 'sulphurContent',
   Hdxrqy: 'manufacturingProcess',
-  dDwQia: 'qualityManufacturedSystem',
+  dDwQia: 'qualityControlSystem',
   GgFWEK: 'brandNames',
 
   dytkGm: 'declaration',

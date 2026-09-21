@@ -12,8 +12,7 @@ import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
 import {
   ingestSqsMessageViaRoute,
-  createApplianceRecordViaRoute,
-  createFuelRecordViaRoute
+  createApplicationRecordViaRoute
 } from './dispatcher.js'
 
 const logger = createLogger()
@@ -115,44 +114,34 @@ const createNewApplicationRecord = async (message, server) => {
     return //need to continue the loop
   }
   //application details extraction
+  const isFuel =
+    messageBody.meta.formSlug ===
+    'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
   const application = {
-    type:
-      messageBody.meta.formSlug ===
-      'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
-        ? 'fuel'
-        : 'appliance',
+    type: isFuel ? 'fuel' : 'appliance',
     referenceNumber: messageBody.meta.referenceNumber,
     submittedAt: messageBody.meta.timestamp,
-    appliances: []
+    ...(isFuel ? { fuels: [] } : { appliances: [] })
   }
 
   if (application.type === 'fuel') {
     const mappedFuelData = mapKeys(messageBody.data.main, 'fuel')
-    application.appliances.push(mappedFuelData) //should be application.items.push
-    const applicationPayload = JSON.stringify(application)
-    await ingestSqsMessageViaRoute(
-      server,
-      message.MessageId,
-      message.Body.data,
-      messageBody.data,
-      applicationPayload
-    ) //reference number instead of messageId?
-    await createFuelRecordViaRoute(server, applicationPayload)
+    application.fuels.push(mappedFuelData)
   } else {
     const repeaters = splitRepeaterJson(messageBody.data)
     repeaters.forEach((repeater) => {
       const mappedAppliance = mapKeys(repeater, 'appliance')
       application.appliances.push(mappedAppliance)
     })
-    const applicationPayload = JSON.stringify(application)
-    await createApplianceRecordViaRoute(server, applicationPayload)
-    logger.info('Creating Appliance Application Record')
-    await ingestSqsMessageViaRoute(
-      server,
-      message.MessageId,
-      message.Body,
-      messageBody.data,
-      applicationPayload
-    )
   }
+  const applicationPayload = JSON.stringify(application)
+  await ingestSqsMessageViaRoute(
+    server,
+    message.MessageId, // reference number instead of messageId?
+    message.Body, // raw payload
+    messageBody.data, //parsedMessageBody
+    applicationPayload
+  )
+  await createApplicationRecordViaRoute(server, applicationPayload)
+  logger.info(`Creating ${application.type} Application Record`)
 }

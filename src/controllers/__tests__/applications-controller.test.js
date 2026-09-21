@@ -303,7 +303,7 @@ describe('applications-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.message).toBe(
-        'Application and appliances created successfully'
+        'Application and linked items created successfully'
       )
       expect(result.data.id).toBeDefined()
       expect(result.data.appliances).toHaveLength(1)
@@ -313,7 +313,7 @@ describe('applications-controller', () => {
 
     test('creates application without appliances', async () => {
       const payload = {
-        type: 'fuel',
+        type: 'appliance',
         status: 'new',
         additionalMetadata: {},
         appliances: []
@@ -383,7 +383,7 @@ describe('applications-controller', () => {
           { type: 'appliance', appliances: [{ companyName: 'ACME' }] },
           mockLogger
         )
-      ).rejects.toThrow('MongoDB did not acknowledge appliance insert')
+      ).rejects.toThrow('MongoDB did not acknowledge Appliances insert')
     })
 
     test('uses default values for optional application fields', async () => {

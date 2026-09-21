@@ -208,16 +208,7 @@ describe('item-schema applianceSchema', () => {
 })
 
 describe('item-schema fuelSchema', () => {
-  const validFuelPayload = {
-    ...structuredClone(fuelExample),
-    responsiblePerson: {
-      name: fuelExample.responsibleName,
-      email: fuelExample.responsibleEmailAddress
-    }
-  }
-
-  delete validFuelPayload.responsibleName
-  delete validFuelPayload.responsibleEmailAddress
+  const validFuelPayload = structuredClone(fuelExample)
 
   test('accepts valid fuel payload from sample data', () => {
     const payload = structuredClone(validFuelPayload)
