@@ -3,12 +3,12 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 const mainMock = vi.fn()
 const destroyMock = vi.fn()
 
-vi.mock('../sqs/client.js', () => ({
+vi.mock('../../sqs/client.js', () => ({
   main: mainMock,
   sqsClient: { destroy: destroyMock }
 }))
 
-vi.mock('../config.js', () => ({
+vi.mock('../../config.js', () => ({
   config: {
     get: vi.fn((key) => {
       if (key === 'aws.sqs.pollIntervalMins') {

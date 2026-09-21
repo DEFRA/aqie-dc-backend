@@ -3,13 +3,18 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 const sendMock = vi.fn()
 
 vi.mock('@aws-sdk/client-sqs', () => ({
-  SQSClient: vi.fn(() => ({ send: sendMock })),
-  GetQueueUrlCommand: vi.fn((args) => ({ type: 'GetQueueUrl', args })),
-  ReceiveMessageCommand: vi.fn((args) => ({ type: 'ReceiveMessage', args })),
-  DeleteMessageBatchCommand: vi.fn((args) => ({
-    type: 'DeleteMessageBatch',
-    args
-  }))
+  SQSClient: vi.fn(function () {
+    return { send: sendMock }
+  }),
+  GetQueueUrlCommand: vi.fn(function (args) {
+    return { type: 'GetQueueUrl', args }
+  }),
+  ReceiveMessageCommand: vi.fn(function (args) {
+    return { type: 'ReceiveMessage', args }
+  }),
+  DeleteMessageBatchCommand: vi.fn(function (args) {
+    return { type: 'DeleteMessageBatch', args }
+  })
 }))
 
 vi.mock('../../config.js', () => ({
@@ -74,9 +79,17 @@ describe('sqs client', () => {
     })
 
     test('processes each message and deletes them in a batch', async () => {
+      const body = JSON.stringify({
+        meta: {
+          formSlug: 'apply-for-an-appliance',
+          referenceNumber: 'REF-1',
+          timestamp: '2024-01-01T00:00:00.000Z'
+        },
+        data: { repeater: [{ field: 'value' }] }
+      })
       const messages = [
-        { MessageId: '1', ReceiptHandle: 'rh-1', Body: '{}' },
-        { MessageId: '2', ReceiptHandle: 'rh-2', Body: '{}' }
+        { MessageId: '1', ReceiptHandle: 'rh-1', Body: body },
+        { MessageId: '2', ReceiptHandle: 'rh-2', Body: body }
       ]
 
       sendMock
@@ -102,9 +115,17 @@ describe('sqs client', () => {
     })
 
     test('continues processing remaining messages when one fails', async () => {
+      const body = JSON.stringify({
+        meta: {
+          formSlug: 'apply-for-an-appliance',
+          referenceNumber: 'REF-1',
+          timestamp: '2024-01-01T00:00:00.000Z'
+        },
+        data: { repeater: [{ field: 'value' }] }
+      })
       const messages = [
-        { MessageId: '1', ReceiptHandle: 'rh-1', Body: '{}' },
-        { MessageId: '2', ReceiptHandle: 'rh-2', Body: '{}' }
+        { MessageId: '1', ReceiptHandle: 'rh-1', Body: body },
+        { MessageId: '2', ReceiptHandle: 'rh-2', Body: body }
       ]
 
       sendMock
@@ -141,7 +162,17 @@ describe('sqs client', () => {
 
   describe('createNewApplicationRecord', () => {
     test('builds an appliance application from repeaters and dispatches it', async () => {
-      const message = { MessageId: 'msg-1', Body: '{}' }
+      const message = {
+        MessageId: 'msg-1',
+        Body: JSON.stringify({
+          meta: {
+            formSlug: 'apply-for-an-appliance',
+            referenceNumber: 'REF-1',
+            timestamp: '2024-01-01T00:00:00.000Z'
+          },
+          data: { repeater: [{ field: 'value' }] }
+        })
+      }
 
       await createNewApplicationRecord(message, server)
 
@@ -158,6 +189,38 @@ describe('sqs client', () => {
         server,
         expect.any(String)
       )
+    })
+
+    test('builds a fuel application when the form slug matches', async () => {
+      const message = {
+        MessageId: 'msg-2',
+        Body: JSON.stringify({
+          meta: {
+            formSlug:
+              'get-a-solid-fuel-certified-for-use-in-smoke-control-areas',
+            referenceNumber: 'REF-2',
+            timestamp: '2024-01-01T00:00:00.000Z'
+          },
+          data: { main: { field: 'value' } }
+        })
+      }
+
+      await createNewApplicationRecord(message, server)
+
+      expect(mapKeys).toHaveBeenCalledWith({ field: 'value' }, 'fuel')
+      expect(createApplicationRecordViaRoute).toHaveBeenCalledWith(
+        server,
+        expect.any(String)
+      )
+    })
+
+    test('logs and returns early when the message body is invalid JSON', async () => {
+      const message = { MessageId: 'msg-3', Body: 'not-json' }
+
+      await createNewApplicationRecord(message, server)
+
+      expect(ingestSqsMessageViaRoute).not.toHaveBeenCalled()
+      expect(createApplicationRecordViaRoute).not.toHaveBeenCalled()
     })
   })
 })

@@ -102,7 +102,7 @@ export const main = async (server, queueUrl, abortSignal) => {
     logger.error('SQS error:', err)
   }
 }
-const createNewApplicationRecord = async (message, server) => {
+export const createNewApplicationRecord = async (message, server) => {
   let messageBody
   try {
     // Validate JSON before processing
