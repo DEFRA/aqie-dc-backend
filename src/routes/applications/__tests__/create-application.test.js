@@ -2,7 +2,7 @@ import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { createApplication } from '#src/routes/applications/create-application.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
-import applicationExample from '#src/sample-data/application-example.js'
+import { applianceApplicationExample } from '#src/sample-data/application-example.js'
 import * as applicationsController from '#src/controllers/applications-controller.js'
 
 // Mock the controller
@@ -33,10 +33,10 @@ describe('POST /applications', () => {
     }
 
     mockRequest = {
-      payload: applicationExample,
+      payload: applianceApplicationExample,
       pre: {
         validationResult: {
-          payload: applicationExample,
+          payload: applianceApplicationExample,
           validationWarnings: []
         }
       },
@@ -61,7 +61,7 @@ describe('POST /applications', () => {
           id: 'uuid-123',
           type: 'appliance',
           status: 'new',
-          appliances: applicationExample.appliances
+          appliances: applianceApplicationExample.appliances
         }
       }
 
@@ -79,7 +79,7 @@ describe('POST /applications', () => {
       expect(applicationsController.createApplication).toHaveBeenCalledWith(
         mockRequest.server.mongoClient,
         mockRequest.db,
-        applicationExample,
+        applianceApplicationExample,
         mockRequest.logger
       )
     })
@@ -94,7 +94,7 @@ describe('POST /applications', () => {
 
       mockRequest.pre = {
         validationResult: {
-          payload: applicationExample,
+          payload: applianceApplicationExample,
           validationWarnings: warnings
         }
       }
@@ -116,7 +116,7 @@ describe('POST /applications', () => {
       expect(applicationsController.createApplication).toHaveBeenCalledWith(
         mockRequest.server.mongoClient,
         mockRequest.db,
-        applicationExample,
+        applianceApplicationExample,
         mockRequest.logger
       )
     })
@@ -124,7 +124,7 @@ describe('POST /applications', () => {
     test('does not log warnings when validation succeeds', async () => {
       mockRequest.pre = {
         validationResult: {
-          payload: applicationExample,
+          payload: applianceApplicationExample,
           validationWarnings: []
         }
       }
@@ -157,7 +157,7 @@ describe('POST /applications', () => {
 
     test('passes payload from validationResult to controller', async () => {
       const customPayload = {
-        ...applicationExample,
+        ...applianceApplicationExample,
         type: 'fuel'
       }
 

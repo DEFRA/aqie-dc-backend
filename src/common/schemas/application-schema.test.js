@@ -1,10 +1,21 @@
 import { describe, expect, test } from 'vitest'
 import { applicationsSchema } from './application-schema.js'
-import applicationExample from '../../sample-data/application-example.js'
+import {
+  applianceApplicationExample,
+  fuelApplicationExample
+} from '../../sample-data/application-example.js'
 
 describe('application-schema applicationsSchema', () => {
-  test('accepts valid application payload from sample data', () => {
-    const payload = structuredClone(applicationExample)
+  test('accepts valid appliance application payload from sample data', () => {
+    const payload = structuredClone(applianceApplicationExample)
+
+    const { error } = applicationsSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+  })
+
+  test('accepts valid fuel application payload from sample data', () => {
+    const payload = structuredClone(fuelApplicationExample)
 
     const { error } = applicationsSchema.validate(payload)
 
@@ -12,7 +23,7 @@ describe('application-schema applicationsSchema', () => {
   })
 
   test('defaults status to new when omitted', () => {
-    const payload = structuredClone(applicationExample)
+    const payload = structuredClone(applianceApplicationExample)
     delete payload.status
 
     const { value, error } = applicationsSchema.validate(payload)
@@ -23,7 +34,7 @@ describe('application-schema applicationsSchema', () => {
 
   test('rejects invalid application type', () => {
     const payload = {
-      ...structuredClone(applicationExample),
+      ...structuredClone(applianceApplicationExample),
       type: 'unknown-type'
     }
 
@@ -35,7 +46,7 @@ describe('application-schema applicationsSchema', () => {
 
   test('accepts reviewedBy as object', () => {
     const payload = {
-      ...structuredClone(applicationExample),
+      ...structuredClone(applianceApplicationExample),
       reviewedBy: {
         name: 'John Reviewer',
         email: 'john@reviewer.com'
@@ -53,7 +64,7 @@ describe('application-schema applicationsSchema', () => {
 
   test('rejects reviewedBy when provided as string', () => {
     const payload = {
-      ...structuredClone(applicationExample),
+      ...structuredClone(applianceApplicationExample),
       reviewedBy: 'John Reviewer'
     }
 
@@ -65,7 +76,7 @@ describe('application-schema applicationsSchema', () => {
 
   test('rejects unknown keys', () => {
     const payload = {
-      ...structuredClone(applicationExample),
+      ...structuredClone(applianceApplicationExample),
       unknownField: 'not-allowed'
     }
 
