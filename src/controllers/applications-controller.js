@@ -474,53 +474,41 @@ async function getApplicationsWithSummary(
       }
     }
 
-    // 2. Extract application IDs
+    // 2. Fetch linked items and project only the id/name fields
     const applicationIds = applications.map((app) => app.id)
-
-    // 3. Fetch linked items and project only the id/name fields
     const items = await itemsCollection
       .find({ applicationId: { $in: applicationIds } })
       .project({ applicationId: 1, [nameField]: 1 })
       .toArray()
 
-    // 4. Build result organized by status
-    const result = {
-      new: [],
-      inProgress: []
-    }
+    // 3. Build result organized by status
+    const statusToKey = { new: 'new', in_progress: 'inProgress' }
+    const result = { new: [], inProgress: [] }
 
     for (const app of applications) {
-      const appData = {
+      const key = statusToKey[app.status]
+      if (!key) {
+        logger.warn(`Unknown application status: ${app.status}`)
+        continue
+      }
+
+      result[key].push({
         id: app.id,
         type: app.type,
         status: app.status,
         submittedAt: app.submittedAt,
         items: items
           .filter((item) => item.applicationId === app.id)
-          .map((item) => ({
-            id: item._id,
-            name: item[nameField]
-          })),
+          .map((item) => ({ id: item._id, name: item[nameField] })),
         reviewedBy: app.reviewedBy
-      }
-
-      if (app.status === 'new') {
-        result.new.push(appData)
-      } else if (app.status === 'in_progress') {
-        result.inProgress.push(appData)
-      } else {
-        logger.warn(`Unknown application status: ${app.status}`)
-      }
+      })
     }
 
     logger.info(
       `Found ${result.new.length} new and ${result.inProgress.length} in-progress ${type} applications`
     )
 
-    return {
-      success: true,
-      data: result
-    }
+    return { success: true, data: result }
   } catch (error) {
     logger.error(error, 'Failed to fetch applications with linked item names')
     throw error
