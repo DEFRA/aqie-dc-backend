@@ -29,7 +29,13 @@ async function getApplianceReview(db, id, logger) {
         projection: {
           id: 1,
           modelName: 1,
+          modelNumber: 1,
           applicationId: 1,
+          applianceType: 1,
+          isVariant: 1,
+          existingAuthorisedAppliance: 1,
+          nominalOutput: 1,
+          multifuelAppliance: 1,
           permittedFuels: 1,
           isPermittedToBurnWood: 1,
           additionalConditions: 1,
