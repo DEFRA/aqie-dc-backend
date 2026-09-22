@@ -9,7 +9,10 @@ import {
   groupItemsByTechReviewStatus,
   isApplicationReviewComplete
 } from '../common/helpers/review-status.js'
-import { getItemsCollectionName, getItemNameField } from '../common/helpers/application-type.js'
+import {
+  getItemsCollectionName,
+  getItemNameField
+} from '../common/helpers/application-type.js'
 import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
 
 const APPLICATION_NOT_FOUND = 'Application not found'

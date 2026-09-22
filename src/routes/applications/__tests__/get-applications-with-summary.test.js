@@ -56,10 +56,7 @@ describe('getApplicationsWithSummary route', () => {
       message: 'Unknown application type: other'
     })
 
-    const result = await getApplicationsWithSummary.handler(
-      mockRequest,
-      mockH
-    )
+    const result = await getApplicationsWithSummary.handler(mockRequest, mockH)
 
     expect(result.isBoom).toBe(true)
     expect(result.output.statusCode).toBe(400)
@@ -86,10 +83,7 @@ describe('getApplicationsWithSummary route', () => {
       upstreamError
     )
 
-    const result = await getApplicationsWithSummary.handler(
-      mockRequest,
-      mockH
-    )
+    const result = await getApplicationsWithSummary.handler(mockRequest, mockH)
 
     expect(mockRequest.logger.error).toHaveBeenCalledWith(
       upstreamError,
@@ -105,10 +99,7 @@ describe('getApplicationsWithSummary route', () => {
 
     applicationsController.getApplicationsWithSummary.mockRejectedValue(error)
 
-    const result = await getApplicationsWithSummary.handler(
-      mockRequest,
-      mockH
-    )
+    const result = await getApplicationsWithSummary.handler(mockRequest, mockH)
 
     expect(result.isBoom).toBe(true)
     expect(result.output.statusCode).toBe(500)
