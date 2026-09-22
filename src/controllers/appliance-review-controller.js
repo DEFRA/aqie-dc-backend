@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import {
   canAcceptReview,
   getCheckGroup,
@@ -73,6 +74,15 @@ async function recordApplianceCheck(db, id, check, result, logger, data) {
 
     if (!group) {
       throw new Error(`Unrecognised check: ${check}`)
+    }
+
+    if (check === 'additionalConditions') {
+      const text = data?.additionalConditions?.trim()
+      if (result !== true || !text || text.length === 0) {
+        throw Boom.badRequest(
+          'Additional conditions must be marked complete and include text'
+        )
+      }
     }
 
     const item = await db

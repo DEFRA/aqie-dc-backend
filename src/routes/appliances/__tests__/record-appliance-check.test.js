@@ -171,6 +171,18 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
       ).toBeUndefined()
     })
 
+    test('rejects additionalConditions when it is not marked complete', () => {
+      expect(
+        validate({
+          check: 'additionalConditions',
+          result: false,
+          data: {
+            additionalConditions: 'Standard additional condition text'
+          }
+        }).error
+      ).toBeDefined()
+    })
+
     test('rejects empty additionalConditions text', () => {
       expect(
         validate({

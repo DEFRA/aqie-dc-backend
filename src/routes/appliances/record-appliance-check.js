@@ -10,6 +10,14 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 const MAX_PERMITTED_FUELS_LENGTH = 3000
 const MAX_ADDITIONAL_CONDITIONS_LENGTH = 1000
 
+const ADDITIONAL_CONDITIONS_SCHEMA = Joi.object({
+  additionalConditions: Joi.string()
+    .trim()
+    .min(1)
+    .max(MAX_ADDITIONAL_CONDITIONS_LENGTH)
+    .required()
+}).unknown(false)
+
 const CHECK_DATA_SCHEMAS = {
   permittedFuels: Joi.object({
     permittedFuels: Joi.string()
@@ -19,13 +27,7 @@ const CHECK_DATA_SCHEMAS = {
       .required(),
     isPermittedToBurnWood: Joi.boolean().allow(null).required()
   }).unknown(false),
-  additionalConditions: Joi.object({
-    additionalConditions: Joi.string()
-      .trim()
-      .min(1)
-      .max(MAX_ADDITIONAL_CONDITIONS_LENGTH)
-      .required()
-  }).unknown(false)
+  additionalConditions: ADDITIONAL_CONDITIONS_SCHEMA
 }
 
 export const recordApplianceCheck = {
@@ -43,10 +45,19 @@ export const recordApplianceCheck = {
           .valid(...ALL_CHECKS)
           .required()
           .description('Which check the result applies to'),
-        result: Joi.boolean()
-          .allow(null)
-          .required()
-          .description('true passed, false failed, null not reviewed'),
+        result: Joi.when('check', {
+          is: 'additionalConditions',
+          then: Joi.boolean()
+            .valid(true)
+            .required()
+            .description(
+              'additionalConditions must be marked complete to be saved'
+            ),
+          otherwise: Joi.boolean()
+            .allow(null)
+            .required()
+            .description('true passed, false failed, null not reviewed')
+        }),
         data: Joi.when('check', {
           switch: Object.entries(CHECK_DATA_SCHEMAS).map(([check, schema]) => ({
             is: check,
