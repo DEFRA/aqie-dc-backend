@@ -1,5 +1,5 @@
 import { main, sqsClient } from '../sqs/client.js'
-import { config } from '../config.js'
+//import { config } from '../config.js'
 
 export default {
   name: 'sqsConsumer',
@@ -13,8 +13,9 @@ export default {
     const poll = async () => {
       while (!abortController.signal.aborted) {
         await main(server, undefined, abortController.signal)
-        const pollIntervalMs =
-          config.get('aws.sqs.pollIntervalMins') * 60 * 1000 //convert minutes to milliseconds
+        //const pollIntervalMins = config.get('aws.sqs.pollIntervalMins')
+        const pollIntervalMins = 5
+        const pollIntervalMs = pollIntervalMins * 60 * 1000 //convert minutes to milliseconds
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
       }
     }
