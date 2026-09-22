@@ -9,7 +9,7 @@ import {
   groupItemsByTechReviewStatus,
   isApplicationReviewComplete
 } from '../common/helpers/review-status.js'
-import { getItemsCollectionName } from '../common/helpers/application-type.js'
+import { getItemsCollectionName, getItemNameField } from '../common/helpers/application-type.js'
 import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
 
 const APPLICATION_NOT_FOUND = 'Application not found'
@@ -423,23 +423,40 @@ async function getAllApplicationsWithAppliances(db, logger) {
 }
 
 /**
- * Get (uncomplete) applications grouped by status and with summary (returns only appliance names)
+ * Get (uncomplete) applications grouped by status and with summary (returns only linked item names)
+ * @param {Db} db - MongoDB database instance
+ * @param {object} logger - Logger instance
+ * @param {string} type - Type of applications/linked items to summarise ('appliance' | 'fuel')
+ * @param {string[]} statuses - Application statuses to include
  */
 async function getApplicationsWithSummary(
   db,
   logger,
+  type,
   statuses = ['new', 'in_progress']
 ) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const appCollection = db.collection('Applications')
-    const applianceCollection = db.collection('Appliances')
+    const collectionName = getItemsCollectionName(type)
+    const nameField = getItemNameField(type)
 
-    // 1. Fetch all applications with specified statuses
+    if (!collectionName || !nameField) {
+      logger.warn(`Unknown application type: ${type}`)
+      return {
+        success: false,
+        message: `Unknown application type: ${type}`,
+        notFound: true
+      }
+    }
+
+    const appCollection = db.collection('Applications')
+    const itemsCollection = db.collection(collectionName)
+
+    // 1. Fetch applications matching the requested type and statuses
     const applications = await appCollection
-      .find({ status: { $in: statuses } })
+      .find({ type, status: { $in: statuses } })
       .sort({ submittedAt: -1, createdAt: -1 })
       .toArray()
 
@@ -457,10 +474,10 @@ async function getApplicationsWithSummary(
     // 2. Extract application IDs
     const applicationIds = applications.map((app) => app.id)
 
-    // 3. Fetch appliances and project only modelName field
-    const appliances = await applianceCollection
+    // 3. Fetch linked items and project only the id/name fields
+    const items = await itemsCollection
       .find({ applicationId: { $in: applicationIds } })
-      .project({ applicationId: 1, modelName: 1 })
+      .project({ applicationId: 1, [nameField]: 1 })
       .toArray()
 
     // 4. Build result organized by status
@@ -475,11 +492,11 @@ async function getApplicationsWithSummary(
         type: app.type,
         status: app.status,
         submittedAt: app.submittedAt,
-        appliances: appliances
-          .filter((appliance) => appliance.applicationId === app.id)
-          .map((appliance) => ({
-            id: appliance._id,
-            modelName: appliance.modelName
+        items: items
+          .filter((item) => item.applicationId === app.id)
+          .map((item) => ({
+            id: item._id,
+            name: item[nameField]
           })),
         reviewedBy: app.reviewedBy
       }
@@ -494,7 +511,7 @@ async function getApplicationsWithSummary(
     }
 
     logger.info(
-      `Found ${result.new.length} new and ${result.inProgress.length} in-progress applications with model names`
+      `Found ${result.new.length} new and ${result.inProgress.length} in-progress ${type} applications`
     )
 
     return {
@@ -502,7 +519,7 @@ async function getApplicationsWithSummary(
       data: result
     }
   } catch (error) {
-    logger.error(error, 'Failed to fetch applications with model names')
+    logger.error(error, 'Failed to fetch applications with linked item names')
     throw error
   }
 }
