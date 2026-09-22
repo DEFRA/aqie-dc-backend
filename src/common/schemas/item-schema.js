@@ -241,7 +241,9 @@ export const fuelSchema = Joi.object({
   companyAddress: Joi.object({
     uprn: Joi.string()
       .optional()
-      .description('Company address UPRN (Unique Property Reference Number)'),
+      .description(
+        'Company address UPRN (Unique Property Reference Number, when address comes for address finder on DEFRA form)'
+      ),
     line1: Joi.string().required().description('Company address line 1'),
     line2: Joi.string().optional().description('Company address line 2'),
     city: Joi.string().required().description('Company city'),

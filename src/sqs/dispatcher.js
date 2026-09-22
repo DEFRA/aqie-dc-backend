@@ -3,6 +3,7 @@
 // -------------------------------
 
 import { statusCodes } from '#src/common/constants/status-codes.js'
+import { createSqsMessage } from '#src/controllers/sqs-messages-controller.js'
 
 // --- Application Management Routes (appliances or fuels, based on payload.type) ---
 
@@ -29,8 +30,8 @@ export async function createApplicationRecordViaRoute(server, payload) {
 }
 
 // --- SQS Message Management Routes ---
-
-//This function is used to ingest SQS messages via an internal route in the server. It sends a POST request to the /sqs-messages endpoint with the provided payload.
+//This function is used to ingest SQS messages into the system for debugging and backup purposes
+// This function calls the controller directly rather than via a route, so that it is not accessible externally.
 export async function ingestSqsMessageViaRoute(
   server,
   messageId,
@@ -38,22 +39,15 @@ export async function ingestSqsMessageViaRoute(
   parsedMessageBody,
   mappedPayload
 ) {
-  const response = await server.inject({
-    method: 'POST',
-    url: `/sqs-messages`,
-    payload: {
-      messageId,
-      messageBody,
-      parsedMessageBody,
-      mappedPayload
-    }
-  })
+  const result = await createSqsMessage(
+    server.db,
+    { messageId, messageBody, parsedMessageBody, mappedPayload },
+    server.logger
+  )
 
-  if (response.statusCode !== statusCodes.created) {
-    throw new Error(
-      `Internal Queue API error: ${response.statusCode} - ${response.result?.msg}`
-    )
+  if (!result.success) {
+    throw new Error(`Failed to store SQS message: ${result.message}`)
   }
 
-  return response.result
+  return result
 }

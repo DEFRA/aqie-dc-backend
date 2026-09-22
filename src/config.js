@@ -186,11 +186,26 @@ const config = convict({
       default: 'eu-west-2',
       env: 'AWS_REGION'
     },
-    sqsEndpoint: {
-      doc: 'SQS endpoint URL',
-      format: String,
-      default: 'http://localhost:4566',
-      env: 'SQS_ENDPOINT'
+    sqs: {
+      //in minutes
+      pollIntervalMins: {
+        doc: 'SQS poll interval in minutes',
+        format: Number,
+        default: 15,
+        env: 'AWS_SQS_POLL_INTERVAL_MINUTES'
+      },
+      queueName: {
+        doc: 'SQS queue name',
+        format: String,
+        default: 'aqie-dc-queue',
+        env: 'AWS_SQS_QUEUE_NAME'
+      },
+      endpoint: {
+        doc: 'SQS endpoint URL',
+        format: String,
+        default: 'http://localhost:4566',
+        env: 'AWS_SQS_ENDPOINT'
+      }
     }
   }
 })

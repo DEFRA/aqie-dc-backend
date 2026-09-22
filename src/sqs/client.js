@@ -22,7 +22,7 @@ const logger = createLogger()
 // -------------------------------
 export const sqsClient = new SQSClient({
   region: config.get('aws.region'),
-  endpoint: config.get('aws.sqsEndpoint')
+  endpoint: config.get('aws.sqs.endpoint')
   // credentials automatically loaded from env / IAM if running on EC2 / Lambda
 })
 
@@ -32,8 +32,7 @@ export const sqsClient = new SQSClient({
 const getQueueUrl = async () => {
   const { QueueUrl } = await sqsClient.send(
     new GetQueueUrlCommand({
-      QueueName: 'aqie-dc-queue'
-      //config.get('aws.queueName') // aqie-dc-queue
+      QueueName: config.get('aws.sqs.queueName')
     })
   )
 
@@ -103,7 +102,7 @@ export const main = async (server, queueUrl, abortSignal) => {
     logger.error('SQS error:', err)
   }
 }
-const createNewApplicationRecord = async (message, server) => {
+export const createNewApplicationRecord = async (message, server) => {
   let messageBody
   try {
     // Validate JSON before processing
