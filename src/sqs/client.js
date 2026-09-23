@@ -77,9 +77,21 @@ export const main = async (server, queueUrl, abortSignal) => {
     for (const message of Messages) {
       try {
         await ingestSqsMessage(server, message.MessageId, message.Body)
+      } catch (err) {
+        logger.error(
+          { messageId: message.MessageId, err },
+          'ingestSqsMessage failed'
+        )
+        continue // Skip this one, do not break the loop
+      }
+
+      try {
         await createNewApplicationRecord(message, server)
       } catch (err) {
-        logger.error({ messageId: message.MessageId, err }, 'API call failed')
+        logger.error(
+          { messageId: message.MessageId, err },
+          'createNewApplicationRecord failed'
+        )
         continue // Skip this one, do not break the loop
       }
     }
