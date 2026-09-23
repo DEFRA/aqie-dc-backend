@@ -24,8 +24,11 @@ export async function createApplicationRecordViaRoute(server, payload) {
   })
 
   if (response.statusCode !== statusCodes.created) {
+    const errorMessage =
+      response.result?.message ?? response.result?.msg ?? 'Unknown error'
+
     throw new Error(
-      `Internal API error: ${response.statusCode} - ${response.result?.message}`
+      `Internal API error: ${response.statusCode} - ${errorMessage}`
     )
   }
 
@@ -35,10 +38,15 @@ export async function createApplicationRecordViaRoute(server, payload) {
 // --- SQS Message Management Routes ---
 //This function is used to ingest SQS messages into the system for debugging and backup purposes
 // This function calls the controller directly rather than via a route, so that it is not accessible externally.
-export async function ingestSqsMessage(server, messageId, messageBody) {
+export async function ingestSqsMessage(
+  server,
+  messageId,
+  messageBody,
+  sentTimestamp
+) {
   const result = await createSqsMessage(
     server.db,
-    { messageId, messageBody },
+    { messageId, messageBody, sentTimestamp },
     server.logger
   )
 

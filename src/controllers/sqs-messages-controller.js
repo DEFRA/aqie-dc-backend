@@ -5,15 +5,26 @@
 async function createSqsMessage(db, payload, logger) {
   try {
     const collection = db.collection('SqsMessages')
+
+    if (!collection) {
+      return {
+        success: false,
+        message: 'SqsMessages collection not found',
+        notFound: true
+      }
+    }
+
     const now = new Date()
 
     //the payload contains the messageBody and messageId. The messageBody is the raw payload of the SQS message and the messageId is the unique identifier of the SQS message.
-    const { messageId, messageBody } = payload
+    const { messageId, messageBody, sentTimestamp } = payload
+    const sentAt = sentTimestamp ? new Date(Number(sentTimestamp)) : undefined
 
     // Insert into database
     const result = await collection.insertOne({
       _id: messageId, //so Mongo rejects duplicate inserts on redelivery
       receivedAt: now,
+      ...(sentAt && { sentAt }),
       rawPayload: messageBody,
       processed: false // true once the message has been mapped and saved as an application record
     })

@@ -66,6 +66,23 @@ describe('createSqsMessage - additional coverage', () => {
       })
     )
   })
+
+  test('stores sentTimestamp as sentAt when provided', async () => {
+    const payload = {
+      messageId: 'msg-123',
+      messageBody: '{}',
+      sentTimestamp: '1727000000000'
+    }
+
+    await createSqsMessage(db, payload, mockLogger)
+
+    expect(collection.insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: 'msg-123',
+        sentAt: new Date(Number(payload.sentTimestamp))
+      })
+    )
+  })
 })
 
 describe('markMessageProcessed', () => {

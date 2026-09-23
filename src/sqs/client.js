@@ -76,7 +76,12 @@ export const main = async (server, queueUrl, abortSignal) => {
     // -------------------------------
     for (const message of Messages) {
       try {
-        await ingestSqsMessage(server, message.MessageId, message.Body)
+        await ingestSqsMessage(
+          server,
+          message.MessageId,
+          message.Body,
+          message.Attributes?.SentTimestamp
+        )
       } catch (err) {
         logger.error(
           { messageId: message.MessageId, err },
