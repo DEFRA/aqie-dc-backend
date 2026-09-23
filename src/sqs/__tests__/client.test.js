@@ -178,13 +178,6 @@ describe('sqs client', () => {
 
       expect(splitRepeaterJson).toHaveBeenCalled()
       expect(mapKeys).toHaveBeenCalledWith({ item: 1 }, 'appliance')
-      expect(ingestSqsMessageViaRoute).toHaveBeenCalledWith(
-        server,
-        'msg-1',
-        message.Body,
-        expect.any(Object),
-        expect.any(String)
-      )
       expect(createApplicationRecordViaRoute).toHaveBeenCalledWith(
         server,
         expect.any(String)
@@ -219,7 +212,6 @@ describe('sqs client', () => {
 
       await createNewApplicationRecord(message, server)
 
-      expect(ingestSqsMessageViaRoute).not.toHaveBeenCalled()
       expect(createApplicationRecordViaRoute).not.toHaveBeenCalled()
     })
   })

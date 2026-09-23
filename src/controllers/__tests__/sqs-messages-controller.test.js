@@ -47,44 +47,7 @@ describe('createSqsMessage - additional coverage', () => {
     })
   })
 
-  test('stores mappedPayload string without parsing', async () => {
-    const payload = {
-      messageId: 'msg-123',
-      messageBody: '{}',
-      mappedPayload: JSON.stringify({
-        id: 'APP-001',
-        status: 'approved'
-      })
-    }
-
-    await createSqsMessage(db, payload, mockLogger)
-
-    expect(collection.insertOne).toHaveBeenCalledWith(
-      expect.objectContaining({
-        parsedPayload: null,
-        mappedPayload: payload.mappedPayload
-      })
-    )
-  })
-
-  test('stores invalid mappedPayload string unchanged', async () => {
-    const payload = {
-      messageId: 'msg-123',
-      messageBody: '{}',
-      mappedPayload: '{invalid-json'
-    }
-
-    await createSqsMessage(db, payload, mockLogger)
-
-    expect(mockLogger.warn).not.toHaveBeenCalled()
-
-    const insertedDoc = collection.insertOne.mock.calls[0][0]
-
-    expect(insertedDoc.parsedPayload).toBeNull()
-    expect(insertedDoc.mappedPayload).toBe('{invalid-json')
-  })
-
-  test('stores null values when mappedPayload is not provided', async () => {
+  test('stores messageId as _id and rawPayload as messageBody', async () => {
     const payload = {
       messageId: 'msg-123',
       messageBody: '{}'
@@ -94,51 +57,9 @@ describe('createSqsMessage - additional coverage', () => {
 
     expect(collection.insertOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        parsedPayload: null,
-        mappedPayload: null
+        _id: 'msg-123',
+        rawPayload: '{}'
       })
     )
-  })
-
-  test('stores null values when mappedPayload is an empty string', async () => {
-    const payload = {
-      messageId: 'msg-123',
-      messageBody: '{}',
-      mappedPayload: ''
-    }
-
-    await createSqsMessage(db, payload, mockLogger)
-
-    const insertedDoc = collection.insertOne.mock.calls[0][0]
-
-    expect(insertedDoc.parsedPayload).toBeNull()
-    expect(insertedDoc.mappedPayload).toBeNull()
-  })
-
-  test('stores parsedMessageBody and mappedPayload separately', async () => {
-    const parsedMessageBody = {
-      foo: 'bar',
-      count: 1
-    }
-
-    const mappedPayload = JSON.stringify({
-      transformed: true
-    })
-
-    await createSqsMessage(
-      db,
-      {
-        messageId: 'msg-123',
-        messageBody: '{}',
-        parsedMessageBody,
-        mappedPayload
-      },
-      mockLogger
-    )
-
-    const insertedDoc = collection.insertOne.mock.calls[0][0]
-
-    expect(insertedDoc.parsedPayload).toEqual(parsedMessageBody)
-    expect(insertedDoc.mappedPayload).toBe(mappedPayload)
   })
 })

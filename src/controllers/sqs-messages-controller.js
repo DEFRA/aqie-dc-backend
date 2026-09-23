@@ -7,17 +7,15 @@ async function createSqsMessage(db, payload, logger) {
     const collection = db.collection('SqsMessages')
     const now = new Date()
 
-    //the payload contains the messageBody, messageId, and mappedPayload. The messageBody is the raw payload of the SQS message, the messageId is the unique identifier of the SQS message, and the mappedPayload is the pre-processed version of the messageBody.
-    const { messageId, messageBody, parsedMessageBody, mappedPayload } = payload
+    //the payload contains the messageBody and messageId. The messageBody is the raw payload of the SQS message and the messageId is the unique identifier of the SQS message.
+    const { messageId, messageBody } = payload
 
     // Insert into database
     // Use SQS messageId as _id so Mongo rejects duplicate inserts on redelivery
     const result = await collection.insertOne({
       _id: messageId,
       receivedAt: now, //should/can i pull this out of the sqs message? should it be createdAt, what exaclty am i storing here?
-      rawPayload: messageBody,
-      parsedPayload: parsedMessageBody || null,
-      mappedPayload: mappedPayload || null
+      rawPayload: messageBody
     })
 
     if (!result.acknowledged) {

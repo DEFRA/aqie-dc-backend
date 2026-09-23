@@ -32,16 +32,10 @@ export async function createApplicationRecordViaRoute(server, payload) {
 // --- SQS Message Management Routes ---
 //This function is used to ingest SQS messages into the system for debugging and backup purposes
 // This function calls the controller directly rather than via a route, so that it is not accessible externally.
-export async function ingestSqsMessageViaRoute(
-  server,
-  messageId,
-  messageBody,
-  parsedMessageBody,
-  mappedPayload
-) {
+export async function ingestSqsMessageViaRoute(server, messageId, messageBody) {
   const result = await createSqsMessage(
     server.db,
-    { messageId, messageBody, parsedMessageBody, mappedPayload },
+    { messageId, messageBody },
     server.logger
   )
 

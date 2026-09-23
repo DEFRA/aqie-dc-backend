@@ -62,18 +62,14 @@ describe('dispatcher', () => {
       const result = await ingestSqsMessageViaRoute(
         server,
         'message-id',
-        'raw-body',
-        { parsed: true },
-        '{"mapped":true}'
+        'raw-body'
       )
 
       expect(createSqsMessage).toHaveBeenCalledWith(
         server.db,
         {
           messageId: 'message-id',
-          messageBody: 'raw-body',
-          parsedMessageBody: { parsed: true },
-          mappedPayload: '{"mapped":true}'
+          messageBody: 'raw-body'
         },
         server.logger
       )
@@ -87,7 +83,7 @@ describe('dispatcher', () => {
       })
 
       await expect(
-        ingestSqsMessageViaRoute(server, 'message-id', 'raw-body', {}, '{}')
+        ingestSqsMessageViaRoute(server, 'message-id', 'raw-body')
       ).rejects.toThrow('Failed to store SQS message: DB unavailable')
     })
   })
