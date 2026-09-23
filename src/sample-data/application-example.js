@@ -1,10 +1,12 @@
-// Example application payload for tests and API documentation
-export default {
+// Example application payloads for tests and API documentation.
+// Keep both examples available and switch the default export when needed for Swagger.
+
+export const applianceApplicationExample = {
   type: 'appliance',
   // id: 'app-uuid-12345',
   submittedAt: new Date('2026-04-24T12:00:00Z'),
   // createdAt: new Date('2026-07-01T10:00:00Z'),
-  status: 'new', //auto-generated but can be set for Swagger input
+  status: 'new', // auto-generated but can be set for Swagger input
   reviewedBy: {
     name: 'John Reviewer',
     email: 'john@reviewer.com'
@@ -67,7 +69,7 @@ export default {
         status: 'certified'
       }
 
-      //legacyRecord: false //default to false
+      // legacyRecord: false // default to false
     },
     {
       // NOTE: These fields are auto-generated/set by server
@@ -117,7 +119,45 @@ export default {
       nIrelandCertification: {
         status: 'rejected'
       }
-      //legacyRecord: false //default to false
+      // legacyRecord: false // default to false
+    }
+  ]
+}
+
+export const fuelApplicationExample = {
+  type: 'fuel',
+  submittedAt: new Date('2026-04-24T12:00:00Z'),
+  status: 'new',
+  reviewedBy: {
+    name: 'John Reviewer',
+    email: 'john@reviewer.com'
+  },
+  referenceNumber: 'referencenumber435435',
+  fuels: [
+    {
+      companyName: 'FuelCo',
+      isUkBased: false,
+      companyFullAddress:
+        '789 Industrial Estate, Building C, Manchester, Greater Manchester, M1 3CD',
+      companyContact: {
+        name: 'Fuel Person',
+        email: 'JD@email.com'
+      },
+      responsiblePerson: {
+        name: 'Rep Name',
+        email: 'rep@co.com'
+      },
+      customerComplaints: false,
+      fuelBagging: 'Bagged',
+      fuelDescription: 'Premium pellets',
+      manufacturerOrReseller: 'Manufacturer',
+      fuelWeight: 20,
+      fuelComposition: 'Wood 100%',
+      sulphurContent: 0.7,
+      manufacturingProcess: 'Kiln-dried',
+      qualityControlSystem: 'ISO certified',
+      brandNames: 'PelletBrand',
+      declaration: true
     }
   ]
 }
