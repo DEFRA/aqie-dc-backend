@@ -11,8 +11,9 @@ async function createSqsMessage(db, payload, logger) {
     const { messageId, messageBody, parsedMessageBody, mappedPayload } = payload
 
     // Insert into database
+    // Use SQS messageId as _id so Mongo rejects duplicate inserts on redelivery
     const result = await collection.insertOne({
-      id: messageId, //do i need this? can i guaraentee it will be unique? should i use the mongo _id instead? or both?
+      _id: messageId,
       receivedAt: now, //should/can i pull this out of the sqs message? should it be createdAt, what exaclty am i storing here?
       rawPayload: messageBody,
       parsedPayload: parsedMessageBody || null,

@@ -75,6 +75,15 @@ export const main = async (server, queueUrl, abortSignal) => {
     // -------------------------------
     for (const message of Messages) {
       try {
+        // TODO: reconsider what to pass here - 
+        // parsedMessageBody/mappedPayload aren't derived yet at this point
+        await ingestSqsMessageViaRoute(
+          server,
+          message.MessageId,
+          message.Body,
+          undefined,
+          undefined
+        )
         await createNewApplicationRecord(message, server)
       } catch (err) {
         logger.error({ messageId: message.MessageId, err }, 'API call failed')
@@ -135,13 +144,6 @@ export const createNewApplicationRecord = async (message, server) => {
     })
   }
   const applicationPayload = JSON.stringify(application)
-  await ingestSqsMessageViaRoute(
-    server,
-    message.MessageId, // reference number instead of messageId?
-    message.Body, // raw payload
-    messageBody.data, //parsedMessageBody
-    applicationPayload
-  )
   await createApplicationRecordViaRoute(server, applicationPayload)
   logger.info(`Creating ${application.type} Application Record`)
 }
