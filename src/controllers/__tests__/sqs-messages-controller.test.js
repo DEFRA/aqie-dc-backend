@@ -1,5 +1,8 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { createSqsMessage } from '#src/controllers/sqs-messages-controller.js'
+import {
+  createSqsMessage,
+  markMessageProcessed
+} from '#src/controllers/sqs-messages-controller.js'
 
 const mockLogger = {
   info: vi.fn(),
@@ -47,7 +50,7 @@ describe('createSqsMessage - additional coverage', () => {
     })
   })
 
-  test('stores messageId as _id and rawPayload as messageBody', async () => {
+  test('stores messageId as _id, rawPayload as messageBody, and defaults processed to false', async () => {
     const payload = {
       messageId: 'msg-123',
       messageBody: '{}'
@@ -58,8 +61,44 @@ describe('createSqsMessage - additional coverage', () => {
     expect(collection.insertOne).toHaveBeenCalledWith(
       expect.objectContaining({
         _id: 'msg-123',
-        rawPayload: '{}'
+        rawPayload: '{}',
+        processed: false
       })
     )
+  })
+})
+
+describe('markMessageProcessed', () => {
+  let db
+  let collection
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    collection = {
+      updateOne: vi.fn(async () => ({ acknowledged: true }))
+    }
+
+    db = {
+      collection: vi.fn(() => collection)
+    }
+  })
+
+  test('sets processed to true for the given messageId', async () => {
+    const result = await markMessageProcessed(db, 'msg-123', mockLogger)
+
+    expect(collection.updateOne).toHaveBeenCalledWith(
+      { _id: 'msg-123' },
+      { $set: { processed: true } }
+    )
+    expect(result).toEqual({ success: true })
+  })
+
+  test('throws when the update is not acknowledged', async () => {
+    collection.updateOne.mockResolvedValueOnce({ acknowledged: false })
+
+    await expect(
+      markMessageProcessed(db, 'msg-123', mockLogger)
+    ).rejects.toThrow('Failed to update sqs message')
   })
 })

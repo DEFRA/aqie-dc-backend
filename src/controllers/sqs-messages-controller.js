@@ -11,11 +11,11 @@ async function createSqsMessage(db, payload, logger) {
     const { messageId, messageBody } = payload
 
     // Insert into database
-    // Use SQS messageId as _id so Mongo rejects duplicate inserts on redelivery
     const result = await collection.insertOne({
-      _id: messageId,
-      receivedAt: now, //should/can i pull this out of the sqs message? should it be createdAt, what exaclty am i storing here?
-      rawPayload: messageBody
+      _id: messageId, //so Mongo rejects duplicate inserts on redelivery
+      receivedAt: now,
+      rawPayload: messageBody,
+      processed: false // true once the message has been mapped and saved as an application record
     })
 
     if (!result.acknowledged) {
@@ -38,4 +38,27 @@ async function createSqsMessage(db, payload, logger) {
   }
 }
 
-export { createSqsMessage }
+async function markMessageProcessed(db, messageId, logger) {
+  try {
+    const collection = db.collection('SqsMessages')
+
+    const result = await collection.updateOne(
+      { _id: messageId },
+      { $set: { processed: true } }
+    )
+
+    if (!result.acknowledged) {
+      throw new Error('Failed to update sqs message')
+    }
+
+    return { success: true }
+  } catch (error) {
+    logger.error(
+      error,
+      `Failed to mark sqs message ${messageId} as processed`
+    )
+    throw error
+  }
+}
+
+export { createSqsMessage, markMessageProcessed }

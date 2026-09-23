@@ -3,7 +3,10 @@
 // -------------------------------
 
 import { statusCodes } from '#src/common/constants/status-codes.js'
-import { createSqsMessage } from '#src/controllers/sqs-messages-controller.js'
+import {
+  createSqsMessage,
+  markMessageProcessed
+} from '#src/controllers/sqs-messages-controller.js'
 
 // --- Application Management Routes (appliances or fuels, based on payload.type) ---
 
@@ -44,4 +47,9 @@ export async function ingestSqsMessage(server, messageId, messageBody) {
   }
 
   return result
+}
+
+// Marks the backed-up SQS message as having successfully produced an application record
+export async function markSqsMessageProcessed(server, messageId) {
+  return markMessageProcessed(server.db, messageId, server.logger)
 }

@@ -42,13 +42,14 @@ vi.mock('../repeater.js', () => ({
 
 vi.mock('../dispatcher.js', () => ({
   ingestSqsMessage: vi.fn(),
-  createApplicationRecordViaRoute: vi.fn()
+  createApplicationRecordViaRoute: vi.fn(),
+  markSqsMessageProcessed: vi.fn()
 }))
 
 const { main, createNewApplicationRecord } = await import('../client.js')
 const { mapKeys } = await import('../mapper.js')
 const { splitRepeaterJson } = await import('../repeater.js')
-const { ingestSqsMessage, createApplicationRecordViaRoute } =
+const { ingestSqsMessage, createApplicationRecordViaRoute, markSqsMessageProcessed } =
   await import('../dispatcher.js')
 
 describe('sqs client', () => {
@@ -182,6 +183,7 @@ describe('sqs client', () => {
         server,
         expect.any(String)
       )
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'msg-1')
     })
 
     test('builds a fuel application when the form slug matches', async () => {
@@ -205,6 +207,7 @@ describe('sqs client', () => {
         server,
         expect.any(String)
       )
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'msg-2')
     })
 
     test('logs and returns early when the message body is invalid JSON', async () => {
@@ -213,6 +216,7 @@ describe('sqs client', () => {
       await createNewApplicationRecord(message, server)
 
       expect(createApplicationRecordViaRoute).not.toHaveBeenCalled()
+      expect(markSqsMessageProcessed).not.toHaveBeenCalled()
     })
   })
 })

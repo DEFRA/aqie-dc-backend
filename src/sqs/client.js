@@ -12,7 +12,8 @@ import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
 import {
   ingestSqsMessage,
-  createApplicationRecordViaRoute
+  createApplicationRecordViaRoute,
+  markSqsMessageProcessed
 } from './dispatcher.js'
 
 const logger = createLogger()
@@ -138,5 +139,6 @@ export const createNewApplicationRecord = async (message, server) => {
   const applicationPayload = JSON.stringify(application)
   //console.log('raw payload:', message.Body, 'parsed payload:', messageBody.data)
   await createApplicationRecordViaRoute(server, applicationPayload)
+  await markSqsMessageProcessed(server, message.MessageId)
   logger.info(`Creating ${application.type} Application Record`)
 }

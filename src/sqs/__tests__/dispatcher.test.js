@@ -1,13 +1,18 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import {
   createApplicationRecordViaRoute,
-  ingestSqsMessage
+  ingestSqsMessage,
+  markSqsMessageProcessed
 } from '../dispatcher.js'
-import { createSqsMessage } from '#src/controllers/sqs-messages-controller.js'
+import {
+  createSqsMessage,
+  markMessageProcessed
+} from '#src/controllers/sqs-messages-controller.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
 
 vi.mock('#src/controllers/sqs-messages-controller.js', () => ({
-  createSqsMessage: vi.fn()
+  createSqsMessage: vi.fn(),
+  markMessageProcessed: vi.fn()
 }))
 
 describe('dispatcher', () => {
@@ -85,6 +90,21 @@ describe('dispatcher', () => {
       await expect(
         ingestSqsMessage(server, 'message-id', 'raw-body')
       ).rejects.toThrow('Failed to store SQS message: DB unavailable')
+    })
+  })
+
+  describe('markSqsMessageProcessed', () => {
+    test('delegates to markMessageProcessed with server db/logger', async () => {
+      markMessageProcessed.mockResolvedValue({ success: true })
+
+      const result = await markSqsMessageProcessed(server, 'message-id')
+
+      expect(markMessageProcessed).toHaveBeenCalledWith(
+        server.db,
+        'message-id',
+        server.logger
+      )
+      expect(result).toEqual({ success: true })
     })
   })
 })
