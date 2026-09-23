@@ -1,0 +1,63 @@
+// -------------------------------
+// INTERNAL ROUTE / API CALLS (Hapi inject)
+// -------------------------------
+
+import { statusCodes } from '#src/common/constants/status-codes.js'
+import {
+  createSqsMessage,
+  markMessageProcessed
+} from '#src/controllers/sqs-messages-controller.js'
+
+// --- Application Management Routes (appliances or fuels, based on payload.type) ---
+
+export async function createApplicationRecordViaRoute(server, payload) {
+  //This is for exploring mapping locally - delete later
+  if (process.env.ENVIRONMENT === 'local') {
+    console.log(payload)
+  }
+  //End
+
+  const response = await server.inject({
+    method: 'POST',
+    url: `/applications`,
+    payload
+  })
+
+  if (response.statusCode !== statusCodes.created) {
+    const errorMessage =
+      response.result?.message ?? response.result?.msg ?? 'Unknown error'
+
+    throw new Error(
+      `Internal API error: ${response.statusCode} - ${errorMessage}`
+    )
+  }
+
+  return response.result
+}
+
+// --- SQS Message Management Routes ---
+//This function is used to ingest SQS messages into the system for debugging and backup purposes
+// This function calls the controller directly rather than via a route, so that it is not accessible externally.
+export async function ingestSqsMessage(
+  server,
+  messageId,
+  messageBody,
+  sentTimestamp
+) {
+  const result = await createSqsMessage(
+    server.db,
+    { messageId, messageBody, sentTimestamp },
+    server.logger
+  )
+
+  if (!result.success) {
+    throw new Error(`Failed to store SQS message: ${result.message}`)
+  }
+
+  return result
+}
+
+// Marks the backed-up SQS message as having successfully produced an application record
+export async function markSqsMessageProcessed(server, messageId) {
+  return markMessageProcessed(server.db, messageId, server.logger)
+}

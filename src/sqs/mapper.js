@@ -4,36 +4,31 @@ const keyMapAppliance = {
   TbMaXV: 'isUkBased',
 
   mwGItn: 'addressObject', //Address comes in this block
-  addressLine1: 'companyAddressLine1',
-  addressLine2: 'companyAddressLine2',
-  town: 'companyAddressCity',
-  county: 'companyAddressCounty',
-  postcode: 'companyAddressPostcode',
+  uprn: 'companyAddress.uprn',
+  addressLine1: 'companyAddress.line1',
+  addressLine2: 'companyAddress.line2',
+  town: 'companyAddress.city',
+  county: 'companyAddress.county',
+  postcode: 'companyAddress.postcode',
 
-  kIndJV: 'companyAddress', // non‑UK
+  kIndJV: 'companyFullAddress', // non‑UK
 
-  CfdMSm: 'companyContactName',
-  gTshkc: 'companyContactEmail',
-  eDOPFB: 'companyAlternateEmail',
-  JIeTGU: 'companyPhone',
+  CfdMSm: 'companyContact.name',
+  gTshkc: 'companyContact.email',
+  eDOPFB: 'companyContact.alternativeEmail',
+  JIeTGU: 'companyContact.phone',
 
   cciwNV: 'modelName',
   oSUxHw: 'modelNumber',
 
   LkASfn: 'applianceType',
 
-  xlcDZp: 'isVariant', // variant yes/no
   mVqdEy: 'isVariant',
 
   GFREno: 'existingAuthorisedAppliance',
   jxCIYY: 'nominalOutput',
-  Ltjqls: 'allowedFuels',
-  NGfXVf: 'otherFuelDetails', //schema change needed
-
-  tBhcJV: 'instructionManualTitle',
-  PebAxQ: 'instructionManualDate',
-  ZvUEHQ: 'instructionManualVersion',
-  DiJXuZ: 'instructionManualAdditionalInfo',
+  Ltjqls: 'multifuelAppliance',
+  NGfXVf: 'permittedFuels',
 
   tiRhSf: 'declaration',
 
@@ -45,21 +40,22 @@ const keyMapFuel = {
   IIQWii: 'isUkBased',
 
   mwGItn: 'addressObject', //Address comes in this block
-  addressLine1: 'companyAddressLine1',
-  addressLine2: 'companyAddressLine2',
-  town: 'companyAddressCity',
-  county: 'companyAddressCounty',
-  postcode: 'companyAddressPostcode',
+  uprn: 'companyAddress.uprn',
+  addressLine1: 'companyAddress.line1',
+  addressLine2: 'companyAddress.line2',
+  town: 'companyAddress.city',
+  county: 'companyAddress.county',
+  postcode: 'companyAddress.postcode',
 
-  uCHKMq: 'companyAddress', // non‑UK
+  uCHKMq: 'companyFullAddress', // non‑UK
 
-  lhhoTX: 'companyContactName',
-  zCPkvh: 'companyContactEmail',
-  FwtbfD: 'companyAlternateEmail',
-  OIMWWP: 'companyPhone',
+  lhhoTX: 'companyContact.name',
+  zCPkvh: 'companyContact.email',
+  FwtbfD: 'companyContact.alternativeEmail',
+  OIMWWP: 'companyContact.phone',
 
-  ChfkKZ: 'responsibleName',
-  OOrscG: 'responsibleEmailAddress',
+  ChfkKZ: 'responsiblePerson.name',
+  OOrscG: 'responsiblePerson.email',
 
   Buaprr: 'customerComplaints',
   gefTHa: 'fuelBagging',
@@ -79,13 +75,27 @@ const keyMapFuel = {
   rIyajj: 'fuelComposition',
   kOXZSk: 'sulphurContent',
   Hdxrqy: 'manufacturingProcess',
-  dDwQia: 'qualityManufacturedSystem',
+  dDwQia: 'qualityControlSystem',
   GgFWEK: 'brandNames',
 
   dytkGm: 'declaration',
 
   userConfirmationEmailAddress: 'userConfirmationEmailAddress'
 }
+// Sets a value on an object using a dot-notation path, creating nested objects as needed
+function setByPath(obj, path, value) {
+  const keys = path.split('.')
+  const lastKey = keys.pop()
+  const target = keys.reduce((acc, key) => {
+    if (typeof acc[key] !== 'object' || acc[key] === null) {
+      acc[key] = {}
+    }
+    return acc[key]
+  }, obj)
+
+  target[lastKey] = value
+}
+
 // Mapper function
 export function mapKeys(input, type) {
   const result = {}
@@ -94,19 +104,26 @@ export function mapKeys(input, type) {
   for (const [key, value] of Object.entries(input)) {
     const mappedKey = keyMap[key]
 
-    if (mappedKey) {
-      // If value is an object (but not null or array), recursively map it
-      if (
-        typeof value === 'object' &&
-        value !== null &&
-        !Array.isArray(value)
-      ) {
-        result[mappedKey] = mapKeys(value, type)
-      } else {
-        result[mappedKey] = value
-      }
+    if (!mappedKey) {
+      continue
     }
-    // keys mapped to null or missing are skipped
+
+    // If value is an object (but not null or array), recursively map it
+    const isObject =
+      typeof value === 'object' && value !== null && !Array.isArray(value)
+
+    if (!isObject) {
+      setByPath(result, mappedKey, value)
+      continue
+    }
+
+    const mappedValue = mapKeys(value, type)
+
+    if (mappedKey === 'addressObject') {
+      Object.assign(result, mappedValue)
+    } else {
+      setByPath(result, mappedKey, mappedValue)
+    }
   }
 
   return result

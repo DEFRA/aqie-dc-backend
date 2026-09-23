@@ -22,35 +22,42 @@ export const createAppliance = {
 
     pre: [
       {
-        assign: 'validatedPayload',
+        assign: 'validationResult',
         method: (request, _h) => {
           const { value, error } = applianceSchema.validate(request.payload, {
             abortEarly: false
           })
-          if (error) {
-            throw error
+
+          const validationWarnings = error
+            ? error.details.map((detail) => ({
+                field: detail.path.join('.'),
+                message: detail.message
+              }))
+            : []
+
+          // Fall back to the raw payload if Joi couldn't produce a usable value, so the record still saves
+          return {
+            payload: value ?? request.payload,
+            validationWarnings
           }
-          return value
-        },
-        failAction: (request, h, error) => {
-          request.logger.warn(error, 'Appliance validation failed')
-          // Return 400 with validation details
-          return h
-            .response({
-              success: false,
-              message: 'Validation failed',
-              details: error.details
-            })
-            .code(statusCodes.badRequest)
-            .takeover()
         }
       }
     ]
   },
 
   handler: async (request, h) => {
+    const { payload, validationWarnings } = request.pre.validationResult
+
+    // Log warnings but do not block the save to DB
+    if (validationWarnings.length > 0) {
+      request.logger.warn(
+        { details: validationWarnings },
+        'Appliance validation warnings'
+      )
+    }
+
     const newItem = {
-      ...request.pre.validatedPayload
+      ...payload
     }
     try {
       const { data, message } = await applianceController.createAppliance(
@@ -62,7 +69,7 @@ export const createAppliance = {
         .response({
           success: true,
           message,
-          data: { applianceId: data.applianceId }
+          data: { id: data.id }
         })
         .code(statusCodes.created)
     } catch (err) {

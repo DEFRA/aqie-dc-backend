@@ -1,0 +1,62 @@
+import { describe, test, expect } from 'vitest'
+import { splitRepeaterJson } from '../repeater.js'
+
+describe('splitRepeaterJson', () => {
+  test('merges each repeater item with the base main fields', () => {
+    const input = {
+      main: { companyName: 'Acme Ltd', isUkBased: true },
+      repeaters: {
+        LbZxXf: [{ modelName: 'Stove A' }, { modelName: 'Stove B' }]
+      }
+    }
+
+    const result = splitRepeaterJson(input)
+
+    expect(result).toEqual([
+      { companyName: 'Acme Ltd', isUkBased: true, modelName: 'Stove A' },
+      { companyName: 'Acme Ltd', isUkBased: true, modelName: 'Stove B' }
+    ])
+  })
+
+  test('handles a single repeater object as a one-item array', () => {
+    const input = {
+      main: { companyName: 'Acme Ltd', isUkBased: true },
+      repeaters: {
+        LbZxXf: { modelName: 'Stove A' }
+      }
+    }
+
+    const result = splitRepeaterJson(input)
+
+    expect(result).toEqual([
+      { companyName: 'Acme Ltd', isUkBased: true, modelName: 'Stove A' }
+    ])
+  })
+
+  test('returns an empty array when there are no repeaters', () => {
+    const input = { main: { companyName: 'Acme Ltd' }, repeaters: {} }
+
+    const result = splitRepeaterJson(input)
+
+    expect(result).toEqual([])
+  })
+
+  test('returns an empty array when repeaters key is missing', () => {
+    const input = { main: { companyName: 'Acme Ltd' } }
+
+    const result = splitRepeaterJson(input)
+
+    expect(result).toEqual([])
+  })
+
+  test('returns an empty array when the repeater value is empty', () => {
+    const input = {
+      main: { companyName: 'Acme Ltd' },
+      repeaters: { LbZxXf: null }
+    }
+
+    const result = splitRepeaterJson(input)
+
+    expect(result).toEqual([])
+  })
+})
