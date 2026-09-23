@@ -53,10 +53,7 @@ async function markMessageProcessed(db, messageId, logger) {
 
     return { success: true }
   } catch (error) {
-    logger.error(
-      error,
-      `Failed to mark sqs message ${messageId} as processed`
-    )
+    logger.error(error, `Failed to mark sqs message ${messageId} as processed`)
     throw error
   }
 }

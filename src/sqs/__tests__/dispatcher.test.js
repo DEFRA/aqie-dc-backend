@@ -64,11 +64,7 @@ describe('dispatcher', () => {
     test('returns the controller result on success', async () => {
       createSqsMessage.mockResolvedValue({ success: true, _id: 'msg-1' })
 
-      const result = await ingestSqsMessage(
-        server,
-        'message-id',
-        'raw-body'
-      )
+      const result = await ingestSqsMessage(server, 'message-id', 'raw-body')
 
       expect(createSqsMessage).toHaveBeenCalledWith(
         server.db,

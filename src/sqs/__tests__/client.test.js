@@ -49,8 +49,11 @@ vi.mock('../dispatcher.js', () => ({
 const { main, createNewApplicationRecord } = await import('../client.js')
 const { mapKeys } = await import('../mapper.js')
 const { splitRepeaterJson } = await import('../repeater.js')
-const { ingestSqsMessage, createApplicationRecordViaRoute, markSqsMessageProcessed } =
-  await import('../dispatcher.js')
+const {
+  ingestSqsMessage,
+  createApplicationRecordViaRoute,
+  markSqsMessageProcessed
+} = await import('../dispatcher.js')
 
 describe('sqs client', () => {
   let server
