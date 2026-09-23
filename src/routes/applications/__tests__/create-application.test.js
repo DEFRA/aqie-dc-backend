@@ -109,8 +109,11 @@ describe('POST /applications', () => {
       await createApplication.handler(mockRequest, mockToolkit)
 
       expect(mockRequest.logger.warn).toHaveBeenCalledWith(
-        { details: warnings },
-        'Application validation warnings'
+        {
+          field: 'companyName',
+          message: '"companyName" is required'
+        },
+        'Application validation warning'
       )
 
       expect(applicationsController.createApplication).toHaveBeenCalledWith(

@@ -11,8 +11,9 @@ import { createLogger } from '#src/common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
 import {
-  ingestSqsMessageViaRoute,
-  createApplicationRecordViaRoute
+  ingestSqsMessage,
+  createApplicationRecordViaRoute,
+  markSqsMessageProcessed
 } from './dispatcher.js'
 
 const logger = createLogger()
@@ -60,46 +61,63 @@ const receiveMessage = (queueUrl, abortSignal) =>
 export const main = async (server, queueUrl, abortSignal) => {
   try {
     if (!queueUrl) {
-      queueUrl = await getQueueUrl() // ★ Correct queue URL
+      queueUrl = await getQueueUrl()
     }
 
     const { Messages } = await receiveMessage(queueUrl, abortSignal)
 
-    if (!Messages) {
+    if (!Messages?.length) {
       return
     }
+
     logger.info(`Received ${Messages.length} message(s) from SQS`)
 
-    // -------------------------------
-    // MULTIPLE MESSAGES
-    // -------------------------------
+    const processedMessages = []
+
     for (const message of Messages) {
       try {
-        await createNewApplicationRecord(message, server)
+        await ingestSqsMessage(
+          server,
+          message.MessageId,
+          message.Body,
+          message.Attributes?.SentTimestamp
+        )
       } catch (err) {
-        logger.error('API call failed. MessageId:', message.MessageId)
-        logger.error(err)
-        continue // Skip this one, do not break the loop
+        logger.error(
+          { messageId: message.MessageId, err },
+          'ingestSqsMessage failed'
+        )
+        continue
+      }
+
+      try {
+        await createNewApplicationRecord(message, server)
+        processedMessages.push({
+          Id: message.MessageId,
+          ReceiptHandle: message.ReceiptHandle
+        })
+      } catch (err) {
+        logger.error(
+          { messageId: message.MessageId, err },
+          'createNewApplicationRecord failed'
+        )
       }
     }
 
-    // Batch delete
-    await sqsClient.send(
-      new DeleteMessageBatchCommand({
-        QueueUrl: queueUrl,
-        Entries: Messages.map((msg) => ({
-          Id: msg.MessageId,
-          ReceiptHandle: msg.ReceiptHandle
-        }))
-      })
-    )
+    if (processedMessages.length > 0) {
+      await sqsClient.send(
+        new DeleteMessageBatchCommand({
+          QueueUrl: queueUrl,
+          Entries: processedMessages
+        })
+      )
+    }
   } catch (err) {
     if (err.name === 'AbortError') {
-      // logger.info('SQS polling aborted gracefully.')
       return
     }
 
-    logger.error('SQS error:', err)
+    logger.error({ err }, 'SQS error')
   }
 }
 export const createNewApplicationRecord = async (message, server) => {
@@ -108,19 +126,21 @@ export const createNewApplicationRecord = async (message, server) => {
     // Validate JSON before processing
     messageBody = JSON.parse(message.Body)
   } catch {
-    logger.error('Invalid JSON in SQS message:', message.Body)
-    logger.error(message.Body)
-    return //need to continue the loop
+    logger.error({ messageBody: message.Body }, 'Invalid JSON in SQS message')
+    return // Skip this invalid message so the outer batch loop can continue with the next SQS message.
   }
   //application details extraction
   const isFuel =
     messageBody.meta.formSlug ===
     'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
+  const applicationType = isFuel ? 'fuel' : 'appliance'
+  const applicationCollection = isFuel ? { fuels: [] } : { appliances: [] }
+
   const application = {
-    type: isFuel ? 'fuel' : 'appliance',
+    type: applicationType,
     referenceNumber: messageBody.meta.referenceNumber,
     submittedAt: messageBody.meta.timestamp,
-    ...(isFuel ? { fuels: [] } : { appliances: [] })
+    ...applicationCollection
   }
 
   if (application.type === 'fuel') {
@@ -134,13 +154,8 @@ export const createNewApplicationRecord = async (message, server) => {
     })
   }
   const applicationPayload = JSON.stringify(application)
-  await ingestSqsMessageViaRoute(
-    server,
-    message.MessageId, // reference number instead of messageId?
-    message.Body, // raw payload
-    messageBody.data, //parsedMessageBody
-    applicationPayload
-  )
+  //console.log('raw payload:', message.Body, 'parsed payload:', messageBody.data)
   await createApplicationRecordViaRoute(server, applicationPayload)
+  await markSqsMessageProcessed(server, message.MessageId)
   logger.info(`Creating ${application.type} Application Record`)
 }

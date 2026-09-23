@@ -18,30 +18,45 @@ describe('splitRepeaterJson', () => {
     ])
   })
 
-  test('returns an empty object when there are no repeaters', () => {
-    const input = { main: { companyName: 'Acme Ltd' }, repeaters: {} }
-
-    const result = splitRepeaterJson(input)
-
-    expect(result).toEqual({})
-  })
-
-  test('returns an empty object when repeaters key is missing', () => {
-    const input = { main: { companyName: 'Acme Ltd' } }
-
-    const result = splitRepeaterJson(input)
-
-    expect(result).toEqual({})
-  })
-
-  test('returns an empty object when the repeater list is not an array', () => {
+  test('handles a single repeater object as a one-item array', () => {
     const input = {
-      main: { companyName: 'Acme Ltd' },
-      repeaters: { LbZxXf: 'not-an-array' }
+      main: { companyName: 'Acme Ltd', isUkBased: true },
+      repeaters: {
+        LbZxXf: { modelName: 'Stove A' }
+      }
     }
 
     const result = splitRepeaterJson(input)
 
-    expect(result).toEqual({})
+    expect(result).toEqual([
+      { companyName: 'Acme Ltd', isUkBased: true, modelName: 'Stove A' }
+    ])
+  })
+
+  test('returns an empty array when there are no repeaters', () => {
+    const input = { main: { companyName: 'Acme Ltd' }, repeaters: {} }
+
+    const result = splitRepeaterJson(input)
+
+    expect(result).toEqual([])
+  })
+
+  test('returns an empty array when repeaters key is missing', () => {
+    const input = { main: { companyName: 'Acme Ltd' } }
+
+    const result = splitRepeaterJson(input)
+
+    expect(result).toEqual([])
+  })
+
+  test('returns an empty array when the repeater value is empty', () => {
+    const input = {
+      main: { companyName: 'Acme Ltd' },
+      repeaters: { LbZxXf: null }
+    }
+
+    const result = splitRepeaterJson(input)
+
+    expect(result).toEqual([])
   })
 })
