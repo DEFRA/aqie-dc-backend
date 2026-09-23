@@ -41,14 +41,14 @@ vi.mock('../repeater.js', () => ({
 }))
 
 vi.mock('../dispatcher.js', () => ({
-  ingestSqsMessageViaRoute: vi.fn(),
+  ingestSqsMessage: vi.fn(),
   createApplicationRecordViaRoute: vi.fn()
 }))
 
 const { main, createNewApplicationRecord } = await import('../client.js')
 const { mapKeys } = await import('../mapper.js')
 const { splitRepeaterJson } = await import('../repeater.js')
-const { ingestSqsMessageViaRoute, createApplicationRecordViaRoute } =
+const { ingestSqsMessage, createApplicationRecordViaRoute } =
   await import('../dispatcher.js')
 
 describe('sqs client', () => {
@@ -98,7 +98,7 @@ describe('sqs client', () => {
 
       await main(server, 'http://queue-url', undefined)
 
-      expect(ingestSqsMessageViaRoute).toHaveBeenCalledTimes(2)
+      expect(ingestSqsMessage).toHaveBeenCalledTimes(2)
       expect(createApplicationRecordViaRoute).toHaveBeenCalledTimes(2)
       expect(sendMock).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -138,7 +138,7 @@ describe('sqs client', () => {
 
       await main(server, 'http://queue-url', undefined)
 
-      expect(ingestSqsMessageViaRoute).toHaveBeenCalledTimes(2)
+      expect(ingestSqsMessage).toHaveBeenCalledTimes(2)
     })
 
     test('swallows AbortError raised while polling', async () => {

@@ -11,7 +11,7 @@ import { createLogger } from '#src/common/helpers/logging/logger.js'
 import { mapKeys } from './mapper.js'
 import { splitRepeaterJson } from './repeater.js'
 import {
-  ingestSqsMessageViaRoute,
+  ingestSqsMessage,
   createApplicationRecordViaRoute
 } from './dispatcher.js'
 
@@ -75,7 +75,7 @@ export const main = async (server, queueUrl, abortSignal) => {
     // -------------------------------
     for (const message of Messages) {
       try {
-        await ingestSqsMessageViaRoute(server, message.MessageId, message.Body)
+        await ingestSqsMessage(server, message.MessageId, message.Body)
         await createNewApplicationRecord(message, server)
       } catch (err) {
         logger.error({ messageId: message.MessageId, err }, 'API call failed')

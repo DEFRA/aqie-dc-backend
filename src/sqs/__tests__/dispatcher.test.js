@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import {
   createApplicationRecordViaRoute,
-  ingestSqsMessageViaRoute
+  ingestSqsMessage
 } from '../dispatcher.js'
 import { createSqsMessage } from '#src/controllers/sqs-messages-controller.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
@@ -55,11 +55,11 @@ describe('dispatcher', () => {
     })
   })
 
-  describe('ingestSqsMessageViaRoute', () => {
+  describe('ingestSqsMessage', () => {
     test('returns the controller result on success', async () => {
       createSqsMessage.mockResolvedValue({ success: true, _id: 'msg-1' })
 
-      const result = await ingestSqsMessageViaRoute(
+      const result = await ingestSqsMessage(
         server,
         'message-id',
         'raw-body'
@@ -83,7 +83,7 @@ describe('dispatcher', () => {
       })
 
       await expect(
-        ingestSqsMessageViaRoute(server, 'message-id', 'raw-body')
+        ingestSqsMessage(server, 'message-id', 'raw-body')
       ).rejects.toThrow('Failed to store SQS message: DB unavailable')
     })
   })
