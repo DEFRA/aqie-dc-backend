@@ -61,19 +61,19 @@ const receiveMessage = (queueUrl, abortSignal) =>
 export const main = async (server, queueUrl, abortSignal) => {
   try {
     if (!queueUrl) {
-      queueUrl = await getQueueUrl() // ★ Correct queue URL
+      queueUrl = await getQueueUrl()
     }
 
     const { Messages } = await receiveMessage(queueUrl, abortSignal)
 
-    if (!Messages) {
+    if (!Messages?.length) {
       return
     }
+
     logger.info(`Received ${Messages.length} message(s) from SQS`)
 
-    // -------------------------------
-    // MULTIPLE MESSAGES
-    // -------------------------------
+    const processedMessages = []
+
     for (const message of Messages) {
       try {
         await ingestSqsMessage(
@@ -87,33 +87,33 @@ export const main = async (server, queueUrl, abortSignal) => {
           { messageId: message.MessageId, err },
           'ingestSqsMessage failed'
         )
-        continue // Skip this one, do not break the loop
+        continue
       }
 
       try {
         await createNewApplicationRecord(message, server)
+        processedMessages.push({
+          Id: message.MessageId,
+          ReceiptHandle: message.ReceiptHandle
+        })
       } catch (err) {
         logger.error(
           { messageId: message.MessageId, err },
           'createNewApplicationRecord failed'
         )
-        continue // Skip this one, do not break the loop
       }
     }
 
-    // Batch delete
-    await sqsClient.send(
-      new DeleteMessageBatchCommand({
-        QueueUrl: queueUrl,
-        Entries: Messages.map((msg) => ({
-          Id: msg.MessageId,
-          ReceiptHandle: msg.ReceiptHandle
-        }))
-      })
-    )
+    if (processedMessages.length > 0) {
+      await sqsClient.send(
+        new DeleteMessageBatchCommand({
+          QueueUrl: queueUrl,
+          Entries: processedMessages
+        })
+      )
+    }
   } catch (err) {
     if (err.name === 'AbortError') {
-      // logger.info('SQS polling aborted gracefully.')
       return
     }
 

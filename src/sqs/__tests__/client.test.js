@@ -118,7 +118,7 @@ describe('sqs client', () => {
       )
     })
 
-    test('continues processing remaining messages when one fails', async () => {
+    test('continues processing remaining messages when one fails and only deletes successful ones', async () => {
       const body = JSON.stringify({
         meta: {
           formSlug: 'apply-for-an-appliance',
@@ -143,6 +143,15 @@ describe('sqs client', () => {
       await main(server, 'http://queue-url', undefined)
 
       expect(ingestSqsMessage).toHaveBeenCalledTimes(2)
+      expect(sendMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          type: 'DeleteMessageBatch',
+          args: expect.objectContaining({
+            QueueUrl: 'http://queue-url',
+            Entries: [{ Id: '2', ReceiptHandle: 'rh-2' }]
+          })
+        })
+      )
     })
 
     test('swallows AbortError raised while polling', async () => {

@@ -33,23 +33,23 @@ describe('splitRepeaterJson', () => {
     ])
   })
 
-  test('returns an empty object when there are no repeaters', () => {
+  test('returns an empty array when there are no repeaters', () => {
     const input = { main: { companyName: 'Acme Ltd' }, repeaters: {} }
 
     const result = splitRepeaterJson(input)
 
-    expect(result).toEqual({})
+    expect(result).toEqual([])
   })
 
-  test('returns an empty object when repeaters key is missing', () => {
+  test('returns an empty array when repeaters key is missing', () => {
     const input = { main: { companyName: 'Acme Ltd' } }
 
     const result = splitRepeaterJson(input)
 
-    expect(result).toEqual({})
+    expect(result).toEqual([])
   })
 
-  test('returns an empty object when the repeater value is empty', () => {
+  test('returns an empty array when the repeater value is empty', () => {
     const input = {
       main: { companyName: 'Acme Ltd' },
       repeaters: { LbZxXf: null }
@@ -57,6 +57,6 @@ describe('splitRepeaterJson', () => {
 
     const result = splitRepeaterJson(input)
 
-    expect(result).toEqual({})
+    expect(result).toEqual([])
   })
 })
