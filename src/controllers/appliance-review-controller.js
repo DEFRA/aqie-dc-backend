@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import {
   canAcceptReview,
   getCheckGroup,
@@ -12,6 +13,36 @@ import { updateAppliance } from './appliances-controller.js'
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const APPLIANCE_NOT_FOUND = 'Appliance not found'
+
+function validateTechnicalReviewCheck(check, result, data) {
+  const group = getCheckGroup(check)
+
+  if (!group) {
+    throw new Error(`Unrecognised check: ${check}`)
+  }
+
+  if (check === 'additionalConditions') {
+    const text = data?.additionalConditions?.trim()
+    if (result !== true || !text || text.length === 0) {
+      throw Boom.badRequest(
+        'Additional conditions must be marked complete and include text'
+      )
+    }
+  }
+
+  return group
+}
+
+function buildCheckUpdatePayload(group, check, result, data) {
+  if (!data) {
+    return { technicalReview: { [group]: { [check]: result } } }
+  }
+
+  return {
+    ...data,
+    technicalReview: { [group]: { [check]: result } }
+  }
+}
 
 /**
  * Get the technical review state for one appliance.
@@ -37,6 +68,7 @@ async function getApplianceReview(db, id, logger) {
           multifuelAppliance: 1,
           permittedFuels: 1,
           isPermittedToBurnWood: 1,
+          additionalConditions: 1,
           technicalReview: 1,
           _id: 0
         }
@@ -74,11 +106,7 @@ async function recordApplianceCheck(db, id, check, result, logger, data) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const group = getCheckGroup(check)
-
-    if (!group) {
-      throw new Error(`Unrecognised check: ${check}`)
-    }
+    const group = validateTechnicalReviewCheck(check, result, data)
 
     const item = await db
       .collection('Appliances')
@@ -92,12 +120,7 @@ async function recordApplianceCheck(db, id, check, result, logger, data) {
       }
     }
 
-    const updates = data
-      ? {
-          ...data,
-          technicalReview: { [group]: { [check]: result } }
-        }
-      : { technicalReview: { [group]: { [check]: result } } }
+    const updates = buildCheckUpdatePayload(group, check, result, data)
 
     if (item.technicalReview?.status === 'new') {
       updates.technicalReview.status = 'in_review'

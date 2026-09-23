@@ -49,7 +49,9 @@ describe('appliance-review-controller', () => {
         applicationId: '1084',
         technicalReview: {
           status: 'in_review',
-          documentationChecks: { testReports: true }
+          documentationChecks: {
+            testReports: true
+          }
         }
       })
 
@@ -74,7 +76,9 @@ describe('appliance-review-controller', () => {
     })
 
     test('does not project company contact details', async () => {
-      collection.findOne.mockResolvedValue({ id: 'APP-1' })
+      collection.findOne.mockResolvedValue({
+        id: 'APP-1'
+      })
 
       await getApplianceReview(db, 'APP-1', mockLogger)
 
@@ -91,6 +95,7 @@ describe('appliance-review-controller', () => {
         nominalOutput: 1,
         multifuelAppliance: 1,
         permittedFuels: 1,
+        additionalConditions: 1,
         isPermittedToBurnWood: 1,
         technicalReview: 1,
         _id: 0
@@ -109,11 +114,13 @@ describe('appliance-review-controller', () => {
 
     test('logs and rethrows on database failure', async () => {
       const error = new Error('Database error')
+
       collection.findOne.mockRejectedValue(error)
 
       await expect(getApplianceReview(db, 'APP-1', mockLogger)).rejects.toThrow(
         'Database error'
       )
+
       expect(mockLogger.error).toHaveBeenCalledWith(
         error,
         'Failed to fetch appliance review'
@@ -130,14 +137,23 @@ describe('appliance-review-controller', () => {
   describe('updateApplianceReview', () => {
     test('accepts when every check has passed', async () => {
       collection.findOne
-        .mockResolvedValueOnce({ technicalReview: allPassed })
-        .mockResolvedValueOnce({ id: 'APP-1' })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+        .mockResolvedValueOnce({
+          technicalReview: allPassed
+        })
+        .mockResolvedValueOnce({
+          id: 'APP-1'
+        })
+
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 1
+      })
 
       const result = await updateApplianceReview(
         db,
         'APP-1',
-        { status: 'accepted' },
+        {
+          status: 'accepted'
+        },
         mockLogger
       )
 
@@ -147,12 +163,16 @@ describe('appliance-review-controller', () => {
     })
 
     test('refuses to accept while checks are outstanding', async () => {
-      collection.findOne.mockResolvedValue({ technicalReview: {} })
+      collection.findOne.mockResolvedValue({
+        technicalReview: {}
+      })
 
       const result = await updateApplianceReview(
         db,
         'APP-1',
-        { status: 'accepted' },
+        {
+          status: 'accepted'
+        },
         mockLogger
       )
 
@@ -176,7 +196,9 @@ describe('appliance-review-controller', () => {
       const result = await updateApplianceReview(
         db,
         'APP-1',
-        { status: 'accepted' },
+        {
+          status: 'accepted'
+        },
         mockLogger
       )
 
@@ -186,14 +208,23 @@ describe('appliance-review-controller', () => {
 
     test('allows rejecting even when checks are outstanding', async () => {
       collection.findOne
-        .mockResolvedValueOnce({ technicalReview: {} })
-        .mockResolvedValueOnce({ id: 'APP-1' })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+        .mockResolvedValueOnce({
+          technicalReview: {}
+        })
+        .mockResolvedValueOnce({
+          id: 'APP-1'
+        })
+
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 1
+      })
 
       const result = await updateApplianceReview(
         db,
         'APP-1',
-        { status: 'rejected' },
+        {
+          status: 'rejected'
+        },
         mockLogger
       )
 
@@ -203,14 +234,23 @@ describe('appliance-review-controller', () => {
 
     test('writes dot-notation paths so the check results survive', async () => {
       collection.findOne
-        .mockResolvedValueOnce({ technicalReview: allPassed })
-        .mockResolvedValueOnce({ id: 'APP-1' })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+        .mockResolvedValueOnce({
+          technicalReview: allPassed
+        })
+        .mockResolvedValueOnce({
+          id: 'APP-1'
+        })
+
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 1
+      })
 
       await updateApplianceReview(
         db,
         'APP-1',
-        { status: 'accepted' },
+        {
+          status: 'accepted'
+        },
         mockLogger
       )
 
@@ -226,16 +266,26 @@ describe('appliance-review-controller', () => {
 
     test('records the reviewer when one is supplied', async () => {
       collection.findOne
-        .mockResolvedValueOnce({ technicalReview: allPassed })
-        .mockResolvedValueOnce({ id: 'APP-1' })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+        .mockResolvedValueOnce({
+          technicalReview: allPassed
+        })
+        .mockResolvedValueOnce({
+          id: 'APP-1'
+        })
+
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 1
+      })
 
       await updateApplianceReview(
         db,
         'APP-1',
         {
           status: 'accepted',
-          reviewedBy: { name: 'A Reviewer', email: 'a@defra.gov.uk' }
+          reviewedBy: {
+            name: 'A Reviewer',
+            email: 'a@defra.gov.uk'
+          }
         },
         mockLogger
       )
@@ -243,6 +293,7 @@ describe('appliance-review-controller', () => {
       const [, update] = collection.updateOne.mock.calls[0]
 
       expect(update.$set['technicalReview.reviewedBy.name']).toBe('A Reviewer')
+
       expect(update.$set['technicalReview.reviewedBy.email']).toBe(
         'a@defra.gov.uk'
       )
@@ -250,14 +301,23 @@ describe('appliance-review-controller', () => {
 
     test('records a null reviewer when nobody is signed in', async () => {
       collection.findOne
-        .mockResolvedValueOnce({ technicalReview: allPassed })
-        .mockResolvedValueOnce({ id: 'APP-1' })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+        .mockResolvedValueOnce({
+          technicalReview: allPassed
+        })
+        .mockResolvedValueOnce({
+          id: 'APP-1'
+        })
+
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 1
+      })
 
       await updateApplianceReview(
         db,
         'APP-1',
-        { status: 'accepted' },
+        {
+          status: 'accepted'
+        },
         mockLogger
       )
 
@@ -268,17 +328,26 @@ describe('appliance-review-controller', () => {
 
     test('does not return the full appliance record', async () => {
       collection.findOne
-        .mockResolvedValueOnce({ technicalReview: allPassed })
+        .mockResolvedValueOnce({
+          technicalReview: allPassed
+        })
         .mockResolvedValueOnce({
           id: 'APP-1',
-          companyContact: { email: 'applicant@example.com' }
+          companyContact: {
+            email: 'applicant@example.com'
+          }
         })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 1
+      })
 
       const result = await updateApplianceReview(
         db,
         'APP-1',
-        { status: 'accepted' },
+        {
+          status: 'accepted'
+        },
         mockLogger
       )
 
@@ -295,22 +364,33 @@ describe('appliance-review-controller', () => {
       const result = await updateApplianceReview(
         db,
         'missing',
-        { status: 'rejected' },
+        {
+          status: 'rejected'
+        },
         mockLogger
       )
 
+      expect(result.success).toBe(false)
       expect(result.notFound).toBe(true)
+      expect(result.message).toBe('Appliance not found')
       expect(collection.updateOne).not.toHaveBeenCalled()
     })
 
     test('returns notFound when update step cannot find appliance', async () => {
-      collection.findOne.mockResolvedValueOnce({ technicalReview: allPassed })
-      collection.updateOne.mockResolvedValue({ matchedCount: 0 })
+      collection.findOne.mockResolvedValueOnce({
+        technicalReview: allPassed
+      })
+
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 0
+      })
 
       const result = await updateApplianceReview(
         db,
         'APP-1',
-        { status: 'accepted' },
+        {
+          status: 'accepted'
+        },
         mockLogger
       )
 
@@ -321,11 +401,20 @@ describe('appliance-review-controller', () => {
 
     test('logs and rethrows on database failure', async () => {
       const error = new Error('Database error')
+
       collection.findOne.mockRejectedValue(error)
 
       await expect(
-        updateApplianceReview(db, 'APP-1', { status: 'rejected' }, mockLogger)
+        updateApplianceReview(
+          db,
+          'APP-1',
+          {
+            status: 'rejected'
+          },
+          mockLogger
+        )
       ).rejects.toThrow('Database error')
+
       expect(mockLogger.error).toHaveBeenCalledWith(
         error,
         'Failed to update appliance review'
@@ -334,7 +423,9 @@ describe('appliance-review-controller', () => {
 
     test('throws when logger is missing', async () => {
       await expect(
-        updateApplianceReview(db, 'APP-1', { status: 'rejected' })
+        updateApplianceReview(db, 'APP-1', {
+          status: 'rejected'
+        })
       ).rejects.toThrow('logger is required')
     })
   })
@@ -342,9 +433,18 @@ describe('appliance-review-controller', () => {
   describe('recordApplianceCheck', () => {
     function existingReview(status) {
       collection.findOne
-        .mockResolvedValueOnce({ technicalReview: { status } })
-        .mockResolvedValueOnce({ id: 'APP-1' })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+        .mockResolvedValueOnce({
+          technicalReview: {
+            status
+          }
+        })
+        .mockResolvedValueOnce({
+          id: 'APP-1'
+        })
+
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 1
+      })
     }
 
     test('records a documentation check as passed', async () => {
@@ -365,7 +465,10 @@ describe('appliance-review-controller', () => {
         result: true
       })
 
+      expect(collection.updateOne).toHaveBeenCalledTimes(1)
+
       const [, update] = collection.updateOne.mock.calls[0]
+
       expect(update.$set).toHaveProperty(
         'technicalReview.documentationChecks.technicalDrawings',
         true
@@ -384,6 +487,7 @@ describe('appliance-review-controller', () => {
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
+
       expect(
         update.$set['technicalReview.documentationChecks.technicalDrawings']
       ).toBe(false)
@@ -401,6 +505,7 @@ describe('appliance-review-controller', () => {
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
+
       expect(
         update.$set['technicalReview.documentationChecks.technicalDrawings']
       ).toBeNull()
@@ -418,13 +523,14 @@ describe('appliance-review-controller', () => {
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
+
       expect(update.$set).toHaveProperty(
         'technicalReview.listingChecks.applianceDetails',
         true
       )
     })
 
-    test('writes permitted fuels fields when provided for permittedFuels check', async () => {
+    test('writes permitted fuels fields when provided', async () => {
       existingReview('in_review')
 
       await recordApplianceCheck(
@@ -440,6 +546,7 @@ describe('appliance-review-controller', () => {
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
+
       expect(update.$set).toHaveProperty('permittedFuels', 'Wood logs')
       expect(update.$set).toHaveProperty('isPermittedToBurnWood', false)
       expect(update.$set).toHaveProperty(
@@ -448,11 +555,289 @@ describe('appliance-review-controller', () => {
       )
     })
 
+    describe('additionalConditions check', () => {
+      test('accepts result true with valid text', async () => {
+        existingReview('in_review')
+
+        const result = await recordApplianceCheck(
+          db,
+          'APP-1',
+          'additionalConditions',
+          true,
+          mockLogger,
+          {
+            additionalConditions: 'Standard additional condition text'
+          }
+        )
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            id: 'APP-1',
+            check: 'additionalConditions',
+            result: true
+          }
+        })
+
+        expect(collection.updateOne).toHaveBeenCalledTimes(1)
+
+        const [, update] = collection.updateOne.mock.calls[0]
+
+        expect(update.$set).toHaveProperty(
+          'additionalConditions',
+          'Standard additional condition text'
+        )
+        expect(update.$set).toHaveProperty(
+          'technicalReview.listingChecks.additionalConditions',
+          true
+        )
+      })
+
+      test('allows existing additional conditions text to be edited', async () => {
+        collection.findOne
+          .mockResolvedValueOnce({
+            additionalConditions: 'Original additional condition text',
+            technicalReview: {
+              status: 'in_review',
+              listingChecks: {
+                additionalConditions: true
+              }
+            }
+          })
+          .mockResolvedValueOnce({
+            id: 'APP-1',
+            additionalConditions: 'Edited additional condition text'
+          })
+
+        collection.updateOne.mockResolvedValue({
+          matchedCount: 1
+        })
+
+        const result = await recordApplianceCheck(
+          db,
+          'APP-1',
+          'additionalConditions',
+          true,
+          mockLogger,
+          {
+            additionalConditions: 'Edited additional condition text'
+          }
+        )
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            id: 'APP-1',
+            check: 'additionalConditions',
+            result: true
+          }
+        })
+
+        expect(collection.updateOne).toHaveBeenCalledTimes(1)
+
+        const [, update] = collection.updateOne.mock.calls[0]
+
+        expect(update.$set).toHaveProperty(
+          'additionalConditions',
+          'Edited additional condition text'
+        )
+        expect(update.$set).toHaveProperty(
+          'technicalReview.listingChecks.additionalConditions',
+          true
+        )
+        expect(update.$set).not.toHaveProperty('technicalReview.status')
+      })
+
+      test.each([
+        ['an empty string', ''],
+        ['whitespace-only text', '   ']
+      ])(
+        'rejects %s for additional conditions',
+        async (_, additionalConditions) => {
+          await expect(
+            recordApplianceCheck(
+              db,
+              'APP-1',
+              'additionalConditions',
+              true,
+              mockLogger,
+              {
+                additionalConditions
+              }
+            )
+          ).rejects.toMatchObject({
+            isBoom: true,
+            output: {
+              statusCode: 400,
+              payload: expect.objectContaining({
+                message:
+                  'Additional conditions must be marked complete and include text'
+              })
+            }
+          })
+
+          expect(collection.findOne).not.toHaveBeenCalled()
+          expect(collection.updateOne).not.toHaveBeenCalled()
+
+          expect(mockLogger.error).toHaveBeenCalledWith(
+            expect.objectContaining({
+              isBoom: true
+            }),
+            'Failed to record appliance check'
+          )
+        }
+      )
+
+      test('rejects missing text for additional conditions', async () => {
+        await expect(
+          recordApplianceCheck(
+            db,
+            'APP-1',
+            'additionalConditions',
+            true,
+            mockLogger,
+            {}
+          )
+        ).rejects.toMatchObject({
+          isBoom: true,
+          output: {
+            statusCode: 400,
+            payload: expect.objectContaining({
+              message:
+                'Additional conditions must be marked complete and include text'
+            })
+          }
+        })
+
+        expect(collection.findOne).not.toHaveBeenCalled()
+        expect(collection.updateOne).not.toHaveBeenCalled()
+      })
+
+      test('rejects missing additional conditions data', async () => {
+        await expect(
+          recordApplianceCheck(
+            db,
+            'APP-1',
+            'additionalConditions',
+            true,
+            mockLogger
+          )
+        ).rejects.toMatchObject({
+          isBoom: true,
+          output: {
+            statusCode: 400,
+            payload: expect.objectContaining({
+              message:
+                'Additional conditions must be marked complete and include text'
+            })
+          }
+        })
+
+        expect(collection.findOne).not.toHaveBeenCalled()
+        expect(collection.updateOne).not.toHaveBeenCalled()
+      })
+
+      test('rejects result false even when text is valid', async () => {
+        await expect(
+          recordApplianceCheck(
+            db,
+            'APP-1',
+            'additionalConditions',
+            false,
+            mockLogger,
+            {
+              additionalConditions: 'Valid additional condition text'
+            }
+          )
+        ).rejects.toMatchObject({
+          isBoom: true,
+          output: {
+            statusCode: 400,
+            payload: expect.objectContaining({
+              message:
+                'Additional conditions must be marked complete and include text'
+            })
+          }
+        })
+
+        expect(collection.findOne).not.toHaveBeenCalled()
+        expect(collection.updateOne).not.toHaveBeenCalled()
+      })
+
+      test('rejects result null even when text is valid', async () => {
+        await expect(
+          recordApplianceCheck(
+            db,
+            'APP-1',
+            'additionalConditions',
+            null,
+            mockLogger,
+            {
+              additionalConditions: 'Valid additional condition text'
+            }
+          )
+        ).rejects.toMatchObject({
+          isBoom: true,
+          output: {
+            statusCode: 400,
+            payload: expect.objectContaining({
+              message:
+                'Additional conditions must be marked complete and include text'
+            })
+          }
+        })
+
+        expect(collection.findOne).not.toHaveBeenCalled()
+        expect(collection.updateOne).not.toHaveBeenCalled()
+      })
+
+      test('starts a new review when valid additional conditions are saved', async () => {
+        existingReview('new')
+
+        await recordApplianceCheck(
+          db,
+          'APP-1',
+          'additionalConditions',
+          true,
+          mockLogger,
+          {
+            additionalConditions: 'Valid additional condition text'
+          }
+        )
+
+        expect(collection.updateOne).toHaveBeenCalledTimes(1)
+
+        const [, update] = collection.updateOne.mock.calls[0]
+
+        expect(update.$set).toHaveProperty(
+          'additionalConditions',
+          'Valid additional condition text'
+        )
+        expect(update.$set).toHaveProperty(
+          'technicalReview.listingChecks.additionalConditions',
+          true
+        )
+        expect(update.$set).toHaveProperty(
+          'technicalReview.status',
+          'in_review'
+        )
+      })
+    })
+
     test('ignores payload data when the caller does not supply any', async () => {
       collection.findOne
-        .mockResolvedValueOnce({ technicalReview: { status: 'in_review' } })
-        .mockResolvedValueOnce({ id: 'APP-1' })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+        .mockResolvedValueOnce({
+          technicalReview: {
+            status: 'in_review'
+          }
+        })
+        .mockResolvedValueOnce({
+          id: 'APP-1'
+        })
+
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 1
+      })
 
       await recordApplianceCheck(
         db,
@@ -463,7 +848,10 @@ describe('appliance-review-controller', () => {
         undefined
       )
 
+      expect(collection.updateOne).toHaveBeenCalledTimes(1)
+
       const [, update] = collection.updateOne.mock.calls[0]
+
       expect(update.$set).toHaveProperty(
         'technicalReview.documentationChecks.technicalDrawings',
         true
@@ -482,6 +870,7 @@ describe('appliance-review-controller', () => {
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
+
       expect(update.$set).toHaveProperty('technicalReview.status', 'in_review')
     })
 
@@ -497,6 +886,7 @@ describe('appliance-review-controller', () => {
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
+
       expect(update.$set).not.toHaveProperty('technicalReview.status')
     })
 
@@ -512,6 +902,7 @@ describe('appliance-review-controller', () => {
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
+
       expect(update.$set).not.toHaveProperty('technicalReview.status')
     })
 
@@ -527,6 +918,7 @@ describe('appliance-review-controller', () => {
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
+
       expect(update.$set).not.toHaveProperty('technicalReview')
       expect(update.$set).not.toHaveProperty(
         'technicalReview.documentationChecks'
@@ -537,7 +929,14 @@ describe('appliance-review-controller', () => {
       await expect(
         recordApplianceCheck(db, 'APP-1', 'something else', true, mockLogger)
       ).rejects.toThrow('Unrecognised check: something else')
+
       expect(collection.findOne).not.toHaveBeenCalled()
+      expect(collection.updateOne).not.toHaveBeenCalled()
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.any(Error),
+        'Failed to record appliance check'
+      )
     })
 
     test('returns notFound when the appliance does not exist', async () => {
@@ -551,13 +950,23 @@ describe('appliance-review-controller', () => {
         mockLogger
       )
 
-      expect(result.notFound).toBe(true)
+      expect(result).toEqual({
+        success: false,
+        message: 'Appliance not found',
+        notFound: true
+      })
+
       expect(collection.updateOne).not.toHaveBeenCalled()
     })
 
     test('returns notFound when update step cannot find appliance', async () => {
-      collection.findOne.mockResolvedValueOnce({ technicalReview: {} })
-      collection.updateOne.mockResolvedValue({ matchedCount: 0 })
+      collection.findOne.mockResolvedValueOnce({
+        technicalReview: {}
+      })
+
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 0
+      })
 
       const result = await recordApplianceCheck(
         db,
@@ -574,11 +983,13 @@ describe('appliance-review-controller', () => {
 
     test('logs and rethrows on database failure', async () => {
       const error = new Error('Database error')
+
       collection.findOne.mockRejectedValue(error)
 
       await expect(
         recordApplianceCheck(db, 'APP-1', 'technicalDrawings', true, mockLogger)
       ).rejects.toThrow('Database error')
+
       expect(mockLogger.error).toHaveBeenCalledWith(
         error,
         'Failed to record appliance check'
