@@ -77,8 +77,7 @@ export const main = async (server, queueUrl, abortSignal) => {
       try {
         await createNewApplicationRecord(message, server)
       } catch (err) {
-        logger.error('API call failed. MessageId:', message.MessageId)
-        logger.error(err)
+        logger.error({ messageId: message.MessageId, err }, 'API call failed')
         continue // Skip this one, do not break the loop
       }
     }
@@ -99,7 +98,7 @@ export const main = async (server, queueUrl, abortSignal) => {
       return
     }
 
-    logger.error('SQS error:', err)
+    logger.error({ err }, 'SQS error')
   }
 }
 export const createNewApplicationRecord = async (message, server) => {
@@ -108,8 +107,7 @@ export const createNewApplicationRecord = async (message, server) => {
     // Validate JSON before processing
     messageBody = JSON.parse(message.Body)
   } catch {
-    logger.error('Invalid JSON in SQS message:', message.Body)
-    logger.error(message.Body)
+    logger.error({ messageBody: message.Body }, 'Invalid JSON in SQS message')
     return //need to continue the loop
   }
   //application details extraction

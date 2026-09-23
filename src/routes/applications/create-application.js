@@ -54,15 +54,19 @@ export const createApplication = {
     try {
       const { payload, validationWarnings } = request.pre.validationResult
 
-      // Log warnings but do not block the save to DB
+      // Log warnings but do not block the save to DB, log indivdually so each is visible in the logs.
       if (validationWarnings.length > 0) {
-        request.logger.warn(
-          {
-            details: validationWarnings
-          },
-          'Application validation warnings'
-        )
+        for (const warning of validationWarnings) {
+          request.logger.warn(
+            {
+              field: warning.field,
+              message: warning.message
+            },
+            'Application validation warning'
+          )
+        }
       }
+      //if this does work, try: logger.warn(`Application validation warning: ${warning.field} - ${warning.message}`)
 
       const result = await applicationsController.createApplication(
         request.server.mongoClient,
