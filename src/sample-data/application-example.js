@@ -23,7 +23,7 @@ export default {
         name: 'John Doe',
         email: 'john@acme.com',
         alternativeEmail: 'alt@acme.com',
-        phone: '+44753732890'
+        phone: '+447537328930'
       },
       isUkBased: true,
       // companyFullAddress: '456 Factory Road, Unit 7, Birmingham, West Midlands, B1 2AB',

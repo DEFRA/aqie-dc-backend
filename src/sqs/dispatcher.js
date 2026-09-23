@@ -22,7 +22,7 @@ export async function createApplicationRecordViaRoute(server, payload) {
 
   if (response.statusCode !== statusCodes.created) {
     throw new Error(
-      `Internal API error: ${response.statusCode} - ${response.result?.msg}`
+      `Internal API error: ${response.statusCode} - ${response.result?.message}`
     )
   }
 

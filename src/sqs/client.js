@@ -108,17 +108,20 @@ export const createNewApplicationRecord = async (message, server) => {
     messageBody = JSON.parse(message.Body)
   } catch {
     logger.error({ messageBody: message.Body }, 'Invalid JSON in SQS message')
-    return //need to continue the loop
+    return // Skip this invalid message so the outer batch loop can continue with the next SQS message.
   }
   //application details extraction
   const isFuel =
     messageBody.meta.formSlug ===
     'get-a-solid-fuel-certified-for-use-in-smoke-control-areas'
+  const applicationType = isFuel ? 'fuel' : 'appliance'
+  const applicationCollection = isFuel ? { fuels: [] } : { appliances: [] }
+
   const application = {
-    type: isFuel ? 'fuel' : 'appliance',
+    type: applicationType,
     referenceNumber: messageBody.meta.referenceNumber,
     submittedAt: messageBody.meta.timestamp,
-    ...(isFuel ? { fuels: [] } : { appliances: [] })
+    ...applicationCollection
   }
 
   if (application.type === 'fuel') {
