@@ -212,4 +212,230 @@ async function updateApplianceReview(db, id, decision, logger) {
   }
 }
 
-export { getApplianceReview, updateApplianceReview, recordApplianceCheck }
+/**
+ * Rounds a numeric measurement to a maximum of two decimal places.
+ *
+ * This is only used when the test report is marked as passed.
+ *
+ * Examples:
+ * 5.678 -> 5.68
+ * 5.124 -> 5.12
+ * 2.555 -> 2.56
+ * 1.005 -> 1.01
+ */
+const roundToTwoDecimalPlaces = (value) => {
+  const number = Number(value)
+
+  return Math.round((number + Number.EPSILON) * 100) / 100
+}
+
+/**
+ * Normalises passed test-report values.
+ *
+ * Passed measurements are stored as numbers rounded to a maximum
+ * of two decimal places.
+ */
+const normalisePassedTestReport = (testReport) => ({
+  reviewStatus: testReport.reviewStatus,
+
+  ratedOutput: roundToTwoDecimalPlaces(testReport.ratedOutput),
+
+  testedOutput: {
+    rated: roundToTwoDecimalPlaces(testReport.testedOutput.rated),
+    low: roundToTwoDecimalPlaces(testReport.testedOutput.low)
+  },
+
+  smokeEmissionOutput: {
+    rated: roundToTwoDecimalPlaces(testReport.smokeEmissionOutput.rated),
+    low: roundToTwoDecimalPlaces(testReport.smokeEmissionOutput.low)
+  }
+})
+
+/**
+ * Only normalises measurement values when the report is passed.
+ *
+ * Failed values are returned unchanged so that empty strings,
+ * alphabetic values, alphanumeric values, negative values and
+ * numeric strings are preserved exactly as received.
+ */
+const normaliseTestReport = (testReport) => {
+  if (testReport.reviewStatus !== true) {
+    return testReport
+  }
+
+  return normalisePassedTestReport(testReport)
+}
+
+const mapTestReportResponse = (item) => ({
+  id: item.id,
+  modelName: item.modelName,
+  ratedOutput: item.testResults?.ratedOutput ?? null,
+  testedOutput: {
+    rated: item.testResults?.testedOutput?.rated ?? null,
+    low: item.testResults?.testedOutput?.low ?? null
+  },
+  smokeEmissionOutput: {
+    rated: item.testResults?.smokeEmissionOutput?.rated ?? null,
+    low: item.testResults?.smokeEmissionOutput?.low ?? null
+  },
+  reviewStatus: item.technicalReview?.documentationChecks?.testReports ?? null
+})
+
+/**
+ * Get the test-report values and review result for an appliance.
+ */
+async function getTestReport(db, id, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+
+  try {
+    const item = await db.collection('Appliances').findOne(
+      { id },
+      {
+        projection: {
+          id: 1,
+          modelName: 1,
+          testResults: 1,
+          'technicalReview.documentationChecks.testReports': 1,
+          _id: 0
+        }
+      }
+    )
+
+    if (!item) {
+      return {
+        success: false,
+        message: APPLIANCE_NOT_FOUND,
+        notFound: true
+      }
+    }
+
+    return {
+      success: true,
+      data: mapTestReportResponse(item)
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to fetch appliance test reports')
+    throw error
+  }
+}
+
+/**
+ * Update the test-report values and review result for an appliance.
+ *
+ * When marking as passed:
+ * - all measurements have already been validated
+ * - measurements are converted to numbers
+ * - measurements are rounded to two decimal places
+ *
+ * When marking as failed:
+ * - measurement values are not validated here
+ * - values are stored exactly as received
+ * - empty, alphabetic, alphanumeric and negative values are retained
+ *
+ * Saving the test-report review for the first time moves the overall
+ * technical review from "new" to "in_review".
+ */
+async function updateTestReport(db, id, testReport, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+
+  try {
+    const item = await db.collection('Appliances').findOne(
+      { id },
+      {
+        projection: {
+          technicalReview: 1,
+          _id: 0
+        }
+      }
+    )
+
+    if (!item) {
+      return {
+        success: false,
+        message: APPLIANCE_NOT_FOUND,
+        notFound: true
+      }
+    }
+
+    /*
+     * Only passed values are converted and rounded.
+     *
+     * Failed and unreviewed values are retained exactly as
+     * supplied by the caller.
+     */
+    const normalisedTestReport = normaliseTestReport(testReport)
+
+    const { ratedOutput, testedOutput, smokeEmissionOutput, reviewStatus } =
+      normalisedTestReport
+
+    const updates = {
+      testResults: {
+        ratedOutput,
+        testedOutput,
+        smokeEmissionOutput
+      },
+
+      technicalReview: {
+        documentationChecks: {
+          testReports: reviewStatus
+        }
+      }
+    }
+
+    if (item.technicalReview?.status === 'new') {
+      updates.technicalReview.status = 'in_review'
+    }
+
+    const result = await updateAppliance(db, id, updates, logger)
+
+    if (result.notFound) {
+      return {
+        success: false,
+        message: APPLIANCE_NOT_FOUND,
+        notFound: true
+      }
+    }
+
+    logger.info(`Appliance test reports updated: ${id}`)
+
+    return {
+      success: true,
+
+      data: {
+        id,
+
+        ratedOutput: ratedOutput ?? null,
+
+        testedOutput: {
+          rated: testedOutput?.rated ?? null,
+
+          low: testedOutput?.low ?? null
+        },
+
+        smokeEmissionOutput: {
+          rated: smokeEmissionOutput?.rated ?? null,
+
+          low: smokeEmissionOutput?.low ?? null
+        },
+
+        reviewStatus
+      }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to update appliance test reports')
+
+    throw error
+  }
+}
+
+export {
+  getApplianceReview,
+  updateApplianceReview,
+  recordApplianceCheck,
+  getTestReport,
+  updateTestReport
+}

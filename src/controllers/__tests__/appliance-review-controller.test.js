@@ -3,7 +3,9 @@ import { describe, test, expect, beforeEach, vi } from 'vitest'
 import {
   getApplianceReview,
   updateApplianceReview,
-  recordApplianceCheck
+  recordApplianceCheck,
+  getTestReport,
+  updateTestReport
 } from '#src/controllers/appliance-review-controller.js'
 
 const allPassed = {
@@ -1000,6 +1002,845 @@ describe('appliance-review-controller', () => {
       await expect(
         recordApplianceCheck(db, 'APP-1', 'technicalDrawings', true)
       ).rejects.toThrow('logger is required')
+    })
+  })
+
+  describe('getTestReport', () => {
+    test('returns test-report values and review status', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'APP-1',
+        testResults: {
+          ratedOutput: 5.2,
+          testedOutput: {
+            rated: 5.1,
+            low: 2.4
+          },
+          smokeEmissionOutput: {
+            rated: 3.1,
+            low: 2.2
+          }
+        },
+        technicalReview: {
+          documentationChecks: {
+            testReports: true
+          }
+        }
+      })
+
+      const result = await getTestReport(db, 'APP-1', mockLogger)
+
+      expect(result).toEqual({
+        success: true,
+        data: {
+          id: 'APP-1',
+          ratedOutput: 5.2,
+          testedOutput: {
+            rated: 5.1,
+            low: 2.4
+          },
+          smokeEmissionOutput: {
+            rated: 3.1,
+            low: 2.2
+          },
+          reviewStatus: true
+        }
+      })
+    })
+
+    test('returns previously saved failed values for editing', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'APP-1',
+        testResults: {
+          ratedOutput: 'abc',
+          testedOutput: {
+            rated: '-10.567',
+            low: 'ABC123'
+          },
+          smokeEmissionOutput: {
+            rated: '',
+            low: '1abc'
+          }
+        },
+        technicalReview: {
+          documentationChecks: {
+            testReports: false
+          }
+        }
+      })
+
+      const result = await getTestReport(db, 'APP-1', mockLogger)
+
+      expect(result).toEqual({
+        success: true,
+        data: {
+          id: 'APP-1',
+          ratedOutput: 'abc',
+          testedOutput: {
+            rated: '-10.567',
+            low: 'ABC123'
+          },
+          smokeEmissionOutput: {
+            rated: '',
+            low: '1abc'
+          },
+          reviewStatus: false
+        }
+      })
+    })
+
+    test('returns null defaults when test-report values have not been recorded', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'APP-1'
+      })
+
+      const result = await getTestReport(db, 'APP-1', mockLogger)
+
+      expect(result.data).toEqual({
+        id: 'APP-1',
+        ratedOutput: null,
+        testedOutput: {
+          rated: null,
+          low: null
+        },
+        smokeEmissionOutput: {
+          rated: null,
+          low: null
+        },
+        reviewStatus: null
+      })
+    })
+
+    test('requests only fields required by the test-report screen', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'APP-1'
+      })
+
+      await getTestReport(db, 'APP-1', mockLogger)
+
+      expect(collection.findOne).toHaveBeenCalledWith(
+        { id: 'APP-1' },
+        {
+          projection: {
+            id: 1,
+            modelName: 1,
+            testResults: 1,
+            'technicalReview.documentationChecks.testReports': 1,
+            _id: 0
+          }
+        }
+      )
+    })
+
+    test('returns notFound when the appliance does not exist', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const result = await getTestReport(db, 'missing', mockLogger)
+
+      expect(result).toEqual({
+        success: false,
+        message: 'Appliance not found',
+        notFound: true
+      })
+    })
+
+    test('logs and rethrows database errors', async () => {
+      const error = new Error('Database error')
+      collection.findOne.mockRejectedValue(error)
+
+      await expect(getTestReport(db, 'APP-1', mockLogger)).rejects.toThrow(
+        'Database error'
+      )
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to fetch appliance test reports'
+      )
+    })
+
+    test('throws when logger is missing', async () => {
+      await expect(getTestReport(db, 'APP-1')).rejects.toThrow(
+        'logger is required'
+      )
+    })
+  })
+
+  describe('updateTestReport', () => {
+    const testReport = {
+      ratedOutput: 5.2,
+      testedOutput: {
+        rated: 5.1,
+        low: 2.4
+      },
+      smokeEmissionOutput: {
+        rated: 3.1,
+        low: 2.2
+      },
+      reviewStatus: true
+    }
+
+    function existingReview(status) {
+      collection.findOne
+        .mockResolvedValueOnce({
+          technicalReview: { status }
+        })
+        .mockResolvedValueOnce({
+          id: 'APP-1'
+        })
+
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 1
+      })
+    }
+
+    test('rounds passed values to two decimal places', async () => {
+      existingReview('in_review')
+
+      const passedTestReport = {
+        reviewStatus: true,
+        ratedOutput: 5.678,
+
+        testedOutput: {
+          rated: 5.124,
+          low: 2.555
+        },
+
+        smokeEmissionOutput: {
+          rated: 3.999,
+          low: 1.005
+        }
+      }
+
+      const result = await updateTestReport(
+        db,
+        'APP-1',
+        passedTestReport,
+        mockLogger
+      )
+
+      expect(result).toEqual({
+        success: true,
+
+        data: {
+          id: 'APP-1',
+          reviewStatus: true,
+          ratedOutput: 5.68,
+
+          testedOutput: {
+            rated: 5.12,
+            low: 2.56
+          },
+
+          smokeEmissionOutput: {
+            rated: 4,
+            low: 1.01
+          }
+        }
+      })
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).toMatchObject({
+        'testResults.ratedOutput': 5.68,
+
+        'testResults.testedOutput.rated': 5.12,
+
+        'testResults.testedOutput.low': 2.56,
+
+        'testResults.smokeEmissionOutput.rated': 4,
+
+        'testResults.smokeEmissionOutput.low': 1.01,
+
+        'technicalReview.documentationChecks.testReports': true
+      })
+    })
+
+    test('does not change passed values that already have two decimal places', async () => {
+      existingReview('in_review')
+
+      const passedTestReport = {
+        reviewStatus: true,
+        ratedOutput: 5.25,
+
+        testedOutput: {
+          rated: 4.5,
+          low: 2
+        },
+
+        smokeEmissionOutput: {
+          rated: 3.75,
+          low: 1.1
+        }
+      }
+
+      const result = await updateTestReport(
+        db,
+        'APP-1',
+        passedTestReport,
+        mockLogger
+      )
+
+      expect(result.data).toEqual({
+        id: 'APP-1',
+        reviewStatus: true,
+        ratedOutput: 5.25,
+
+        testedOutput: {
+          rated: 4.5,
+          low: 2
+        },
+
+        smokeEmissionOutput: {
+          rated: 3.75,
+          low: 1.1
+        }
+      })
+    })
+
+    test('does not round numeric strings when the review is failed', async () => {
+      existingReview('in_review')
+
+      const failedTestReport = {
+        reviewStatus: false,
+        ratedOutput: '5.678',
+
+        testedOutput: {
+          rated: '-10.567',
+          low: '2.555'
+        },
+
+        smokeEmissionOutput: {
+          rated: '3.999',
+          low: '1.005'
+        }
+      }
+
+      const result = await updateTestReport(
+        db,
+        'APP-1',
+        failedTestReport,
+        mockLogger
+      )
+
+      expect(result.data).toEqual({
+        id: 'APP-1',
+        reviewStatus: false,
+        ratedOutput: '5.678',
+
+        testedOutput: {
+          rated: '-10.567',
+          low: '2.555'
+        },
+
+        smokeEmissionOutput: {
+          rated: '3.999',
+          low: '1.005'
+        }
+      })
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).toMatchObject({
+        'testResults.ratedOutput': '5.678',
+
+        'testResults.testedOutput.rated': '-10.567',
+
+        'testResults.testedOutput.low': '2.555',
+
+        'testResults.smokeEmissionOutput.rated': '3.999',
+
+        'testResults.smokeEmissionOutput.low': '1.005',
+
+        'technicalReview.documentationChecks.testReports': false
+      })
+    })
+
+    test('preserves empty strings when the review is failed', async () => {
+      existingReview('in_review')
+
+      const failedTestReport = {
+        reviewStatus: false,
+        ratedOutput: '',
+
+        testedOutput: {
+          rated: '',
+          low: ''
+        },
+
+        smokeEmissionOutput: {
+          rated: '',
+          low: ''
+        }
+      }
+
+      const result = await updateTestReport(
+        db,
+        'APP-1',
+        failedTestReport,
+        mockLogger
+      )
+
+      expect(result.data).toEqual({
+        id: 'APP-1',
+        reviewStatus: false,
+        ratedOutput: '',
+
+        testedOutput: {
+          rated: '',
+          low: ''
+        },
+
+        smokeEmissionOutput: {
+          rated: '',
+          low: ''
+        }
+      })
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).toMatchObject({
+        'testResults.ratedOutput': '',
+
+        'testResults.testedOutput.rated': '',
+
+        'testResults.testedOutput.low': '',
+
+        'testResults.smokeEmissionOutput.rated': '',
+
+        'testResults.smokeEmissionOutput.low': '',
+
+        'technicalReview.documentationChecks.testReports': false
+      })
+    })
+
+    test('does not mutate the original passed test-report object', async () => {
+      existingReview('in_review')
+
+      const passedTestReport = {
+        reviewStatus: true,
+        ratedOutput: 5.678,
+
+        testedOutput: {
+          rated: 5.124,
+          low: 2.555
+        },
+
+        smokeEmissionOutput: {
+          rated: 3.999,
+          low: 1.005
+        }
+      }
+
+      const originalTestReport = structuredClone(passedTestReport)
+
+      await updateTestReport(db, 'APP-1', passedTestReport, mockLogger)
+
+      expect(passedTestReport).toEqual(originalTestReport)
+    })
+
+    test('converts passed numeric strings to rounded numbers', async () => {
+      existingReview('in_review')
+
+      const passedTestReport = {
+        reviewStatus: true,
+        ratedOutput: '5.678',
+
+        testedOutput: {
+          rated: '5.124',
+          low: '2.555'
+        },
+
+        smokeEmissionOutput: {
+          rated: '3.999',
+          low: '1.005'
+        }
+      }
+
+      const result = await updateTestReport(
+        db,
+        'APP-1',
+        passedTestReport,
+        mockLogger
+      )
+
+      expect(result.data).toEqual({
+        id: 'APP-1',
+        reviewStatus: true,
+        ratedOutput: 5.68,
+
+        testedOutput: {
+          rated: 5.12,
+          low: 2.56
+        },
+
+        smokeEmissionOutput: {
+          rated: 4,
+          low: 1.01
+        }
+      })
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set['testResults.ratedOutput']).toBe(5.68)
+
+      expect(typeof update.$set['testResults.ratedOutput']).toBe('number')
+    })
+
+    test('records a failed review with null measurements', async () => {
+      existingReview('in_review')
+
+      const failedTestReport = {
+        reviewStatus: false,
+        ratedOutput: null,
+        testedOutput: {
+          rated: null,
+          low: null
+        },
+        smokeEmissionOutput: {
+          rated: null,
+          low: null
+        }
+      }
+
+      const result = await updateTestReport(
+        db,
+        'APP-1',
+        failedTestReport,
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data.reviewStatus).toBe(false)
+      expect(result.data.ratedOutput).toBeNull()
+      expect(result.data.testedOutput.rated).toBeNull()
+      expect(result.data.testedOutput.low).toBeNull()
+      expect(result.data.smokeEmissionOutput.rated).toBeNull()
+      expect(result.data.smokeEmissionOutput.low).toBeNull()
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.testReports',
+        false
+      )
+
+      expect(update.$set).toHaveProperty('testResults.ratedOutput', null)
+    })
+
+    test('records zero values without changing them', async () => {
+      existingReview('in_review')
+
+      const zeroTestReport = {
+        reviewStatus: true,
+        ratedOutput: 0,
+        testedOutput: {
+          rated: 0,
+          low: 0
+        },
+        smokeEmissionOutput: {
+          rated: 0,
+          low: 0
+        }
+      }
+
+      const result = await updateTestReport(
+        db,
+        'APP-1',
+        zeroTestReport,
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data.ratedOutput).toBe(0)
+      expect(result.data.testedOutput.rated).toBe(0)
+      expect(result.data.testedOutput.low).toBe(0)
+      expect(result.data.smokeEmissionOutput.rated).toBe(0)
+      expect(result.data.smokeEmissionOutput.low).toBe(0)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).toHaveProperty('testResults.ratedOutput', 0)
+
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.testReports',
+        true
+      )
+    })
+
+    test('records all submitted values when the review is failed', async () => {
+      existingReview('in_review')
+
+      const failedTestReport = {
+        reviewStatus: false,
+        ratedOutput: 'abc',
+        testedOutput: {
+          rated: '-10.567',
+          low: 'ABC123'
+        },
+        smokeEmissionOutput: {
+          rated: '',
+          low: '1abc'
+        }
+      }
+
+      const result = await updateTestReport(
+        db,
+        'APP-1',
+        failedTestReport,
+        mockLogger
+      )
+
+      expect(result).toEqual({
+        success: true,
+        data: {
+          id: 'APP-1',
+          ratedOutput: 'abc',
+          testedOutput: {
+            rated: '-10.567',
+            low: 'ABC123'
+          },
+          smokeEmissionOutput: {
+            rated: '',
+            low: '1abc'
+          },
+          reviewStatus: false
+        }
+      })
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).toHaveProperty('testResults.ratedOutput', 'abc')
+
+      expect(update.$set).toHaveProperty(
+        'testResults.testedOutput.rated',
+        '-10.567'
+      )
+
+      expect(update.$set).toHaveProperty(
+        'testResults.testedOutput.low',
+        'ABC123'
+      )
+
+      expect(update.$set).toHaveProperty(
+        'testResults.smokeEmissionOutput.rated',
+        ''
+      )
+
+      expect(update.$set).toHaveProperty(
+        'testResults.smokeEmissionOutput.low',
+        '1abc'
+      )
+
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.testReports',
+        false
+      )
+    })
+
+    test('replaces existing test-report values when a failed review is edited', async () => {
+      existingReview('in_review')
+
+      const editedTestReport = {
+        reviewStatus: false,
+        ratedOutput: '-5',
+        testedOutput: {
+          rated: 'edited value',
+          low: ''
+        },
+        smokeEmissionOutput: {
+          rated: 'ABC123',
+          low: '0'
+        }
+      }
+
+      await updateTestReport(db, 'APP-1', editedTestReport, mockLogger)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).toMatchObject({
+        'testResults.ratedOutput': '-5',
+        'testResults.testedOutput.rated': 'edited value',
+        'testResults.testedOutput.low': '',
+        'testResults.smokeEmissionOutput.rated': 'ABC123',
+        'testResults.smokeEmissionOutput.low': '0',
+        'technicalReview.documentationChecks.testReports': false
+      })
+    })
+
+    test('updates test-report values and review status', async () => {
+      existingReview('in_review')
+
+      const result = await updateTestReport(db, 'APP-1', testReport, mockLogger)
+
+      expect(result).toEqual({
+        success: true,
+        data: {
+          id: 'APP-1',
+          ...testReport
+        }
+      })
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).toHaveProperty('testResults.ratedOutput', 5.2)
+      expect(update.$set).toHaveProperty('testResults.testedOutput.rated', 5.1)
+      expect(update.$set).toHaveProperty('testResults.testedOutput.low', 2.4)
+      expect(update.$set).toHaveProperty(
+        'testResults.smokeEmissionOutput.rated',
+        3.1
+      )
+      expect(update.$set).toHaveProperty(
+        'testResults.smokeEmissionOutput.low',
+        2.2
+      )
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.testReports',
+        true
+      )
+    })
+
+    test('starts the technical review when its current status is new', async () => {
+      existingReview('new')
+
+      await updateTestReport(db, 'APP-1', testReport, mockLogger)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).toHaveProperty('technicalReview.status', 'in_review')
+    })
+
+    test('does not change an existing technical review status', async () => {
+      existingReview('in_review')
+
+      await updateTestReport(db, 'APP-1', testReport, mockLogger)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).not.toHaveProperty('technicalReview.status')
+    })
+
+    test('does not overwrite the overall accepted status', async () => {
+      existingReview('accepted')
+
+      await updateTestReport(db, 'APP-1', testReport, mockLogger)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).not.toHaveProperty('technicalReview.status')
+    })
+
+    test('records a failed test-report review', async () => {
+      existingReview('in_review')
+
+      await updateTestReport(
+        db,
+        'APP-1',
+        {
+          ...testReport,
+          reviewStatus: false
+        },
+        mockLogger
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(
+        update.$set['technicalReview.documentationChecks.testReports']
+      ).toBe(false)
+    })
+
+    test('clears test-report review status with null', async () => {
+      existingReview('in_review')
+
+      await updateTestReport(
+        db,
+        'APP-1',
+        {
+          ...testReport,
+          reviewStatus: null
+        },
+        mockLogger
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(
+        update.$set['technicalReview.documentationChecks.testReports']
+      ).toBeNull()
+    })
+
+    test('uses dot notation and leaves unrelated review checks untouched', async () => {
+      existingReview('in_review')
+
+      await updateTestReport(db, 'APP-1', testReport, mockLogger)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).not.toHaveProperty('testResults')
+      expect(update.$set).not.toHaveProperty('technicalReview')
+      expect(update.$set).not.toHaveProperty(
+        'technicalReview.documentationChecks'
+      )
+      expect(update.$set).not.toHaveProperty(
+        'technicalReview.documentationChecks.technicalDrawings'
+      )
+    })
+
+    test('returns notFound when the appliance does not exist', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const result = await updateTestReport(
+        db,
+        'missing',
+        testReport,
+        mockLogger
+      )
+
+      expect(result).toEqual({
+        success: false,
+        message: 'Appliance not found',
+        notFound: true
+      })
+
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('returns notFound when update step cannot find appliance', async () => {
+      collection.findOne.mockResolvedValueOnce({
+        technicalReview: {
+          status: 'in_review'
+        }
+      })
+      collection.updateOne.mockResolvedValue({
+        matchedCount: 0
+      })
+
+      const result = await updateTestReport(db, 'APP-1', testReport, mockLogger)
+
+      expect(result).toEqual({
+        success: false,
+        message: 'Appliance not found',
+        notFound: true
+      })
+    })
+
+    test('logs and rethrows database errors', async () => {
+      const error = new Error('Database error')
+      collection.findOne.mockRejectedValue(error)
+
+      await expect(
+        updateTestReport(db, 'APP-1', testReport, mockLogger)
+      ).rejects.toThrow('Database error')
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to update appliance test reports'
+      )
+    })
+
+    test('throws when logger is missing', async () => {
+      await expect(updateTestReport(db, 'APP-1', testReport)).rejects.toThrow(
+        'logger is required'
+      )
     })
   })
 })
