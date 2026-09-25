@@ -31,7 +31,6 @@ import { getApplianceReview } from '../routes/appliances/get-appliance-review.js
 import { updateApplianceReview } from '../routes/appliances/update-appliance-review.js'
 import { getTestReport } from '../routes/appliances/get-test-report.js'
 import { updateTestReport } from '../routes/appliances/update-test-report.js'
-import { createSqsMessage } from '../routes/sqs-messages/create-sqs-message.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
 import { config } from '../config.js'
