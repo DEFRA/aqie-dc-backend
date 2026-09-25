@@ -205,6 +205,76 @@ describe('item-schema applianceSchema', () => {
       'rated'
     ])
   })
+
+  test('accepts isVariant true with existingAuthorisedAppliance as string', () => {
+    const payload = {
+      ...applianceBasePayload,
+      isVariant: true,
+      existingAuthorisedAppliance: 'Original model details'
+    }
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.isVariant).toBe(true)
+    expect(value.existingAuthorisedAppliance).toBe('Original model details')
+  })
+
+  test('accepts isVariant true with existingAuthorisedAppliance as null', () => {
+    const payload = {
+      ...applianceBasePayload,
+      isVariant: true,
+      existingAuthorisedAppliance: null
+    }
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.isVariant).toBe(true)
+    expect(value.existingAuthorisedAppliance).toBeNull()
+  })
+
+  test('accepts isVariant false with existingAuthorisedAppliance as null', () => {
+    const payload = {
+      ...applianceBasePayload,
+      isVariant: false,
+      existingAuthorisedAppliance: null
+    }
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.isVariant).toBe(false)
+    expect(value.existingAuthorisedAppliance).toBeNull()
+  })
+
+  test('accepts isVariant false without existingAuthorisedAppliance', () => {
+    const payload = {
+      ...applianceBasePayload,
+      isVariant: false
+    }
+
+    delete payload.existingAuthorisedAppliance
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.isVariant).toBe(false)
+  })
+
+  test('rejects existingAuthorisedAppliance if not string or null', () => {
+    const payload = {
+      ...applianceBasePayload,
+      isVariant: true,
+      existingAuthorisedAppliance: 12345
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['existingAuthorisedAppliance'])
+    expect(error.details[0].type).toBe('string.base')
+  })
 })
 
 describe('item-schema fuelSchema', () => {

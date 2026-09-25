@@ -87,6 +87,7 @@ export const applianceSchema = Joi.object({
   isVariant: Joi.boolean().required().description('Variant of appliance'),
   existingAuthorisedAppliance: Joi.string()
     .optional()
+    .allow(null)
     .description('If it is a variant, details'),
   nominalOutput: Joi.number().required().description('Thermal output (kW)'),
   multifuelAppliance: Joi.boolean()
