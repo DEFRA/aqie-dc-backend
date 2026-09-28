@@ -33,6 +33,7 @@
   declaration: true,
   // Admin Flow fields
   testResults: {
+    reviewStatus: null,
     ratedOutput: 10,
     testedOutput: {
       rated: 10.5,

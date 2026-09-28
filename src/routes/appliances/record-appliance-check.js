@@ -6,6 +6,7 @@ import Joi from 'joi'
 import * as applianceReviewController from '../../controllers/appliance-review-controller.js'
 import { ALL_CHECKS } from '../../common/helpers/review-status.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
+import { testReportPayloadSchema } from '../../common/schemas/test-report-payload-schema.js'
 
 const MAX_PERMITTED_FUELS_LENGTH = 3000
 const MAX_ADDITIONAL_CONDITIONS_LENGTH = 1000
@@ -18,6 +19,10 @@ const ADDITIONAL_CONDITIONS_SCHEMA = Joi.object({
     .required()
 }).unknown(false)
 
+const TEST_REPORTS_DATA_SCHEMA = Joi.object({
+  testResults: testReportPayloadSchema.required()
+}).unknown(false)
+
 const CHECK_DATA_SCHEMAS = {
   permittedFuels: Joi.object({
     permittedFuels: Joi.string()
@@ -27,7 +32,8 @@ const CHECK_DATA_SCHEMAS = {
       .required(),
     isPermittedToBurnWood: Joi.boolean().allow(null).required()
   }).unknown(false),
-  additionalConditions: ADDITIONAL_CONDITIONS_SCHEMA
+  additionalConditions: ADDITIONAL_CONDITIONS_SCHEMA,
+  testReports: TEST_REPORTS_DATA_SCHEMA
 }
 
 export const recordApplianceCheck = {
@@ -46,13 +52,23 @@ export const recordApplianceCheck = {
           .required()
           .description('Which check the result applies to'),
         result: Joi.when('check', {
-          is: 'additionalConditions',
-          then: Joi.boolean()
-            .valid(true)
-            .required()
-            .description(
-              'additionalConditions must be marked complete to be saved'
-            ),
+          switch: [
+            {
+              is: 'additionalConditions',
+              then: Joi.boolean()
+                .valid(true)
+                .required()
+                .description(
+                  'additionalConditions must be marked complete to be saved'
+                )
+            },
+            {
+              is: 'testReports',
+              then: Joi.boolean()
+                .required()
+                .description('true passed, false failed')
+            }
+          ],
           otherwise: Joi.boolean()
             .allow(null)
             .required()
