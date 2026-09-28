@@ -77,7 +77,14 @@ export const recordApplianceCheck = {
         data: Joi.when('check', {
           switch: Object.entries(CHECK_DATA_SCHEMAS).map(([check, schema]) => ({
             is: check,
-            then: schema.required()
+            then:
+              check === 'testReports'
+                ? Joi.when('result', {
+                    is: false,
+                    then: schema.optional(),
+                    otherwise: schema.required()
+                  })
+                : schema.required()
           })),
           otherwise: Joi.forbidden()
         })

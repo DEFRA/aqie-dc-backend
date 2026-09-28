@@ -37,9 +37,7 @@ function validateTechnicalReviewCheck(check, result, data) {
       )
     }
     if (!data?.testResults) {
-      throw Boom.badRequest(
-        'testReports requires testResults data'
-      )
+      throw Boom.badRequest('testReports requires testResults data')
     }
   }
 

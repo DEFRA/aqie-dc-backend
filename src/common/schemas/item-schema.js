@@ -105,7 +105,10 @@ export const applianceSchema = Joi.object({
     ),
   // Fields from admin FE input
   testResults: Joi.object({
-    reviewStatus: Joi.boolean().allow(null).optional().description('Test report review status'),
+    reviewStatus: Joi.boolean()
+      .allow(null)
+      .optional()
+      .description('Test report review status'),
     ratedOutput: Joi.number().optional().description('Rated Output'),
     testedOutput: Joi.object({
       rated: Joi.number().optional().description('Tested Output - rated'),
