@@ -41,6 +41,19 @@ function validateTechnicalReviewCheck(check, result, data) {
     }
   }
 
+  if (check === 'instructionManual') {
+    if (typeof result !== 'boolean') {
+      throw Boom.badRequest(
+        'instructionManual result must be true (passed) or false (failed)'
+      )
+    }
+    if (result === true && !data?.instructionManual) {
+      throw Boom.badRequest(
+        'instructionManual requires instructionManual data when passed'
+      )
+    }
+  }
+
   return group
 }
 
@@ -81,6 +94,7 @@ async function getApplianceReview(db, id, logger) {
           isPermittedToBurnWood: 1,
           additionalConditions: 1,
           testResults: 1,
+          instructionManual: 1,
           technicalReview: 1,
           _id: 0
         }
