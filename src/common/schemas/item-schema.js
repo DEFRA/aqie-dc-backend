@@ -127,12 +127,21 @@ export const applianceSchema = Joi.object({
       'Additional conditions previously referred to as air control modifications'
     ),
   instructionManual: Joi.object({
-    title: Joi.string().optional().description('Instruction manual title'),
+    title: Joi.string()
+      .allow('', null)
+      .optional()
+      .description('Instruction manual title'),
     publicationDate: Joi.date()
+      .iso()
+      .allow(null)
       .optional()
       .description('Instruction manual publication date'),
-    version: Joi.string().optional().description('Instruction manual version'),
+    version: Joi.string()
+      .allow('', null)
+      .optional()
+      .description('Instruction manual version'),
     additionalInfo: Joi.string()
+      .allow('', null)
       .optional()
       .description('Instruction manual additional information')
   }).optional(),
