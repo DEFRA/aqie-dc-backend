@@ -105,20 +105,29 @@ export const applianceSchema = Joi.object({
     ),
   // Fields from admin FE input
   testResults: Joi.object({
-    reviewStatus: Joi.boolean()
-      .allow(null)
+    ratedOutput: Joi.alternatives()
+      .try(Joi.string().allow(''), Joi.number(), Joi.valid(null))
       .optional()
-      .description('Test report review status'),
-    ratedOutput: Joi.number().optional().description('Rated Output'),
+      .description('Rated Output'),
     testedOutput: Joi.object({
-      rated: Joi.number().optional().description('Tested Output - rated'),
-      low: Joi.number().optional().description('Tested Output - low')
+      rated: Joi.alternatives()
+        .try(Joi.string().allow(''), Joi.number(), Joi.valid(null))
+        .optional()
+        .description('Tested Output - rated'),
+      low: Joi.alternatives()
+        .try(Joi.string().allow(''), Joi.number(), Joi.valid(null))
+        .optional()
+        .description('Tested Output - low')
     }).optional(),
     smokeEmissionOutput: Joi.object({
-      rated: Joi.number()
+      rated: Joi.alternatives()
+        .try(Joi.string().allow(''), Joi.number(), Joi.valid(null))
         .optional()
         .description('Smoke emission output - rated'),
-      low: Joi.number().optional().description('Smoke emission output - low')
+      low: Joi.alternatives()
+        .try(Joi.string().allow(''), Joi.number(), Joi.valid(null))
+        .optional()
+        .description('Smoke emission output - low')
     }).optional()
   }).optional(),
   additionalConditions: Joi.string()

@@ -36,8 +36,10 @@ function validateTechnicalReviewCheck(check, result, data) {
         'testReports result must be true (passed) or false (failed)'
       )
     }
-    if (!data?.testResults) {
-      throw Boom.badRequest('testReports requires testResults data')
+    if (result === true && !data?.testResults) {
+      throw Boom.badRequest(
+        'testReports requires testResults data when marked as passed'
+      )
     }
   }
 

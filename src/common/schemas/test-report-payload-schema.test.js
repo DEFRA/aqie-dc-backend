@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'vitest'
 
-import { testReportPayloadSchema } from './test-report-payload-schema.js'
+import {
+  passedTestReportSchema,
+  failedTestReportSchema
+} from './test-report-payload-schema.js'
 
-describe('testReportPayloadSchema', () => {
+describe('passedTestReportSchema', () => {
   const validPassedPayload = {
-    reviewStatus: true,
     ratedOutput: 5.25,
     testedOutput: {
       rated: 5.1,
@@ -17,8 +19,7 @@ describe('testReportPayloadSchema', () => {
   }
 
   test('accepts a valid passed test report', () => {
-    const { value, error } =
-      testReportPayloadSchema.validate(validPassedPayload)
+    const { value, error } = passedTestReportSchema.validate(validPassedPayload)
 
     expect(error).toBeUndefined()
     expect(value).toEqual(validPassedPayload)
@@ -26,7 +27,6 @@ describe('testReportPayloadSchema', () => {
 
   test('rounds passed measurements to two decimal places', () => {
     const payload = {
-      reviewStatus: true,
       ratedOutput: 1.005,
       testedOutput: {
         rated: 2.345,
@@ -38,7 +38,7 @@ describe('testReportPayloadSchema', () => {
       }
     }
 
-    const { value, error } = testReportPayloadSchema.validate(payload)
+    const { value, error } = passedTestReportSchema.validate(payload)
 
     expect(error).toBeUndefined()
     expect(value.ratedOutput).toBe(1.01)
@@ -50,7 +50,6 @@ describe('testReportPayloadSchema', () => {
 
   test('does not change measurements that already have two decimal places', () => {
     const payload = {
-      reviewStatus: true,
       ratedOutput: 10.25,
       testedOutput: {
         rated: 8.5,
@@ -62,7 +61,7 @@ describe('testReportPayloadSchema', () => {
       }
     }
 
-    const { value, error } = testReportPayloadSchema.validate(payload)
+    const { value, error } = passedTestReportSchema.validate(payload)
 
     expect(error).toBeUndefined()
     expect(value).toEqual(payload)
@@ -117,195 +116,94 @@ describe('testReportPayloadSchema', () => {
       }
     ]
   ])('rejects negative passed measurement for %s', (_, payload) => {
-    const { error } = testReportPayloadSchema.validate(payload)
+    const { error } = passedTestReportSchema.validate(payload)
 
     expect(error).toBeDefined()
     expect(error.details[0].type).toBe('number.min')
   })
 
-  test('requires ratedOutput when the test report has passed', () => {
-    const payload = structuredClone(validPassedPayload)
-
-    delete payload.ratedOutput
-
-    const { error } = testReportPayloadSchema.validate(payload)
-
-    expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['ratedOutput'])
-  })
-
-  test('requires testedOutput when the test report has passed', () => {
-    const payload = structuredClone(validPassedPayload)
-
-    delete payload.testedOutput
-
-    const { error } = testReportPayloadSchema.validate(payload)
-
-    expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['testedOutput'])
-  })
-
-  test('requires testedOutput.rated when the test report has passed', () => {
-    const payload = structuredClone(validPassedPayload)
-
-    delete payload.testedOutput.rated
-
-    const { error } = testReportPayloadSchema.validate(payload)
-
-    expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['testedOutput', 'rated'])
-  })
-
-  test('requires testedOutput.low when the test report has passed', () => {
-    const payload = structuredClone(validPassedPayload)
-
-    delete payload.testedOutput.low
-
-    const { error } = testReportPayloadSchema.validate(payload)
-
-    expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['testedOutput', 'low'])
-  })
-
-  test('requires smokeEmissionOutput when the test report has passed', () => {
-    const payload = structuredClone(validPassedPayload)
-
-    delete payload.smokeEmissionOutput
-
-    const { error } = testReportPayloadSchema.validate(payload)
-
-    expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['smokeEmissionOutput'])
-  })
-
-  test('requires smokeEmissionOutput.rated when the report has passed', () => {
-    const payload = structuredClone(validPassedPayload)
-
-    delete payload.smokeEmissionOutput.rated
-
-    const { error } = testReportPayloadSchema.validate(payload)
-
-    expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['smokeEmissionOutput', 'rated'])
-  })
-
-  test('requires smokeEmissionOutput.low when the report has passed', () => {
-    const payload = structuredClone(validPassedPayload)
-
-    delete payload.smokeEmissionOutput.low
-
-    const { error } = testReportPayloadSchema.validate(payload)
+  test.each([
+    [
+      'ratedOutput',
+      {
+        ...validPassedPayload,
+        ratedOutput: undefined
+      }
+    ],
+    [
+      'testedOutput',
+      {
+        ...validPassedPayload,
+        testedOutput: undefined
+      }
+    ],
+    [
+      'testedOutput.rated',
+      {
+        ...validPassedPayload,
+        testedOutput: {
+          ...validPassedPayload.testedOutput,
+          rated: undefined
+        }
+      }
+    ],
+    [
+      'testedOutput.low',
+      {
+        ...validPassedPayload,
+        testedOutput: {
+          ...validPassedPayload.testedOutput,
+          low: undefined
+        }
+      }
+    ],
+    [
+      'smokeEmissionOutput',
+      {
+        ...validPassedPayload,
+        smokeEmissionOutput: undefined
+      }
+    ],
+    [
+      'smokeEmissionOutput.rated',
+      {
+        ...validPassedPayload,
+        smokeEmissionOutput: {
+          ...validPassedPayload.smokeEmissionOutput,
+          rated: undefined
+        }
+      }
+    ],
+    [
+      'smokeEmissionOutput.low',
+      {
+        ...validPassedPayload,
+        smokeEmissionOutput: {
+          ...validPassedPayload.smokeEmissionOutput,
+          low: undefined
+        }
+      }
+    ]
+  ])('requires %s when the test report has passed', (_, payload) => {
+    const { error } = passedTestReportSchema.validate(payload)
 
     expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['smokeEmissionOutput', 'low'])
   })
 
-  test('allows flexible measurement values when the report has failed', () => {
-    const payload = {
-      reviewStatus: false,
-      ratedOutput: 'not available',
+  test('rejects string measurements for passed reports', () => {
+    const { error } = passedTestReportSchema.validate({
+      ratedOutput: '5.25',
       testedOutput: {
-        rated: 'failed',
-        low: -1
+        rated: 5.1,
+        low: 2.4
       },
       smokeEmissionOutput: {
-        rated: '',
-        low: null
+        rated: 3.2,
+        low: 1.1
       }
-    }
-
-    const { value, error } = testReportPayloadSchema.validate(payload)
-
-    expect(error).toBeUndefined()
-    expect(value).toEqual(payload)
-  })
-
-  test('preserves failed string measurements as strings', () => {
-    const payload = {
-      reviewStatus: false,
-      ratedOutput: '10.25',
-      testedOutput: {
-        rated: '5.5',
-        low: '2.5'
-      },
-      smokeEmissionOutput: {
-        rated: '3.5',
-        low: '1.5'
-      }
-    }
-
-    const { value, error } = testReportPayloadSchema.validate(payload)
-
-    expect(error).toBeUndefined()
-    expect(value.ratedOutput).toBe('10.25')
-    expect(value.testedOutput.rated).toBe('5.5')
-    expect(value.testedOutput.low).toBe('2.5')
-    expect(value.smokeEmissionOutput.rated).toBe('3.5')
-    expect(value.smokeEmissionOutput.low).toBe('1.5')
-  })
-
-  test('allows failed measurement fields to be omitted', () => {
-    const payload = {
-      reviewStatus: false
-    }
-
-    const { value, error } = testReportPayloadSchema.validate(payload)
-
-    expect(error).toBeUndefined()
-    expect(value).toEqual({
-      reviewStatus: false
-    })
-  })
-
-  test('allows null failed measurement values', () => {
-    const payload = {
-      reviewStatus: false,
-      ratedOutput: null,
-      testedOutput: {
-        rated: null,
-        low: null
-      },
-      smokeEmissionOutput: {
-        rated: null,
-        low: null
-      }
-    }
-
-    const { value, error } = testReportPayloadSchema.validate(payload)
-
-    expect(error).toBeUndefined()
-    expect(value).toEqual(payload)
-  })
-
-  test('allows null reviewStatus for a report not yet reviewed', () => {
-    const payload = {
-      reviewStatus: null
-    }
-
-    const { value, error } = testReportPayloadSchema.validate(payload)
-
-    expect(error).toBeUndefined()
-    expect(value).toEqual({
-      reviewStatus: null
-    })
-  })
-
-  test('requires reviewStatus', () => {
-    const { error } = testReportPayloadSchema.validate({})
-
-    expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['reviewStatus'])
-    expect(error.details[0].type).toBe('any.required')
-  })
-
-  test('rejects a non-boolean reviewStatus', () => {
-    const { error } = testReportPayloadSchema.validate({
-      reviewStatus: 'passed'
     })
 
     expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual(['reviewStatus'])
-    expect(error.details[0].type).toBe('boolean.base')
   })
 
   test('rejects unknown top-level fields', () => {
@@ -314,7 +212,7 @@ describe('testReportPayloadSchema', () => {
       unexpectedField: 'not allowed'
     }
 
-    const { error } = testReportPayloadSchema.validate(payload)
+    const { error } = passedTestReportSchema.validate(payload)
 
     expect(error).toBeDefined()
     expect(error.details[0].path).toEqual(['unexpectedField'])
@@ -330,7 +228,7 @@ describe('testReportPayloadSchema', () => {
       }
     }
 
-    const { error } = testReportPayloadSchema.validate(payload)
+    const { error } = passedTestReportSchema.validate(payload)
 
     expect(error).toBeDefined()
     expect(error.details[0].path).toEqual(['testedOutput', 'unexpectedField'])
@@ -346,7 +244,149 @@ describe('testReportPayloadSchema', () => {
       }
     }
 
-    const { error } = testReportPayloadSchema.validate(payload)
+    const { error } = passedTestReportSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual([
+      'smokeEmissionOutput',
+      'unexpectedField'
+    ])
+    expect(error.details[0].type).toBe('object.unknown')
+  })
+})
+
+describe('failedTestReportSchema', () => {
+  test('allows flexible measurement values when the report has failed', () => {
+    const payload = {
+      ratedOutput: 'not available',
+      testedOutput: {
+        rated: 'failed',
+        low: -1
+      },
+      smokeEmissionOutput: {
+        rated: '',
+        low: null
+      }
+    }
+
+    const { value, error } = failedTestReportSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value).toEqual(payload)
+  })
+
+  test('preserves failed string measurements as strings', () => {
+    const payload = {
+      ratedOutput: '10.25',
+      testedOutput: {
+        rated: '5.5',
+        low: '2.5'
+      },
+      smokeEmissionOutput: {
+        rated: '3.5',
+        low: '1.5'
+      }
+    }
+
+    const { value, error } = failedTestReportSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.ratedOutput).toBe('10.25')
+    expect(value.testedOutput.rated).toBe('5.5')
+    expect(value.testedOutput.low).toBe('2.5')
+    expect(value.smokeEmissionOutput.rated).toBe('3.5')
+    expect(value.smokeEmissionOutput.low).toBe('1.5')
+  })
+
+  test('allows failed measurement fields to be omitted', () => {
+    const payload = {
+      ratedOutput: 'failed'
+    }
+
+    const { value, error } = failedTestReportSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.testedOutput).toBeUndefined()
+    expect(value.smokeEmissionOutput).toBeUndefined()
+  })
+
+  test('allows null failed measurement values', () => {
+    const payload = {
+      ratedOutput: null,
+      testedOutput: {
+        rated: null,
+        low: null
+      },
+      smokeEmissionOutput: {
+        rated: null,
+        low: null
+      }
+    }
+
+    const { value, error } = failedTestReportSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value).toEqual(payload)
+  })
+
+  test('allows empty string for failed measurements', () => {
+    const payload = {
+      ratedOutput: '',
+      testedOutput: {
+        rated: '',
+        low: ''
+      },
+      smokeEmissionOutput: {
+        rated: '',
+        low: ''
+      }
+    }
+
+    const { value, error } = failedTestReportSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value).toEqual(payload)
+  })
+
+  test('rejects unknown top-level fields', () => {
+    const payload = {
+      ratedOutput: 'failed',
+      unexpectedField: 'value'
+    }
+
+    const { error } = failedTestReportSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['unexpectedField'])
+    expect(error.details[0].type).toBe('object.unknown')
+  })
+
+  test('rejects unknown fields inside testedOutput', () => {
+    const payload = {
+      ratedOutput: 'failed',
+      testedOutput: {
+        rated: 'failed',
+        unexpectedField: 123
+      }
+    }
+
+    const { error } = failedTestReportSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['testedOutput', 'unexpectedField'])
+    expect(error.details[0].type).toBe('object.unknown')
+  })
+
+  test('rejects unknown fields inside smokeEmissionOutput', () => {
+    const payload = {
+      ratedOutput: 'failed',
+      smokeEmissionOutput: {
+        rated: 'failed',
+        unexpectedField: 123
+      }
+    }
+
+    const { error } = failedTestReportSchema.validate(payload)
 
     expect(error).toBeDefined()
     expect(error.details[0].path).toEqual([

@@ -979,7 +979,8 @@ describe('appliance-review-controller', () => {
           output: {
             statusCode: 400,
             payload: expect.objectContaining({
-              message: 'testReports requires testResults data'
+              message:
+                'testReports requires testResults data when marked as passed'
             })
           }
         })
@@ -996,7 +997,8 @@ describe('appliance-review-controller', () => {
           output: {
             statusCode: 400,
             payload: expect.objectContaining({
-              message: 'testReports requires testResults data'
+              message:
+                'testReports requires testResults data when marked as passed'
             })
           }
         })
@@ -1014,7 +1016,7 @@ describe('appliance-review-controller', () => {
 
       test('rejects test reports when testResults is null', async () => {
         await expect(
-          recordApplianceCheck(db, 'APP-1', 'testReports', false, mockLogger, {
+          recordApplianceCheck(db, 'APP-1', 'testReports', true, mockLogger, {
             testResults: null
           })
         ).rejects.toMatchObject({
@@ -1022,7 +1024,8 @@ describe('appliance-review-controller', () => {
           output: {
             statusCode: 400,
             payload: expect.objectContaining({
-              message: 'testReports requires testResults data'
+              message:
+                'testReports requires testResults data when marked as passed'
             })
           }
         })

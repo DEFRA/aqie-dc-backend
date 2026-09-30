@@ -188,22 +188,49 @@ describe('item-schema applianceSchema', () => {
     })
   })
 
-  test('rejects non-numeric testResults.testedOutput.rated', () => {
+  test('accepts string values in testResults for failed reports', () => {
     const payload = {
       ...applianceBasePayload,
       testResults: {
-        testedOutput: { rated: 'not-a-number' }
+        ratedOutput: 'unavailable',
+        testedOutput: { rated: 'failed', low: 'N/A' },
+        smokeEmissionOutput: { rated: 'error', low: '' }
       }
     }
 
     const { error } = applianceSchema.validate(payload)
 
-    expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual([
-      'testResults',
-      'testedOutput',
-      'rated'
-    ])
+    expect(error).toBeUndefined()
+  })
+
+  test('accepts null values in testResults', () => {
+    const payload = {
+      ...applianceBasePayload,
+      testResults: {
+        ratedOutput: null,
+        testedOutput: { rated: null, low: null },
+        smokeEmissionOutput: { rated: null, low: null }
+      }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+  })
+
+  test('accepts mixed type values in testResults', () => {
+    const payload = {
+      ...applianceBasePayload,
+      testResults: {
+        ratedOutput: 10.5,
+        testedOutput: { rated: 'failed', low: 5.2 },
+        smokeEmissionOutput: { rated: null, low: 'N/A' }
+      }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
   })
 })
 

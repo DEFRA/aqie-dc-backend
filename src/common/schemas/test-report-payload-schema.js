@@ -14,10 +14,12 @@ const roundToTwoDecimalPlaces = (value) => {
  * - numeric
  * - non-negative
  * - rounded to a maximum of two decimal places
+ * - no coercion from strings (must be actual numbers)
  */
 const passedMeasurement = Joi.number()
   .min(0)
   .required()
+  .strict()
   .custom(
     (value) => roundToTwoDecimalPlaces(value),
     'round measurement to two decimal places'
@@ -68,27 +70,44 @@ const failedSmokeEmissionOutput = Joi.object({
   .unknown(false)
   .optional()
 
+/**
+ * Schema for passed test reports (result = true).
+ * All measurement fields must be numbers rounded to two decimal places.
+ */
+export const passedTestReportSchema = Joi.object({
+  ratedOutput: passedMeasurement,
+  testedOutput: passedTestedOutput,
+  smokeEmissionOutput: passedSmokeEmissionOutput
+}).unknown(false)
+
+/**
+ * Schema for failed test reports (result = false).
+ * Measurement fields can be strings, numbers, empty, or null.
+ */
+export const failedTestReportSchema = Joi.object({
+  ratedOutput: failedMeasurement,
+  testedOutput: failedTestedOutput,
+  smokeEmissionOutput: failedSmokeEmissionOutput
+}).unknown(false)
+
+/**
+ * @deprecated Use passedTestReportSchema or failedTestReportSchema instead.
+ * Schema that uses conditional logic based on reviewStatus (legacy).
+ */
 export const testReportPayloadSchema = Joi.object({
-  reviewStatus: Joi.boolean()
-    .allow(null)
-    .required()
-    .description('true passed, false failed, null not reviewed'),
-
-  ratedOutput: Joi.when('reviewStatus', {
-    is: true,
-    then: passedMeasurement,
-    otherwise: failedMeasurement
-  }),
-
-  testedOutput: Joi.when('reviewStatus', {
-    is: true,
-    then: passedTestedOutput,
-    otherwise: failedTestedOutput
-  }),
-
-  smokeEmissionOutput: Joi.when('reviewStatus', {
-    is: true,
-    then: passedSmokeEmissionOutput,
-    otherwise: failedSmokeEmissionOutput
-  })
+  ratedOutput: Joi.alternatives()
+    .try(Joi.number(), Joi.string().allow(''))
+    .optional(),
+  testedOutput: Joi.object({
+    rated: Joi.alternatives()
+      .try(Joi.number(), Joi.string().allow(''))
+      .optional(),
+    low: Joi.alternatives().try(Joi.number(), Joi.string().allow('')).optional()
+  }).optional(),
+  smokeEmissionOutput: Joi.object({
+    rated: Joi.alternatives()
+      .try(Joi.number(), Joi.string().allow(''))
+      .optional(),
+    low: Joi.alternatives().try(Joi.number(), Joi.string().allow('')).optional()
+  }).optional()
 }).unknown(false)

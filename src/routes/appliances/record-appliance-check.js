@@ -6,7 +6,10 @@ import Joi from 'joi'
 import * as applianceReviewController from '../../controllers/appliance-review-controller.js'
 import { ALL_CHECKS } from '../../common/helpers/review-status.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
-import { testReportPayloadSchema } from '../../common/schemas/test-report-payload-schema.js'
+import {
+  passedTestReportSchema,
+  failedTestReportSchema
+} from '../../common/schemas/test-report-payload-schema.js'
 
 const MAX_PERMITTED_FUELS_LENGTH = 3000
 const MAX_ADDITIONAL_CONDITIONS_LENGTH = 1000
@@ -19,8 +22,12 @@ const ADDITIONAL_CONDITIONS_SCHEMA = Joi.object({
     .required()
 }).unknown(false)
 
-const TEST_REPORTS_DATA_SCHEMA = Joi.object({
-  testResults: testReportPayloadSchema.required()
+const TEST_REPORTS_PASSED_SCHEMA = Joi.object({
+  testResults: passedTestReportSchema.required()
+}).unknown(false)
+
+const TEST_REPORTS_FAILED_SCHEMA = Joi.object({
+  testResults: failedTestReportSchema.optional()
 }).unknown(false)
 
 const CHECK_DATA_SCHEMAS = {
@@ -33,7 +40,8 @@ const CHECK_DATA_SCHEMAS = {
     isPermittedToBurnWood: Joi.boolean().allow(null).required()
   }).unknown(false),
   additionalConditions: ADDITIONAL_CONDITIONS_SCHEMA,
-  testReports: TEST_REPORTS_DATA_SCHEMA
+  testReportsPassed: TEST_REPORTS_PASSED_SCHEMA,
+  testReportsFailed: TEST_REPORTS_FAILED_SCHEMA
 }
 
 export const recordApplianceCheck = {
@@ -75,17 +83,24 @@ export const recordApplianceCheck = {
             .description('true passed, false failed, null not reviewed')
         }),
         data: Joi.when('check', {
-          switch: Object.entries(CHECK_DATA_SCHEMAS).map(([check, schema]) => ({
-            is: check,
-            then:
-              check === 'testReports'
-                ? Joi.when('result', {
-                    is: false,
-                    then: schema.optional(),
-                    otherwise: schema.required()
-                  })
-                : schema.required()
-          })),
+          switch: [
+            {
+              is: 'testReports',
+              then: Joi.when('result', {
+                is: true,
+                then: TEST_REPORTS_PASSED_SCHEMA.required(),
+                otherwise: TEST_REPORTS_FAILED_SCHEMA.optional()
+              })
+            },
+            {
+              is: 'additionalConditions',
+              then: CHECK_DATA_SCHEMAS.additionalConditions.required()
+            },
+            {
+              is: 'permittedFuels',
+              then: CHECK_DATA_SCHEMAS.permittedFuels.required()
+            }
+          ],
           otherwise: Joi.forbidden()
         })
       }).unknown(false)
