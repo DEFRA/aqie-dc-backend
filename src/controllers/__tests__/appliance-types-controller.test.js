@@ -17,9 +17,9 @@ describe('appliance-types-controller', () => {
   describe('getApplianceTypes', () => {
     it('should return all appliance types when isPrimary is null', async () => {
       const mockApplianceTypes = [
-        { value: 'Stove', label: 'Stove', isPrimary: true },
-        { value: 'Boiler', label: 'Independent boiler', isPrimary: true },
-        { value: 'Air heater', label: 'Air heater', isPrimary: false }
+        { value: 'Stove', isPrimary: true },
+        { value: 'Boiler', isPrimary: true },
+        { value: 'Air heater', isPrimary: false }
       ]
 
       const mockFind = vi.fn().mockReturnValue({
@@ -40,12 +40,12 @@ describe('appliance-types-controller', () => {
 
     it('should return only primary appliance types when isPrimary is true', async () => {
       const mockPrimaryTypes = [
-        { value: 'Stove', label: 'Stove', isPrimary: true },
-        { value: 'Boiler', label: 'Independent boiler', isPrimary: true },
-        { value: 'Inset appliance', label: 'Inset appliance', isPrimary: true },
-        { value: 'Cooker', label: 'Cooker', isPrimary: true },
-        { value: 'Pizza oven', label: 'Pizza oven', isPrimary: true },
-        { value: 'Other', label: 'Other', isPrimary: true }
+        { value: 'Stove', isPrimary: true },
+        { value: 'Boiler', isPrimary: true },
+        { value: 'Inset appliance', isPrimary: true },
+        { value: 'Cooker', isPrimary: true },
+        { value: 'Pizza oven', isPrimary: true },
+        { value: 'Other', isPrimary: true }
       ]
 
       const mockFind = vi.fn().mockReturnValue({
@@ -66,23 +66,20 @@ describe('appliance-types-controller', () => {
 
     it('should return only secondary appliance types when isPrimary is false', async () => {
       const mockSecondaryTypes = [
-        { value: 'Air heater', label: 'Air heater', isPrimary: false },
+        { value: 'Air heater', isPrimary: false },
         {
           value: 'Oven incinerator',
-          label: 'Oven incinerator',
           isPrimary: false
         },
         {
           value: 'Cooker with boiler',
-          label: 'Cooker with boiler',
           isPrimary: false
         },
         {
           value: 'Wet room heater',
-          label: 'Wet room heater',
           isPrimary: false
         },
-        { value: 'Gasifier', label: 'Gasifier', isPrimary: false }
+        { value: 'Gasifier', isPrimary: false }
       ]
 
       const mockFind = vi.fn().mockReturnValue({
