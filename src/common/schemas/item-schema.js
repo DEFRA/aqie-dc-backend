@@ -87,14 +87,9 @@ export const applianceSchema = Joi.object({
   otherApplianceType: Joi.string()
     .optional()
     .allow(null)
-    .valid(
-      'Air heater',
-      'Oven incinerator',
-      'Cooker with boiler',
-      'Wet room heater',
-      'Gasifier'
-    )
-    .description('Secondary appliance type when applianceType is "other"'),
+    .description(
+      'Secondary appliance type when applianceType is "other". Values are sourced from the ApplianceTypes collection and may change without code changes.'
+    ),
   isVariant: Joi.boolean().required().description('Variant of appliance'),
   existingAuthorisedAppliance: Joi.string()
     .optional()
