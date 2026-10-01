@@ -36,10 +36,20 @@ function validateTechnicalReviewCheck(check, result, data) {
         'testReports result must be true (passed) or false (failed)'
       )
     }
-    if (result === true && !data?.testResults) {
-      throw Boom.badRequest(
-        'testReports requires testResults data when marked as passed'
-      )
+    if (result === true) {
+      const testResults = data?.testResults
+      const measurement = [
+        testResults?.ratedOutput,
+        testResults?.testedOutput?.rated,
+        testResults?.testedOutput?.low,
+        testResults?.smokeEmissionOutput?.rated,
+        testResults?.smokeEmissionOutput?.low
+      ]
+      if (measurement.some((value) => typeof value !== 'number')) {
+        throw Boom.badRequest(
+          'testReports requires all five measurements data, when marked as passed'
+        )
+      }
     }
   }
 

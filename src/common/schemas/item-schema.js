@@ -106,27 +106,32 @@ export const applianceSchema = Joi.object({
     ),
   // Fields from admin FE input
   testResults: Joi.object({
-    ratedOutput: Joi.alternatives()
-      .try(Joi.string().allow(''), Joi.number(), Joi.valid(null))
+    ratedOutput: Joi.number()
+      .min(0)
+      .allow(null)
       .optional()
       .description('Rated Output'),
     testedOutput: Joi.object({
-      rated: Joi.alternatives()
-        .try(Joi.string().allow(''), Joi.number(), Joi.valid(null))
+      rated: Joi.number()
+        .min(0)
+        .allow(null)
         .optional()
         .description('Tested Output - rated'),
-      low: Joi.alternatives()
-        .try(Joi.string().allow(''), Joi.number(), Joi.valid(null))
+      low: Joi.number()
+        .min(0)
+        .allow(null)
         .optional()
         .description('Tested Output - low')
     }).optional(),
     smokeEmissionOutput: Joi.object({
-      rated: Joi.alternatives()
-        .try(Joi.string().allow(''), Joi.number(), Joi.valid(null))
+      rated: Joi.number()
+        .min(0)
+        .allow(null)
         .optional()
         .description('Smoke emission output - rated'),
-      low: Joi.alternatives()
-        .try(Joi.string().allow(''), Joi.number(), Joi.valid(null))
+      low: Joi.number()
+        .min(0)
+        .allow(null)
         .optional()
         .description('Smoke emission output - low')
     }).optional()

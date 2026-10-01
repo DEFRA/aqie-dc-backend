@@ -225,7 +225,10 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
     test('accepts false for a testReports check', () => {
       const { error } = validate({
         check: 'testReports',
-        result: false
+        result: false,
+        data: {
+          testResults: {}
+        }
       })
 
       expect(error).toBeUndefined()
@@ -515,7 +518,8 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
     test('accepts testReports with result false and no testResults data', () => {
       const { error } = validate({
         check: 'testReports',
-        result: false
+        result: false,
+        data: { testResults: {} }
       })
 
       expect(error).toBeUndefined()
@@ -539,7 +543,7 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
         result: false,
         data: {
           testResults: {
-            ratedOutput: 'unavailable'
+            ratedOutput: null
           }
         }
       })
@@ -637,160 +641,147 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
   describe('testReports payload validation', () => {
     const validate = (payload) =>
       recordApplianceCheck.options.validate.payload.validate(payload)
+    const validMeasurements = {
+      ratedOutput: 10.5,
+      testedOutput: { rated: 9.75, low: 4 },
+      smokeEmissionOutput: { rated: 2.25, low: 1.1 }
+    }
 
-    describe('testReports marked as passed', () => {
-      test('requires data when result is true', () => {
+    describe('result', () => {
+      test('accepts true', () => {
         const { error } = validate({
           check: 'testReports',
-          result: true
+          result: true,
+          data: { testResults: validMeasurements }
+        })
+
+        expect(error).toBeUndefined()
+      })
+
+      test('accepts false', () => {
+        const { error } = validate({
+          check: 'testReports',
+          result: false,
+          data: { testResults: {} }
+        })
+
+        expect(error).toBeUndefined()
+      })
+
+      test('rejects null - a test report is either passed or failed', () => {
+        const { error } = validate({
+          check: 'testReports',
+          result: null,
+          data: { testResults: validMeasurements }
         })
 
         expect(error).toBeDefined()
       })
+    })
 
-      test('requires testResults property when result is true', () => {
+    describe('data', () => {
+      test('requires data', () => {
+        const { error } = validate({ check: 'testReports', result: false })
+
+        expect(error).toBeDefined()
+        expect(error.message).toContain('data')
+      })
+
+      test('requires testResults inside data', () => {
         const { error } = validate({
           check: 'testReports',
-          result: true,
+          result: false,
           data: {}
         })
 
         expect(error).toBeDefined()
-      })
+        expect(error.message).toContain('testResults')
+      }) // A failed report where the reviewer entered nothing.
+      // The "all five when passed" rule lives in validateTechnicalReviewCheck.
 
-      test('accepts valid passed measurements with all fields', () => {
-        const { error, value } = validate({
-          check: 'testReports',
-          result: true,
-          data: {
-            testResults: {
-              ratedOutput: 10.5,
-              testedOutput: {
-                rated: 9.75,
-                low: 4.0
-              },
-              smokeEmissionOutput: {
-                rated: 2.25,
-                low: 1.1
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-        expect(value.data.testResults.ratedOutput).toBe(10.5)
-      })
-
-      test('rounds passed measurements to two decimal places', () => {
-        const { error, value } = validate({
-          check: 'testReports',
-          result: true,
-          data: {
-            testResults: {
-              ratedOutput: 10.555,
-              testedOutput: {
-                rated: 9.765,
-                low: 4.005
-              },
-              smokeEmissionOutput: {
-                rated: 2.255,
-                low: 1.105
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-        expect(value.data.testResults.ratedOutput).toBe(10.56)
-        expect(value.data.testResults.testedOutput.rated).toBe(9.77)
-      })
-
-      test('accepts zero values for measurements', () => {
+      test('accepts an empty testResults object', () => {
         const { error } = validate({
           check: 'testReports',
-          result: true,
-          data: {
-            testResults: {
-              ratedOutput: 0,
-              testedOutput: {
-                rated: 0,
-                low: 0
-              },
-              smokeEmissionOutput: {
-                rated: 0,
-                low: 0
-              }
-            }
-          }
+          result: false,
+          data: { testResults: {} }
         })
 
         expect(error).toBeUndefined()
       })
 
-      test('rejects negative values for passed measurements', () => {
+      test('accepts partial measurements', () => {
         const { error } = validate({
           check: 'testReports',
-          result: true,
+          result: false,
+          data: { testResults: { ratedOutput: 10.5 } }
+        })
+
+        expect(error).toBeUndefined()
+      })
+    })
+
+    describe('measurement values - same rules whether passed or failed', () => {
+      test.each([
+        ['passed', true],
+        ['failed', false]
+      ])('rejects string measurements when %s', (_, result) => {
+        const { error } = validate({
+          check: 'testReports',
+          result,
           data: {
-            testResults: {
-              ratedOutput: -1,
-              testedOutput: {
-                rated: 9.75,
-                low: 4.0
-              },
-              smokeEmissionOutput: {
-                rated: 2.25,
-                low: 1.1
-              }
-            }
+            testResults: { ...validMeasurements, ratedOutput: '10.5' }
           }
         })
 
         expect(error).toBeDefined()
       })
 
-      test('rejects string values for passed measurements', () => {
+      test.each([
+        ['passed', true],
+        ['failed', false]
+      ])('rejects negative measurements when %s', (_, result) => {
         const { error } = validate({
           check: 'testReports',
-          result: true,
+          result,
           data: {
-            testResults: {
-              ratedOutput: '10.5',
-              testedOutput: {
-                rated: 9.75,
-                low: 4.0
-              },
-              smokeEmissionOutput: {
-                rated: 2.25,
-                low: 1.1
-              }
-            }
+            testResults: { ...validMeasurements, ratedOutput: -10.5 }
           }
         })
 
         expect(error).toBeDefined()
       })
 
-      test('requires all measurement fields when result is true', () => {
+      test('accepts zero', () => {
         const { error } = validate({
           check: 'testReports',
           result: true,
           data: {
             testResults: {
-              ratedOutput: 10.5,
-              testedOutput: {
-                rated: 9.75
-                // missing 'low'
-              },
-              smokeEmissionOutput: {
-                rated: 2.25,
-                low: 1.1
-              }
+              ...validMeasurements,
+              smokeEmissionOutput: { rated: 0, low: 0 }
             }
           }
         })
 
-        expect(error).toBeDefined()
+        expect(error).toBeUndefined()
+      })
+
+      test('rounds to two decimal places', () => {
+        const { value, error } = validate({
+          check: 'testReports',
+          result: true,
+          data: {
+            testResults: {
+              ratedOutput: 1.005,
+              testedOutput: { rated: 5.678, low: 2.344 },
+              smokeEmissionOutput: { rated: 3.2555, low: 1.111 }
+            }
+          }
+        })
+
+        expect(error).toBeUndefined()
+        expect(value.data.testResults.ratedOutput).toBe(1.01)
+        expect(value.data.testResults.testedOutput.rated).toBe(5.68)
       })
 
       test('rejects unknown properties inside testResults', () => {
@@ -798,405 +789,13 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
           check: 'testReports',
           result: true,
           data: {
-            testResults: {
-              ratedOutput: 10.5,
-              testedOutput: {
-                rated: 9.75,
-                low: 4.0
-              },
-              smokeEmissionOutput: {
-                rated: 2.25,
-                low: 1.1
-              },
-              unexpectedProperty: 'not allowed'
-            }
+            testResults: { ...validMeasurements, reviewStatus: true }
           }
         })
 
         expect(error).toBeDefined()
+        expect(error.message).toContain('reviewStatus')
       })
-    })
-
-    describe('testReports marked as failed', () => {
-      test('allows data to be optional when result is false', () => {
-        const { error } = validate({
-          check: 'testReports',
-          result: false
-        })
-
-        expect(error).toBeUndefined()
-      })
-
-      test('accepts empty data object when result is false', () => {
-        const { error } = validate({
-          check: 'testReports',
-          result: false,
-          data: {}
-        })
-
-        expect(error).toBeUndefined()
-      })
-
-      test('accepts string measurements when result is false', () => {
-        const { error, value } = validate({
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: '10.5',
-              testedOutput: {
-                rated: 'invalid',
-                low: '4.0'
-              },
-              smokeEmissionOutput: {
-                rated: 'abc',
-                low: '1.1'
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-        expect(value.data.testResults.ratedOutput).toBe('10.5')
-        expect(value.data.testResults.testedOutput.rated).toBe('invalid')
-      })
-
-      test('accepts numeric measurements when result is false', () => {
-        const { error, value } = validate({
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: 10.5,
-              testedOutput: {
-                rated: 9.75,
-                low: 4.0
-              },
-              smokeEmissionOutput: {
-                rated: 2.25,
-                low: 1.1
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-        expect(value.data.testResults.ratedOutput).toBe(10.5)
-      })
-
-      test('accepts negative values when result is false', () => {
-        const { error } = validate({
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: -10.5,
-              testedOutput: {
-                rated: -9.75,
-                low: -4.0
-              },
-              smokeEmissionOutput: {
-                rated: -2.25,
-                low: -1.1
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-      })
-
-      test('accepts empty strings for failed measurements', () => {
-        const { error, value } = validate({
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: '',
-              testedOutput: {
-                rated: '',
-                low: ''
-              },
-              smokeEmissionOutput: {
-                rated: '',
-                low: ''
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-        expect(value.data.testResults.ratedOutput).toBe('')
-      })
-
-      test('accepts null values for failed measurements', () => {
-        const { error } = validate({
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: null,
-              testedOutput: {
-                rated: null,
-                low: null
-              },
-              smokeEmissionOutput: {
-                rated: null,
-                low: null
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-      })
-
-      test('allows partial measurements when result is false', () => {
-        const { error } = validate({
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: '10.5'
-              // other fields omitted
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-      })
-
-      test('allows omitted testedOutput when result is false', () => {
-        const { error } = validate({
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: '10.5',
-              smokeEmissionOutput: {
-                rated: '2.25',
-                low: '1.1'
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-      })
-
-      test('rejects unknown properties inside testResults when result is false', () => {
-        const { error } = validate({
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: '10.5',
-              unexpectedProperty: 'not allowed'
-            }
-          }
-        })
-
-        expect(error).toBeDefined()
-      })
-    })
-
-    describe('result and data mismatch scenarios', () => {
-      const validate = (payload) =>
-        recordApplianceCheck.options.validate.payload.validate(payload)
-
-      test('rejects result=true without any testResults data (mismatch)', () => {
-        const { error } = validate({
-          check: 'testReports',
-          result: true
-        })
-
-        expect(error).toBeDefined()
-      })
-
-      test('rejects result=true with empty testResults object (mismatch)', () => {
-        const { error } = validate({
-          check: 'testReports',
-          result: true,
-          data: {
-            testResults: {}
-          }
-        })
-
-        expect(error).toBeDefined()
-      })
-
-      test('rejects result=true with string measurements (strict validation mismatch)', () => {
-        const { error } = validate({
-          check: 'testReports',
-          result: true,
-          data: {
-            testResults: {
-              ratedOutput: '10.5',
-              testedOutput: {
-                rated: '9.75',
-                low: '4.0'
-              },
-              smokeEmissionOutput: {
-                rated: '2.25',
-                low: '1.1'
-              }
-            }
-          }
-        })
-
-        expect(error).toBeDefined()
-        expect(error.message).toMatch(/ratedOutput/)
-      })
-
-      test('accepts result=true with all required numeric measurements (valid contract)', () => {
-        const { error, value } = validate({
-          check: 'testReports',
-          result: true,
-          data: {
-            testResults: {
-              ratedOutput: 10.5,
-              testedOutput: {
-                rated: 9.75,
-                low: 4.0
-              },
-              smokeEmissionOutput: {
-                rated: 2.25,
-                low: 1.1
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-        expect(value.result).toBe(true)
-        expect(value.data.testResults.ratedOutput).toBe(10.5)
-      })
-
-      test('accepts result=false without testResults data (flexible contract)', () => {
-        const { error } = validate({
-          check: 'testReports',
-          result: false
-        })
-
-        expect(error).toBeUndefined()
-      })
-
-      test('accepts result=false with string measurements (flexible validation)', () => {
-        const { error, value } = validate({
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: '10.5',
-              testedOutput: {
-                rated: 'unavailable',
-                low: '4.0'
-              },
-              smokeEmissionOutput: {
-                rated: 'N/A',
-                low: '1.1'
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-        expect(value.result).toBe(false)
-        expect(value.data.testResults.ratedOutput).toBe('10.5')
-      })
-
-      test('accepts result=false with numeric and partial measurements (flexible contract)', () => {
-        const { error, value } = validate({
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: 10.5,
-              testedOutput: {
-                rated: 9.75
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-        expect(value.result).toBe(false)
-      })
-
-      test('accepts result=false with null values (flexible contract)', () => {
-        const { error, value } = validate({
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: null,
-              testedOutput: {
-                rated: null,
-                low: null
-              },
-              smokeEmissionOutput: {
-                rated: null,
-                low: null
-              }
-            }
-          }
-        })
-
-        expect(error).toBeUndefined()
-        expect(value.result).toBe(false)
-      })
-
-      test('demonstrates API contract: passed (strict, all required) vs failed (flexible, optional)', () => {
-        // Passed scenario - strict validation enforced
-        const passedPayload = {
-          check: 'testReports',
-          result: true,
-          data: {
-            testResults: {
-              ratedOutput: 10.5,
-              testedOutput: {
-                rated: 9.75,
-                low: 4.0
-              },
-              smokeEmissionOutput: {
-                rated: 2.25,
-                low: 1.1
-              }
-            }
-          }
-        }
-        const passedResult = validate(passedPayload)
-        expect(passedResult.error).toBeUndefined()
-
-        // Failed scenario - flexible validation allows partial/string data
-        const failedPayload = {
-          check: 'testReports',
-          result: false,
-          data: {
-            testResults: {
-              ratedOutput: 'unable to measure'
-            }
-          }
-        }
-        const failedResult = validate(failedPayload)
-        expect(failedResult.error).toBeUndefined()
-
-        // Both can be saved to database without conflict
-        expect(passedResult.value.result).toBe(true)
-        expect(failedResult.value.result).toBe(false)
-      })
-    })
-
-    test('forbids data for checks other than testReports, permittedFuels, and additionalConditions', () => {
-      const { error } = validate({
-        check: 'conformityMark',
-        result: true,
-        data: {
-          someField: 'value'
-        }
-      })
-
-      expect(error).toBeDefined()
     })
   })
 })

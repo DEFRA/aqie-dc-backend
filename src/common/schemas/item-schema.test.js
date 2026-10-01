@@ -188,7 +188,7 @@ describe('item-schema applianceSchema', () => {
     })
   })
 
-  test('accepts string values in testResults for failed reports', () => {
+  test('rejects string values in testResults', () => {
     const payload = {
       ...applianceBasePayload,
       testResults: {
@@ -200,8 +200,9 @@ describe('item-schema applianceSchema', () => {
 
     const { error } = applianceSchema.validate(payload)
 
-    expect(error).toBeUndefined()
-  })
+    expect(error).toBeDefined()
+    expect(error.details[0].path).toEqual(['testResults', 'ratedOutput'])
+  }) // null means "the report gives no figure" - valid on a failed report
 
   test('accepts null values in testResults', () => {
     const payload = {
@@ -218,7 +219,7 @@ describe('item-schema applianceSchema', () => {
     expect(error).toBeUndefined()
   })
 
-  test('accepts mixed type values in testResults', () => {
+  test('rejects a mix of numbers and strings in testResults', () => {
     const payload = {
       ...applianceBasePayload,
       testResults: {
@@ -230,7 +231,19 @@ describe('item-schema applianceSchema', () => {
 
     const { error } = applianceSchema.validate(payload)
 
-    expect(error).toBeUndefined()
+    expect(error).toBeDefined()
+  })
+
+  test('rejects a negative measurement', () => {
+    const payload = {
+      ...applianceBasePayload,
+      testResults: { ratedOutput: -5 }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].type).toBe('number.min')
   })
 
   test('accepts isVariant true with existingAuthorisedAppliance as string', () => {
