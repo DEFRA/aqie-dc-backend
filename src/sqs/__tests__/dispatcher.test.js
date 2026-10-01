@@ -1,13 +1,18 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import {
   createApplicationRecordViaRoute,
-  ingestSqsMessageViaRoute
+  ingestSqsMessage,
+  markSqsMessageProcessed
 } from '../dispatcher.js'
-import { createSqsMessage } from '#src/controllers/sqs-messages-controller.js'
+import {
+  createSqsMessage,
+  markMessageProcessed
+} from '#src/controllers/sqs-messages-controller.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
 
 vi.mock('#src/controllers/sqs-messages-controller.js', () => ({
-  createSqsMessage: vi.fn()
+  createSqsMessage: vi.fn(),
+  markMessageProcessed: vi.fn()
 }))
 
 describe('dispatcher', () => {
@@ -55,25 +60,17 @@ describe('dispatcher', () => {
     })
   })
 
-  describe('ingestSqsMessageViaRoute', () => {
+  describe('ingestSqsMessage', () => {
     test('returns the controller result on success', async () => {
       createSqsMessage.mockResolvedValue({ success: true, _id: 'msg-1' })
 
-      const result = await ingestSqsMessageViaRoute(
-        server,
-        'message-id',
-        'raw-body',
-        { parsed: true },
-        '{"mapped":true}'
-      )
+      const result = await ingestSqsMessage(server, 'message-id', 'raw-body')
 
       expect(createSqsMessage).toHaveBeenCalledWith(
         server.db,
         {
           messageId: 'message-id',
-          messageBody: 'raw-body',
-          parsedMessageBody: { parsed: true },
-          mappedPayload: '{"mapped":true}'
+          messageBody: 'raw-body'
         },
         server.logger
       )
@@ -87,8 +84,23 @@ describe('dispatcher', () => {
       })
 
       await expect(
-        ingestSqsMessageViaRoute(server, 'message-id', 'raw-body', {}, '{}')
+        ingestSqsMessage(server, 'message-id', 'raw-body')
       ).rejects.toThrow('Failed to store SQS message: DB unavailable')
+    })
+  })
+
+  describe('markSqsMessageProcessed', () => {
+    test('delegates to markMessageProcessed with server db/logger', async () => {
+      markMessageProcessed.mockResolvedValue({ success: true })
+
+      const result = await markSqsMessageProcessed(server, 'message-id')
+
+      expect(markMessageProcessed).toHaveBeenCalledWith(
+        server.db,
+        'message-id',
+        server.logger
+      )
+      expect(result).toEqual({ success: true })
     })
   })
 })

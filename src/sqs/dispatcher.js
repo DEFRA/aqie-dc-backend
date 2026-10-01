@@ -3,7 +3,10 @@
 // -------------------------------
 
 import { statusCodes } from '#src/common/constants/status-codes.js'
-import { createSqsMessage } from '#src/controllers/sqs-messages-controller.js'
+import {
+  createSqsMessage,
+  markMessageProcessed
+} from '#src/controllers/sqs-messages-controller.js'
 
 // --- Application Management Routes (appliances or fuels, based on payload.type) ---
 
@@ -21,8 +24,11 @@ export async function createApplicationRecordViaRoute(server, payload) {
   })
 
   if (response.statusCode !== statusCodes.created) {
+    const errorMessage =
+      response.result?.message ?? response.result?.msg ?? 'Unknown error'
+
     throw new Error(
-      `Internal API error: ${response.statusCode} - ${response.result?.msg}`
+      `Internal API error: ${response.statusCode} - ${errorMessage}`
     )
   }
 
@@ -32,16 +38,15 @@ export async function createApplicationRecordViaRoute(server, payload) {
 // --- SQS Message Management Routes ---
 //This function is used to ingest SQS messages into the system for debugging and backup purposes
 // This function calls the controller directly rather than via a route, so that it is not accessible externally.
-export async function ingestSqsMessageViaRoute(
+export async function ingestSqsMessage(
   server,
   messageId,
   messageBody,
-  parsedMessageBody,
-  mappedPayload
+  sentTimestamp
 ) {
   const result = await createSqsMessage(
     server.db,
-    { messageId, messageBody, parsedMessageBody, mappedPayload },
+    { messageId, messageBody, sentTimestamp },
     server.logger
   )
 
@@ -50,4 +55,9 @@ export async function ingestSqsMessageViaRoute(
   }
 
   return result
+}
+
+// Marks the backed-up SQS message as having successfully produced an application record
+export async function markSqsMessageProcessed(server, messageId) {
+  return markMessageProcessed(server.db, messageId, server.logger)
 }

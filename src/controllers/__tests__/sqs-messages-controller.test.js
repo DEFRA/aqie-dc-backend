@@ -1,5 +1,8 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { createSqsMessage } from '#src/controllers/sqs-messages-controller.js'
+import {
+  createSqsMessage,
+  markMessageProcessed
+} from '#src/controllers/sqs-messages-controller.js'
 
 const mockLogger = {
   info: vi.fn(),
@@ -47,44 +50,7 @@ describe('createSqsMessage - additional coverage', () => {
     })
   })
 
-  test('stores mappedPayload string without parsing', async () => {
-    const payload = {
-      messageId: 'msg-123',
-      messageBody: '{}',
-      mappedPayload: JSON.stringify({
-        id: 'APP-001',
-        status: 'approved'
-      })
-    }
-
-    await createSqsMessage(db, payload, mockLogger)
-
-    expect(collection.insertOne).toHaveBeenCalledWith(
-      expect.objectContaining({
-        parsedPayload: null,
-        mappedPayload: payload.mappedPayload
-      })
-    )
-  })
-
-  test('stores invalid mappedPayload string unchanged', async () => {
-    const payload = {
-      messageId: 'msg-123',
-      messageBody: '{}',
-      mappedPayload: '{invalid-json'
-    }
-
-    await createSqsMessage(db, payload, mockLogger)
-
-    expect(mockLogger.warn).not.toHaveBeenCalled()
-
-    const insertedDoc = collection.insertOne.mock.calls[0][0]
-
-    expect(insertedDoc.parsedPayload).toBeNull()
-    expect(insertedDoc.mappedPayload).toBe('{invalid-json')
-  })
-
-  test('stores null values when mappedPayload is not provided', async () => {
+  test('stores messageId as _id, rawPayload as messageBody, and defaults processed to false', async () => {
     const payload = {
       messageId: 'msg-123',
       messageBody: '{}'
@@ -94,51 +60,62 @@ describe('createSqsMessage - additional coverage', () => {
 
     expect(collection.insertOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        parsedPayload: null,
-        mappedPayload: null
+        _id: 'msg-123',
+        rawPayload: '{}',
+        processed: false
       })
     )
   })
 
-  test('stores null values when mappedPayload is an empty string', async () => {
+  test('stores sentTimestamp as sentAt when provided', async () => {
     const payload = {
       messageId: 'msg-123',
       messageBody: '{}',
-      mappedPayload: ''
+      sentTimestamp: '1727000000000'
     }
 
     await createSqsMessage(db, payload, mockLogger)
 
-    const insertedDoc = collection.insertOne.mock.calls[0][0]
-
-    expect(insertedDoc.parsedPayload).toBeNull()
-    expect(insertedDoc.mappedPayload).toBeNull()
+    expect(collection.insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: 'msg-123',
+        sentAt: new Date(Number(payload.sentTimestamp))
+      })
+    )
   })
+})
 
-  test('stores parsedMessageBody and mappedPayload separately', async () => {
-    const parsedMessageBody = {
-      foo: 'bar',
-      count: 1
+describe('markMessageProcessed', () => {
+  let db
+  let collection
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    collection = {
+      updateOne: vi.fn(async () => ({ acknowledged: true }))
     }
 
-    const mappedPayload = JSON.stringify({
-      transformed: true
-    })
+    db = {
+      collection: vi.fn(() => collection)
+    }
+  })
 
-    await createSqsMessage(
-      db,
-      {
-        messageId: 'msg-123',
-        messageBody: '{}',
-        parsedMessageBody,
-        mappedPayload
-      },
-      mockLogger
+  test('sets processed to true for the given messageId', async () => {
+    const result = await markMessageProcessed(db, 'msg-123', mockLogger)
+
+    expect(collection.updateOne).toHaveBeenCalledWith(
+      { _id: 'msg-123' },
+      { $set: { processed: true } }
     )
+    expect(result).toEqual({ success: true })
+  })
 
-    const insertedDoc = collection.insertOne.mock.calls[0][0]
+  test('throws when the update is not acknowledged', async () => {
+    collection.updateOne.mockResolvedValueOnce({ acknowledged: false })
 
-    expect(insertedDoc.parsedPayload).toEqual(parsedMessageBody)
-    expect(insertedDoc.mappedPayload).toBe(mappedPayload)
+    await expect(
+      markMessageProcessed(db, 'msg-123', mockLogger)
+    ).rejects.toThrow('Failed to update sqs message')
   })
 })
