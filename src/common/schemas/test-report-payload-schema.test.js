@@ -180,4 +180,69 @@ describe('testResultsSchema', () => {
       expect(error.message).toContain('medium')
     })
   })
+
+  describe('failed report with empty fields', () => {
+    test('accepts a failed report with all fields set to null (from empty frontend form)', () => {
+      /**
+       * When frontend marks as failed with no values entered,
+       * it sends null for each field to explicitly clear/empty them.
+       * Backend schema must accept null to persist empty state properly.
+       */
+      const { value, error } = testResultsSchema.validate({
+        ratedOutput: null,
+        testedOutput: {
+          rated: null,
+          low: null
+        },
+        smokeEmissionOutput: {
+          rated: null,
+          low: null
+        }
+      })
+
+      expect(error).toBeUndefined()
+      expect(value).toEqual({
+        ratedOutput: null,
+        testedOutput: {
+          rated: null,
+          low: null
+        },
+        smokeEmissionOutput: {
+          rated: null,
+          low: null
+        }
+      })
+    })
+
+    test('accepts a mixed failed report with some null and some values', () => {
+      /**
+       * Failed report where user entered some values but left others empty.
+       * Empty fields are null, non-empty fields are numbers.
+       */
+      const { value, error } = testResultsSchema.validate({
+        ratedOutput: 5.2,
+        testedOutput: {
+          rated: null,
+          low: 2.4
+        },
+        smokeEmissionOutput: {
+          rated: null,
+          low: null
+        }
+      })
+
+      expect(error).toBeUndefined()
+      expect(value).toEqual({
+        ratedOutput: 5.2,
+        testedOutput: {
+          rated: null,
+          low: 2.4
+        },
+        smokeEmissionOutput: {
+          rated: null,
+          low: null
+        }
+      })
+    })
+  })
 })
