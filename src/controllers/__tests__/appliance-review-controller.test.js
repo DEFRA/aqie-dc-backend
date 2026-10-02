@@ -90,6 +90,7 @@ describe('appliance-review-controller', () => {
         modelNumber: 1,
         applicationId: 1,
         applianceType: 1,
+        otherApplianceType: 1,
         isVariant: 1,
         existingAuthorisedAppliance: 1,
         nominalOutput: 1,
