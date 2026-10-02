@@ -222,18 +222,62 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
       expect(error).toBeUndefined()
     })
 
-    test('accepts false for a normal documentation check', () => {
+    test('accepts false for a testReports check', () => {
       const { error } = validate({
         check: 'testReports',
-        result: false
+        result: false,
+        data: {
+          testResults: {}
+        }
       })
 
       expect(error).toBeUndefined()
     })
 
+    test('accepts true for a testReports check', () => {
+      const { error, value } = validate({
+        check: 'testReports',
+        result: true,
+        data: {
+          testResults: {
+            ratedOutput: 10.5,
+            testedOutput: {
+              rated: 9.75,
+              low: 4.0
+            },
+            smokeEmissionOutput: {
+              rated: 2.25,
+              low: 1.1
+            }
+          }
+        }
+      })
+
+      expect(error).toBeUndefined()
+      expect(value.result).toBe(true)
+    })
+
     test('accepts null for a normal documentation check', () => {
       const { error } = validate({
         check: 'conformityMark',
+        result: null
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    test('accepts null for technicalDrawings check', () => {
+      const { error } = validate({
+        check: 'technicalDrawings',
+        result: null
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    test('accepts null for instructionManual check', () => {
+      const { error } = validate({
+        check: 'instructionManual',
         result: null
       })
 
@@ -423,17 +467,88 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
       expect(error).toBeDefined()
     })
 
-    test('forbids data for checks that do not support extra payload', () => {
+    test('forbids data for checks other than testReports, permittedFuels, and additionalConditions', () => {
       const { error } = validate({
-        check: 'technicalDrawings',
+        check: 'conformityMark',
         result: true,
         data: {
-          permittedFuels: 'Wood logs',
-          isPermittedToBurnWood: true
+          someField: 'value'
         }
       })
 
       expect(error).toBeDefined()
+    })
+
+    test('accepts technicalDrawings with result true and no data', () => {
+      const { error } = validate({
+        check: 'technicalDrawings',
+        result: true
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    test('accepts technicalDrawings with result false and no data', () => {
+      const { error } = validate({
+        check: 'technicalDrawings',
+        result: false
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    test('accepts instructionManual with result true and no data', () => {
+      const { error } = validate({
+        check: 'instructionManual',
+        result: true
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    test('accepts instructionManual with result false and no data', () => {
+      const { error } = validate({
+        check: 'instructionManual',
+        result: false
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    test('accepts testReports with result false and no testResults data', () => {
+      const { error } = validate({
+        check: 'testReports',
+        result: false,
+        data: { testResults: {} }
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    test('accepts testReports with result false and empty testResults object', () => {
+      const { error } = validate({
+        check: 'testReports',
+        result: false,
+        data: {
+          testResults: {}
+        }
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    test('accepts testReports with result false and partial testResults data', () => {
+      const { error } = validate({
+        check: 'testReports',
+        result: false,
+        data: {
+          testResults: {
+            ratedOutput: null
+          }
+        }
+      })
+
+      expect(error).toBeUndefined()
     })
 
     test('rejects an unknown check name', () => {
@@ -520,6 +635,167 @@ describe('PATCH /appliances/{id}/technical-review/checks', () => {
 
     test('route contains the expected API tags', () => {
       expect(recordApplianceCheck.options.tags).toEqual(['api', 'appliances'])
+    })
+  })
+
+  describe('testReports payload validation', () => {
+    const validate = (payload) =>
+      recordApplianceCheck.options.validate.payload.validate(payload)
+    const validMeasurements = {
+      ratedOutput: 10.5,
+      testedOutput: { rated: 9.75, low: 4 },
+      smokeEmissionOutput: { rated: 2.25, low: 1.1 }
+    }
+
+    describe('result', () => {
+      test('accepts true', () => {
+        const { error } = validate({
+          check: 'testReports',
+          result: true,
+          data: { testResults: validMeasurements }
+        })
+
+        expect(error).toBeUndefined()
+      })
+
+      test('accepts false', () => {
+        const { error } = validate({
+          check: 'testReports',
+          result: false,
+          data: { testResults: {} }
+        })
+
+        expect(error).toBeUndefined()
+      })
+
+      test('rejects null - a test report is either passed or failed', () => {
+        const { error } = validate({
+          check: 'testReports',
+          result: null,
+          data: { testResults: validMeasurements }
+        })
+
+        expect(error).toBeDefined()
+      })
+    })
+
+    describe('data', () => {
+      test('requires data', () => {
+        const { error } = validate({ check: 'testReports', result: false })
+
+        expect(error).toBeDefined()
+        expect(error.message).toContain('data')
+      })
+
+      test('requires testResults inside data', () => {
+        const { error } = validate({
+          check: 'testReports',
+          result: false,
+          data: {}
+        })
+
+        expect(error).toBeDefined()
+        expect(error.message).toContain('testResults')
+      }) // A failed report where the reviewer entered nothing.
+      // The "all five when passed" rule lives in validateTechnicalReviewCheck.
+
+      test('accepts an empty testResults object', () => {
+        const { error } = validate({
+          check: 'testReports',
+          result: false,
+          data: { testResults: {} }
+        })
+
+        expect(error).toBeUndefined()
+      })
+
+      test('accepts partial measurements', () => {
+        const { error } = validate({
+          check: 'testReports',
+          result: false,
+          data: { testResults: { ratedOutput: 10.5 } }
+        })
+
+        expect(error).toBeUndefined()
+      })
+    })
+
+    describe('measurement values - same rules whether passed or failed', () => {
+      test.each([
+        ['passed', true],
+        ['failed', false]
+      ])('rejects string measurements when %s', (_, result) => {
+        const { error } = validate({
+          check: 'testReports',
+          result,
+          data: {
+            testResults: { ...validMeasurements, ratedOutput: '10.5' }
+          }
+        })
+
+        expect(error).toBeDefined()
+      })
+
+      test.each([
+        ['passed', true],
+        ['failed', false]
+      ])('rejects negative measurements when %s', (_, result) => {
+        const { error } = validate({
+          check: 'testReports',
+          result,
+          data: {
+            testResults: { ...validMeasurements, ratedOutput: -10.5 }
+          }
+        })
+
+        expect(error).toBeDefined()
+      })
+
+      test('accepts zero', () => {
+        const { error } = validate({
+          check: 'testReports',
+          result: true,
+          data: {
+            testResults: {
+              ...validMeasurements,
+              smokeEmissionOutput: { rated: 0, low: 0 }
+            }
+          }
+        })
+
+        expect(error).toBeUndefined()
+      })
+
+      test('rounds to two decimal places', () => {
+        const { value, error } = validate({
+          check: 'testReports',
+          result: true,
+          data: {
+            testResults: {
+              ratedOutput: 1.005,
+              testedOutput: { rated: 5.678, low: 2.344 },
+              smokeEmissionOutput: { rated: 3.2555, low: 1.111 }
+            }
+          }
+        })
+
+        expect(error).toBeUndefined()
+        expect(value.data.testResults.ratedOutput).toBe(1.01)
+        expect(value.data.testResults.testedOutput.rated).toBe(5.68)
+      })
+
+      test('rejects unknown properties inside testResults', () => {
+        const { error } = validate({
+          check: 'testReports',
+          result: true,
+          data: {
+            testResults: { ...validMeasurements, reviewStatus: true }
+          }
+        })
+
+        expect(error).toBeDefined()
+        expect(error.message).toContain('reviewStatus')
+      })
     })
   })
 })

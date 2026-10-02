@@ -30,6 +30,29 @@ function validateTechnicalReviewCheck(check, result, data) {
     }
   }
 
+  if (check === 'testReports') {
+    if (typeof result !== 'boolean') {
+      throw Boom.badRequest(
+        'testReports result must be true (passed) or false (failed)'
+      )
+    }
+    if (result === true) {
+      const testResults = data?.testResults
+      const measurement = [
+        testResults?.ratedOutput,
+        testResults?.testedOutput?.rated,
+        testResults?.testedOutput?.low,
+        testResults?.smokeEmissionOutput?.rated,
+        testResults?.smokeEmissionOutput?.low
+      ]
+      if (measurement.some((value) => typeof value !== 'number')) {
+        throw Boom.badRequest(
+          'testReports requires all five measurements data, when marked as passed'
+        )
+      }
+    }
+  }
+
   return group
 }
 
@@ -69,6 +92,7 @@ async function getApplianceReview(db, id, logger) {
           permittedFuels: 1,
           isPermittedToBurnWood: 1,
           additionalConditions: 1,
+          testResults: 1,
           technicalReview: 1,
           _id: 0
         }

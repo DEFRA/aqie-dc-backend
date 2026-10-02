@@ -188,22 +188,62 @@ describe('item-schema applianceSchema', () => {
     })
   })
 
-  test('rejects non-numeric testResults.testedOutput.rated', () => {
+  test('rejects string values in testResults', () => {
     const payload = {
       ...applianceBasePayload,
       testResults: {
-        testedOutput: { rated: 'not-a-number' }
+        ratedOutput: 'unavailable',
+        testedOutput: { rated: 'failed', low: 'N/A' },
+        smokeEmissionOutput: { rated: 'error', low: '' }
       }
     }
 
     const { error } = applianceSchema.validate(payload)
 
     expect(error).toBeDefined()
-    expect(error.details[0].path).toEqual([
-      'testResults',
-      'testedOutput',
-      'rated'
-    ])
+    expect(error.details[0].path).toEqual(['testResults', 'ratedOutput'])
+  }) // null means "the report gives no figure" - valid on a failed report
+
+  test('accepts null values in testResults', () => {
+    const payload = {
+      ...applianceBasePayload,
+      testResults: {
+        ratedOutput: null,
+        testedOutput: { rated: null, low: null },
+        smokeEmissionOutput: { rated: null, low: null }
+      }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+  })
+
+  test('rejects a mix of numbers and strings in testResults', () => {
+    const payload = {
+      ...applianceBasePayload,
+      testResults: {
+        ratedOutput: 10.5,
+        testedOutput: { rated: 'failed', low: 5.2 },
+        smokeEmissionOutput: { rated: null, low: 'N/A' }
+      }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+  })
+
+  test('rejects a negative measurement', () => {
+    const payload = {
+      ...applianceBasePayload,
+      testResults: { ratedOutput: -5 }
+    }
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].type).toBe('number.min')
   })
 
   test('accepts isVariant true with existingAuthorisedAppliance as string', () => {
