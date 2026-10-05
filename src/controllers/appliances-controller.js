@@ -239,12 +239,13 @@ async function searchAppliances(
 
     const searchQuery = {}
 
-    if (query && query.trim()) {
+    if (query?.trim()) {
+      const trimmedQuery = query.trim()
       searchQuery.$or = [
-        { modelName: { $regex: query.trim(), $options: 'i' } },
-        { companyName: { $regex: query.trim(), $options: 'i' } },
-        { modelNumber: { $regex: query.trim(), $options: 'i' } },
-        { applianceType: { $regex: query.trim(), $options: 'i' } }
+        { modelName: { $regex: trimmedQuery, $options: 'i' } },
+        { companyName: { $regex: trimmedQuery, $options: 'i' } },
+        { modelNumber: { $regex: trimmedQuery, $options: 'i' } },
+        { applianceType: { $regex: trimmedQuery, $options: 'i' } }
       ]
     }
 
