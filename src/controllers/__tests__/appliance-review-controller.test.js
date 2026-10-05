@@ -90,6 +90,7 @@ describe('appliance-review-controller', () => {
         modelNumber: 1,
         applicationId: 1,
         applianceType: 1,
+        otherApplianceType: 1,
         isVariant: 1,
         existingAuthorisedAppliance: 1,
         nominalOutput: 1,
@@ -97,6 +98,7 @@ describe('appliance-review-controller', () => {
         permittedFuels: 1,
         additionalConditions: 1,
         isPermittedToBurnWood: 1,
+        testResults: 1,
         technicalReview: 1,
         _id: 0
       })
@@ -821,6 +823,323 @@ describe('appliance-review-controller', () => {
           'technicalReview.status',
           'in_review'
         )
+      })
+    })
+
+    describe('testReports check', () => {
+      const passedTestResults = {
+        ratedOutput: 5.25,
+        testedOutput: {
+          rated: 5.1,
+          low: 2.4
+        },
+        smokeEmissionOutput: {
+          rated: 3.2,
+          low: 1.1
+        }
+      }
+
+      const failedTestResults = {
+        ratedOutput: -4.5,
+        testedOutput: {
+          rated: 4,
+          low: -1
+        },
+        smokeEmissionOutput: {
+          rated: null,
+          low: null
+        }
+      }
+
+      const validMeasurements = {
+        ratedOutput: 10.5,
+        testedOutput: { rated: 9.75, low: 4 },
+        smokeEmissionOutput: { rated: 2.25, low: 1.1 }
+      }
+
+      test('rejects a passed report with a missing measurement', async () => {
+        const { ratedOutput, ...incomplete } = validMeasurements
+
+        await expect(
+          recordApplianceCheck(db, 'APP-1', 'testReports', true, mockLogger, {
+            testResults: incomplete
+          })
+        ).rejects.toMatchObject({
+          isBoom: true,
+          output: {
+            statusCode: 400,
+            payload: expect.objectContaining({
+              message:
+                'testReports requires all five measurements data, when marked as passed'
+            })
+          }
+        })
+
+        expect(collection.updateOne).not.toHaveBeenCalled()
+      }) // null means "no figure given" - fine on a failure, not on a pass
+
+      test('rejects a passed report with a null measurement', async () => {
+        await expect(
+          recordApplianceCheck(db, 'APP-1', 'testReports', true, mockLogger, {
+            testResults: { ...validMeasurements, ratedOutput: null }
+          })
+        ).rejects.toMatchObject({ isBoom: true })
+
+        expect(collection.updateOne).not.toHaveBeenCalled()
+      })
+
+      test('rejects a passed report with a missing testedOutput object', async () => {
+        const { testedOutput, ...incomplete } = validMeasurements
+
+        await expect(
+          recordApplianceCheck(db, 'APP-1', 'testReports', true, mockLogger, {
+            testResults: incomplete
+          })
+        ).rejects.toMatchObject({ isBoom: true })
+      })
+
+      test('accepts a failed report with no measurements', async () => {
+        existingReview('in_review')
+
+        const result = await recordApplianceCheck(
+          db,
+          'APP-1',
+          'testReports',
+          false,
+          mockLogger,
+          { testResults: {} }
+        )
+
+        expect(result.success).toBe(true)
+
+        const [, update] = collection.updateOne.mock.calls[0]
+
+        expect(
+          update.$set['technicalReview.documentationChecks.testReports']
+        ).toBe(false)
+      })
+
+      test('accepts a failed report with null measurements', async () => {
+        existingReview('in_review')
+
+        const result = await recordApplianceCheck(
+          db,
+          'APP-1',
+          'testReports',
+          false,
+          mockLogger,
+          { testResults: { ratedOutput: null } }
+        )
+
+        expect(result.success).toBe(true)
+      })
+
+      test('records passed test reports and stores test results', async () => {
+        existingReview('in_review')
+
+        const result = await recordApplianceCheck(
+          db,
+          'APP-1',
+          'testReports',
+          true,
+          mockLogger,
+          {
+            testResults: passedTestResults
+          }
+        )
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            id: 'APP-1',
+            check: 'testReports',
+            result: true
+          }
+        })
+
+        expect(collection.updateOne).toHaveBeenCalledTimes(1)
+
+        const [, update] = collection.updateOne.mock.calls[0]
+
+        expect(update.$set).toHaveProperty(
+          'technicalReview.documentationChecks.testReports',
+          true
+        )
+        expect(update.$set).toMatchObject({
+          'testResults.ratedOutput': 5.25,
+          'testResults.testedOutput.rated': 5.1,
+          'testResults.testedOutput.low': 2.4,
+          'testResults.smokeEmissionOutput.rated': 3.2,
+          'testResults.smokeEmissionOutput.low': 1.1
+        })
+      })
+
+      test('records failed test reports and stores measurement results', async () => {
+        existingReview('in_review')
+
+        const result = await recordApplianceCheck(
+          db,
+          'APP-1',
+          'testReports',
+          false,
+          mockLogger,
+          {
+            testResults: failedTestResults
+          }
+        )
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            id: 'APP-1',
+            check: 'testReports',
+            result: false
+          }
+        })
+
+        const [, update] = collection.updateOne.mock.calls[0]
+
+        expect(update.$set).toHaveProperty(
+          'technicalReview.documentationChecks.testReports',
+          false
+        )
+
+        expect(update.$set).toMatchObject({
+          'testResults.ratedOutput': -4.5,
+          'testResults.testedOutput.rated': 4,
+          'testResults.testedOutput.low': -1,
+          'testResults.smokeEmissionOutput.rated': null,
+          'testResults.smokeEmissionOutput.low': null
+        })
+      })
+
+      test.each([
+        ['null', null],
+        ['undefined', undefined],
+        ['a string', 'true'],
+        ['a number', 1]
+      ])('rejects %s as a test reports result', async (_, invalidResult) => {
+        await expect(
+          recordApplianceCheck(
+            db,
+            'APP-1',
+            'testReports',
+            invalidResult,
+            mockLogger,
+            {
+              testResults: passedTestResults
+            }
+          )
+        ).rejects.toMatchObject({
+          isBoom: true,
+          output: {
+            statusCode: 400,
+            payload: expect.objectContaining({
+              message:
+                'testReports result must be true (passed) or false (failed)'
+            })
+          }
+        })
+
+        expect(collection.findOne).not.toHaveBeenCalled()
+        expect(collection.updateOne).not.toHaveBeenCalled()
+
+        expect(mockLogger.error).toHaveBeenCalledWith(
+          expect.objectContaining({
+            isBoom: true
+          }),
+          'Failed to record appliance check'
+        )
+      })
+
+      test('rejects test reports when data is missing', async () => {
+        await expect(
+          recordApplianceCheck(db, 'APP-1', 'testReports', true, mockLogger)
+        ).rejects.toMatchObject({
+          isBoom: true,
+          output: {
+            statusCode: 400,
+            payload: expect.objectContaining({
+              message:
+                'testReports requires all five measurements data, when marked as passed'
+            })
+          }
+        })
+
+        expect(collection.findOne).not.toHaveBeenCalled()
+        expect(collection.updateOne).not.toHaveBeenCalled()
+      })
+
+      test('rejects test reports when testResults is missing', async () => {
+        await expect(
+          recordApplianceCheck(db, 'APP-1', 'testReports', true, mockLogger, {})
+        ).rejects.toMatchObject({
+          isBoom: true,
+          output: {
+            statusCode: 400,
+            payload: expect.objectContaining({
+              message:
+                'testReports requires all five measurements data, when marked as passed'
+            })
+          }
+        })
+
+        expect(collection.findOne).not.toHaveBeenCalled()
+        expect(collection.updateOne).not.toHaveBeenCalled()
+
+        expect(mockLogger.error).toHaveBeenCalledWith(
+          expect.objectContaining({
+            isBoom: true
+          }),
+          'Failed to record appliance check'
+        )
+      })
+
+      test('starts a new review when test reports are recorded', async () => {
+        existingReview('new')
+
+        await recordApplianceCheck(
+          db,
+          'APP-1',
+          'testReports',
+          true,
+          mockLogger,
+          {
+            testResults: passedTestResults
+          }
+        )
+
+        const [, update] = collection.updateOne.mock.calls[0]
+
+        expect(update.$set).toHaveProperty(
+          'technicalReview.documentationChecks.testReports',
+          true
+        )
+        expect(update.$set).toHaveProperty(
+          'technicalReview.status',
+          'in_review'
+        )
+        expect(update.$set).toHaveProperty('testResults.ratedOutput', 5.25)
+      })
+
+      test('does not overwrite the review status when test reports are edited', async () => {
+        existingReview('in_review')
+
+        await recordApplianceCheck(
+          db,
+          'APP-1',
+          'testReports',
+          true,
+          mockLogger,
+          {
+            testResults: passedTestResults
+          }
+        )
+
+        const [, update] = collection.updateOne.mock.calls[0]
+
+        expect(update.$set).not.toHaveProperty('technicalReview.status')
+        expect(update.$set).toHaveProperty('testResults.ratedOutput', 5.25)
       })
     })
 
