@@ -16,7 +16,7 @@ export const getApplianceTypes = {
       'Fetch available appliance types, optionally filtered by isPrimary',
     validate: {
       query: Joi.object({
-        isPrimary: Joi.boolean().optional()
+        isPrimary: Joi.boolean().required()
       })
     }
   },
@@ -24,13 +24,13 @@ export const getApplianceTypes = {
     try {
       const { isPrimary } = request.query
 
-      const applianceTypes = await applianceTypesController.getApplianceTypes(
+      const result = await applianceTypesController.getApplianceTypes(
         request.db,
-        request.logger,
-        isPrimary !== undefined ? isPrimary : null
+        { isPrimary },
+        request.logger
       )
 
-      return h.response(applianceTypes).code(statusCodes.ok)
+      return h.response(result.data).code(statusCodes.ok)
     } catch (error) {
       request.logger.error(error, 'Failed to fetch appliance types')
 

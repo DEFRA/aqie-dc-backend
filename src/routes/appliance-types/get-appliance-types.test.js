@@ -41,12 +41,11 @@ describe('GET /appliance-types route', () => {
     expect(resultFalse.value.isPrimary).toBe(false)
   })
 
-  it('should allow empty query parameters', () => {
+  it('should reject empty query parameters when isPrimary is missing', () => {
     const { query } = getApplianceTypes.options.validate
     const result = query.validate({})
 
-    expect(result.error).toBeUndefined()
-    expect(result.value).toEqual({})
+    expect(result.error).toBeDefined()
   })
 
   it('should have a handler function', () => {
@@ -61,34 +60,49 @@ describe('GET /appliance-types route', () => {
     const h = { response: vi.fn().mockReturnValue(response) }
     const applianceTypes = [{ value: 'Stove', isPrimary: true }]
 
-    mockGetApplianceTypes.mockResolvedValue(applianceTypes)
+    mockGetApplianceTypes.mockResolvedValue({
+      success: true,
+      data: applianceTypes
+    })
 
     const result = await getApplianceTypes.handler(
       { query: { isPrimary: true }, db: mockDb, logger: mockLogger },
       h
     )
 
-    expect(mockGetApplianceTypes).toHaveBeenCalledWith(mockDb, mockLogger, true)
+    expect(mockGetApplianceTypes).toHaveBeenCalledWith(
+      mockDb,
+      { isPrimary: true },
+      mockLogger
+    )
     expect(h.response).toHaveBeenCalledWith(applianceTypes)
     expect(response.code).toHaveBeenCalledWith(200)
     expect(result).toBe(response)
   })
 
-  it('should pass null as the isPrimary filter when the query param is omitted', async () => {
+  it('should fetch appliance types with isPrimary false', async () => {
     const mockLogger = { error: vi.fn() }
     const mockDb = { collection: vi.fn() }
     const response = { code: vi.fn().mockReturnThis() }
     const h = { response: vi.fn().mockReturnValue(response) }
-    const applianceTypes = [{ value: 'Stove', isPrimary: true }]
+    const applianceTypes = [{ value: 'Air heater', isPrimary: false }]
 
-    mockGetApplianceTypes.mockResolvedValue(applianceTypes)
+    mockGetApplianceTypes.mockResolvedValue({
+      success: true,
+      data: applianceTypes
+    })
 
     await getApplianceTypes.handler(
-      { query: {}, db: mockDb, logger: mockLogger },
+      { query: { isPrimary: false }, db: mockDb, logger: mockLogger },
       h
     )
 
-    expect(mockGetApplianceTypes).toHaveBeenCalledWith(mockDb, mockLogger, null)
+    expect(mockGetApplianceTypes).toHaveBeenCalledWith(
+      mockDb,
+      { isPrimary: false },
+      mockLogger
+    )
+    expect(h.response).toHaveBeenCalledWith(applianceTypes)
   })
 
   it('should return an internal boom error when the controller throws a generic error', async () => {
@@ -98,7 +112,7 @@ describe('GET /appliance-types route', () => {
     mockGetApplianceTypes.mockRejectedValue(new Error('database down'))
 
     const result = await getApplianceTypes.handler(
-      { query: {}, db: {}, logger: mockLogger },
+      { query: { isPrimary: true }, db: {}, logger: mockLogger },
       h
     )
 
@@ -118,7 +132,10 @@ describe('GET /appliance-types route', () => {
     mockGetApplianceTypes.mockRejectedValue(boomError)
 
     await expect(
-      getApplianceTypes.handler({ query: {}, db: {}, logger: mockLogger }, h)
+      getApplianceTypes.handler(
+        { query: { isPrimary: true }, db: {}, logger: mockLogger },
+        h
+      )
     ).rejects.toBe(boomError)
 
     expect(mockLogger.error).toHaveBeenCalledWith(
