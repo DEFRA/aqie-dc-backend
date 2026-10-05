@@ -9,7 +9,7 @@ describe('appliance-types-controller', () => {
       collection: vi.fn()
     }
     mockLogger = {
-      warn: vi.fn(),
+      info: vi.fn(),
       error: vi.fn()
     }
   })
@@ -30,12 +30,17 @@ describe('appliance-types-controller', () => {
         find: mockFind
       })
 
-      const result = await getApplianceTypes(mockDb, mockLogger, null)
+      const result = await getApplianceTypes(
+        mockDb,
+        { isPrimary: null },
+        mockLogger
+      )
 
       expect(mockDb.collection).toHaveBeenCalledWith('ApplianceTypes')
       expect(mockFind).toHaveBeenCalledWith({})
-      expect(result).toEqual(mockApplianceTypes)
-      expect(mockLogger.warn).not.toHaveBeenCalled()
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual(mockApplianceTypes)
+      expect(mockLogger.info).toHaveBeenCalled()
     })
 
     it('should return only primary appliance types when isPrimary is true', async () => {
@@ -56,12 +61,17 @@ describe('appliance-types-controller', () => {
         find: mockFind
       })
 
-      const result = await getApplianceTypes(mockDb, mockLogger, true)
+      const result = await getApplianceTypes(
+        mockDb,
+        { isPrimary: true },
+        mockLogger
+      )
 
       expect(mockDb.collection).toHaveBeenCalledWith('ApplianceTypes')
       expect(mockFind).toHaveBeenCalledWith({ isPrimary: true })
-      expect(result).toEqual(mockPrimaryTypes)
-      expect(result.length).toBe(6)
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual(mockPrimaryTypes)
+      expect(result.data.length).toBe(6)
     })
 
     it('should return only secondary appliance types when isPrimary is false', async () => {
@@ -90,12 +100,17 @@ describe('appliance-types-controller', () => {
         find: mockFind
       })
 
-      const result = await getApplianceTypes(mockDb, mockLogger, false)
+      const result = await getApplianceTypes(
+        mockDb,
+        { isPrimary: false },
+        mockLogger
+      )
 
       expect(mockDb.collection).toHaveBeenCalledWith('ApplianceTypes')
       expect(mockFind).toHaveBeenCalledWith({ isPrimary: false })
-      expect(result).toEqual(mockSecondaryTypes)
-      expect(result.length).toBe(5)
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual(mockSecondaryTypes)
+      expect(result.data.length).toBe(5)
     })
 
     it('should return empty array when no appliance types found', async () => {
@@ -107,10 +122,15 @@ describe('appliance-types-controller', () => {
         find: mockFind
       })
 
-      const result = await getApplianceTypes(mockDb, mockLogger, true)
+      const result = await getApplianceTypes(
+        mockDb,
+        { isPrimary: true },
+        mockLogger
+      )
 
-      expect(result).toEqual([])
-      expect(mockLogger.warn).toHaveBeenCalledWith(
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual([])
+      expect(mockLogger.info).toHaveBeenCalledWith(
         'No appliance types found (isPrimary: true)'
       )
     })
@@ -125,9 +145,9 @@ describe('appliance-types-controller', () => {
         find: mockFind
       })
 
-      await expect(getApplianceTypes(mockDb, mockLogger, null)).rejects.toThrow(
-        'Database connection failed'
-      )
+      await expect(
+        getApplianceTypes(mockDb, { isPrimary: null }, mockLogger)
+      ).rejects.toThrow('Database connection failed')
       expect(mockLogger.error).toHaveBeenCalledWith(
         dbError,
         'Failed to fetch appliance types'
@@ -143,10 +163,15 @@ describe('appliance-types-controller', () => {
         find: mockFind
       })
 
-      const result = await getApplianceTypes(mockDb, mockLogger, null)
+      const result = await getApplianceTypes(
+        mockDb,
+        { isPrimary: null },
+        mockLogger
+      )
 
-      expect(result).toEqual([])
-      expect(mockLogger.warn).toHaveBeenCalled()
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual([])
+      expect(mockLogger.info).toHaveBeenCalled()
     })
   })
 })
