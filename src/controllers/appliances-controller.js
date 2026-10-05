@@ -87,6 +87,7 @@ function mapApplianceSummary(item) {
     permittedFuels: item.permittedFuels || '',
     type: item.applianceType,
     modelNumber: item.modelNumber,
+    status: (item.applianceStatus || 'pending').toLowerCase(),
     authorisedIn: findCertified(
       item.englandCertification,
       item.scotlandCertification,
@@ -223,7 +224,7 @@ async function deleteAppliance(db, id, logger) {
  */
 async function searchAppliances(
   db,
-  { query, page = 1, limit = 20 } = {},
+  { query = '', page = 1, limit = 20, statuses = [] } = {},
   logger
 ) {
   if (!logger) {
@@ -232,14 +233,25 @@ async function searchAppliances(
   try {
     const collection = db.collection('Appliances')
     const skip = (page - 1) * limit
+    const normalisedStatuses = (statuses || [])
+      .map((status) => (status || '').toLowerCase().trim())
+      .filter(Boolean)
 
-    const searchQuery = {
-      $or: [
-        { modelName: { $regex: query, $options: 'i' } },
-        { companyName: { $regex: query, $options: 'i' } },
-        { modelNumber: { $regex: query, $options: 'i' } },
-        { applianceType: { $regex: query, $options: 'i' } }
+    const searchQuery = {}
+
+    if (query && query.trim()) {
+      searchQuery.$or = [
+        { modelName: { $regex: query.trim(), $options: 'i' } },
+        { companyName: { $regex: query.trim(), $options: 'i' } },
+        { modelNumber: { $regex: query.trim(), $options: 'i' } },
+        { applianceType: { $regex: query.trim(), $options: 'i' } }
       ]
+    }
+
+    if (normalisedStatuses.length > 0) {
+      searchQuery.applianceStatus = {
+        $in: normalisedStatuses.map((status) => new RegExp(`^${status}$`, 'i'))
+      }
     }
 
     const appliances = await collection
@@ -258,7 +270,7 @@ async function searchAppliances(
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.max(Math.ceil(total / limit), 0)
       }
     }
   } catch (error) {

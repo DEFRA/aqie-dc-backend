@@ -65,7 +65,7 @@ describe('GET /api/appliances/search', () => {
       expect(result.statusCode).toBe(statusCodes.ok)
       expect(applianceController.searchAppliances).toHaveBeenCalledWith(
         mockRequest.db,
-        { query: 'boiler', page: 1, limit: 20 },
+        { query: 'boiler', page: 1, limit: 20, statuses: [] },
         mockRequest.logger
       )
     })
@@ -126,6 +126,25 @@ describe('GET /api/appliances/search', () => {
       expect(applianceController.searchAppliances).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ query: 'furnace model x' }),
+        expect.anything()
+      )
+    })
+
+    test('passes status filter params to controller', async () => {
+      mockRequest.query.status = 'pending,live'
+
+      applianceController.searchAppliances.mockResolvedValueOnce({
+        success: true,
+        data: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
+      })
+
+      const h = mockToolkit
+      await searchAppliances.handler(mockRequest, h)
+
+      expect(applianceController.searchAppliances).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ statuses: ['pending', 'live'] }),
         expect.anything()
       )
     })
@@ -205,21 +224,15 @@ describe('GET /api/appliances/search', () => {
       expect(searchAppliances.options.validate.query).toBeDefined()
     })
 
-    test('requires q query param', () => {
+    test('allows empty q query values for a full-list search', () => {
       const querySchema = searchAppliances.options.validate.query
       const { error } = querySchema.validate({})
-      expect(error).toBeDefined()
+      expect(error).toBeUndefined()
     })
 
-    test('requires q to be at least 2 characters', () => {
+    test('accepts a short query value when it is otherwise valid', () => {
       const querySchema = searchAppliances.options.validate.query
       const { error } = querySchema.validate({ q: 'a' })
-      expect(error).toBeDefined()
-    })
-
-    test('accepts valid query with minimum length', () => {
-      const querySchema = searchAppliances.options.validate.query
-      const { error } = querySchema.validate({ q: 'ab' })
       expect(error).toBeUndefined()
     })
 
