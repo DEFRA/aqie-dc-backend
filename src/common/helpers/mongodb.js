@@ -2,6 +2,7 @@ import { MongoClient } from 'mongodb'
 import { LockManager } from 'mongo-locks'
 import { setupAppliancesAndFuels } from '../../migrations/setup-appliances-fuels.js'
 import { setupApplications } from '../../migrations/setup-applications.js'
+import { setupApplianceTypes } from '../../migrations/setup-appliance-types.js'
 
 export const mongoDb = {
   plugin: {
@@ -60,6 +61,7 @@ async function ensureAppliancesAndFuelsCollections(db, logger) {
     const hasAppliances = collectionNames.includes('Appliances')
     const hasFuels = collectionNames.includes('Fuels')
     const hasApplications = collectionNames.includes('Applications')
+    const hasApplianceTypes = collectionNames.includes('ApplianceTypes')
 
     // Setup Appliances and Fuels
     if (!hasAppliances || !hasFuels) {
@@ -82,6 +84,15 @@ async function ensureAppliancesAndFuelsCollections(db, logger) {
       logger.info('Applications collection setup complete')
     } else {
       logger.info('Applications collection already exists')
+    }
+
+    // Setup ApplianceTypes
+    if (!hasApplianceTypes) {
+      logger.info('Setting up ApplianceTypes collection...')
+      await setupApplianceTypes(db, logger)
+      logger.info('ApplianceTypes collection setup complete')
+    } else {
+      logger.info('ApplianceTypes collection already exists')
     }
   } catch (error) {
     logger.error(error, 'Failed to setup collections')
