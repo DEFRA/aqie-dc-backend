@@ -22,7 +22,7 @@ export const searchAppliances = {
           .max(MAX_QUERY_LENGTH)
           .pattern(/^[a-zA-Z0-9\s\-_.&']*$/)
           .description(
-            'Search query for appliances by modelName. Max 50 chars.'
+            'Search query for appliances (modelName, companyName and applianceType ). Max 50 chars.'
           ),
         status: Joi.string()
           .trim()

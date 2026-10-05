@@ -371,42 +371,6 @@ describe('appliances-controller', () => {
   })
 
   describe('searchAppliances', () => {
-    test('searches by modelName with case-insensitive regex', async () => {
-      const cursor = {
-        sort: vi.fn().mockReturnThis(),
-        skip: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        toArray: vi.fn().mockResolvedValue([
-          {
-            id: 'APP-001',
-            modelName: 'Search Model'
-          }
-        ])
-      }
-
-      collection.find.mockReturnValue(cursor)
-      collection.countDocuments.mockResolvedValue(1)
-
-      const result = await searchAppliances(
-        db,
-        {
-          query: 'search',
-          page: 1,
-          limit: 20
-        },
-        mockLogger
-      )
-
-      expect(result.success).toBe(true)
-      expect(result.data.length).toBe(1)
-
-      // Verify search query only searches by modelName
-      const searchQuery = collection.find.mock.calls[0][0]
-      expect(searchQuery.modelName).toBeDefined()
-      expect(searchQuery.modelName.$regex).toBe('search')
-      expect(searchQuery.modelName.$options).toBe('i')
-    })
-
     test('returns paginated results', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),

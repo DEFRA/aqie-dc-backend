@@ -220,7 +220,7 @@ async function deleteAppliance(db, id, logger) {
 }
 
 /**
- * Search appliances by modelName with pagination
+ * Search appliances by name, model number, or type with pagination
  */
 async function searchAppliances(
   db,
@@ -239,9 +239,13 @@ async function searchAppliances(
 
     const searchQuery = {}
 
-    if (query?.trim()) {
-      const trimmedQuery = query.trim()
-      searchQuery.modelName = { $regex: trimmedQuery, $options: 'i' }
+    if (query && query.trim()) {
+      searchQuery.$or = [
+        { modelName: { $regex: query.trim(), $options: 'i' } },
+        { companyName: { $regex: query.trim(), $options: 'i' } },
+        { modelNumber: { $regex: query.trim(), $options: 'i' } },
+        { applianceType: { $regex: query.trim(), $options: 'i' } }
+      ]
     }
 
     if (normalisedStatuses.length > 0) {
