@@ -6,7 +6,7 @@ import Joi from 'joi'
 import * as applianceController from '../../controllers/appliances-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
-export const getApplianceCertification = {
+export const getAdminRecords = {
   method: 'GET',
   path: '/admin-appliances/{id}',
   options: {
@@ -23,7 +23,7 @@ export const getApplianceCertification = {
     const { id } = request.params
 
     try {
-      const result = await applianceController.getApplianceCertification(
+      const result = await applianceController.getAdminRecords(
         request.db,
         id,
         request.logger

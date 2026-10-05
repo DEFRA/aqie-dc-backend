@@ -200,7 +200,7 @@ function mapCountryCertification(certification) {
  * Get certification state for a single appliance.
  * Returns only the fields the certification screen needs, not the whole record.
  */
-async function getApplianceCertification(db, id, logger) {
+async function getAdminRecords(db, id, logger) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
@@ -390,7 +390,7 @@ export {
   createAppliance,
   getAllAppliances,
   getApplianceById,
-  getApplianceCertification,
+  getAdminRecords,
   updateAppliance,
   deleteAppliance,
   searchAppliances,

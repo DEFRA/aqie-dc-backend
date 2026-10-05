@@ -305,7 +305,7 @@ describe('appliances-controller', () => {
     })
   })
 
-  describe('getApplianceCertification', () => {
+  describe('getAdminRecords', () => {
     test('returns model name, per-country certification and status', async () => {
       collection.findOne.mockResolvedValue({
         id: 'APP-001',
@@ -315,7 +315,7 @@ describe('appliances-controller', () => {
         ...certifiedInEngland
       })
 
-      const result = await getApplianceCertification(db, 'APP-001', mockLogger)
+      const result = await getAdminRecords(db, 'APP-001', mockLogger)
 
       expect(result.success).toBe(true)
       expect(result.data).toEqual({
@@ -361,7 +361,7 @@ describe('appliances-controller', () => {
     test('returns not found', async () => {
       collection.findOne.mockResolvedValue(null)
 
-      const result = await getApplianceCertification(db, 'missing', mockLogger)
+      const result = await getAdminRecords(db, 'missing', mockLogger)
 
       expect(result.notFound).toBe(true)
     })
@@ -370,13 +370,13 @@ describe('appliances-controller', () => {
       collection.findOne.mockRejectedValue(new Error('db down'))
 
       await expect(
-        getApplianceCertification(db, 'APP-001', mockLogger)
+        getAdminRecords(db, 'APP-001', mockLogger)
       ).rejects.toThrow('db down')
       expect(mockLogger.error).toHaveBeenCalled()
     })
 
     test('requires a logger', async () => {
-      await expect(getApplianceCertification(db, 'APP-001')).rejects.toThrow(
+      await expect(getAdminRecords(db, 'APP-001')).rejects.toThrow(
         'logger is required'
       )
     })

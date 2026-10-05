@@ -1,14 +1,14 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 
-import { getApplianceCertification } from '../get-admin-appliance.js'
+import { getAdminRecords } from '../get-admin-appliance.js'
 import { statusCodes } from '../../../common/constants/status-codes.js'
 
-const { getApplianceCertificationMock } = vi.hoisted(() => ({
-  getApplianceCertificationMock: vi.fn()
+const { getAdminRecordsMock } = vi.hoisted(() => ({
+  getAdminRecordsMock: vi.fn()
 }))
 
 vi.mock('../../../controllers/appliances-controller.js', () => ({
-  getApplianceCertification: getApplianceCertificationMock
+  getAdminRecords: getAdminRecordsMock
 }))
 
 describe('GET /appliances/{id}/certification', () => {
@@ -16,7 +16,7 @@ describe('GET /appliances/{id}/certification', () => {
   let mockToolkit
 
   beforeEach(() => {
-    getApplianceCertificationMock.mockReset()
+    getAdminRecordsMock.mockReset()
 
     mockToolkit = {
       response: vi.fn((data) => ({
@@ -32,11 +32,11 @@ describe('GET /appliances/{id}/certification', () => {
   })
 
   test('uses the admin appliance route path', () => {
-    expect(getApplianceCertification.path).toBe('/admin-appliances/{id}')
+    expect(getAdminRecords.path).toBe('/admin-appliances/{id}')
   })
 
   test('returns the certification state when found', async () => {
-    getApplianceCertificationMock.mockResolvedValue({
+    getAdminRecordsMock.mockResolvedValue({
       success: true,
       data: {
         id: 'APP-123',
@@ -45,7 +45,7 @@ describe('GET /appliances/{id}/certification', () => {
       }
     })
 
-    const result = await getApplianceCertification.handler(
+    const result = await getAdminRecords.handler(
       mockRequest,
       mockToolkit
     )
@@ -60,11 +60,11 @@ describe('GET /appliances/{id}/certification', () => {
   })
 
   test('passes the id and logger through to the controller', async () => {
-    getApplianceCertificationMock.mockResolvedValue({ success: true, data: {} })
+    getAdminRecordsMock.mockResolvedValue({ success: true, data: {} })
 
-    await getApplianceCertification.handler(mockRequest, mockToolkit)
+    await getAdminRecords.handler(mockRequest, mockToolkit)
 
-    expect(getApplianceCertificationMock).toHaveBeenCalledWith(
+    expect(getAdminRecordsMock).toHaveBeenCalledWith(
       mockRequest.db,
       'APP-123',
       mockRequest.logger
@@ -72,13 +72,13 @@ describe('GET /appliances/{id}/certification', () => {
   })
 
   test('returns 404 when the appliance does not exist', async () => {
-    getApplianceCertificationMock.mockResolvedValue({
+    getAdminRecordsMock.mockResolvedValue({
       success: false,
       message: 'Appliance not found',
       notFound: true
     })
 
-    const result = await getApplianceCertification.handler(
+    const result = await getAdminRecords.handler(
       mockRequest,
       mockToolkit
     )
@@ -87,9 +87,9 @@ describe('GET /appliances/{id}/certification', () => {
   })
 
   test('returns a 500 Boom error when the controller throws', async () => {
-    getApplianceCertificationMock.mockRejectedValue(new Error('db down'))
+    getAdminRecordsMock.mockRejectedValue(new Error('db down'))
 
-    const result = await getApplianceCertification.handler(
+    const result = await getAdminRecords.handler(
       mockRequest,
       mockToolkit
     )
@@ -100,7 +100,7 @@ describe('GET /appliances/{id}/certification', () => {
   })
 
   test('validates the id param', () => {
-    const schema = getApplianceCertification.options.validate.params
+    const schema = getAdminRecords.options.validate.params
 
     expect(schema.validate({ id: 'APP-123' }).error).toBeUndefined()
     expect(schema.validate({}).error).toBeDefined()
