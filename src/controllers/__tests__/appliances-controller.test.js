@@ -4,6 +4,7 @@ import {
   createAppliance,
   getAllAppliances,
   getApplianceById,
+  getApplianceCertification,
   updateAppliance,
   deleteAppliance,
   searchAppliances,
@@ -301,6 +302,83 @@ describe('appliances-controller', () => {
       const result = await getApplianceById(db, 'missing', mockLogger)
 
       expect(result.notFound).toBe(true)
+    })
+  })
+
+  describe('getApplianceCertification', () => {
+    test('returns model name, per-country certification and status', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'APP-001',
+        modelName: 'Detail Model',
+        modelNumber: 'DM-1',
+        applianceStatus: 'certified',
+        ...certifiedInEngland
+      })
+
+      const result = await getApplianceCertification(db, 'APP-001', mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual({
+        id: 'APP-001',
+        modelName: 'Detail Model',
+        modelNumber: 'DM-1',
+        certifications: {
+          england: {
+            status: 'certified',
+            firstCertifiedAt: null,
+            lastCertifiedAt: null
+          },
+          scotland: {
+            status: 'awaiting_decision',
+            firstCertifiedAt: null,
+            lastCertifiedAt: null
+          },
+          wales: {
+            status: 'awaiting_decision',
+            firstCertifiedAt: null,
+            lastCertifiedAt: null
+          },
+          northernIreland: {
+            status: 'awaiting_decision',
+            firstCertifiedAt: null,
+            lastCertifiedAt: null
+          }
+        },
+        applianceStatus: 'certified'
+      })
+    })
+
+    test('defaults missing country certifications and status', async () => {
+      collection.findOne.mockResolvedValue({ id: 'APP-002' })
+
+      const result = await getApplianceCertification(db, 'APP-002', mockLogger)
+
+      expect(result.data.certifications.wales.status).toBe('new')
+      expect(result.data).not.toHaveProperty('certifiedIn')
+      expect(result.data.applianceStatus).toBeNull()
+    })
+
+    test('returns not found', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const result = await getApplianceCertification(db, 'missing', mockLogger)
+
+      expect(result.notFound).toBe(true)
+    })
+
+    test('logs and rethrows database failures', async () => {
+      collection.findOne.mockRejectedValue(new Error('db down'))
+
+      await expect(
+        getApplianceCertification(db, 'APP-001', mockLogger)
+      ).rejects.toThrow('db down')
+      expect(mockLogger.error).toHaveBeenCalled()
+    })
+
+    test('requires a logger', async () => {
+      await expect(getApplianceCertification(db, 'APP-001')).rejects.toThrow(
+        'logger is required'
+      )
     })
   })
 

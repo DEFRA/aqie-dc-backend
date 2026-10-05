@@ -164,6 +164,96 @@ async function getApplianceById(db, id, logger) {
   }
 }
 
+// Country certification fields keyed by the name the frontend consumes
+const CERTIFICATION_COUNTRIES = {
+  england: 'englandCertification',
+  scotland: 'scotlandCertification',
+  wales: 'walesCertification',
+  northernIreland: 'nIrelandCertification'
+}
+
+const EMPTY_CERTIFICATION = {
+  status: 'new',
+  decidedAt: null,
+  decidedBy: null,
+  firstCertifiedAt: null,
+  lastCertifiedAt: null
+}
+
+function mapCountryCertification(certification) {
+  if (!certification) {
+    return {
+      status: EMPTY_CERTIFICATION.status,
+      firstCertifiedAt: null,
+      lastCertifiedAt: null
+    }
+  }
+
+  return {
+    status: certification.status ?? EMPTY_CERTIFICATION.status,
+    firstCertifiedAt: certification.firstCertifiedAt ?? null,
+    lastCertifiedAt: certification.lastCertifiedAt ?? null
+  }
+}
+
+/**
+ * Get certification state for a single appliance.
+ * Returns only the fields the certification screen needs, not the whole record.
+ */
+async function getApplianceCertification(db, id, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+  try {
+    const item = await db.collection('Appliances').findOne(
+      { id },
+      {
+        projection: {
+          _id: 0,
+          id: 1,
+          modelName: 1,
+          modelNumber: 1,
+          applianceStatus: 1,
+          englandCertification: 1,
+          scotlandCertification: 1,
+          walesCertification: 1,
+          nIrelandCertification: 1
+        }
+      }
+    )
+
+    if (!item) {
+      return {
+        success: false,
+        message: 'Appliance not found',
+        notFound: true
+      }
+    }
+
+    const certifications = Object.fromEntries(
+      Object.entries(CERTIFICATION_COUNTRIES).map(([country, field]) => [
+        country,
+        mapCountryCertification(item[field])
+      ])
+    )
+
+    return {
+      success: true,
+      data: {
+        id: item.id ?? id,
+        modelName: item.modelName || '',
+        modelNumber: item.modelNumber || '',
+        certifications,
+        // Derivation logic is not implemented yet; surface the stored value only
+        applianceStatus: item.applianceStatus ?? null
+      }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to fetch appliance certification')
+    throw error
+  }
+}
+
 /**
  * Update an appliance
  */
@@ -300,6 +390,7 @@ export {
   createAppliance,
   getAllAppliances,
   getApplianceById,
+  getApplianceCertification,
   updateAppliance,
   deleteAppliance,
   searchAppliances,
