@@ -4,6 +4,14 @@ import {
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
+import {
+  calculateItemStatus,
+  isTechnicalReviewFinal,
+  hasCertificationStarted,
+  CERTIFICATION_COUNTRIES,
+  mapCountryCertification
+} from '../common/helpers/certification-status.js'
+import { isApplicationComplete } from '../common/helpers/review-status.js'
 
 /**
  * Appliances Controller
@@ -164,36 +172,28 @@ async function getApplianceById(db, id, logger) {
   }
 }
 
-// Country certification fields keyed by the name the frontend consumes
-const CERTIFICATION_COUNTRIES = {
-  england: 'englandCertification',
-  scotland: 'scotlandCertification',
-  wales: 'walesCertification',
-  northernIreland: 'nIrelandCertification'
-}
-
-const EMPTY_CERTIFICATION = {
-  status: 'new',
-  decidedAt: null,
-  decidedBy: null,
-  firstCertifiedAt: null,
-  lastCertifiedAt: null
-}
-
-function mapCountryCertification(certification) {
-  if (!certification) {
-    return {
-      status: EMPTY_CERTIFICATION.status,
-      firstCertifiedAt: null,
-      lastCertifiedAt: null
-    }
+// Only complete applications send items through country certification, so an
+// item isn't ready for this view until its technical review has reached a
+// final status, certification has started for every country (none are still
+// 'new'), and (when it has a parent application) that application is marked
+// complete.
+async function isReadyForCertification(db, item, countryCertifications) {
+  if (!isTechnicalReviewFinal(item.technicalReview?.status)) {
+    return false
+  }
+  if (!hasCertificationStarted(countryCertifications)) {
+    return false
   }
 
-  return {
-    status: certification.status ?? EMPTY_CERTIFICATION.status,
-    firstCertifiedAt: certification.firstCertifiedAt ?? null,
-    lastCertifiedAt: certification.lastCertifiedAt ?? null
+  if (!item.applicationId) {
+    return true
   }
+
+  const application = await db
+    .collection('Applications')
+    .findOne({ id: item.applicationId }, { projection: { status: 1, _id: 0 } })
+
+  return isApplicationComplete(application?.status)
 }
 
 /**
@@ -213,7 +213,9 @@ async function getAdminRecords(db, id, logger) {
           id: 1,
           modelName: 1,
           modelNumber: 1,
-          applianceStatus: 1,
+          applicationId: 1,
+          technicalReview: 1,
+          isVisibleToPublic: 1,
           englandCertification: 1,
           scotlandCertification: 1,
           walesCertification: 1,
@@ -236,6 +238,24 @@ async function getAdminRecords(db, id, logger) {
         mapCountryCertification(item[field])
       ])
     )
+    const countryCertifications = Object.values(certifications).map(
+      (certification) => certification.status
+    )
+
+    if (!(await isReadyForCertification(db, item, countryCertifications))) {
+      return {
+        success: false,
+        message:
+          'Appliance is not yet reviewable - technical review and application must be complete',
+        notReviewable: true
+      }
+    }
+
+    const { itemStatus, canTogglePublicVisibility } = calculateItemStatus({
+      technicalReviewStatus: item.technicalReview?.status,
+      countryCertifications,
+      isVisibleToPublic: item.isVisibleToPublic
+    })
 
     return {
       success: true,
@@ -244,8 +264,8 @@ async function getAdminRecords(db, id, logger) {
         modelName: item.modelName || '',
         modelNumber: item.modelNumber || '',
         certifications,
-        // Derivation logic is not implemented yet; surface the stored value only
-        applianceStatus: item.applianceStatus ?? null
+        applianceStatus: itemStatus,
+        canTogglePublicVisibility
       }
     }
   } catch (error) {

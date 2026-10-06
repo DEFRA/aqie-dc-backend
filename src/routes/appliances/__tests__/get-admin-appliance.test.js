@@ -45,10 +45,7 @@ describe('GET /appliances/{id}/certification', () => {
       }
     })
 
-    const result = await getAdminRecords.handler(
-      mockRequest,
-      mockToolkit
-    )
+    const result = await getAdminRecords.handler(mockRequest, mockToolkit)
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -78,21 +75,27 @@ describe('GET /appliances/{id}/certification', () => {
       notFound: true
     })
 
-    const result = await getAdminRecords.handler(
-      mockRequest,
-      mockToolkit
-    )
+    const result = await getAdminRecords.handler(mockRequest, mockToolkit)
 
     expect(result.statusCode).toBe(statusCodes.notFound)
+  })
+
+  test('returns 409 when the appliance is not yet reviewable', async () => {
+    getAdminRecordsMock.mockResolvedValue({
+      success: false,
+      message: 'Appliance is not yet reviewable',
+      notReviewable: true
+    })
+
+    const result = await getAdminRecords.handler(mockRequest, mockToolkit)
+
+    expect(result.statusCode).toBe(statusCodes.conflict)
   })
 
   test('returns a 500 Boom error when the controller throws', async () => {
     getAdminRecordsMock.mockRejectedValue(new Error('db down'))
 
-    const result = await getAdminRecords.handler(
-      mockRequest,
-      mockToolkit
-    )
+    const result = await getAdminRecords.handler(mockRequest, mockToolkit)
 
     expect(result.isBoom).toBe(true)
     expect(result.output.statusCode).toBe(statusCodes.internalServerError)

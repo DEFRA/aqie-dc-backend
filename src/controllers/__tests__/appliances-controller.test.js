@@ -4,7 +4,7 @@ import {
   createAppliance,
   getAllAppliances,
   getApplianceById,
-  getApplianceCertification,
+  getAdminRecords,
   updateAppliance,
   deleteAppliance,
   searchAppliances,
@@ -44,6 +44,7 @@ const ukAddress = {
 describe('appliances-controller', () => {
   let db
   let collection
+  let applicationsCollection
   let mockLogger
 
   beforeEach(() => {
@@ -61,8 +62,14 @@ describe('appliances-controller', () => {
       find: vi.fn()
     }
 
+    applicationsCollection = {
+      findOne: vi.fn()
+    }
+
     db = {
-      collection: vi.fn().mockReturnValue(collection)
+      collection: vi.fn((name) =>
+        name === 'Applications' ? applicationsCollection : collection
+      )
     }
 
     generateSecureId.mockReturnValue('12345')
@@ -311,7 +318,8 @@ describe('appliances-controller', () => {
         id: 'APP-001',
         modelName: 'Detail Model',
         modelNumber: 'DM-1',
-        applianceStatus: 'certified',
+        technicalReview: { status: 'accepted' },
+        isVisibleToPublic: true,
         ...certifiedInEngland
       })
 
@@ -344,18 +352,31 @@ describe('appliances-controller', () => {
             lastCertifiedAt: null
           }
         },
-        applianceStatus: 'certified'
+        applianceStatus: 'live',
+        canTogglePublicVisibility: true
       })
     })
 
-    test('defaults missing country certifications and status', async () => {
-      collection.findOne.mockResolvedValue({ id: 'APP-002' })
+    test('defaults certification fields not yet decided upon', async () => {
+      const awaitingDecision = { status: 'awaiting_decision' }
+      collection.findOne.mockResolvedValue({
+        id: 'APP-002',
+        technicalReview: { status: 'accepted' },
+        englandCertification: awaitingDecision,
+        scotlandCertification: awaitingDecision,
+        walesCertification: awaitingDecision,
+        nIrelandCertification: awaitingDecision
+      })
 
-      const result = await getApplianceCertification(db, 'APP-002', mockLogger)
+      const result = await getAdminRecords(db, 'APP-002', mockLogger)
 
-      expect(result.data.certifications.wales.status).toBe('new')
-      expect(result.data).not.toHaveProperty('certifiedIn')
-      expect(result.data.applianceStatus).toBeNull()
+      expect(result.data.certifications.wales).toEqual({
+        status: 'awaiting_decision',
+        firstCertifiedAt: null,
+        lastCertifiedAt: null
+      })
+      expect(result.data.applianceStatus).toBe('pending')
+      expect(result.data.canTogglePublicVisibility).toBe(false)
     })
 
     test('returns not found', async () => {
@@ -366,12 +387,75 @@ describe('appliances-controller', () => {
       expect(result.notFound).toBe(true)
     })
 
+    test('returns notReviewable when technical review has not reached a final status', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'APP-003',
+        technicalReview: { status: 'in_review' }
+      })
+
+      const result = await getAdminRecords(db, 'APP-003', mockLogger)
+
+      expect(result.success).toBe(false)
+      expect(result.notReviewable).toBe(true)
+      expect(applicationsCollection.findOne).not.toHaveBeenCalled()
+    })
+
+    test('returns notReviewable when a country certification is still new', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'APP-006',
+        technicalReview: { status: 'accepted' },
+        ...certifiedInEngland,
+        walesCertification: { status: 'new' }
+      })
+
+      const result = await getAdminRecords(db, 'APP-006', mockLogger)
+
+      expect(result.success).toBe(false)
+      expect(result.notReviewable).toBe(true)
+      expect(applicationsCollection.findOne).not.toHaveBeenCalled()
+    })
+
+    test('returns notReviewable when the linked application is not complete', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'APP-004',
+        applicationId: 'APPLICATION-1',
+        technicalReview: { status: 'accepted' },
+        ...certifiedInEngland
+      })
+      applicationsCollection.findOne.mockResolvedValue({
+        status: 'in_progress'
+      })
+
+      const result = await getAdminRecords(db, 'APP-004', mockLogger)
+
+      expect(result.success).toBe(false)
+      expect(result.notReviewable).toBe(true)
+      expect(applicationsCollection.findOne).toHaveBeenCalledWith(
+        { id: 'APPLICATION-1' },
+        { projection: { status: 1, _id: 0 } }
+      )
+    })
+
+    test('is reviewable once the linked application is complete', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'APP-005',
+        applicationId: 'APPLICATION-1',
+        technicalReview: { status: 'accepted' },
+        ...certifiedInEngland
+      })
+      applicationsCollection.findOne.mockResolvedValue({ status: 'complete' })
+
+      const result = await getAdminRecords(db, 'APP-005', mockLogger)
+
+      expect(result.success).toBe(true)
+    })
+
     test('logs and rethrows database failures', async () => {
       collection.findOne.mockRejectedValue(new Error('db down'))
 
-      await expect(
-        getAdminRecords(db, 'APP-001', mockLogger)
-      ).rejects.toThrow('db down')
+      await expect(getAdminRecords(db, 'APP-001', mockLogger)).rejects.toThrow(
+        'db down'
+      )
       expect(mockLogger.error).toHaveBeenCalled()
     })
 

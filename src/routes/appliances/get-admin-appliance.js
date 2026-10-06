@@ -33,6 +33,10 @@ export const getAdminRecords = {
         return h.response(result).code(statusCodes.notFound)
       }
 
+      if (result.notReviewable) {
+        return h.response(result).code(statusCodes.conflict)
+      }
+
       return h.response(result).code(statusCodes.ok)
     } catch (error) {
       request.logger.error(error, 'Failed to fetch appliance certification')
