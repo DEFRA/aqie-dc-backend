@@ -87,7 +87,6 @@ function mapApplianceSummary(item) {
     permittedFuels: item.permittedFuels || '',
     type: item.applianceType,
     modelNumber: item.modelNumber,
-    status: (item.applianceStatus || 'pending').toLowerCase(),
     authorisedIn: findCertified(
       item.englandCertification,
       item.scotlandCertification,
@@ -220,9 +219,9 @@ async function deleteAppliance(db, id, logger) {
 }
 
 /**
- * Search appliances by name, model number, or type with pagination
+ * Admin: search appliances by name, model number, or type with pagination
  */
-async function searchAppliances(
+async function searchAdminAppliances(
   db,
   { query = '', page = 1, limit = 20, statuses = [] } = {},
   logger
@@ -266,7 +265,11 @@ async function searchAppliances(
 
     return {
       success: true,
-      data: appliances.map((item) => mapApplianceSummary(item)),
+      data: appliances.map((item) => ({
+        id: item.id || '',
+        name: item.modelName || '',
+        status: item.applianceStatus || 'pending'
+      })),
       pagination: {
         page,
         limit,
@@ -275,7 +278,7 @@ async function searchAppliances(
       }
     }
   } catch (error) {
-    logger.error(error, 'Failed to search appliances')
+    logger.error(error, 'Failed to search admin appliances')
     throw error
   }
 }
@@ -315,6 +318,6 @@ export {
   getApplianceById,
   updateAppliance,
   deleteAppliance,
-  searchAppliances,
+  searchAdminAppliances,
   getApplianceWithRelatedItems
 }
