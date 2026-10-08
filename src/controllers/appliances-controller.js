@@ -263,6 +263,7 @@ async function getAdminRecords(db, id, logger) {
         id: item.id ?? id,
         modelName: item.modelName || '',
         modelNumber: item.modelNumber || '',
+        applicationId: item.applicationId || null,
         certifications,
         applianceStatus: itemStatus,
         canTogglePublicVisibility

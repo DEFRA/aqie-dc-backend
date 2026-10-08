@@ -330,6 +330,7 @@ describe('appliances-controller', () => {
         id: 'APP-001',
         modelName: 'Detail Model',
         modelNumber: 'DM-1',
+        applicationId: null,
         certifications: {
           england: {
             status: 'certified',
@@ -355,6 +356,24 @@ describe('appliances-controller', () => {
         applianceStatus: 'live',
         canTogglePublicVisibility: true
       })
+    })
+
+    test('includes applicationId when present in the record', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'APP-001',
+        modelName: 'Detail Model',
+        modelNumber: 'DM-1',
+        applicationId: 'APP-APP-001',
+        technicalReview: { status: 'accepted' },
+        isVisibleToPublic: true,
+        ...certifiedInEngland
+      })
+      applicationsCollection.findOne.mockResolvedValue({ status: 'complete' })
+
+      const result = await getAdminRecords(db, 'APP-001', mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.applicationId).toBe('APP-APP-001')
     })
 
     test('defaults certification fields not yet decided upon', async () => {

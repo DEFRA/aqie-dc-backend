@@ -76,7 +76,7 @@ async function completeApplication(db, id, payload, logger) {
         db
           .collection(itemsCollectionName)
           .updateMany(
-            { id, [`${field}.status`]: 'new' },
+            { applicationId: id, [`${field}.status`]: 'new' },
             { $set: { [`${field}.status`]: 'awaiting_decision' } }
           )
       )
