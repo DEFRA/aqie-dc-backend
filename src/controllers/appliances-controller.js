@@ -19,6 +19,7 @@ import { isApplicationComplete } from '../common/helpers/review-status.js'
  */
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
+const APPLIANCE_NOT_FOUND = 'Appliance not found'
 
 /**
  * Create a new appliance
@@ -157,7 +158,7 @@ async function getApplianceById(db, id, logger) {
     if (!item) {
       return {
         success: false,
-        message: 'Appliance not found',
+        message: APPLIANCE_NOT_FOUND,
         notFound: true
       }
     }
@@ -227,7 +228,7 @@ async function getAdminRecords(db, id, logger) {
     if (!item) {
       return {
         success: false,
-        message: 'Appliance not found',
+        message: APPLIANCE_NOT_FOUND,
         notFound: true
       }
     }
@@ -392,7 +393,7 @@ async function getApplianceWithRelatedItems(db, id, logger) {
     if (!appliance) {
       return {
         success: false,
-        message: 'Appliance not found',
+        message: APPLIANCE_NOT_FOUND,
         notFound: true
       }
     }
