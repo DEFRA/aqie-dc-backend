@@ -4,6 +4,7 @@ import {
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
+import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 
 /**
  * Appliances Controller
@@ -236,7 +237,10 @@ async function searchAdminAppliances(
       .map((status) => (status || '').toLowerCase().trim())
       .filter(Boolean)
 
-    const searchQuery = {}
+    // Only return appliances whose technical review has reached a final status
+    const searchQuery = {
+      'technicalReview.status': { $in: REVIEWED_STATUSES }
+    }
 
     if (query?.trim()) {
       const trimmedQuery = query.trim()
