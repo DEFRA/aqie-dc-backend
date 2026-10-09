@@ -826,6 +826,101 @@ describe('appliance-review-controller', () => {
       })
     })
 
+    describe('instructionManual check', () => {
+      test('accepts a passed instruction manual with the required document data', async () => {
+        existingReview('new')
+
+        const result = await recordApplianceCheck(
+          db,
+          'APP-1',
+          'instructionManual',
+          true,
+          mockLogger,
+          {
+            instructionManual: 'Installation guide v2'
+          }
+        )
+
+        expect(result).toEqual({
+          success: true,
+          data: {
+            id: 'APP-1',
+            check: 'instructionManual',
+            result: true
+          }
+        })
+
+        const [, update] = collection.updateOne.mock.calls[0]
+
+        expect(update.$set).toHaveProperty(
+          'instructionManual',
+          'Installation guide v2'
+        )
+        expect(update.$set).toHaveProperty(
+          'technicalReview.documentationChecks.instructionManual',
+          true
+        )
+        expect(update.$set).toHaveProperty('technicalReview.status', 'in_review')
+      })
+
+      test.each([
+        ['null', null],
+        ['undefined', undefined],
+        ['a string', 'yes'],
+        ['a number', 1]
+      ])('rejects %s as an instructionManual result', async (_, invalidResult) => {
+        await expect(
+          recordApplianceCheck(
+            db,
+            'APP-1',
+            'instructionManual',
+            invalidResult,
+            mockLogger,
+            {
+              instructionManual: 'Installation guide v2'
+            }
+          )
+        ).rejects.toMatchObject({
+          isBoom: true,
+          output: {
+            statusCode: 400,
+            payload: expect.objectContaining({
+              message:
+                'instructionManual result must be true (passed) or false (failed)'
+            })
+          }
+        })
+
+        expect(collection.findOne).not.toHaveBeenCalled()
+        expect(collection.updateOne).not.toHaveBeenCalled()
+      })
+
+      test('rejects a passed instruction manual when the document is missing', async () => {
+        await expect(
+          recordApplianceCheck(
+            db,
+            'APP-1',
+            'instructionManual',
+            true,
+            mockLogger,
+            {}
+          )
+        ).rejects.toMatchObject({
+          isBoom: true,
+          output: {
+            statusCode: 400,
+            payload: expect.objectContaining({
+              message:
+                'instructionManual requires instructionManual data when passed'
+            })
+          }
+        })
+
+        expect(collection.findOne).not.toHaveBeenCalled()
+        expect(collection.updateOne).not.toHaveBeenCalled()
+      })
+    })
+
     describe('testReports check', () => {
       const passedTestResults = {
         ratedOutput: 5.25,
