@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { calculateItemStatus } from '#src/common/helpers/overall-item-status.js'
+import { calculateItemStatus } from '#src/common/helpers/item-status.js'
 
 describe('calculateItemStatus', () => {
   test('throws when technical review has not reached a final decision', () => {
