@@ -84,9 +84,16 @@ export const applianceSchema = Joi.object({
   applianceType: Joi.string()
     .required()
     .description('Appliance type e.g. "heat"'),
+  otherApplianceType: Joi.string()
+    .optional()
+    .allow(null)
+    .description(
+      'Secondary appliance type when applianceType is "other". Values are sourced from the ApplianceTypes collection and may change without code changes.'
+    ),
   isVariant: Joi.boolean().required().description('Variant of appliance'),
   existingAuthorisedAppliance: Joi.string()
     .optional()
+    .allow(null)
     .description('If it is a variant, details'),
   nominalOutput: Joi.number().required().description('Thermal output (kW)'),
   multifuelAppliance: Joi.boolean()
@@ -105,20 +112,34 @@ export const applianceSchema = Joi.object({
     ),
   // Fields from admin FE input
   testResults: Joi.object({
-    reviewStatus: Joi.boolean()
+    ratedOutput: Joi.number()
+      .min(0)
       .allow(null)
       .optional()
-      .description('Test report review status'),
-    ratedOutput: Joi.number().optional().description('Rated Output'),
+      .description('Rated Output'),
     testedOutput: Joi.object({
-      rated: Joi.number().optional().description('Tested Output - rated'),
-      low: Joi.number().optional().description('Tested Output - low')
+      rated: Joi.number()
+        .min(0)
+        .allow(null)
+        .optional()
+        .description('Tested Output - rated'),
+      low: Joi.number()
+        .min(0)
+        .allow(null)
+        .optional()
+        .description('Tested Output - low')
     }).optional(),
     smokeEmissionOutput: Joi.object({
       rated: Joi.number()
+        .min(0)
+        .allow(null)
         .optional()
         .description('Smoke emission output - rated'),
-      low: Joi.number().optional().description('Smoke emission output - low')
+      low: Joi.number()
+        .min(0)
+        .allow(null)
+        .optional()
+        .description('Smoke emission output - low')
     }).optional()
   }).optional(),
   additionalConditions: Joi.string()

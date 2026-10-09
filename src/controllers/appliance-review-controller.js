@@ -36,8 +36,20 @@ function validateTechnicalReviewCheck(check, result, data) {
         'testReports result must be true (passed) or false (failed)'
       )
     }
-    if (!data?.testResults) {
-      throw Boom.badRequest('testReports requires testResults data')
+    if (result === true) {
+      const testResults = data?.testResults
+      const measurement = [
+        testResults?.ratedOutput,
+        testResults?.testedOutput?.rated,
+        testResults?.testedOutput?.low,
+        testResults?.smokeEmissionOutput?.rated,
+        testResults?.smokeEmissionOutput?.low
+      ]
+      if (measurement.some((value) => typeof value !== 'number')) {
+        throw Boom.badRequest(
+          'testReports requires all five measurements data, when marked as passed'
+        )
+      }
     }
   }
 
@@ -86,6 +98,7 @@ async function getApplianceReview(db, id, logger) {
           modelNumber: 1,
           applicationId: 1,
           applianceType: 1,
+          otherApplianceType: 1,
           isVariant: 1,
           existingAuthorisedAppliance: 1,
           nominalOutput: 1,

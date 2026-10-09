@@ -6,7 +6,7 @@ import Joi from 'joi'
 import * as applianceReviewController from '../../controllers/appliance-review-controller.js'
 import { ALL_CHECKS } from '../../common/helpers/review-status.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
-import { testReportPayloadSchema } from '../../common/schemas/test-report-payload-schema.js'
+import { testResultsSchema } from '../../common/schemas/test-report-payload-schema.js'
 import {
   passedInstructionManualSchema,
   failedInstructionManualSchema
@@ -24,7 +24,7 @@ const ADDITIONAL_CONDITIONS_SCHEMA = Joi.object({
 }).unknown(false)
 
 const TEST_REPORTS_DATA_SCHEMA = Joi.object({
-    testResults: testReportPayloadSchema.required()
+  testResults: testResultsSchema.required()
 }).unknown(false)
 
 /**

@@ -5,90 +5,37 @@ import Joi from 'joi'
  * such as 1.005, which should round to 1.01.
  */
 const roundToTwoDecimalPlaces = (value) => {
-  return Math.round((value + Number.EPSILON) * 100) / 100
+  const rounded = Math.round((value + Number.EPSILON) * 100) / 100
+
+  return Number.isFinite(rounded) ? rounded : value
 }
 
 /**
- * Passed measurements:
- * - required
- * - numeric
- * - non-negative
- * - rounded to a maximum of two decimal places
+ one rule for passed and failed measurements
  */
-const passedMeasurement = Joi.number()
+const measurement = Joi.number()
+  .allow(null)
   .min(0)
-  .required()
+  .optional()
+  .strict()
   .custom(
-    (value) => roundToTwoDecimalPlaces(value),
+    (value) => (value === null ? value : roundToTwoDecimalPlaces(value)),
     'round measurement to two decimal places'
   )
 
+const outputPair = Joi.object({
+  rated: measurement,
+  low: measurement
+})
+  .unknown(false)
+  .optional()
+
 /**
- * Failed measurements:
- * - optional
- * - empty strings allowed
- * - alphabetic values allowed
- * - alphanumeric values allowed
- * - negative values allowed
- * - numeric values allowed
- * - null allowed for backward compatibility
- *
- * String is listed before number so submitted string values
- * remain strings when marking the report as failed.
+ * Schema for passed test reports (result = true).
+ * All measurement fields must be numbers rounded to two decimal places.
  */
-const failedMeasurement = Joi.alternatives()
-  .try(Joi.string().allow(''), Joi.number(), Joi.valid(null))
-  .optional()
-
-const passedTestedOutput = Joi.object({
-  rated: passedMeasurement,
-  low: passedMeasurement
-})
-  .unknown(false)
-  .required()
-
-const failedTestedOutput = Joi.object({
-  rated: failedMeasurement,
-  low: failedMeasurement
-})
-  .unknown(false)
-  .optional()
-
-const passedSmokeEmissionOutput = Joi.object({
-  rated: passedMeasurement,
-  low: passedMeasurement
-})
-  .unknown(false)
-  .required()
-
-const failedSmokeEmissionOutput = Joi.object({
-  rated: failedMeasurement,
-  low: failedMeasurement
-})
-  .unknown(false)
-  .optional()
-
-export const testReportPayloadSchema = Joi.object({
-  reviewStatus: Joi.boolean()
-    .allow(null)
-    .required()
-    .description('true passed, false failed, null not reviewed'),
-
-  ratedOutput: Joi.when('reviewStatus', {
-    is: true,
-    then: passedMeasurement,
-    otherwise: failedMeasurement
-  }),
-
-  testedOutput: Joi.when('reviewStatus', {
-    is: true,
-    then: passedTestedOutput,
-    otherwise: failedTestedOutput
-  }),
-
-  smokeEmissionOutput: Joi.when('reviewStatus', {
-    is: true,
-    then: passedSmokeEmissionOutput,
-    otherwise: failedSmokeEmissionOutput
-  })
+export const testResultsSchema = Joi.object({
+  ratedOutput: measurement,
+  testedOutput: outputPair,
+  smokeEmissionOutput: outputPair
 }).unknown(false)
