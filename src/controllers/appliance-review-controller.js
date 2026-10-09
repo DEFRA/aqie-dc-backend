@@ -14,6 +14,59 @@ import { updateAppliance } from './appliances-controller.js'
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const APPLIANCE_NOT_FOUND = 'Appliance not found'
 
+function requireBoolean(check, result) {
+  if (typeof result !== 'boolean') {
+    throw Boom.badRequest(
+      `${check} result must be true (passed) or false (failed)`
+    )
+  }
+}
+
+function validateAdditionalConditions(result, data) {
+  const text = data?.additionalConditions?.trim()
+  if (result !== true || !text) {
+    throw Boom.badRequest(
+      'Additional conditions must be marked complete and include text'
+    )
+  }
+}
+
+function validateTestReports(result, data) {
+  requireBoolean('testReports', result)
+  if (result !== true) {
+    return
+  }
+
+  const testResults = data?.testResults
+  const measurements = [
+    testResults?.ratedOutput,
+    testResults?.testedOutput?.rated,
+    testResults?.testedOutput?.low,
+    testResults?.smokeEmissionOutput?.rated,
+    testResults?.smokeEmissionOutput?.low
+  ]
+  if (measurements.some((value) => typeof value !== 'number')) {
+    throw Boom.badRequest(
+      'testReports requires all five measurements data, when marked as passed'
+    )
+  }
+}
+
+function validateInstructionManual(result, data) {
+  requireBoolean('instructionManual', result)
+  if (result === true && !data?.instructionManual) {
+    throw Boom.badRequest(
+      'instructionManual requires instructionManual data when passed'
+    )
+  }
+}
+
+const checkValidators = {
+  additionalConditions: validateAdditionalConditions,
+  testReports: validateTestReports,
+  instructionManual: validateInstructionManual
+}
+
 function validateTechnicalReviewCheck(check, result, data) {
   const group = getCheckGroup(check)
 
@@ -21,37 +74,7 @@ function validateTechnicalReviewCheck(check, result, data) {
     throw new Error(`Unrecognised check: ${check}`)
   }
 
-  if (check === 'additionalConditions') {
-    const text = data?.additionalConditions?.trim()
-    if (result !== true || !text || text.length === 0) {
-      throw Boom.badRequest(
-        'Additional conditions must be marked complete and include text'
-      )
-    }
-  }
-
-  if (check === 'testReports') {
-    if (typeof result !== 'boolean') {
-      throw Boom.badRequest(
-        'testReports result must be true (passed) or false (failed)'
-      )
-    }
-    if (result === true) {
-      const testResults = data?.testResults
-      const measurement = [
-        testResults?.ratedOutput,
-        testResults?.testedOutput?.rated,
-        testResults?.testedOutput?.low,
-        testResults?.smokeEmissionOutput?.rated,
-        testResults?.smokeEmissionOutput?.low
-      ]
-      if (measurement.some((value) => typeof value !== 'number')) {
-        throw Boom.badRequest(
-          'testReports requires all five measurements data, when marked as passed'
-        )
-      }
-    }
-  }
+  checkValidators[check]?.(result, data)
 
   return group
 }
