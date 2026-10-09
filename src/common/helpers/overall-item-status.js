@@ -18,21 +18,46 @@ import {
  *   one country is certified.
  * @returns {{ itemStatus: 'rejected'|'pending'|'hidden'|'live', canTogglePublicVisibility: boolean }}
  */
-export const calculateItemStatus = ({
-  technicalReviewStatus,
-  countryCertifications,
-  isVisibleToPublic
-}) => {
+export const calculateItemStatus = async (db, applianceId) => {
+  if (!db) {
+    throw new Error('Database instance is required')
+  }
+  if (!applianceId) {
+    throw new Error('Appliance ID is required')
+  }
+
+  const appliance = await db.collection('Appliances').findOne(
+    { id: applianceId },
+    {
+      projection: {
+        'technicalReview.status': 1,
+        'englandCertification.status': 1,
+        'scotlandCertification.status': 1,
+        'walesCertification.status': 1,
+        'nIrelandCertification.status': 1,
+        isVisibleToPublic: 1,
+        _id: 0
+      }
+    }
+  )
+
   if (
-    technicalReviewStatus === 'new' ||
-    technicalReviewStatus === 'in_review'
+    appliance.technicalReview?.status === 'new' ||
+    appliance.technicalReview?.status === 'in_review'
   ) {
     throw new Error('Technical review at application stage is not complete')
   }
 
-  if (technicalReviewStatus === 'rejected') {
+  if (appliance.technicalReview?.status === 'rejected') {
     return { itemStatus: 'rejected', canTogglePublicVisibility: false }
   }
+
+  const countryCertifications = [
+    appliance.englandCertification?.status,
+    appliance.scotlandCertification?.status,
+    appliance.walesCertification?.status,
+    appliance.nIrelandCertification?.status
+  ]
 
   const hasCertified = countryCertifications.includes('certified')
   const hasUncertified = countryCertifications.some((status) =>
@@ -46,7 +71,7 @@ export const calculateItemStatus = ({
   // status depends on whether it has been hidden from the public.
   if (hasCertified) {
     return {
-      itemStatus: isVisibleToPublic ? 'live' : 'hidden',
+      itemStatus: appliance.isVisibleToPublic ? 'live' : 'hidden',
       canTogglePublicVisibility: true
     }
   }
