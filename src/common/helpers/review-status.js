@@ -76,3 +76,10 @@ export const isItemReviewed = (item) =>
 
 export const isApplicationReviewComplete = (items = []) =>
   items.length > 0 && items.every(isItemReviewed)
+
+// Application level: status an application reaches once review has finished
+// and it is ready for country certification (see certification-status.js).
+export const APPLICATION_STATUS_COMPLETE = 'complete'
+
+export const isApplicationComplete = (applicationStatus) =>
+  applicationStatus === APPLICATION_STATUS_COMPLETE

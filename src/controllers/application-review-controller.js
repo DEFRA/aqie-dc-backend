@@ -9,6 +9,14 @@ import { getItemsCollectionName } from '../common/helpers/application-type.js'
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const APPLICATION_NOT_FOUND = 'Application not found'
 
+// Country certification fields set on each appliance/fuel item
+const CERTIFICATION_FIELDS = [
+  'englandCertification',
+  'scotlandCertification',
+  'walesCertification',
+  'nIrelandCertification'
+]
+
 /**
  * Complete an application once every linked appliance/fuel has been reviewed.
  * Records who completed it (reviewedBy) and when (reviewedAt).
@@ -60,6 +68,20 @@ async function completeApplication(db, id, payload, logger) {
     const { reviewedBy } = payload
     const reviewedAt = new Date()
 
+    // Once an application completes, send the notification email to DA
+    //  (not yet implemented).
+    //and
+    await Promise.all(
+      CERTIFICATION_FIELDS.map((field) =>
+        db
+          .collection(itemsCollectionName)
+          .updateMany(
+            { applicationId: id, [`${field}.status`]: 'new' },
+            { $set: { [`${field}.status`]: 'awaiting_decision' } }
+          )
+      )
+    )
+    //then
     await collection.updateOne(
       { id },
       {

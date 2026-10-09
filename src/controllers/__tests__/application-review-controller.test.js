@@ -27,7 +27,8 @@ describe('application-review-controller', () => {
       itemsCollection = {
         find: vi.fn().mockReturnValue({
           toArray: vi.fn()
-        })
+        }),
+        updateMany: vi.fn().mockResolvedValue({ matchedCount: 0 })
       }
 
       db = {
@@ -113,6 +114,35 @@ describe('application-review-controller', () => {
       expect(result.success).toBe(true)
       expect(result.data.status).toBe('complete')
       expect(result.data.reviewedBy).toEqual(reviewedBy)
+    })
+
+    test('moves each still-new country certification to awaiting_decision', async () => {
+      applicationsCollection.findOne.mockResolvedValue({
+        id: 'app-1',
+        type: 'appliance'
+      })
+      itemsCollection.find.mockReturnValue({
+        toArray: vi.fn().mockResolvedValue(reviewedItems)
+      })
+
+      await completeApplication(db, 'app-1', { reviewedBy }, mockLogger)
+
+      expect(itemsCollection.updateMany).toHaveBeenCalledWith(
+        { applicationId: 'app-1', 'englandCertification.status': 'new' },
+        { $set: { 'englandCertification.status': 'awaiting_decision' } }
+      )
+      expect(itemsCollection.updateMany).toHaveBeenCalledWith(
+        { applicationId: 'app-1', 'scotlandCertification.status': 'new' },
+        { $set: { 'scotlandCertification.status': 'awaiting_decision' } }
+      )
+      expect(itemsCollection.updateMany).toHaveBeenCalledWith(
+        { applicationId: 'app-1', 'walesCertification.status': 'new' },
+        { $set: { 'walesCertification.status': 'awaiting_decision' } }
+      )
+      expect(itemsCollection.updateMany).toHaveBeenCalledWith(
+        { applicationId: 'app-1', 'nIrelandCertification.status': 'new' },
+        { $set: { 'nIrelandCertification.status': 'awaiting_decision' } }
+      )
     })
 
     test('checks linked fuels for fuel-type applications', async () => {

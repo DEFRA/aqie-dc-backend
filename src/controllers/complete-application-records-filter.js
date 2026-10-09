@@ -1,9 +1,10 @@
-//Helper function to get a filter for complete application records - where should it go?
+import { APPLICATION_STATUS_COMPLETE } from '../common/helpers/review-status.js'
+
 export async function getCompleteApplicationRecordsFilter(db) {
   // 1. Query only completed applications from the native MongoDB collection
   const completeApplicationIds = await db
     .collection('Applications')
-    .find({ status: 'complete' })
+    .find({ status: APPLICATION_STATUS_COMPLETE })
     .project({ id: 1, _id: 0 })
     .toArray()
 

@@ -4,6 +4,14 @@ import {
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
+import {
+  calculateItemStatus,
+  isTechnicalReviewFinal,
+  hasCertificationStarted,
+  CERTIFICATION_COUNTRIES,
+  mapCountryCertification
+} from '../common/helpers/certification-status.js'
+import { isApplicationComplete } from '../common/helpers/review-status.js'
 
 /**
  * Appliances Controller
@@ -11,6 +19,7 @@ import {
  */
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
+const APPLIANCE_NOT_FOUND = 'Appliance not found'
 
 /**
  * Create a new appliance
@@ -149,7 +158,7 @@ async function getApplianceById(db, id, logger) {
     if (!item) {
       return {
         success: false,
-        message: 'Appliance not found',
+        message: APPLIANCE_NOT_FOUND,
         notFound: true
       }
     }
@@ -160,6 +169,109 @@ async function getApplianceById(db, id, logger) {
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch appliance')
+    throw error
+  }
+}
+
+// Only complete applications send items through country certification, so an
+// item isn't ready for this view until its technical review has reached a
+// final status, certification has started for every country (none are still
+// 'new'), and (when it has a parent application) that application is marked
+// complete.
+async function isReadyForCertification(db, item, countryCertifications) {
+  if (!isTechnicalReviewFinal(item.technicalReview?.status)) {
+    return false
+  }
+  if (!hasCertificationStarted(countryCertifications)) {
+    return false
+  }
+
+  if (!item.applicationId) {
+    return true
+  }
+
+  const application = await db
+    .collection('Applications')
+    .findOne({ id: item.applicationId }, { projection: { status: 1, _id: 0 } })
+
+  return isApplicationComplete(application?.status)
+}
+
+/**
+ * Get certification state for a single appliance.
+ * Returns only the fields the certification screen needs, not the whole record.
+ */
+async function getAdminRecords(db, id, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+  try {
+    const item = await db.collection('Appliances').findOne(
+      { id },
+      {
+        projection: {
+          _id: 0,
+          id: 1,
+          modelName: 1,
+          modelNumber: 1,
+          applicationId: 1,
+          technicalReview: 1,
+          isVisibleToPublic: 1,
+          englandCertification: 1,
+          scotlandCertification: 1,
+          walesCertification: 1,
+          nIrelandCertification: 1
+        }
+      }
+    )
+
+    if (!item) {
+      return {
+        success: false,
+        message: APPLIANCE_NOT_FOUND,
+        notFound: true
+      }
+    }
+
+    const certifications = Object.fromEntries(
+      Object.entries(CERTIFICATION_COUNTRIES).map(([country, field]) => [
+        country,
+        mapCountryCertification(item[field])
+      ])
+    )
+    const countryCertifications = Object.values(certifications).map(
+      (certification) => certification.status
+    )
+
+    if (!(await isReadyForCertification(db, item, countryCertifications))) {
+      return {
+        success: false,
+        message:
+          'Appliance is not yet reviewable - technical review and application must be complete',
+        notReviewable: true
+      }
+    }
+
+    const { itemStatus, canTogglePublicVisibility } = calculateItemStatus({
+      technicalReviewStatus: item.technicalReview?.status,
+      countryCertifications,
+      isVisibleToPublic: item.isVisibleToPublic
+    })
+
+    return {
+      success: true,
+      data: {
+        id: item.id ?? id,
+        modelName: item.modelName || '',
+        modelNumber: item.modelNumber || '',
+        applicationId: item.applicationId || null,
+        certifications,
+        applianceStatus: itemStatus,
+        canTogglePublicVisibility
+      }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to fetch appliance certification')
     throw error
   }
 }
@@ -281,7 +393,7 @@ async function getApplianceWithRelatedItems(db, id, logger) {
     if (!appliance) {
       return {
         success: false,
-        message: 'Appliance not found',
+        message: APPLIANCE_NOT_FOUND,
         notFound: true
       }
     }
@@ -300,6 +412,7 @@ export {
   createAppliance,
   getAllAppliances,
   getApplianceById,
+  getAdminRecords,
   updateAppliance,
   deleteAppliance,
   searchAppliances,
