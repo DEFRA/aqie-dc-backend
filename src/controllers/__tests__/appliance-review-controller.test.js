@@ -1242,7 +1242,9 @@ describe('appliance-review-controller', () => {
         'technicalReview.documentationChecks.technicalDrawings',
         true
       )
-      expect(update.$set).not.toHaveProperty('technicalReview.documentationChecks')
+      expect(update.$set).not.toHaveProperty(
+        'technicalReview.documentationChecks'
+      )
       expect(update.$set).not.toHaveProperty('technicalReview')
     })
 
