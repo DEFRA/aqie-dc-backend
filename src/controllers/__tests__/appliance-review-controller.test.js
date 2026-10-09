@@ -860,7 +860,10 @@ describe('appliance-review-controller', () => {
           'technicalReview.documentationChecks.instructionManual',
           true
         )
-        expect(update.$set).toHaveProperty('technicalReview.status', 'in_review')
+        expect(update.$set).toHaveProperty(
+          'technicalReview.status',
+          'in_review'
+        )
       })
 
       test.each([
@@ -868,32 +871,35 @@ describe('appliance-review-controller', () => {
         ['undefined', undefined],
         ['a string', 'yes'],
         ['a number', 1]
-      ])('rejects %s as an instructionManual result', async (_, invalidResult) => {
-        await expect(
-          recordApplianceCheck(
-            db,
-            'APP-1',
-            'instructionManual',
-            invalidResult,
-            mockLogger,
-            {
-              instructionManual: 'Installation guide v2'
+      ])(
+        'rejects %s as an instructionManual result',
+        async (_, invalidResult) => {
+          await expect(
+            recordApplianceCheck(
+              db,
+              'APP-1',
+              'instructionManual',
+              invalidResult,
+              mockLogger,
+              {
+                instructionManual: 'Installation guide v2'
+              }
+            )
+          ).rejects.toMatchObject({
+            isBoom: true,
+            output: {
+              statusCode: 400,
+              payload: expect.objectContaining({
+                message:
+                  'instructionManual result must be true (passed) or false (failed)'
+              })
             }
-          )
-        ).rejects.toMatchObject({
-          isBoom: true,
-          output: {
-            statusCode: 400,
-            payload: expect.objectContaining({
-              message:
-                'instructionManual result must be true (passed) or false (failed)'
-            })
-          }
-        })
+          })
 
-        expect(collection.findOne).not.toHaveBeenCalled()
-        expect(collection.updateOne).not.toHaveBeenCalled()
-      })
+          expect(collection.findOne).not.toHaveBeenCalled()
+          expect(collection.updateOne).not.toHaveBeenCalled()
+        }
+      )
 
       test('rejects a passed instruction manual when the document is missing', async () => {
         await expect(
