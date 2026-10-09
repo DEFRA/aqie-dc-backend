@@ -1,9 +1,10 @@
 import { getItemsCollectionName } from './application-type.js'
-import {
-  UNCERTIFIED_CERTIFICATION_STATUSES,
-  UNDECIDED_CERTIFICATION_STATUSES
-} from './certification-status.js'
 import { isItemReviewed } from './review-status.js'
+
+// Country certification statuses that count as "not yet certified" when
+// working out an item's public-facing status.
+const UNCERTIFIED_CERTIFICATION_STATUSES = new Set(['revoked', 'rejected'])
+const UNDECIDED_CERTIFICATION_STATUSES = new Set(['new', 'awaiting_decision'])
 
 // Works out the $set update for an item once its technical review has reached
 // a final status (accepted/rejected) - items still mid-review are not expected here.
