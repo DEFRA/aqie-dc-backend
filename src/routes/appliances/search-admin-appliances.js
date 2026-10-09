@@ -7,50 +7,60 @@ import Joi from 'joi'
 import * as applianceController from '../../controllers/appliances-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
-const MIN_QUERY_LENGTH = 2
 const MAX_QUERY_LENGTH = 50
 const DEFAULT_LIMIT = 20
 
-export const searchAppliances = {
+export const searchAdminAppliances = {
   method: 'GET',
-  path: '/api/appliances/search',
+  path: '/api/admin/appliances/search',
   options: {
     validate: {
       query: Joi.object({
         q: Joi.string()
           .trim()
-          .min(MIN_QUERY_LENGTH)
+          .allow('')
           .max(MAX_QUERY_LENGTH)
-          .pattern(/^[a-zA-Z0-9\s\-_.&']+$/)
-          .required()
+          .pattern(/^[a-zA-Z0-9\s\-_.&']*$/)
           .description(
-            'Search query for appliances (modelName, companyName and applianceType ). Min 2, max 50 chars.'
+            'Search query for appliances (modelName, companyName and applianceType ). Max 50 chars.'
           ),
+        status: Joi.string()
+          .trim()
+          .allow('')
+          .optional()
+          .description('Comma-separated appliance statuses to filter by'),
         page: Joi.number().integer().min(1).default(1),
         limit: Joi.number().integer().min(1).max(100).default(DEFAULT_LIMIT)
       })
     }
   },
   handler: async (request, h) => {
-    const { q, page, limit } = request.query
+    const { q = '', page, limit, status } = request.query
+    const statuses =
+      typeof status === 'string'
+        ? status
+            .split(',')
+            .map((value) => value.trim().toLowerCase())
+            .filter(Boolean)
+        : []
 
     try {
-      const result = await applianceController.searchAppliances(
+      const result = await applianceController.searchAdminAppliances(
         request.db,
-        { query: q, page, limit },
+        { query: q, page, limit, statuses },
         request.logger
       )
 
       return h.response(result).code(statusCodes.ok)
     } catch (error) {
-      request.logger.error(error, 'Failed to search appliances')
+      request.logger.error(error, 'Failed to search admin appliances')
 
       if (Boom.isBoom(error)) {
         throw error
       }
 
-      const status = error?.status
-      if (status && status >= statusCodes.internalServerError) {
+      const errorStatus = error?.status
+      if (errorStatus && errorStatus >= statusCodes.internalServerError) {
         return Boom.badGateway(
           'Appliance search service is currently unavailable'
         )

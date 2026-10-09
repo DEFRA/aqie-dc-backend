@@ -6,7 +6,7 @@ import {
   getApplianceById,
   updateAppliance,
   deleteAppliance,
-  searchAppliances,
+  searchAdminAppliances,
   getApplianceWithRelatedItems
 } from '#src/controllers/appliances-controller.js'
 
@@ -370,7 +370,7 @@ describe('appliances-controller', () => {
     })
   })
 
-  describe('searchAppliances', () => {
+  describe('searchAdminAppliances', () => {
     test('returns paginated results', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
@@ -387,7 +387,7 @@ describe('appliances-controller', () => {
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(41)
 
-      const result = await searchAppliances(
+      const result = await searchAdminAppliances(
         db,
         {
           query: 'search',
@@ -399,6 +399,50 @@ describe('appliances-controller', () => {
 
       expect(result.pagination.totalPages).toBe(3)
       expect(result.pagination.total).toBe(41)
+    })
+
+    test('applies case-insensitive status filter', async () => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([
+          {
+            id: 'APP-001',
+            modelName: 'Live Appliance',
+            applianceStatus: 'Live'
+          }
+        ])
+      }
+
+      collection.find.mockReturnValue(cursor)
+      collection.countDocuments.mockResolvedValue(1)
+
+      const result = await searchAdminAppliances(
+        db,
+        {
+          query: '',
+          page: 1,
+          limit: 20,
+          statuses: ['live']
+        },
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data.length).toBe(1)
+
+      // Verify the search query uses regex for case-insensitive matching
+      const searchQuery = collection.find.mock.calls[0][0]
+      expect(searchQuery.applianceStatus).toBeDefined()
+      expect(searchQuery.applianceStatus.$in).toBeDefined()
+      expect(searchQuery.applianceStatus.$in).toHaveLength(1)
+      // Each status should be converted to a regex pattern
+      const regexPattern = searchQuery.applianceStatus.$in[0]
+      expect(regexPattern).toBeInstanceOf(RegExp)
+      expect(regexPattern.test('live')).toBe(true)
+      expect(regexPattern.test('Live')).toBe(true)
+      expect(regexPattern.test('LIVE')).toBe(true)
     })
   })
 
