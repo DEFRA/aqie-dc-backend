@@ -1,5 +1,4 @@
-
- import {
+import {
   UNCERTIFIED_CERTIFICATION_STATUSES,
   UNDECIDED_CERTIFICATION_STATUSES
 } from './certification-status.js'
@@ -24,7 +23,10 @@ export const calculateItemStatus = ({
   countryCertifications,
   isVisibleToPublic
 }) => {
-  if (technicalReviewStatus === 'new' || technicalReviewStatus === 'in_review') {
+  if (
+    technicalReviewStatus === 'new' ||
+    technicalReviewStatus === 'in_review'
+  ) {
     throw new Error('Technical review at application stage is not complete')
   }
 
