@@ -1225,6 +1225,27 @@ describe('appliance-review-controller', () => {
       expect(update.$set).not.toHaveProperty('technicalReview.status')
     })
 
+    test('updates only the requested field instead of replacing the review object', async () => {
+      existingReview('in_review')
+
+      await recordApplianceCheck(
+        db,
+        'APP-1',
+        'technicalDrawings',
+        true,
+        mockLogger
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.technicalDrawings',
+        true
+      )
+      expect(update.$set).not.toHaveProperty('technicalReview.documentationChecks')
+      expect(update.$set).not.toHaveProperty('technicalReview')
+    })
+
     test('leaves the other checks untouched', async () => {
       existingReview('in_review')
 
