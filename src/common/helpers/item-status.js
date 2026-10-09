@@ -116,5 +116,7 @@ export const calculateItemStatus = async (db, type, itemId) => {
     item.technicalReview?.status
   )
 
+  await collection.updateOne({ id: itemId }, { $set: update })
+
   return update[itemStatus]
 }
