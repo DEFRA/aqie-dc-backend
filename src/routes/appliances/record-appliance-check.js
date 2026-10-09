@@ -37,7 +37,7 @@ const INSTRUCTION_MANUAL_DATA_SCHEMA = Joi.when('result', {
     instructionManual: passedInstructionManualSchema.required()
   })
     .unknown(false)
-    .required(),
+    .optional(),
   otherwise: Joi.object({
     instructionManual: failedInstructionManualSchema.required()
   })
@@ -57,11 +57,7 @@ const CHECK_DATA_SCHEMAS = {
     .unknown(false)
     .required(),
   additionalConditions: ADDITIONAL_CONDITIONS_SCHEMA.required(),
-  testReports: Joi.when('result', {
-    is: false,
-    then: TEST_REPORTS_DATA_SCHEMA.optional(),
-    otherwise: TEST_REPORTS_DATA_SCHEMA.required()
-  }),
+  testReports: TEST_REPORTS_DATA_SCHEMA.required(),
   instructionManual: INSTRUCTION_MANUAL_DATA_SCHEMA
 }
 
@@ -100,8 +96,9 @@ export const recordApplianceCheck = {
             {
               is: 'instructionManual',
               then: Joi.boolean()
+                .allow(null)
                 .required()
-                .description('true passed, false failed')
+                .description('true passed, false failed, null not reviewed')
             }
           ],
           otherwise: Joi.boolean()
