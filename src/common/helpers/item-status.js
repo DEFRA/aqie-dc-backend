@@ -1,3 +1,4 @@
+import { getItemsCollectionName } from './application-type.js'
 import {
   UNCERTIFIED_CERTIFICATION_STATUSES,
   UNDECIDED_CERTIFICATION_STATUSES
@@ -10,26 +11,29 @@ import {
  * final status (accepted/rejected) - items still mid-review are not
  * expected here.
  *
- * @param {object} params
- * @param {'accepted'|'rejected'} params.technicalReviewStatus
- * @param {string[]} params.countryCertifications - One status per country
- *   (England, Scotland, Wales, Northern Ireland), e.g. 'certified'.
- * @param {boolean} params.isVisibleToPublic - Only relevant once at least
- *   one country is certified.
- * @returns {{ itemStatus: 'rejected'|'pending'|'hidden'|'live', canTogglePublicVisibility: boolean }}
+ * @param {import('mongodb').Db} db
+ * @param {'appliance'|'fuel'} type
+ * @param {string} itemId - applianceId or fuelId, depending on type
  */
-export const calculateItemStatus = async (db, applianceId) => {
+export const calculateItemStatus = async (db, type, itemId) => {
   if (!db) {
     throw new Error('Database instance is required')
   }
-  if (!applianceId) {
-    throw new Error('Appliance ID is required')
+  const collectionName = getItemsCollectionName(type)
+  if (!collectionName) {
+    throw new Error(`Unsupported item type: ${type}`)
+  }
+  if (!itemId) {
+    throw new Error('Item ID is required')
   }
 
-  const appliances = db.collection('Appliances')
+  // The status field name is unique to this function, not a general type/collection convention.
+  const itemStatus = type === 'fuel' ? 'fuelStatus' : 'applianceStatus'
 
-  const appliance = await appliances.findOne(
-    { id: applianceId },
+  const collection = db.collection(collectionName)
+
+  const item = await collection.findOne(
+    { id: itemId },
     {
       projection: {
         'technicalReview.status': 1,
@@ -44,25 +48,25 @@ export const calculateItemStatus = async (db, applianceId) => {
   )
 
   if (
-    appliance.technicalReview?.status === 'new' ||
-    appliance.technicalReview?.status === 'in_review'
+    item.technicalReview?.status === 'new' ||
+    item.technicalReview?.status === 'in_review'
   ) {
     throw new Error('Technical review at application stage is not complete')
   }
 
-  if (appliance.technicalReview?.status === 'rejected') {
-    await appliances.updateOne(
-      { id: applianceId },
-      { $set: { applianceStatus: 'rejected' } }
+  if (item.technicalReview?.status === 'rejected') {
+    await collection.updateOne(
+      { id: itemId },
+      { $set: { [itemStatus]: 'rejected' } }
     )
     return
   }
 
   const countryCertifications = [
-    appliance.englandCertification?.status,
-    appliance.scotlandCertification?.status,
-    appliance.walesCertification?.status,
-    appliance.nIrelandCertification?.status
+    item.englandCertification?.status,
+    item.scotlandCertification?.status,
+    item.walesCertification?.status,
+    item.nIrelandCertification?.status
   ]
 
   const hasCertified = countryCertifications.includes('certified')
@@ -73,35 +77,35 @@ export const calculateItemStatus = async (db, applianceId) => {
     UNDECIDED_CERTIFICATION_STATUSES.has(status)
   )
 
-  // At least one country has certified the item - show the toggle, and the
+  // At least one country has certified the item - mindful that there is a toggle button, and the
   // status depends on whether it has been hidden from the public.
   if (hasCertified) {
-    await appliances.updateOne(
-      { id: applianceId },
+    await collection.updateOne(
+      { id: itemId },
       {
         $set: {
-          applianceStatus: appliance.isVisibleToPublic ? 'live' : 'hidden'
+          [itemStatus]: item.isVisibleToPublic ? 'live' : 'hidden'
         }
       }
     )
     return
   }
 
-  // None certified, but at least one revoked/rejected - hidden, no toggle.
+  // None certified, but at least one revoked/rejected - hidden, mindful that there is no toggle button.
   // Visibility resets to the default so a later re-certification starts as live.
   if (hasUncertified) {
-    await appliances.updateOne(
-      { id: applianceId },
-      { $set: { applianceStatus: 'hidden', isVisibleToPublic: true } }
+    await collection.updateOne(
+      { id: itemId },
+      { $set: { [itemStatus]: 'hidden', isVisibleToPublic: true } }
     )
     return
   }
 
   // Default: none certified, all 4 still undecided - pending.
   if (allUndecided) {
-    await appliances.updateOne(
-      { id: applianceId },
-      { $set: { applianceStatus: 'pending', isVisibleToPublic: true } }
+    await collection.updateOne(
+      { id: itemId },
+      { $set: { [itemStatus]: 'pending', isVisibleToPublic: true } }
     )
     return
   }
