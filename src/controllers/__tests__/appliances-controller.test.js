@@ -6,7 +6,7 @@ import {
   getApplianceById,
   updateAppliance,
   deleteAppliance,
-  searchAppliances,
+  searchAdminAppliances,
   getApplianceWithRelatedItems
 } from '#src/controllers/appliances-controller.js'
 
@@ -370,7 +370,7 @@ describe('appliances-controller', () => {
     })
   })
 
-  describe('searchAppliances', () => {
+  describe('searchAdminAppliances', () => {
     test('returns paginated results', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
@@ -387,7 +387,7 @@ describe('appliances-controller', () => {
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(41)
 
-      const result = await searchAppliances(
+      const result = await searchAdminAppliances(
         db,
         {
           query: 'search',
@@ -418,7 +418,7 @@ describe('appliances-controller', () => {
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(1)
 
-      const result = await searchAppliances(
+      const result = await searchAdminAppliances(
         db,
         {
           query: '',
