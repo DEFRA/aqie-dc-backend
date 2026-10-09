@@ -117,6 +117,7 @@ async function getApplianceReview(db, id, logger) {
           isPermittedToBurnWood: 1,
           additionalConditions: 1,
           testResults: 1,
+          instructionManual: 1,
           technicalReview: 1,
           _id: 0
         }

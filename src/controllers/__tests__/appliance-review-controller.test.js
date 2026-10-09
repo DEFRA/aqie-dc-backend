@@ -99,6 +99,7 @@ describe('appliance-review-controller', () => {
         additionalConditions: 1,
         isPermittedToBurnWood: 1,
         testResults: 1,
+        instructionManual: 1,
         technicalReview: 1,
         _id: 0
       })
