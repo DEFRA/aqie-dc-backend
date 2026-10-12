@@ -288,6 +288,7 @@ async function getAdminApplianceById(db, id, logger) {
           modelNumber: 1,
           applicationId: 1,
           isLegacyRecord: 1,
+          isVisibleToPublic: 1,
           ...Object.fromEntries(
             CERTIFICATION_FIELDS.map((field) => [`${field}.status`, 1])
           ),
@@ -305,6 +306,8 @@ async function getAdminApplianceById(db, id, logger) {
     }
 
     const { applianceStatus, ...fields } = item
+    // Placeholder flag until visibility toggle rules are finalised
+    const canTogglePublicVisibility = true
 
     return {
       success: true,
@@ -319,7 +322,9 @@ async function getAdminApplianceById(db, id, logger) {
         ),
         applicationId: item.applicationId ?? null,
         isLegacyRecord: item.isLegacyRecord ?? false,
-        status: applianceStatus || 'pending'
+        isVisibleToPublic: item.isVisibleToPublic ?? false,
+        status: applianceStatus || 'pending',
+        canTogglePublicVisibility
       }
     }
   } catch (error) {
