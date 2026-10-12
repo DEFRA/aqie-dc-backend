@@ -1,10 +1,12 @@
 import {
   generateSecureId,
-  findCertified,
-  findLastUpdatedDate,
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
+import {
+  findCertified,
+  findLastCertifiedDate
+} from '../common/helpers/certification.js'
 /**
  * Fuels Controller
  * Business logic for fuel-related operations
@@ -64,18 +66,8 @@ async function createFuel(db, item, logger) {
 function mapFuelDetail(item) {
   return {
     ...item,
-    authorisedIn: findCertified(
-      item.englandCertification,
-      item.scotlandCertification,
-      item.walesCertification,
-      item.nIrelandCertification
-    ),
-    lastUpdatedDate: findLastUpdatedDate(
-      item.englandCertification.lastCertifiedAt,
-      item.scotlandCertification.lastCertifiedAt,
-      item.walesCertification.lastCertifiedAt,
-      item.nIrelandCertification.lastCertifiedAt
-    ),
+    authorisedIn: findCertified(item),
+    lastUpdatedDate: findLastCertifiedDate(item),
     name: item.brandNames || '',
     id: item.fuelId,
     manufacturer: item.companyName || '',
@@ -89,18 +81,8 @@ function mapFuelSummary(item) {
     name: item.brandNames || '',
     id: item.fuelId,
     manufacturer: item.companyName || '',
-    authorisedIn: findCertified(
-      item.englandCertification,
-      item.scotlandCertification,
-      item.walesCertification,
-      item.nIrelandCertification
-    ),
-    lastUpdatedDate: findLastUpdatedDate(
-      item.englandCertification.lastCertifiedAt,
-      item.scotlandCertification.lastCertifiedAt,
-      item.walesCertification.lastCertifiedAt,
-      item.nIrelandCertification.lastCertifiedAt
-    )
+    authorisedIn: findCertified(item),
+    lastUpdatedDate: findLastCertifiedDate(item)
   }
 }
 
