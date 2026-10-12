@@ -176,36 +176,10 @@ async function updateAppliance(db, id, updates, logger) {
     const collection = db.collection('Appliances')
     const now = new Date()
 
-    // Certification fields that should be replaced entirely, not merged with dot notation
-    const certificationFields = [
-      'englandCertification',
-      'scotlandCertification',
-      'walesCertification',
-      'nIrelandCertification'
-    ]
-
-    // Separate certification fields from other updates
-    const certificationUpdates = {}
-    const otherUpdates = {}
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (certificationFields.includes(key)) {
-        // Certification fields: set the entire object directly
-        certificationUpdates[key] = value
-      } else {
-        // Other fields: use dot notation
-        otherUpdates[key] = value
-      }
-    })
-
-    // Build $set with proper handling for certification objects
-    const setPayload = {
-      ...toDotted(otherUpdates),
-      ...certificationUpdates, // Certification objects set directly (not dot-notated)
-      updatedAt: now
-    }
-
-    const result = await collection.updateOne({ id }, { $set: setPayload })
+    const result = await collection.updateOne(
+      { id },
+      { $set: { ...toDotted(updates), updatedAt: now } }
+    )
 
     if (result.matchedCount === 0) {
       return { notFound: true }
