@@ -325,7 +325,9 @@ async function getAdminApplianceById(db, id, logger) {
         applicationId: item.applicationId || null,
         certifications,
         status: item.applianceStatus || 'pending',
-        canTogglePublicVisibility
+        canTogglePublicVisibility,
+        isVisibleToPublic: item.isVisibleToPublic || false,
+        isLegacyRecord: item.isLegacyRecord || false
       }
     }
   } catch (error) {

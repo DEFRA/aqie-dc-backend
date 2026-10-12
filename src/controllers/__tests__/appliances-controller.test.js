@@ -343,7 +343,9 @@ describe('appliances-controller', () => {
             }
           },
           status: 'live',
-          canTogglePublicVisibility: true
+          canTogglePublicVisibility: true,
+          isVisibleToPublic: false,
+          isLegacyRecord: true
         }
       })
     })
@@ -361,6 +363,8 @@ describe('appliances-controller', () => {
       })
       expect(result.data.applicationId).toBeNull()
       expect(result.data.canTogglePublicVisibility).toBe(false)
+      expect(result.data.isVisibleToPublic).toBe(false)
+      expect(result.data.isLegacyRecord).toBe(false)
     })
 
     test('returns not found', async () => {
