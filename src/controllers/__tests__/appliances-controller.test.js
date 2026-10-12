@@ -320,13 +320,27 @@ describe('appliances-controller', () => {
           modelName: 'Admin Model',
           modelNumber: 'AM-001',
           applicationId: 'APPL-001',
-          isLegacyRecord: true,
-          isVisibleToPublic: false,
           certifications: {
-            england: 'certified',
-            scotland: 'awaiting_decision',
-            wales: 'awaiting_decision',
-            northernIreland: 'awaiting_decision'
+            england: {
+              status: 'certified',
+              firstCertifiedAt: null,
+              lastCertifiedAt: null
+            },
+            scotland: {
+              status: 'awaiting_decision',
+              firstCertifiedAt: null,
+              lastCertifiedAt: null
+            },
+            wales: {
+              status: 'awaiting_decision',
+              firstCertifiedAt: null,
+              lastCertifiedAt: null
+            },
+            northernIreland: {
+              status: 'awaiting_decision',
+              firstCertifiedAt: null,
+              lastCertifiedAt: null
+            }
           },
           status: 'live',
           canTogglePublicVisibility: true
@@ -340,9 +354,13 @@ describe('appliances-controller', () => {
       const result = await getAdminApplianceById(db, 'APP-002', mockLogger)
 
       expect(result.data.status).toBe('pending')
-      expect(result.data.certifications.england).toBeNull()
+      expect(result.data.certifications.england).toEqual({
+        status: 'new',
+        firstCertifiedAt: null,
+        lastCertifiedAt: null
+      })
       expect(result.data.applicationId).toBeNull()
-      expect(result.data.isLegacyRecord).toBe(false)
+      expect(result.data.canTogglePublicVisibility).toBe(false)
     })
 
     test('returns not found', async () => {
