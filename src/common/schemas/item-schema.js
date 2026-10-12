@@ -146,12 +146,21 @@ export const applianceSchema = Joi.object({
       'Additional conditions previously referred to as air control modifications'
     ),
   instructionManual: Joi.object({
-    title: Joi.string().optional().description('Instruction manual title'),
+    title: Joi.string()
+      .allow('', null)
+      .optional()
+      .description('Instruction manual title'),
     publicationDate: Joi.date()
+      .iso()
+      .allow(null)
       .optional()
       .description('Instruction manual publication date'),
-    version: Joi.string().optional().description('Instruction manual version'),
+    version: Joi.string()
+      .allow('', null)
+      .optional()
+      .description('Instruction manual version'),
     additionalInfo: Joi.string()
+      .allow('', null)
       .optional()
       .description('Instruction manual additional information')
   }).optional(),
@@ -232,7 +241,7 @@ export const applianceSchema = Joi.object({
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
     ),
-  isVisible: Joi.boolean()
+  isVisibleToPublic: Joi.boolean()
     .default(true)
     .description('Should this appliance be visible to the public?'),
   // need to put logic in to populate these fields
@@ -240,7 +249,7 @@ export const applianceSchema = Joi.object({
     .optional()
     .description('The earliest date of certification'),
   applianceStatus: Joi.string().description(
-    'Takes in account the technical review and country certifications, and isVisible to determine the overall status of the appliance'
+    'Takes in account the technical review and country certifications, and isVisibleToPublic to determine the overall status of the appliance'
   )
 }).label('Appliance')
 

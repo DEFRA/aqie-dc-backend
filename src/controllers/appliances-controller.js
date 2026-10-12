@@ -4,6 +4,7 @@ import {
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
+import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 
 /**
  * Appliances Controller
@@ -87,7 +88,6 @@ function mapApplianceSummary(item) {
     permittedFuels: item.permittedFuels || '',
     type: item.applianceType,
     modelNumber: item.modelNumber,
-    status: (item.applianceStatus || 'pending').toLowerCase(),
     authorisedIn: findCertified(
       item.englandCertification,
       item.scotlandCertification,
@@ -249,9 +249,9 @@ async function deleteAppliance(db, id, logger) {
 }
 
 /**
- * Search appliances by name, model number, or type with pagination
+ * Admin: search appliances by name, model number, or type with pagination
  */
-async function searchAppliances(
+async function searchAdminAppliances(
   db,
   { query = '', page = 1, limit = 20, statuses = [] } = {},
   logger
@@ -266,7 +266,10 @@ async function searchAppliances(
       .map((status) => (status || '').toLowerCase().trim())
       .filter(Boolean)
 
-    const searchQuery = {}
+    // Only return appliances whose technical review has reached a final status
+    const searchQuery = {
+      'technicalReview.status': { $in: REVIEWED_STATUSES }
+    }
 
     if (query?.trim()) {
       const trimmedQuery = query.trim()
@@ -295,7 +298,11 @@ async function searchAppliances(
 
     return {
       success: true,
-      data: appliances.map((item) => mapApplianceSummary(item)),
+      data: appliances.map((item) => ({
+        id: item.id || '',
+        name: item.modelName || '',
+        status: item.applianceStatus || 'pending'
+      })),
       pagination: {
         page,
         limit,
@@ -304,7 +311,7 @@ async function searchAppliances(
       }
     }
   } catch (error) {
-    logger.error(error, 'Failed to search appliances')
+    logger.error(error, 'Failed to search admin appliances')
     throw error
   }
 }
@@ -344,6 +351,6 @@ export {
   getApplianceById,
   updateAppliance,
   deleteAppliance,
-  searchAppliances,
+  searchAdminAppliances,
   getApplianceWithRelatedItems
 }

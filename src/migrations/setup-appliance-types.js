@@ -34,12 +34,12 @@ export async function setupApplianceTypes(db, logger) {
       validator: {
         $jsonSchema: {
           bsonType: 'object',
-          required: ['_id', 'name'],
+          required: ['_id', 'value'],
           properties: {
             _id: { bsonType: 'objectId' },
-            name: {
+            value: {
               bsonType: 'string',
-              description: 'Appliance type name (e.g., Stove, Boiler)'
+              description: 'Appliance type value (e.g., Stove, Boiler)'
             },
             isPrimary: {
               bsonType: 'bool',
@@ -75,8 +75,8 @@ export async function setupApplianceTypes(db, logger) {
  */
 async function createApplianceTypesIndexes(collection, logger) {
   try {
-    // Index on name for faster lookups and uniqueness
-    await collection.createIndex({ name: 1 }, { unique: false })
+    // Index on value for faster lookups and uniqueness
+    await collection.createIndex({ value: 1 }, { unique: false })
 
     // Index on isPrimary for filtering
     await collection.createIndex({ isPrimary: 1 })

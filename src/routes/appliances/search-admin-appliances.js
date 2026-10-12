@@ -1,5 +1,5 @@
 /**
- * Search appliances by name or type
+ * Search appliances by model name, company, model number, or type
  */
 
 import Boom from '@hapi/boom'
@@ -10,9 +10,9 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 const MAX_QUERY_LENGTH = 50
 const DEFAULT_LIMIT = 20
 
-export const searchAppliances = {
+export const searchAdminAppliances = {
   method: 'GET',
-  path: '/api/appliances/search',
+  path: '/api/admin/appliances/search',
   options: {
     validate: {
       query: Joi.object({
@@ -22,7 +22,7 @@ export const searchAppliances = {
           .max(MAX_QUERY_LENGTH)
           .pattern(/^[a-zA-Z0-9\s\-_.&']*$/)
           .description(
-            'Search query for appliances (modelName, companyName and applianceType ). Max 50 chars.'
+            'Search query for appliances by modelName, companyName, modelNumber, or applianceType. Max 50 chars.'
           ),
         status: Joi.string()
           .trim()
@@ -45,7 +45,7 @@ export const searchAppliances = {
         : []
 
     try {
-      const result = await applianceController.searchAppliances(
+      const result = await applianceController.searchAdminAppliances(
         request.db,
         { query: q, page, limit, statuses },
         request.logger
@@ -53,14 +53,14 @@ export const searchAppliances = {
 
       return h.response(result).code(statusCodes.ok)
     } catch (error) {
-      request.logger.error(error, 'Failed to search appliances')
+      request.logger.error(error, 'Failed to search admin appliances')
 
       if (Boom.isBoom(error)) {
         throw error
       }
 
-      const status = error?.status
-      if (status && status >= statusCodes.internalServerError) {
+      const errorStatus = error?.status
+      if (errorStatus && errorStatus >= statusCodes.internalServerError) {
         return Boom.badGateway(
           'Appliance search service is currently unavailable'
         )
