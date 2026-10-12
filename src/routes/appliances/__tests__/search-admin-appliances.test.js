@@ -217,6 +217,22 @@ describe('GET /api/admin/appliances/search', () => {
       )
     })
 
+    test('returns 502 when controller reports an upstream gateway failure', async () => {
+      const error = { status: statusCodes.badGateway }
+      applianceController.searchAdminAppliances.mockRejectedValueOnce(error)
+
+      const result = await searchAdminAppliances.handler(
+        mockRequest,
+        mockToolkit
+      )
+
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(statusCodes.badGateway)
+      expect(result.message).toBe(
+        'Appliance search service is currently unavailable'
+      )
+    })
+
     test('uses request.logger', async () => {
       applianceController.searchAdminAppliances.mockResolvedValueOnce({
         success: true,

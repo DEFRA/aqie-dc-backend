@@ -490,6 +490,54 @@ describe('appliances-controller', () => {
         searchAdminAppliances(db, { query: 'boiler' }, undefined)
       ).rejects.toThrow('logger is required')
     })
+
+    test('returns empty results with zero total pages when there are no matches', async () => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([])
+      }
+
+      collection.find.mockReturnValue(cursor)
+      collection.countDocuments.mockResolvedValue(0)
+
+      const result = await searchAdminAppliances(
+        db,
+        { query: 'no-match', page: 1, limit: 20, statuses: [] },
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual([])
+      expect(result.pagination.total).toBe(0)
+      expect(result.pagination.totalPages).toBe(0)
+    })
+
+    test('searches by technical review status even when query is blank', async () => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([])
+      }
+
+      collection.find.mockReturnValue(cursor)
+      collection.countDocuments.mockResolvedValue(0)
+
+      await searchAdminAppliances(
+        db,
+        { query: '   ', page: 1, limit: 20 },
+        mockLogger
+      )
+
+      const searchQuery = collection.find.mock.calls[0][0]
+      expect(searchQuery['technicalReview.status']).toEqual({
+        $in: ['accepted', 'rejected']
+      })
+      expect(searchQuery.$or).toBeUndefined()
+      expect(searchQuery.applianceStatus).toBeUndefined()
+    })
   })
 
   describe('getApplianceWithRelatedItems', () => {
