@@ -11,8 +11,10 @@ import {
   CERTIFICATION_COUNTRIES,
   mapCountryCertification
 } from '../common/helpers/certification-status.js'
-import { isApplicationComplete } from '../common/helpers/review-status.js'
-import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
+import {
+  isApplicationComplete,
+  REVIEWED_STATUSES
+} from '../common/helpers/review-status.js'
 
 /**
  * Appliances Controller
