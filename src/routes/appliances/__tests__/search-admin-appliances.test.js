@@ -1,3 +1,4 @@
+import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import { searchAdminAppliances } from '#src/routes/appliances/search-admin-appliances.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
@@ -149,6 +150,34 @@ describe('GET /api/admin/appliances/search', () => {
       )
     })
 
+    test('ignores blank status values when building the filter', async () => {
+      mockRequest.query.status = ' , pending, , live , '
+
+      applianceController.searchAdminAppliances.mockResolvedValueOnce({
+        success: true,
+        data: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
+      })
+
+      const h = mockToolkit
+      await searchAdminAppliances.handler(mockRequest, h)
+
+      expect(applianceController.searchAdminAppliances).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ statuses: ['pending', 'live'] }),
+        expect.anything()
+      )
+    })
+
+    test('rethrows boom errors without wrapping them', async () => {
+      const boomError = Boom.badRequest('Invalid query')
+      applianceController.searchAdminAppliances.mockRejectedValueOnce(boomError)
+
+      await expect(searchAdminAppliances.handler(mockRequest, mockToolkit)).rejects.toBe(
+        boomError
+      )
+    })
+
     test('passes pagination params to controller', async () => {
       mockRequest.query.page = 3
       mockRequest.query.limit = 15
@@ -272,6 +301,16 @@ describe('GET /api/admin/appliances/search', () => {
       const querySchema = searchAdminAppliances.options.validate.query
       const { error } = querySchema.validate({ q: 'test', page: 2, limit: 50 })
       expect(error).toBeUndefined()
+    })
+
+    test('documents all searchable appliance fields', () => {
+      const querySchema = searchAdminAppliances.options.validate.query
+      const { q } = querySchema.describe().keys
+
+      expect(q.flags.description).toContain('modelName')
+      expect(q.flags.description).toContain('companyName')
+      expect(q.flags.description).toContain('modelNumber')
+      expect(q.flags.description).toContain('applianceType')
     })
   })
 })

@@ -401,6 +401,46 @@ describe('appliances-controller', () => {
       expect(result.pagination.total).toBe(41)
     })
 
+    test('trims query and status input before building db filters', async () => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([
+          {
+            id: 'APP-002',
+            modelName: 'Trimmed Model',
+            applianceStatus: 'pending'
+          }
+        ])
+      }
+
+      collection.find.mockReturnValue(cursor)
+      collection.countDocuments.mockResolvedValue(1)
+
+      await searchAdminAppliances(
+        db,
+        {
+          query: '  boiler  ',
+          page: 1,
+          limit: 20,
+          statuses: ['  live  ', '', 'pending']
+        },
+        mockLogger
+      )
+
+      const searchQuery = collection.find.mock.calls[0][0]
+      expect(searchQuery.$or).toEqual([
+        { modelName: { $regex: 'boiler', $options: 'i' } },
+        { companyName: { $regex: 'boiler', $options: 'i' } },
+        { modelNumber: { $regex: 'boiler', $options: 'i' } },
+        { applianceType: { $regex: 'boiler', $options: 'i' } }
+      ])
+      expect(searchQuery.applianceStatus.$in).toHaveLength(2)
+      expect(searchQuery.applianceStatus.$in[0]).toBeInstanceOf(RegExp)
+      expect(searchQuery.applianceStatus.$in[1]).toBeInstanceOf(RegExp)
+    })
+
     test('applies case-insensitive status filter', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
@@ -443,6 +483,12 @@ describe('appliances-controller', () => {
       expect(regexPattern.test('live')).toBe(true)
       expect(regexPattern.test('Live')).toBe(true)
       expect(regexPattern.test('LIVE')).toBe(true)
+    })
+
+    test('throws if logger is missing', async () => {
+      await expect(searchAdminAppliances(db, { query: 'boiler' }, undefined)).rejects.toThrow(
+        'logger is required'
+      )
     })
   })
 
