@@ -316,7 +316,6 @@ async function getAdminApplianceById(db, id, logger) {
       ])
     )
 
-
     return {
       success: true,
       data: {
