@@ -1,296 +1,252 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import * as applianceCertificationController from '../appliance-certification-controller.js'
+import { describe, test, expect, vi, beforeEach } from 'vitest'
+import { updateCertificationStatus } from '#src/controllers/appliance-certification-controller.js'
 
-describe('Appliance Certification Controller', () => {
-  let mockDb
-  let mockCollection
-  let appliance
+const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+const decidedBy = { name: 'Ada', email: 'ada@example.com' }
 
-  beforeEach(() => {
-    // Setup mock appliance
-    appliance = {
-      id: 'APP-001',
-      modelName: 'Test Stove',
-      englandCertification: {
-        status: 'awaiting_decision',
-        decidedAt: null,
-        decidedBy: null,
-        firstCertifiedAt: null,
-        lastCertifiedAt: null
-      },
-      scotlandCertification: {
-        status: 'certified',
-        decidedAt: new Date('2026-01-01'),
-        decidedBy: { name: 'John Doe', email: 'john@example.com' },
-        firstCertifiedAt: new Date('2026-01-01'),
-        lastCertifiedAt: new Date('2026-01-01')
-      },
-      walesCertification: {
-        status: 'revoked',
-        decidedAt: new Date('2026-02-01'),
-        decidedBy: { name: 'Jane Smith', email: 'jane@example.com' },
-        firstCertifiedAt: new Date('2025-12-01'),
-        lastCertifiedAt: new Date('2026-02-01')
-      },
-      nIrelandCertification: {
-        status: 'new',
-        decidedAt: null,
-        decidedBy: null,
-        firstCertifiedAt: null,
-        lastCertifiedAt: null
-      },
-      updatedAt: new Date()
-    }
+function makeDb(appliance) {
+  const actions = []
+  const appliances = {
+    findOne: vi.fn().mockResolvedValue(appliance),
+    findOneAndUpdate: vi.fn(async (_filter, update) => ({
+      ...appliance,
+      ...update.$set
+    }))
+  }
+  const actionsCollection = {
+    insertOne: vi.fn(async (doc) => {
+      actions.push(doc)
+      return { acknowledged: true }
+    }),
+    find: vi.fn(() => ({
+      sort: () => ({ project: () => ({ toArray: async () => actions }) })
+    }))
+  }
 
-    mockCollection = {
-      findOne: vi.fn().mockResolvedValue(appliance),
-      findOneAndUpdate: vi.fn().mockResolvedValue({
-        value: { ...appliance, updatedAt: new Date() }
-      })
-    }
+  return {
+    db: {
+      collection: (name) =>
+        name === 'Actions' ? actionsCollection : appliances
+    },
+    appliances,
+    actionsCollection,
+    actions
+  }
+}
 
-    mockDb = {
-      collection: vi.fn().mockReturnValue(mockCollection)
-    }
+describe('appliance-certification-controller updateCertificationStatus', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  test('rejects an unknown country', async () => {
+    const { db } = makeDb({ id: 'APP-1' })
+
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'france',
+      'certified',
+      decidedBy,
+      logger
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('Invalid country')
   })
 
-  describe('updateCertificationStatus', () => {
-    const decidedBy = { name: 'Test User', email: 'test@example.com' }
+  test('returns not found when the appliance is missing', async () => {
+    const { db, appliances } = makeDb(null)
+    appliances.findOne.mockResolvedValue(null)
 
-    it('should update awaiting_decision to certified', async () => {
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'england',
-        'certified',
-        decidedBy
-      )
+    const result = await updateCertificationStatus(
+      db,
+      'APP-404',
+      'england',
+      'certified',
+      decidedBy,
+      logger
+    )
 
-      expect(result.success).toBe(true)
-      expect(result.data).toBeDefined()
-      expect(mockCollection.findOneAndUpdate).toHaveBeenCalled()
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('not found')
+  })
 
-      const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
-      const updateData = updateCall[1].$set
-      expect(updateData.englandCertification.status).toBe('certified')
-      expect(updateData.englandCertification.decidedBy).toEqual(decidedBy)
+  test('certifies from awaiting_decision and stamps the milestones', async () => {
+    const { db, appliances } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'awaiting_decision' }
     })
 
-    it('should update awaiting_decision to uncertified (revoked)', async () => {
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'england',
-        'uncertified',
-        decidedBy
-      )
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'certified',
+      decidedBy,
+      logger
+    )
 
-      expect(result.success).toBe(true)
-      const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
-      const updateData = updateCall[1].$set
-      expect(updateData.englandCertification.status).toBe('revoked')
+    expect(result.success).toBe(true)
+    const { $set } = appliances.findOneAndUpdate.mock.calls[0][1]
+    expect($set.englandCertification.status).toBe('certified')
+    expect($set.englandCertification.decidedBy).toEqual(decidedBy)
+    expect($set.englandCertification.firstCertifiedAt).toBeInstanceOf(Date)
+    expect($set.englandCertification.lastCertifiedAt).toBeInstanceOf(Date)
+  })
+
+  test('uncertifies from awaiting_decision', async () => {
+    const { db, appliances } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'awaiting_decision' }
     })
 
-    it('should update certified to revoked (uncertified)', async () => {
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'scotland',
-        'uncertified',
-        decidedBy
-      )
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'uncertified',
+      decidedBy,
+      logger
+    )
 
-      expect(result.success).toBe(true)
-      const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
-      const updateData = updateCall[1].$set
-      expect(updateData.scotlandCertification.status).toBe('revoked')
+    expect(result.success).toBe(true)
+    const { $set } = appliances.findOneAndUpdate.mock.calls[0][1]
+    expect($set.englandCertification.status).toBe('uncertified')
+    expect($set.englandCertification.firstCertifiedAt).toBeNull()
+  })
+
+  test('preserves firstCertifiedAt on re-certification', async () => {
+    const firstCertifiedAt = new Date('2020-01-01')
+    const { db, appliances } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'uncertified', firstCertifiedAt }
     })
 
-    it('should update revoked to certified', async () => {
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'wales',
-        'certified',
-        decidedBy
-      )
+    await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'certified',
+      decidedBy,
+      logger
+    )
 
-      expect(result.success).toBe(true)
-      const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
-      const updateData = updateCall[1].$set
-      expect(updateData.walesCertification.status).toBe('certified')
-    })
+    const { $set } = appliances.findOneAndUpdate.mock.calls[0][1]
+    expect($set.englandCertification.firstCertifiedAt).toEqual(firstCertifiedAt)
+    expect($set.englandCertification.lastCertifiedAt).not.toEqual(
+      firstCertifiedAt
+    )
+  })
 
-    it('should set firstCertifiedAt on first certification', async () => {
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'england',
-        'certified',
-        decidedBy
-      )
-
-      expect(result.success).toBe(true)
-      const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
-      const updateData = updateCall[1].$set
-      expect(updateData.englandCertification.firstCertifiedAt).toBeDefined()
-    })
-
-    it('should not update firstCertifiedAt on subsequent certifications', async () => {
-      mockCollection.findOne.mockResolvedValueOnce({
-        ...appliance,
-        scotlandCertification: {
-          status: 'revoked',
-          decidedAt: new Date('2026-02-01'),
-          decidedBy: { name: 'Jane Smith', email: 'jane@example.com' },
-          firstCertifiedAt: new Date('2026-01-01'), // Already set
-          lastCertifiedAt: new Date('2026-02-01')
-        }
-      })
-
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'scotland',
-        'certified',
-        decidedBy
-      )
-
-      expect(result.success).toBe(true)
-      const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
-      const updateData = updateCall[1].$set
-      // Should have lastCertifiedAt but no firstCertifiedAt update
-      expect(updateData.scotlandCertification.lastCertifiedAt).toBeDefined()
-    })
-
-    it('should reject invalid status transition from certified to awaiting_decision', async () => {
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'scotland',
-        'awaiting_decision',
-        decidedBy
-      )
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('Cannot change status')
-    })
-
-    it('should reject invalid country', async () => {
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'invalid-country',
-        'certified',
-        decidedBy
-      )
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('Invalid country')
-    })
-
-    it('should handle appliance not found', async () => {
-      mockCollection.findOne.mockResolvedValueOnce(null)
-
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-999',
-        'england',
-        'certified',
-        decidedBy
-      )
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('Appliance not found')
-    })
-
-    it('should handle database errors', async () => {
-      mockCollection.findOne.mockRejectedValueOnce(new Error('DB Error'))
-
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'england',
-        'certified',
-        decidedBy
-      )
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('Internal server error')
-    })
-
-    it('should set decidedAt timestamp', async () => {
-      const beforeTime = new Date()
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'england',
-        'certified',
-        decidedBy
-      )
-      const afterTime = new Date()
-
-      expect(result.success).toBe(true)
-      const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
-      const updateData = updateCall[1].$set
-      const decidedAt = updateData.englandCertification.decidedAt
-
-      expect(decidedAt.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime())
-      expect(decidedAt.getTime()).toBeLessThanOrEqual(afterTime.getTime())
-    })
-
-    it('should update updatedAt field', async () => {
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'england',
-        'certified',
-        decidedBy
-      )
-
-      expect(result.success).toBe(true)
-      const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
-      const updateData = updateCall[1].$set
-      expect(updateData.updatedAt).toBeDefined()
-    })
-
-    it('should preserve decidedBy user information', async () => {
-      const customUser = { name: 'Custom User', email: 'custom@example.com' }
-      const result = await applianceCertificationController.updateCertificationStatus(
-        mockDb,
-        'APP-001',
-        'england',
-        'certified',
-        customUser
-      )
-
-      expect(result.success).toBe(true)
-      const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
-      const updateData = updateCall[1].$set
-      expect(updateData.englandCertification.decidedBy).toEqual(customUser)
-    })
-
-    it('should handle all four countries correctly', async () => {
-      const countries = ['england', 'scotland', 'wales', 'northern-ireland']
-      const results = []
-
-      for (const country of countries) {
-        mockCollection.findOne.mockResolvedValueOnce(appliance)
-        const result = await applianceCertificationController.updateCertificationStatus(
-          mockDb,
-          'APP-001',
-          country,
-          'certified',
-          decidedBy
-        )
-        results.push(result)
+  test('keeps the milestones when moving to uncertified', async () => {
+    const lastCertifiedAt = new Date('2024-06-01')
+    const { db, appliances } = makeDb({
+      id: 'APP-1',
+      englandCertification: {
+        status: 'certified',
+        firstCertifiedAt: lastCertifiedAt,
+        lastCertifiedAt
       }
-
-      results.forEach((result) => {
-        expect(result.success).toBe(true)
-      })
-
-      expect(mockCollection.findOneAndUpdate).toHaveBeenCalledTimes(4)
     })
+
+    await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'uncertified',
+      decidedBy,
+      logger
+    )
+
+    const { $set } = appliances.findOneAndUpdate.mock.calls[0][1]
+    expect($set.englandCertification.status).toBe('uncertified')
+    expect($set.englandCertification.lastCertifiedAt).toEqual(lastCertifiedAt)
+  })
+
+  test('treats an unchanged status as a no-op', async () => {
+    const { db, appliances, actionsCollection } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'certified' }
+    })
+
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'certified',
+      decidedBy,
+      logger
+    )
+
+    expect(result.success).toBe(true)
+    expect(appliances.findOneAndUpdate).not.toHaveBeenCalled()
+    expect(actionsCollection.insertOne).not.toHaveBeenCalled()
+  })
+
+  test('rejects going from certified back to awaiting_decision', async () => {
+    const { db } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'certified' }
+    })
+
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'awaiting_decision',
+      decidedBy,
+      logger
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('Cannot change status')
+  })
+
+  test('records an audit action with who changed what', async () => {
+    const { db, actions } = makeDb({
+      id: 'APP-1',
+      nIrelandCertification: { status: 'certified' }
+    })
+
+    await updateCertificationStatus(
+      db,
+      'APP-1',
+      'northern-ireland',
+      'uncertified',
+      decidedBy,
+      logger
+    )
+
+    expect(actions).toHaveLength(1)
+    expect(actions[0]).toMatchObject({
+      itemId: 'APP-1',
+      type: 'certification',
+      action: 'nIrelandUncertified',
+      description: 'Uncertified in Northern Ireland',
+      country: 'northern-ireland',
+      fromStatus: 'certified',
+      toStatus: 'uncertified',
+      completedBy: decidedBy
+    })
+    expect(actions[0].id).toMatch(/^ACT-/)
+  })
+
+  test('still succeeds when the audit write fails', async () => {
+    const { db, actionsCollection } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'certified' }
+    })
+    actionsCollection.insertOne.mockRejectedValueOnce(new Error('mongo down'))
+
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'uncertified',
+      decidedBy,
+      logger
+    )
+
+    expect(result.success).toBe(true)
+    expect(logger.error).toHaveBeenCalled()
   })
 })

@@ -312,7 +312,13 @@ describe('appliances-controller', () => {
       await updateAppliance(
         db,
         'APP-1',
-        { englandCertification: { status: 'certified', decidedAt: new Date(), decidedBy: { name: 'Test', email: 'test@example.com' } } },
+        {
+          englandCertification: {
+            status: 'certified',
+            decidedAt: new Date(),
+            decidedBy: { name: 'Test', email: 'test@example.com' }
+          }
+        },
         mockLogger
       )
 

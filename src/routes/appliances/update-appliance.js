@@ -32,7 +32,9 @@ export const updateAppliance = {
   handler: async (request, h) => {
     const { id } = request.params
 
-    request.logger.info(`PATCH appliance ${id}: ${JSON.stringify(request.payload)}`)
+    request.logger.info(
+      `PATCH appliance ${id}: ${JSON.stringify(request.payload)}`
+    )
 
     try {
       const result = await applianceController.updateAppliance(

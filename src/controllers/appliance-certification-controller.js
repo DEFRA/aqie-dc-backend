@@ -1,4 +1,5 @@
-import Boom from '@hapi/boom'
+import { generateSecureId } from '../common/helpers/data-transformer.js'
+import { actionDescriptions } from '../common/schemas/action-schema.js'
 
 // Map of country codes to certification field names
 const countryToCertificationField = {
@@ -8,25 +9,58 @@ const countryToCertificationField = {
   'northern-ireland': 'nIrelandCertification'
 }
 
+// Prefix used when building audit action keys, e.g. `nIrelandCertified`
+const countryToActionPrefix = {
+  england: 'england',
+  scotland: 'scotland',
+  wales: 'wales',
+  'northern-ireland': 'nIreland'
+}
+
+const statusToActionSuffix = {
+  certified: 'Certified',
+  uncertified: 'Uncertified',
+  awaiting_decision: 'AwaitingDecision'
+}
+
+const allowedTransitions = {
+  awaiting_decision: ['certified', 'uncertified'],
+  certified: ['uncertified'],
+  uncertified: ['certified']
+}
+
+const isValidStatusTransition = (currentStatus, newStatus) =>
+  allowedTransitions[currentStatus]?.includes(newStatus) ?? false
+
 /**
- * Validate status transition is allowed
- * @param {string} currentStatus - Current certification status
- * @param {string} newStatus - Requested new status
- * @returns {boolean} Whether transition is allowed
+ * Append an audit entry. Failure to record history must not fail the decision
+ * itself, so errors are logged and swallowed.
  */
-const isValidStatusTransition = (currentStatus, newStatus) => {
-  // Map user-facing "uncertified" to schema "revoked"
-  const normalizedNewStatus = newStatus === 'uncertified' ? 'revoked' : newStatus
+const recordCertificationAction = async (
+  db,
+  { applianceId, country, fromStatus, toStatus, decidedBy, at },
+  logger
+) => {
+  const action = `${countryToActionPrefix[country]}${statusToActionSuffix[toStatus]}`
 
-  const allowedTransitions = {
-    new: ['awaiting_decision', 'certified', 'revoked', 'rejected'],
-    awaiting_decision: ['certified', 'revoked', 'rejected'],
-    certified: ['revoked'], // Can only revoke a certified status
-    revoked: ['certified'], // Can only re-certify a revoked status
-    rejected: [] // Terminal state, no transitions
+  try {
+    await db.collection('Actions').insertOne({
+      id: `ACT-${generateSecureId()}`,
+      itemId: applianceId,
+      type: 'certification',
+      action,
+      description: actionDescriptions[action],
+      country,
+      fromStatus,
+      toStatus,
+      completedBy: decidedBy,
+      completedAt: at
+    })
+  } catch (error) {
+    logger.error(
+      `Failed to record certification action for ${applianceId}: ${error.message}`
+    )
   }
-
-  return allowedTransitions[currentStatus]?.includes(normalizedNewStatus) ?? false
 }
 
 /**
@@ -65,22 +99,18 @@ export const updateCertificationStatus = async (
   if (!logger) {
     throw new Error('logger is required')
   }
+
   try {
-    // Validate country
-    if (!countryToCertificationField[country]) {
-      logger.warn(
-        `Invalid country code: ${country}`,
-        { applianceId, requestedCountry: country }
-      )
+    const certificationField = countryToCertificationField[country]
+
+    if (!certificationField) {
+      logger.warn(`Invalid country code: ${country}`)
       return {
         success: false,
         error: `Invalid country: ${country}. Must be one of: england, scotland, wales, northern-ireland`
       }
     }
 
-    const certificationField = countryToCertificationField[country]
-
-    // Fetch appliance
     const appliancesCollection = db.collection('Appliances')
     const appliance = await appliancesCollection.findOne({ id: applianceId })
 
@@ -89,15 +119,17 @@ export const updateCertificationStatus = async (
       return { success: false, error: `Appliance not found: ${applianceId}` }
     }
 
-    // Get current status
     const currentCertification = appliance[certificationField] || {}
-    const currentStatus = currentCertification.status || 'new'
+    const currentStatus = currentCertification.status || 'awaiting_decision'
 
-    // Validate status transition
+    // Re-submitting the same decision is a no-op rather than an error
+    if (currentStatus === newStatus) {
+      return { success: true, data: appliance }
+    }
+
     if (!isValidStatusTransition(currentStatus, newStatus)) {
       logger.warn(
-        `Invalid status transition: ${currentStatus} → ${newStatus}`,
-        { applianceId, country, currentStatus, requestedStatus: newStatus }
+        `Invalid status transition for ${applianceId} (${country}): ${currentStatus} -> ${newStatus}`
       )
       return {
         success: false,
@@ -105,56 +137,53 @@ export const updateCertificationStatus = async (
       }
     }
 
-    // Normalize status (user-facing "uncertified" → schema "revoked")
-    const normalizedStatus = newStatus === 'uncertified' ? 'revoked' : newStatus
-
-    // Build update object
     const now = new Date()
-    const updateData = {
-      [certificationField]: {
-        status: normalizedStatus,
-        decidedAt: now,
-        decidedBy
-      }
+
+    // Replace the whole certification object, carrying the milestones forward
+    const certification = {
+      status: newStatus,
+      decidedAt: now,
+      decidedBy,
+      firstCertifiedAt: currentCertification.firstCertifiedAt ?? null,
+      lastCertifiedAt: currentCertification.lastCertifiedAt ?? null
     }
 
-    // Update historical milestones
-    if (normalizedStatus === 'certified') {
-      // Set firstCertifiedAt only on first certification
-      if (!currentCertification.firstCertifiedAt) {
-        updateData[`${certificationField}.firstCertifiedAt`] = now
-      }
-      // Always update lastCertifiedAt when certified
-      updateData[`${certificationField}.lastCertifiedAt`] = now
+    if (newStatus === 'certified') {
+      certification.firstCertifiedAt = certification.firstCertifiedAt ?? now
+      certification.lastCertifiedAt = now
     }
 
-    // Update appliance
-    updateData.updatedAt = now
-
-    const result = await appliancesCollection.findOneAndUpdate(
+    const updated = await appliancesCollection.findOneAndUpdate(
       { id: applianceId },
-      { $set: updateData },
+      { $set: { [certificationField]: certification, updatedAt: now } },
       { returnDocument: 'after' }
     )
 
-    if (!result.value) {
+    if (!updated) {
       logger.error(`Failed to update appliance: ${applianceId}`)
       return { success: false, error: 'Failed to update appliance' }
     }
 
-    logger.info(
-      `Certification status updated: ${applianceId} (${country}: ${currentStatus} → ${normalizedStatus})`,
-      { applianceId, country, oldStatus: currentStatus, newStatus: normalizedStatus }
+    await recordCertificationAction(
+      db,
+      {
+        applianceId,
+        country,
+        fromStatus: currentStatus,
+        toStatus: newStatus,
+        decidedBy,
+        at: now
+      },
+      logger
     )
 
-    return { success: true, data: result.value }
+    logger.info(
+      `Certification status updated: ${applianceId} (${country}: ${currentStatus} -> ${newStatus})`
+    )
+
+    return { success: true, data: updated }
   } catch (error) {
-    logger.error(`Error updating certification status: ${error.message}`, {
-      applianceId,
-      country,
-      newStatus,
-      error: error.toString()
-    })
+    logger.error(`Error updating certification status: ${error.message}`)
     return { success: false, error: 'Internal server error' }
   }
 }

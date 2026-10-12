@@ -20,6 +20,7 @@ import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { recordApplianceCheck } from '../routes/appliances/record-appliance-check.js'
 import { searchAdminAppliances } from '../routes/appliances/search-admin-appliances.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
+import { updateCertificationStatus } from '../routes/appliances/update-certification-status.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
 import { getFuelById } from '../routes/fuels/get-fuel-by-id.js'
 import { searchFuels } from '../routes/fuels/search-fuels.js'
@@ -128,6 +129,7 @@ const router = {
         recordApplianceCheck,
         updateApplianceReview,
         updateAppliance,
+        updateCertificationStatus,
         deleteAppliance,
         getApplianceTypes
       ])

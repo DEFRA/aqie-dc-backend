@@ -1,6 +1,6 @@
 /**
  * Update appliance certification status for a specific country
- * POST /appliances/{id}/certification/{country}
+ * PATCH /appliances/{id}/certification/{country}
  */
 
 import Joi from 'joi'
@@ -8,7 +8,7 @@ import * as applianceCertificationController from '../../controllers/appliance-c
 import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const updateCertificationStatus = {
-  method: 'POST',
+  method: 'PATCH',
   path: '/appliances/{id}/certification/{country}',
   options: {
     tags: ['api', 'appliances', 'certification'],
@@ -46,14 +46,15 @@ export const updateCertificationStatus = {
     }
 
     try {
-      const result = await applianceCertificationController.updateCertificationStatus(
-        request.db,
-        id,
-        country,
-        status,
-        userInfo,
-        request.logger
-      )
+      const result =
+        await applianceCertificationController.updateCertificationStatus(
+          request.db,
+          id,
+          country,
+          status,
+          userInfo,
+          request.logger
+        )
 
       if (!result.success) {
         // Check if it's a validation error or not found
@@ -69,9 +70,13 @@ export const updateCertificationStatus = {
         return h.response(result).code(statusCodes.internalServerError)
       }
 
-      return h.response(result.data).code(statusCodes.ok)
+      return h
+        .response({ success: true, data: result.data })
+        .code(statusCodes.ok)
     } catch (err) {
-      request.logger.error(`Error updating certification status: ${err.message}`)
+      request.logger.error(
+        `Error updating certification status: ${err.message}`
+      )
       return h
         .response({
           error: {

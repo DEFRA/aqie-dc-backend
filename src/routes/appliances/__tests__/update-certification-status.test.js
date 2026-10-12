@@ -54,32 +54,50 @@ describe('Update Certification Status Route', () => {
       const appliance = {
         id: 'APP-001',
         modelName: 'Test Stove',
+        englandCertification: { status: 'awaiting_decision' }
+      }
+      const updated = {
+        ...appliance,
         englandCertification: { status: 'certified' }
       }
 
       mockCollection.findOne.mockResolvedValueOnce(appliance)
-      mockCollection.findOneAndUpdate.mockResolvedValueOnce({
-        value: appliance
+      mockCollection.findOneAndUpdate.mockResolvedValueOnce(updated)
+
+      const response = await updateCertificationStatus.handler(
+        mockRequest,
+        mockH
+      )
+
+      expect(mockH.response).toHaveBeenCalledWith({
+        success: true,
+        data: updated
       })
-
-      const response = await updateCertificationStatus.handler(mockRequest, mockH)
-
-      expect(mockH.response).toHaveBeenCalledWith(appliance)
       expect(response.statusCode).toBe(200)
     })
 
     it('should validate country parameter', async () => {
       mockRequest.params.country = 'invalid-country'
 
-      const response = await updateCertificationStatus.handler(mockRequest, mockH)
+      const response = await updateCertificationStatus.handler(
+        mockRequest,
+        mockH
+      )
 
       expect(response.statusCode).toBe(400)
     })
 
-    it('should validate status parameter', async () => {
+    it('should reject an unsupported status', async () => {
+      mockCollection.findOne.mockResolvedValueOnce({
+        id: 'APP-001',
+        englandCertification: { status: 'certified' }
+      })
       mockRequest.payload.status = 'invalid-status'
 
-      const response = await updateCertificationStatus.handler(mockRequest, mockH)
+      const response = await updateCertificationStatus.handler(
+        mockRequest,
+        mockH
+      )
 
       expect(response.statusCode).toBe(400)
     })
@@ -91,7 +109,10 @@ describe('Update Certification Status Route', () => {
         status: 'certified'
       }
 
-      const response = await updateCertificationStatus.handler(mockRequest, mockH)
+      const response = await updateCertificationStatus.handler(
+        mockRequest,
+        mockH
+      )
 
       expect(response.statusCode).toBe(404)
     })
@@ -105,7 +126,10 @@ describe('Update Certification Status Route', () => {
       mockCollection.findOne.mockResolvedValueOnce(appliance)
       mockRequest.payload.status = 'awaiting_decision' // Invalid transition from certified
 
-      const response = await updateCertificationStatus.handler(mockRequest, mockH)
+      const response = await updateCertificationStatus.handler(
+        mockRequest,
+        mockH
+      )
 
       expect(response.statusCode).toBe(400)
     })
@@ -182,7 +206,10 @@ describe('Update Certification Status Route', () => {
 
         mockRequest.params.country = country
 
-        const response = await updateCertificationStatus.handler(mockRequest, mockH)
+        const response = await updateCertificationStatus.handler(
+          mockRequest,
+          mockH
+        )
 
         expect(response.statusCode).toBe(200)
       }
@@ -191,38 +218,41 @@ describe('Update Certification Status Route', () => {
     it('should return 500 on internal server error', async () => {
       mockCollection.findOne.mockRejectedValueOnce(new Error('Database error'))
 
-      const response = await updateCertificationStatus.handler(mockRequest, mockH)
+      const response = await updateCertificationStatus.handler(
+        mockRequest,
+        mockH
+      )
 
       expect(response.statusCode).toBe(500)
     })
 
-    it('should map uncertified to revoked status', async () => {
+    it('should store uncertified as-is', async () => {
       const appliance = {
         id: 'APP-001',
         englandCertification: { status: 'certified' }
       }
 
       mockCollection.findOne.mockResolvedValueOnce(appliance)
-      mockCollection.findOneAndUpdate.mockResolvedValueOnce({
-        value: appliance
-      })
+      mockCollection.findOneAndUpdate.mockResolvedValueOnce(appliance)
 
       mockRequest.payload.status = 'uncertified'
 
-      const response = await updateCertificationStatus.handler(mockRequest, mockH)
+      const response = await updateCertificationStatus.handler(
+        mockRequest,
+        mockH
+      )
 
       expect(response.statusCode).toBe(200)
       const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
       const updateData = updateCall[1].$set
-      expect(updateData.englandCertification.status).toBe('revoked')
+      expect(updateData.englandCertification.status).toBe('uncertified')
     })
 
-    it('should require status in payload', async () => {
-      mockRequest.payload = {}
+    it('should require status in payload', () => {
+      const { error } =
+        updateCertificationStatus.options.validate.payload.validate({})
 
-      const response = await updateCertificationStatus.handler(mockRequest, mockH)
-
-      expect(response.statusCode).toBe(400)
+      expect(error).toBeDefined()
     })
 
     it('should use default user info when no auth credentials', async () => {
@@ -249,11 +279,13 @@ describe('Update Certification Status Route', () => {
 
   describe('route definition', () => {
     it('should have correct method', () => {
-      expect(updateCertificationStatus.method).toBe('POST')
+      expect(updateCertificationStatus.method).toBe('PATCH')
     })
 
     it('should have correct path', () => {
-      expect(updateCertificationStatus.path).toBe('/appliances/{id}/certification/{country}')
+      expect(updateCertificationStatus.path).toBe(
+        '/appliances/{id}/certification/{country}'
+      )
     })
 
     it('should have tags', () => {

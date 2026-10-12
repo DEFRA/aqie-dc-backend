@@ -205,10 +205,7 @@ async function updateAppliance(db, id, updates, logger) {
       updatedAt: now
     }
 
-    const result = await collection.updateOne(
-      { id },
-      { $set: setPayload }
-    )
+    const result = await collection.updateOne({ id }, { $set: setPayload })
 
     if (result.matchedCount === 0) {
       return { notFound: true }
