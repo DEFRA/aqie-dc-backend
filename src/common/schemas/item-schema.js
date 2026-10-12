@@ -243,7 +243,7 @@ export const applianceSchema = Joi.object({
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
     ),
-  isVisible: Joi.boolean()
+  isVisibleToPublic: Joi.boolean()
     .default(true)
     .description('Should this appliance be visible to the public?'),
   // need to put logic in to populate these fields
@@ -251,7 +251,7 @@ export const applianceSchema = Joi.object({
     .optional()
     .description('The earliest date of certification'),
   applianceStatus: Joi.string().description(
-    'Takes in account the technical review and country certifications, and isVisible to determine the overall status of the appliance'
+    'Takes in account the technical review and country certifications, and isVisibleToPublic to determine the overall status of the appliance'
   )
 }).label('Appliance')
 
