@@ -305,24 +305,24 @@ describe('appliances-controller', () => {
   })
 
   describe('updateAppliance', () => {
-    test('updating one nested field leaves its siblings alone', async () => {
+    test('updating certification field replaces the entire certification object', async () => {
       collection.updateOne.mockResolvedValue({ matchedCount: 1 })
       collection.findOne.mockResolvedValue({ id: 'APP-1' })
 
       await updateAppliance(
         db,
         'APP-1',
-        { englandCertification: { status: 'certified' } },
+        { englandCertification: { status: 'certified', decidedAt: new Date(), decidedBy: { name: 'Test', email: 'test@example.com' } } },
         mockLogger
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
 
-      expect(update.$set).toHaveProperty(
-        'englandCertification.status',
-        'certified'
-      )
-      expect(update.$set).not.toHaveProperty('englandCertification')
+      // Certification fields should be set as complete objects, not dot notation
+      expect(update.$set.englandCertification).toBeDefined()
+      expect(update.$set.englandCertification.status).toBe('certified')
+      // Should NOT use dot notation for certification fields
+      expect(update.$set['englandCertification.status']).toBeUndefined()
     })
 
     test('still writes flat fields unchanged', async () => {

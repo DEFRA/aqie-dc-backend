@@ -70,7 +70,7 @@ describe('item-schema applianceSchema', () => {
     expect(error.details[0].type).toBe('string.pattern.base')
   })
 
-  test('defaults country certification status to new', () => {
+  test('defaults country certification status to awaiting_decision', () => {
     const payload = {
       ...structuredClone(applianceExample),
       englandCertification: {}
@@ -79,7 +79,7 @@ describe('item-schema applianceSchema', () => {
     const { value, error } = applianceSchema.validate(payload)
 
     expect(error).toBeUndefined()
-    expect(value.englandCertification.status).toBe('new')
+    expect(value.englandCertification.status).toBe('awaiting_decision')
   })
 
   test('rejects invalid country certification status', () => {

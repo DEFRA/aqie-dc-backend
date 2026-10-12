@@ -32,6 +32,8 @@ export const updateAppliance = {
   handler: async (request, h) => {
     const { id } = request.params
 
+    request.logger.info(`PATCH appliance ${id}: ${JSON.stringify(request.payload)}`)
+
     try {
       const result = await applianceController.updateAppliance(
         request.db,
@@ -46,6 +48,7 @@ export const updateAppliance = {
 
       return h.response(result).code(statusCodes.ok)
     } catch (err) {
+      request.logger.error(`PATCH appliance ${id} error: ${err.message}`, err)
       return h
         .response({
           success: false,
