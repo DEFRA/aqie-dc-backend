@@ -19,7 +19,7 @@ import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { getAdminRecords } from '../routes/appliances/get-admin-appliance.js'
 import { recordApplianceCheck } from '../routes/appliances/record-appliance-check.js'
-import { searchAppliances } from '../routes/appliances/search-appliances.js'
+import { searchAdminAppliances } from '../routes/appliances/search-admin-appliances.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
 import { getFuelById } from '../routes/fuels/get-fuel-by-id.js'
@@ -123,7 +123,7 @@ const router = {
       server.route([
         createAppliance,
         getAllAppliances,
-        searchAppliances, // Must come before getApplianceById to avoid route conflict
+        searchAdminAppliances, // Must come before getApplianceById to avoid route conflict
         getApplianceReview,
         getAdminRecords,
         getApplianceById,
