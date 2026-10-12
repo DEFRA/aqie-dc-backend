@@ -321,11 +321,13 @@ describe('appliances-controller', () => {
           modelNumber: 'AM-001',
           applicationId: 'APPL-001',
           isLegacyRecord: true,
+          isVisibleToPublic: false,
           englandCertification: 'certified',
           scotlandCertification: 'awaiting_decision',
           walesCertification: 'awaiting_decision',
           nIrelandCertification: 'awaiting_decision',
-          status: 'live'
+          status: 'live',
+          canTogglePublicVisibility: true
         }
       })
     })
