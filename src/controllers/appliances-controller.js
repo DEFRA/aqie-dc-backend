@@ -5,7 +5,6 @@ import {
 } from '../common/helpers/data-transformer.js'
 import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 import {
-  CERTIFICATION_FIELDS,
   findCertified
 } from '../common/helpers/certification.js'
 
