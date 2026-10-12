@@ -306,8 +306,7 @@ async function getAdminApplianceById(db, id, logger) {
     }
 
     const { applianceStatus, ...fields } = item
-    // Placeholder flag until visibility toggle rules are finalised
-    const canTogglePublicVisibility = true
+    const canTogglePublicVisibility = findCertified(item).length > 0
 
     return {
       success: true,
