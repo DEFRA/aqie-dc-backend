@@ -7,7 +7,7 @@ import {
   updateAppliance,
   deleteAppliance,
   searchAdminAppliances,
-  getApplianceWithRelatedItems
+  getAdminApplianceById
 } from '#src/controllers/appliances-controller.js'
 
 import { generateSecureId } from '#src/common/helpers/data-transformer.js'
@@ -299,6 +299,73 @@ describe('appliances-controller', () => {
     })
   })
 
+  describe('getAdminApplianceById', () => {
+    test('returns the admin fields for the appliance', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'APP-001',
+        modelName: 'Admin Model',
+        modelNumber: 'AM-001',
+        applicationId: 'APPL-001',
+        isLegacyRecord: true,
+        ...certifiedInEngland,
+        applianceStatus: 'live'
+      })
+
+      const result = await getAdminApplianceById(db, 'APP-001', mockLogger)
+
+      expect(result).toEqual({
+        success: true,
+        data: {
+          id: 'APP-001',
+          modelName: 'Admin Model',
+          modelNumber: 'AM-001',
+          applicationId: 'APPL-001',
+          isLegacyRecord: true,
+          englandCertification: 'certified',
+          scotlandCertification: 'awaiting_decision',
+          walesCertification: 'awaiting_decision',
+          nIrelandCertification: 'awaiting_decision',
+          status: 'live'
+        }
+      })
+    })
+
+    test('defaults missing status and certifications', async () => {
+      collection.findOne.mockResolvedValue({ id: 'APP-002' })
+
+      const result = await getAdminApplianceById(db, 'APP-002', mockLogger)
+
+      expect(result.data.status).toBe('pending')
+      expect(result.data.englandCertification).toBeNull()
+      expect(result.data.applicationId).toBeNull()
+      expect(result.data.isLegacyRecord).toBe(false)
+    })
+
+    test('returns not found', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const result = await getAdminApplianceById(db, 'missing', mockLogger)
+
+      expect(result.notFound).toBe(true)
+      expect(result.success).toBe(false)
+    })
+
+    test('logs and rethrows database errors', async () => {
+      collection.findOne.mockRejectedValue(new Error('db down'))
+
+      await expect(
+        getAdminApplianceById(db, 'APP-001', mockLogger)
+      ).rejects.toThrow('db down')
+      expect(mockLogger.error).toHaveBeenCalled()
+    })
+
+    test('requires a logger', async () => {
+      await expect(getAdminApplianceById(db, 'APP-001')).rejects.toThrow(
+        'logger is required'
+      )
+    })
+  })
+
   describe('updateAppliance', () => {
     test('updating one nested field leaves its siblings alone', async () => {
       collection.updateOne.mockResolvedValue({ matchedCount: 1 })
@@ -532,43 +599,6 @@ describe('appliances-controller', () => {
       })
       expect(searchQuery.$or).toBeUndefined()
       expect(searchQuery.applianceStatus).toBeUndefined()
-    })
-  })
-
-  describe('getApplianceWithRelatedItems', () => {
-    test('returns appliance with details', async () => {
-      collection.findOne.mockResolvedValue({
-        id: 'APP-001',
-        modelName: 'Related Appliance',
-        ...certifiedInEngland,
-        ...ukAddress
-      })
-
-      const result = await getApplianceWithRelatedItems(
-        db,
-        'APP-001',
-        mockLogger
-      )
-
-      expect(result.success).toBe(true)
-      expect(result.data.authorisedIn).toEqual(['England'])
-      expect(result.data.fullAddress).toEqual([
-        '1 Test Street',
-        'Testville',
-        'AB1 2CD'
-      ])
-    })
-
-    test('returns not found when appliance missing', async () => {
-      collection.findOne.mockResolvedValue(null)
-
-      const result = await getApplianceWithRelatedItems(
-        db,
-        'missing',
-        mockLogger
-      )
-
-      expect(result.notFound).toBe(true)
     })
   })
 })

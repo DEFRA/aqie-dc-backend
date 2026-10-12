@@ -267,17 +267,33 @@ async function searchAdminAppliances(
 }
 
 /**
- * Get appliance with all related items (applications, etc.)
- * @deprecated Relationship queries may need review for current schema
+ * Admin: get a single appliance record for the admin frontend
  */
-async function getApplianceWithRelatedItems(db, id, logger) {
+async function getAdminApplianceById(db, id, logger) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const appliance = await db.collection('Appliances').findOne({ id })
+    const collection = db.collection('Appliances')
+    const item = await collection.findOne(
+      { id },
+      {
+        projection: {
+          _id: 0,
+          id: 1,
+          modelName: 1,
+          modelNumber: 1,
+          applicationId: 1,
+          isLegacyRecord: 1,
+          ...Object.fromEntries(
+            CERTIFICATION_FIELDS.map((field) => [`${field}.status`, 1])
+          ),
+          applianceStatus: 1
+        }
+      }
+    )
 
-    if (!appliance) {
+    if (!item) {
       return {
         success: false,
         message: 'Appliance not found',
@@ -285,12 +301,26 @@ async function getApplianceWithRelatedItems(db, id, logger) {
       }
     }
 
+    const { applianceStatus, ...fields } = item
+
     return {
       success: true,
-      data: mapApplianceDetail(appliance)
+      data: {
+        ...fields,
+        // Each country certification is flattened to its status string
+        ...Object.fromEntries(
+          CERTIFICATION_FIELDS.map((field) => [
+            field,
+            item[field]?.status ?? null
+          ])
+        ),
+        applicationId: item.applicationId ?? null,
+        isLegacyRecord: item.isLegacyRecord ?? false,
+        status: applianceStatus || 'pending'
+      }
     }
   } catch (error) {
-    logger.error(error, 'Failed to fetch appliance with related items')
+    logger.error(error, 'Failed to fetch admin appliance')
     throw error
   }
 }
@@ -302,5 +332,5 @@ export {
   updateAppliance,
   deleteAppliance,
   searchAdminAppliances,
-  getApplianceWithRelatedItems
+  getAdminApplianceById
 }
