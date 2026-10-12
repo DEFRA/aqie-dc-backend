@@ -486,9 +486,9 @@ describe('appliances-controller', () => {
     })
 
     test('throws if logger is missing', async () => {
-      await expect(searchAdminAppliances(db, { query: 'boiler' }, undefined)).rejects.toThrow(
-        'logger is required'
-      )
+      await expect(
+        searchAdminAppliances(db, { query: 'boiler' }, undefined)
+      ).rejects.toThrow('logger is required')
     })
   })
 

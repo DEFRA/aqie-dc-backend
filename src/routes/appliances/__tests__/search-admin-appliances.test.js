@@ -173,9 +173,9 @@ describe('GET /api/admin/appliances/search', () => {
       const boomError = Boom.badRequest('Invalid query')
       applianceController.searchAdminAppliances.mockRejectedValueOnce(boomError)
 
-      await expect(searchAdminAppliances.handler(mockRequest, mockToolkit)).rejects.toBe(
-        boomError
-      )
+      await expect(
+        searchAdminAppliances.handler(mockRequest, mockToolkit)
+      ).rejects.toBe(boomError)
     })
 
     test('passes pagination params to controller', async () => {
