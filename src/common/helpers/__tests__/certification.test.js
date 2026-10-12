@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import {
   CERTIFICATION_FIELDS,
+  UNCERTIFIED_STATUSES,
   findCertified,
   findLastCertifiedDate
 } from '#src/common/helpers/certification.js'
@@ -13,6 +14,12 @@ describe('CERTIFICATION_FIELDS', () => {
       'walesCertification',
       'nIrelandCertification'
     ])
+  })
+})
+
+describe('UNCERTIFIED_STATUSES', () => {
+  test('covers the statuses that mean not certified', () => {
+    expect([...UNCERTIFIED_STATUSES]).toEqual(['revoked', 'rejected'])
   })
 })
 
@@ -32,9 +39,9 @@ describe('findCertified', () => {
     expect(
       findCertified({
         englandCertification: { status: 'certified' },
-        scotlandCertification: { status: 'uncertified' },
+        scotlandCertification: { status: 'rejected' },
         walesCertification: { status: 'certified' },
-        nIrelandCertification: { status: 'uncertified' }
+        nIrelandCertification: { status: 'revoked' }
       })
     ).toEqual(['England', 'Wales'])
   })
@@ -42,10 +49,10 @@ describe('findCertified', () => {
   test('returns empty when none are certified', () => {
     expect(
       findCertified({
-        englandCertification: { status: 'uncertified' },
-        scotlandCertification: { status: 'uncertified' },
-        walesCertification: { status: 'uncertified' },
-        nIrelandCertification: { status: 'uncertified' }
+        englandCertification: { status: 'rejected' },
+        scotlandCertification: { status: 'revoked' },
+        walesCertification: { status: 'new' },
+        nIrelandCertification: { status: 'awaiting_decision' }
       })
     ).toEqual([])
   })
