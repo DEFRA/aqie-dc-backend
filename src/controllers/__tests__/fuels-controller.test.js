@@ -180,7 +180,7 @@ describe('fuels-controller', () => {
       expect(result.data[0].id).toBe('FUEL-001')
     })
 
-    test('uses certification filter', async () => {
+    test('only returns fuels visible to the public', async () => {
       collection.find.mockReturnValue({
         toArray: vi.fn().mockResolvedValue([])
       })
@@ -188,13 +188,7 @@ describe('fuels-controller', () => {
       await getAllFuels(db, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({
-        'technicalReview.status': 'accepted',
-        $or: [
-          { 'englandCertification.status': 'certified' },
-          { 'scotlandCertification.status': 'certified' },
-          { 'walesCertification.status': 'certified' },
-          { 'nIrelandCertification.status': 'certified' }
-        ]
+        isVisibleToPublic: true
       })
     })
 

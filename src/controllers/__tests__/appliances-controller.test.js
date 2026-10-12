@@ -201,12 +201,7 @@ describe('appliances-controller', () => {
       await getAllAppliances(db, {}, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({
-        $or: [
-          { 'englandCertification.status': 'certified' },
-          { 'scotlandCertification.status': 'certified' },
-          { 'walesCertification.status': 'certified' },
-          { 'nIrelandCertification.status': 'certified' }
-        ]
+        isVisibleToPublic: true
       })
     })
 

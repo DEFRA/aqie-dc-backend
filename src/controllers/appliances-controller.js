@@ -6,7 +6,6 @@ import {
 import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 import {
   CERTIFICATION_FIELDS,
-  CERTIFIED_STATUS,
   findCertified
 } from '../common/helpers/certification.js'
 
@@ -102,14 +101,10 @@ async function getAllAppliances(db, _options, logger) {
   try {
     const collection = db.collection('Appliances')
 
-    const certifiedFilter = {
-      $or: CERTIFICATION_FIELDS.map((field) => ({
-        [`${field}.status`]: CERTIFIED_STATUS
-      }))
-    }
-
+    // Visibility is derived from review and certification outcomes when an
+    // appliance's status is calculated, so it is the only condition needed here.
     const appliances = await collection
-      .find(certifiedFilter)
+      .find({ isVisibleToPublic: true })
       .sort({ createdAt: -1 })
       .toArray()
 
