@@ -1,5 +1,9 @@
 import { getItemsCollectionName } from './application-type.js'
 import { isItemReviewed } from './review-status.js'
+import {
+  CERTIFICATION_FIELDS,
+  CERTIFIED_STATUS
+} from './certification.js'
 
 // Country certification statuses that count as "not yet certified" when
 // working out an item's public-facing status.
@@ -15,14 +19,11 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
     return { [itemStatus]: 'rejected' }
   }
 
-  const countryCertifications = [
-    item.englandCertification?.status,
-    item.scotlandCertification?.status,
-    item.walesCertification?.status,
-    item.nIrelandCertification?.status
-  ]
+  const countryCertifications = CERTIFICATION_FIELDS.map(
+    (field) => item[field]?.status
+  )
 
-  const hasCertified = countryCertifications.includes('certified')
+  const hasCertified = countryCertifications.includes(CERTIFIED_STATUS)
   const hasUncertified = countryCertifications.some((status) =>
     UNCERTIFIED_CERTIFICATION_STATUSES.has(status)
   )
@@ -90,10 +91,9 @@ export const calculateItemStatus = async (db, type, itemId) => {
     {
       projection: {
         'technicalReview.status': 1,
-        'englandCertification.status': 1,
-        'scotlandCertification.status': 1,
-        'walesCertification.status': 1,
-        'nIrelandCertification.status': 1,
+        ...Object.fromEntries(
+          CERTIFICATION_FIELDS.map((field) => [`${field}.status`, 1])
+        ),
         isVisibleToPublic: 1,
         _id: 0
       }

@@ -1,10 +1,14 @@
 import {
   generateSecureId,
-  findCertified,
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
 import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
+import {
+  CERTIFICATION_FIELDS,
+  CERTIFIED_STATUS,
+  findCertified
+} from '../common/helpers/certification.js'
 
 /**
  * Appliances Controller
@@ -66,12 +70,7 @@ async function createAppliance(db, item, logger) {
 function mapApplianceDetail(item) {
   return {
     ...item,
-    authorisedIn: findCertified(
-      item.englandCertification,
-      item.scotlandCertification,
-      item.walesCertification,
-      item.nIrelandCertification
-    ),
+    authorisedIn: findCertified(item),
     name: item.modelName || '',
     id: item.id || '',
     manufacturer: item.companyName || '',
@@ -88,12 +87,7 @@ function mapApplianceSummary(item) {
     permittedFuels: item.permittedFuels || '',
     type: item.applianceType,
     modelNumber: item.modelNumber,
-    authorisedIn: findCertified(
-      item.englandCertification,
-      item.scotlandCertification,
-      item.walesCertification,
-      item.nIrelandCertification
-    )
+    authorisedIn: findCertified(item)
   }
 }
 
@@ -108,16 +102,9 @@ async function getAllAppliances(db, _options, logger) {
   try {
     const collection = db.collection('Appliances')
 
-    const CERTIFICATION_FIELDS = [
-      'englandCertification',
-      'scotlandCertification',
-      'walesCertification',
-      'nIrelandCertification'
-    ]
-
     const certifiedFilter = {
       $or: CERTIFICATION_FIELDS.map((field) => ({
-        [`${field}.status`]: 'certified'
+        [`${field}.status`]: CERTIFIED_STATUS
       }))
     }
 
