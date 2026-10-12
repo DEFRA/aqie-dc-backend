@@ -4,6 +4,7 @@ import {
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
+import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 
 /**
  * Appliances Controller
@@ -219,11 +220,11 @@ async function deleteAppliance(db, id, logger) {
 }
 
 /**
- * Search appliances by name, model number, or type with pagination
+ * Admin: search appliances by name, model number, or type with pagination
  */
-async function searchAppliances(
+async function searchAdminAppliances(
   db,
-  { query, page = 1, limit = 20 } = {},
+  { query = '', page = 1, limit = 20, statuses = [] } = {},
   logger
 ) {
   if (!logger) {
@@ -232,14 +233,29 @@ async function searchAppliances(
   try {
     const collection = db.collection('Appliances')
     const skip = (page - 1) * limit
+    const normalisedStatuses = (statuses || [])
+      .map((status) => (status || '').toLowerCase().trim())
+      .filter(Boolean)
 
+    // Only return appliances whose technical review has reached a final status
     const searchQuery = {
-      $or: [
-        { modelName: { $regex: query, $options: 'i' } },
-        { companyName: { $regex: query, $options: 'i' } },
-        { modelNumber: { $regex: query, $options: 'i' } },
-        { applianceType: { $regex: query, $options: 'i' } }
+      'technicalReview.status': { $in: REVIEWED_STATUSES }
+    }
+
+    if (query?.trim()) {
+      const trimmedQuery = query.trim()
+      searchQuery.$or = [
+        { modelName: { $regex: trimmedQuery, $options: 'i' } },
+        { companyName: { $regex: trimmedQuery, $options: 'i' } },
+        { modelNumber: { $regex: trimmedQuery, $options: 'i' } },
+        { applianceType: { $regex: trimmedQuery, $options: 'i' } }
       ]
+    }
+
+    if (normalisedStatuses.length > 0) {
+      searchQuery.applianceStatus = {
+        $in: normalisedStatuses.map((status) => new RegExp(`^${status}$`, 'i'))
+      }
     }
 
     const appliances = await collection
@@ -253,16 +269,20 @@ async function searchAppliances(
 
     return {
       success: true,
-      data: appliances.map((item) => mapApplianceSummary(item)),
+      data: appliances.map((item) => ({
+        id: item.id || '',
+        name: item.modelName || '',
+        status: item.applianceStatus || 'pending'
+      })),
       pagination: {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.max(Math.ceil(total / limit), 0)
       }
     }
   } catch (error) {
-    logger.error(error, 'Failed to search appliances')
+    logger.error(error, 'Failed to search admin appliances')
     throw error
   }
 }
@@ -302,6 +322,6 @@ export {
   getApplianceById,
   updateAppliance,
   deleteAppliance,
-  searchAppliances,
+  searchAdminAppliances,
   getApplianceWithRelatedItems
 }
