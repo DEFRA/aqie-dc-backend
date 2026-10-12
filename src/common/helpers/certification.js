@@ -10,6 +10,19 @@ const CERTIFICATION_REGIONS = {
 
 export const CERTIFICATION_FIELDS = Object.keys(CERTIFICATION_REGIONS)
 
+export const CERTIFICATION_COUNTRIES = {
+  england: 'englandCertification',
+  scotland: 'scotlandCertification',
+  wales: 'walesCertification',
+  northernIreland: 'nIrelandCertification'
+}
+
+const EMPTY_CERTIFICATION = {
+  status: 'new',
+  firstCertifiedAt: null,
+  lastCertifiedAt: null
+}
+
 export const CERTIFIED_STATUS = 'certified'
 // Statuses that count as "not certified" rather than "not yet decided":
 export const UNCERTIFIED_STATUSES = new Set(['revoked', 'rejected'])
@@ -20,6 +33,17 @@ export const findCertified = (item) =>
     (field) => item?.[field]?.status === CERTIFIED_STATUS
   ).map((field) => CERTIFICATION_REGIONS[field])
 
+export const mapCountryCertification = (certification) => {
+  if (!certification) {
+    return { ...EMPTY_CERTIFICATION }
+  }
+
+  return {
+    status: certification.status ?? EMPTY_CERTIFICATION.status,
+    firstCertifiedAt: certification.firstCertifiedAt ?? null,
+    lastCertifiedAt: certification.lastCertifiedAt ?? null
+  }
+}
 // The most recent lastCertifiedAt across the countries, or null if none are usable.
 export const findLastCertifiedDate = (item) => {
   const dates = CERTIFICATION_FIELDS.map(

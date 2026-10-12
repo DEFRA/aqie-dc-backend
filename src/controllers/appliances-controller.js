@@ -6,7 +6,8 @@ import {
 import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 import {
   findCertified,
-  CERTIFICATION_FIELDS
+  CERTIFICATION_COUNTRIES,
+  mapCountryCertification
 } from '../common/helpers/certification.js'
 
 /**
@@ -289,9 +290,10 @@ async function getAdminApplianceById(db, id, logger) {
           applicationId: 1,
           isLegacyRecord: 1,
           isVisibleToPublic: 1,
-          ...Object.fromEntries(
-            CERTIFICATION_FIELDS.map((field) => [`${field}.status`, 1])
-          ),
+          englandCertification: 1,
+          scotlandCertification: 1,
+          walesCertification: 1,
+          nIrelandCertification: 1,
           applianceStatus: 1
         }
       }
@@ -305,24 +307,25 @@ async function getAdminApplianceById(db, id, logger) {
       }
     }
 
-    const { applianceStatus, ...fields } = item
     const canTogglePublicVisibility = findCertified(item).length > 0
+
+    const certifications = Object.fromEntries(
+      Object.entries(CERTIFICATION_COUNTRIES).map(([country, field]) => [
+        country,
+        mapCountryCertification(item[field])
+      ])
+    )
+
 
     return {
       success: true,
       data: {
-        ...fields,
-        // Each country certification is flattened to its status string
-        ...Object.fromEntries(
-          CERTIFICATION_FIELDS.map((field) => [
-            field,
-            item[field]?.status ?? null
-          ])
-        ),
-        applicationId: item.applicationId ?? null,
-        isLegacyRecord: item.isLegacyRecord ?? false,
-        isVisibleToPublic: item.isVisibleToPublic ?? false,
-        status: applianceStatus || 'pending',
+        id: item.id ?? id,
+        modelName: item.modelName || '',
+        modelNumber: item.modelNumber || '',
+        applicationId: item.applicationId || null,
+        certifications,
+        status: item.applianceStatus || 'pending',
         canTogglePublicVisibility
       }
     }

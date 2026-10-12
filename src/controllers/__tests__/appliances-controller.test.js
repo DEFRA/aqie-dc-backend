@@ -322,10 +322,12 @@ describe('appliances-controller', () => {
           applicationId: 'APPL-001',
           isLegacyRecord: true,
           isVisibleToPublic: false,
-          englandCertification: 'certified',
-          scotlandCertification: 'awaiting_decision',
-          walesCertification: 'awaiting_decision',
-          nIrelandCertification: 'awaiting_decision',
+          certifications: {
+            england: 'certified',
+            scotland: 'awaiting_decision',
+            wales: 'awaiting_decision',
+            northernIreland: 'awaiting_decision'
+          },
           status: 'live',
           canTogglePublicVisibility: true
         }
@@ -338,7 +340,7 @@ describe('appliances-controller', () => {
       const result = await getAdminApplianceById(db, 'APP-002', mockLogger)
 
       expect(result.data.status).toBe('pending')
-      expect(result.data.englandCertification).toBeNull()
+      expect(result.data.certifications.england).toBeNull()
       expect(result.data.applicationId).toBeNull()
       expect(result.data.isLegacyRecord).toBe(false)
     })

@@ -38,10 +38,12 @@ describe('GET /api/admin/appliances/{id}', () => {
       modelName: 'Eco Boiler 2000',
       modelNumber: 'EB-2000',
       applicationId: 'APPL-001',
-      englandCertification: 'certified',
-      scotlandCertification: 'new',
-      walesCertification: 'new',
-      nIrelandCertification: 'new',
+      certifications: {
+        england: 'certified',
+        scotland: 'new',
+        wales: 'new',
+        northernIreland: 'new'
+      },
       status: 'live'
     }
 
