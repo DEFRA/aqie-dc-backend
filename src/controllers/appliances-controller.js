@@ -4,7 +4,10 @@ import {
   toDotted
 } from '../common/helpers/data-transformer.js'
 import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
-import { findCertified } from '../common/helpers/certification.js'
+import {
+  findCertified,
+  CERTIFICATION_FIELDS
+} from '../common/helpers/certification.js'
 
 /**
  * Appliances Controller
