@@ -11,6 +11,8 @@ const CERTIFICATION_REGIONS = {
 export const CERTIFICATION_FIELDS = Object.keys(CERTIFICATION_REGIONS)
 
 export const CERTIFIED_STATUS = 'certified'
+// Statuses that count as "not certified" rather than "not yet decided":
+export const UNCERTIFIED_STATUSES = new Set(['revoked', 'rejected'])
 
 // For public frontend use: the regions where the item is certified.
 export const findCertified = (item) =>

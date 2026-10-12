@@ -2,12 +2,11 @@ import { getItemsCollectionName } from './application-type.js'
 import { isItemReviewed } from './review-status.js'
 import {
   CERTIFICATION_FIELDS,
-  CERTIFIED_STATUS
+  CERTIFIED_STATUS,
+  UNCERTIFIED_STATUSES
 } from './certification.js'
 
-// Country certification statuses that count as "not yet certified" when
-// working out an item's public-facing status.
-const UNCERTIFIED_CERTIFICATION_STATUSES = new Set(['revoked', 'rejected'])
+// Country certification statuses that are still awaiting a decision.
 const UNDECIDED_CERTIFICATION_STATUSES = new Set(['new', 'awaiting_decision'])
 
 // Works out the $set update for an item once its technical review has reached
@@ -25,7 +24,7 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
 
   const hasCertified = countryCertifications.includes(CERTIFIED_STATUS)
   const hasUncertified = countryCertifications.some((status) =>
-    UNCERTIFIED_CERTIFICATION_STATUSES.has(status)
+    UNCERTIFIED_STATUSES.has(status)
   )
   const allUndecided = countryCertifications.every((status) =>
     UNDECIDED_CERTIFICATION_STATUSES.has(status)
