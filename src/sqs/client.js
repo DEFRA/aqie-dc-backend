@@ -2,7 +2,6 @@ import {
   SQSClient,
   GetQueueUrlCommand,
   ReceiveMessageCommand,
-  //DeleteMessageCommand,
   DeleteMessageBatchCommand
 } from '@aws-sdk/client-sqs'
 
@@ -136,7 +135,7 @@ export const createNewApplicationRecord = async (message, server) => {
     // Validate JSON before processing
     messageBody = JSON.parse(message.Body)
   } catch {
-    logger.error({ messageBody: message.Body }, 'Invalid JSON in SQS message')
+    logger.error({ messageId: message.MessageId, }, 'Invalid JSON in SQS message')
     return // Skip this invalid message so the outer batch loop can continue with the next SQS message.
   }
   //application details extraction
@@ -164,7 +163,6 @@ export const createNewApplicationRecord = async (message, server) => {
     })
   }
   const applicationPayload = JSON.stringify(application)
-  //console.log('raw payload:', message.Body, 'parsed payload:', messageBody.data)
   if (await applicationRecordExists(server, application.referenceNumber)) {
     logger.warn(
       `Application for ${application.referenceNumber} already exists, skipping create`
