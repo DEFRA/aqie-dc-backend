@@ -3,8 +3,8 @@ import { isItemReviewed } from './review-status.js'
 
 // Country certification statuses that count as "not yet certified" when
 // working out an item's public-facing status.
-const UNCERTIFIED_CERTIFICATION_STATUSES = new Set(['revoked', 'rejected'])
-const UNDECIDED_CERTIFICATION_STATUSES = new Set(['new', 'awaiting_decision'])
+const UNCERTIFIED_CERTIFICATION_STATUSES = new Set(['uncertified'])
+const UNDECIDED_CERTIFICATION_STATUSES = new Set(['awaiting_decision'])
 
 // Works out the $set update for an item once its technical review has reached
 // a final status (accepted/rejected) - items still mid-review are not expected here.
@@ -15,12 +15,13 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
     return { [itemStatus]: 'rejected' }
   }
 
+  // A country with no recorded certification is still awaiting a decision.
   const countryCertifications = [
     item.englandCertification?.status,
     item.scotlandCertification?.status,
     item.walesCertification?.status,
     item.nIrelandCertification?.status
-  ]
+  ].map((status) => status ?? 'awaiting_decision')
 
   const hasCertified = countryCertifications.includes('certified')
   const hasUncertified = countryCertifications.some((status) =>
@@ -39,7 +40,7 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
     }
   }
 
-  // None certified, but at least one revoked/rejected - hidden.
+  // None certified, but at least one uncertified - hidden.
   // Visibility resets to the default so a later re-certification starts as live.
   if (hasUncertified) {
     return { [itemStatus]: 'hidden', isVisibleToPublic: true }

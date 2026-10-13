@@ -1,5 +1,10 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import { updateCertificationStatus } from '#src/controllers/appliance-certification-controller.js'
+import { calculateItemStatus } from '#src/common/helpers/item-status.js'
+
+vi.mock('#src/common/helpers/item-status.js', () => ({
+  calculateItemStatus: vi.fn()
+}))
 
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
 const decidedBy = { name: 'Ada', email: 'ada@example.com' }
@@ -228,6 +233,70 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
       completedBy: decidedBy
     })
     expect(actions[0].id).toMatch(/^ACT-/)
+  })
+
+  test('recalculates the appliance status before recording the action', async () => {
+    const { db, actionsCollection } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'certified' }
+    })
+
+    await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'uncertified',
+      decidedBy,
+      logger
+    )
+
+    expect(calculateItemStatus).toHaveBeenCalledWith(db, 'appliance', 'APP-1')
+    expect(calculateItemStatus.mock.invocationCallOrder[0]).toBeLessThan(
+      actionsCollection.insertOne.mock.invocationCallOrder[0]
+    )
+  })
+
+  test('still succeeds and records the action when the recalculation fails', async () => {
+    const { db, actions } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'certified' }
+    })
+    calculateItemStatus.mockRejectedValueOnce(
+      new Error('Technical review at application stage is not complete')
+    )
+
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'uncertified',
+      decidedBy,
+      logger
+    )
+
+    expect(result.success).toBe(true)
+    expect(actions).toHaveLength(1)
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to recalculate applianceStatus')
+    )
+  })
+
+  test('does not recalculate when nothing changed', async () => {
+    const { db } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'certified' }
+    })
+
+    await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'certified',
+      decidedBy,
+      logger
+    )
+
+    expect(calculateItemStatus).not.toHaveBeenCalled()
   })
 
   test('still succeeds when the audit write fails', async () => {

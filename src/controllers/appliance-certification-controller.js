@@ -1,4 +1,5 @@
 import { generateSecureId } from '../common/helpers/data-transformer.js'
+import { calculateItemStatus } from '../common/helpers/item-status.js'
 import { actionDescriptions } from '../common/schemas/action-schema.js'
 
 // Map of country codes to certification field names
@@ -162,6 +163,15 @@ export const updateCertificationStatus = async (
     if (!updated) {
       logger.error(`Failed to update appliance: ${applianceId}`)
       return { success: false, error: 'Failed to update appliance' }
+    }
+
+    // The decision is already saved, so a failed rollup is logged, not surfaced.
+    try {
+      await calculateItemStatus(db, 'appliance', applianceId)
+    } catch (error) {
+      logger.error(
+        `Failed to recalculate applianceStatus for ${applianceId}: ${error.message}`
+      )
     }
 
     await recordCertificationAction(
