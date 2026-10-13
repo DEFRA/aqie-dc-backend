@@ -2,6 +2,8 @@
  * SQS Messages Controller
  * Business logic for handling/storing payload (body) of SQS messages in the database for debugging and backup purposes.
  */
+const DUPLICATE_KEY_ERROR = 11000
+
 async function createSqsMessage(db, payload, logger) {
   try {
     const collection = db.collection('SqsMessages')
@@ -20,14 +22,30 @@ async function createSqsMessage(db, payload, logger) {
     const { messageId, messageBody, sentTimestamp } = payload
     const sentAt = sentTimestamp ? new Date(Number(sentTimestamp)) : undefined
 
-    // Insert into database
-    const result = await collection.insertOne({
-      _id: messageId, //so Mongo rejects duplicate inserts on redelivery
-      receivedAt: now,
-      ...(sentAt && { sentAt }),
-      rawPayload: messageBody,
-      processed: false // true once the message has been mapped and saved as an application record
-    })
+    let result
+    try {
+      result = await collection.insertOne({
+        _id: messageId, //so Mongo rejects duplicate inserts on redelivery
+        receivedAt: now,
+        ...(sentAt && { sentAt }),
+        rawPayload: messageBody,
+        processed: false // true once the message has been mapped and saved as an application record
+      })
+    } catch (insertError) {
+      if (insertError?.code !== DUPLICATE_KEY_ERROR) {
+        throw insertError
+      }
+      // Redelivery: report whether it was fully handled last time
+      const existing = await collection.findOne({ _id: messageId })
+      logger.info(`Sqs message ${messageId} already stored (redelivery)`)
+      return {
+        success: true,
+        duplicate: true,
+        processed: existing?.processed === true,
+        message: 'Sqs message already stored',
+        _id: messageId
+      }
+    }
 
     if (!result.acknowledged) {
       throw new Error('Failed to insert sqs message')

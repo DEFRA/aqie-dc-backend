@@ -76,12 +76,21 @@ export const main = async (server, queueUrl, abortSignal) => {
 
     for (const message of Messages) {
       try {
-        await ingestSqsMessage(
+        const stored = await ingestSqsMessage(
           server,
           message.MessageId,
           message.Body,
           message.Attributes?.SentTimestamp
         )
+
+        // Already fully handled on a previous delivery: just delete it from the queue
+        if (stored.duplicate && stored.processed) {
+          processedMessages.push({
+            Id: message.MessageId,
+            ReceiptHandle: message.ReceiptHandle
+          })
+          continue
+        }
       } catch (err) {
         logger.error(
           { messageId: message.MessageId, err },
