@@ -5,6 +5,11 @@ import {
   updateApplianceReview,
   recordApplianceCheck
 } from '#src/controllers/appliance-review-controller.js'
+import { calculateItemStatus } from '#src/common/helpers/item-status.js'
+
+vi.mock('#src/common/helpers/item-status.js', () => ({
+  calculateItemStatus: vi.fn()
+}))
 
 const allPassed = {
   documentationChecks: {
@@ -26,6 +31,8 @@ describe('appliance-review-controller', () => {
   let mockLogger
 
   beforeEach(() => {
+    vi.clearAllMocks()
+
     mockLogger = {
       info: vi.fn(),
       error: vi.fn()
@@ -233,6 +240,55 @@ describe('appliance-review-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.data.status).toBe('rejected')
+    })
+
+    test('recalculates the appliance status once the decision is saved', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({ technicalReview: allPassed })
+        .mockResolvedValueOnce({ id: 'APP-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      await updateApplianceReview(
+        db,
+        'APP-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'appliance', 'APP-1')
+    })
+
+    test('still succeeds when the status recalculation fails', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({ technicalReview: allPassed })
+        .mockResolvedValueOnce({ id: 'APP-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+      calculateItemStatus.mockRejectedValueOnce(new Error('boom'))
+
+      const result = await updateApplianceReview(
+        db,
+        'APP-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to recalculate applianceStatus')
+      )
+    })
+
+    test('does not recalculate when the decision is refused', async () => {
+      collection.findOne.mockResolvedValue({ technicalReview: {} })
+
+      await updateApplianceReview(
+        db,
+        'APP-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(calculateItemStatus).not.toHaveBeenCalled()
     })
 
     test('writes dot-notation paths so the check results survive', async () => {
