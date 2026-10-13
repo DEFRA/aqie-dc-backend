@@ -32,10 +32,12 @@ export default {
       }
     }
 
-    server.events.on('start', () => {
-      void poll().catch((err) => {
+    server.events.on('start', async () => {
+      try {
+        await poll()
+      } catch (err) {
         server.logger?.error({ err }, 'SQS poll loop failed')
-      })
+      }
     })
 
     server.events.on('stop', () => {
