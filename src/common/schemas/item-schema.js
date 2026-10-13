@@ -84,6 +84,12 @@ export const applianceSchema = Joi.object({
   applianceType: Joi.string()
     .required()
     .description('Appliance type e.g. "heat"'),
+  otherApplianceType: Joi.string()
+    .optional()
+    .allow(null)
+    .description(
+      'Secondary appliance type when applianceType is "other". Values are sourced from the ApplianceTypes collection and may change without code changes.'
+    ),
   isVariant: Joi.boolean().required().description('Variant of appliance'),
   existingAuthorisedAppliance: Joi.string()
     .optional()
@@ -106,16 +112,34 @@ export const applianceSchema = Joi.object({
     ),
   // Fields from admin FE input
   testResults: Joi.object({
-    ratedOutput: Joi.number().optional().description('Rated Output'),
+    ratedOutput: Joi.number()
+      .min(0)
+      .allow(null)
+      .optional()
+      .description('Rated Output'),
     testedOutput: Joi.object({
-      rated: Joi.number().optional().description('Tested Output - rated'),
-      low: Joi.number().optional().description('Tested Output - low')
+      rated: Joi.number()
+        .min(0)
+        .allow(null)
+        .optional()
+        .description('Tested Output - rated'),
+      low: Joi.number()
+        .min(0)
+        .allow(null)
+        .optional()
+        .description('Tested Output - low')
     }).optional(),
     smokeEmissionOutput: Joi.object({
       rated: Joi.number()
+        .min(0)
+        .allow(null)
         .optional()
         .description('Smoke emission output - rated'),
-      low: Joi.number().optional().description('Smoke emission output - low')
+      low: Joi.number()
+        .min(0)
+        .allow(null)
+        .optional()
+        .description('Smoke emission output - low')
     }).optional()
   }).optional(),
   additionalConditions: Joi.string()
@@ -124,12 +148,21 @@ export const applianceSchema = Joi.object({
       'Additional conditions previously referred to as air control modifications'
     ),
   instructionManual: Joi.object({
-    title: Joi.string().optional().description('Instruction manual title'),
+    title: Joi.string()
+      .allow('', null)
+      .optional()
+      .description('Instruction manual title'),
     publicationDate: Joi.date()
+      .iso()
+      .allow(null)
       .optional()
       .description('Instruction manual publication date'),
-    version: Joi.string().optional().description('Instruction manual version'),
+    version: Joi.string()
+      .allow('', null)
+      .optional()
+      .description('Instruction manual version'),
     additionalInfo: Joi.string()
+      .allow('', null)
       .optional()
       .description('Instruction manual additional information')
   }).optional(),
@@ -210,7 +243,7 @@ export const applianceSchema = Joi.object({
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
     ),
-  isVisible: Joi.boolean()
+  isVisibleToPublic: Joi.boolean()
     .default(true)
     .description('Should this appliance be visible to the public?'),
   // need to put logic in to populate these fields
@@ -218,7 +251,7 @@ export const applianceSchema = Joi.object({
     .optional()
     .description('The earliest date of certification'),
   applianceStatus: Joi.string().description(
-    'Takes in account the technical review and country certifications, and isVisible to determine the overall status of the appliance'
+    'Takes in account the technical review and country certifications, and isVisibleToPublic to determine the overall status of the appliance'
   )
 }).label('Appliance')
 
