@@ -43,6 +43,7 @@ vi.mock('../repeater.js', () => ({
 vi.mock('../dispatcher.js', () => ({
   ingestSqsMessage: vi.fn(),
   createApplicationRecordViaRoute: vi.fn(),
+  applicationRecordExists: vi.fn(),
   markSqsMessageProcessed: vi.fn()
 }))
 
@@ -52,6 +53,7 @@ const { splitRepeaterJson } = await import('../repeater.js')
 const {
   ingestSqsMessage,
   createApplicationRecordViaRoute,
+  applicationRecordExists,
   markSqsMessageProcessed
 } = await import('../dispatcher.js')
 
@@ -61,6 +63,34 @@ describe('sqs client', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     server = {}
+  })
+
+  describe('createNewApplicationRecord duplicate guard', () => {
+    const message = {
+      MessageId: 'm1',
+      Body: JSON.stringify({
+        meta: { formSlug: 'other', referenceNumber: 'REF-1', timestamp: 't' },
+        data: {}
+      })
+    }
+
+    test('skips create but marks processed when application already exists', async () => {
+      applicationRecordExists.mockResolvedValueOnce(true)
+
+      await createNewApplicationRecord(message, server)
+
+      expect(createApplicationRecordViaRoute).not.toHaveBeenCalled()
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'm1')
+    })
+
+    test('creates application when none exists', async () => {
+      applicationRecordExists.mockResolvedValueOnce(false)
+
+      await createNewApplicationRecord(message, server)
+
+      expect(createApplicationRecordViaRoute).toHaveBeenCalled()
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'm1')
+    })
   })
 
   describe('main', () => {

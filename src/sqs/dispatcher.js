@@ -7,6 +7,12 @@ import {
   createSqsMessage,
   markMessageProcessed
 } from '#src/controllers/sqs-messages-controller.js'
+import { applicationExistsByReference } from '#src/controllers/applications-controller.js'
+
+// Guards against duplicate records when a retry follows a failed markSqsMessageProcessed
+export async function applicationRecordExists(server, referenceNumber) {
+  return applicationExistsByReference(server.db, referenceNumber)
+}
 
 // --- Application Management Routes (appliances or fuels, based on payload.type) ---
 

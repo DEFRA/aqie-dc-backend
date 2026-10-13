@@ -13,6 +13,7 @@ import { splitRepeaterJson } from './repeater.js'
 import {
   ingestSqsMessage,
   createApplicationRecordViaRoute,
+  applicationRecordExists,
   markSqsMessageProcessed
 } from './dispatcher.js'
 
@@ -164,7 +165,13 @@ export const createNewApplicationRecord = async (message, server) => {
   }
   const applicationPayload = JSON.stringify(application)
   //console.log('raw payload:', message.Body, 'parsed payload:', messageBody.data)
-  await createApplicationRecordViaRoute(server, applicationPayload)
+  if (await applicationRecordExists(server, application.referenceNumber)) {
+    logger.warn(
+      `Application for ${application.referenceNumber} already exists, skipping create`
+    )
+  } else {
+    await createApplicationRecordViaRoute(server, applicationPayload)
+    logger.info(`Creating ${application.type} Application Record`)
+  }
   await markSqsMessageProcessed(server, message.MessageId)
-  logger.info(`Creating ${application.type} Application Record`)
 }
