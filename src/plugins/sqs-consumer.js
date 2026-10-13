@@ -8,23 +8,34 @@ export default {
 
     server.app.sqsAbortController = abortController
 
+    const pollIntervalMins = Number(config.get('aws.sqs.pollIntervalMins'))
+
+    if (!Number.isFinite(pollIntervalMins) || pollIntervalMins <= 0) {
+      throw new Error('aws.sqs.pollIntervalMins must be a positive number')
+    }
+
+    const pollIntervalMs = pollIntervalMins * 60 * 1000
+
     const poll = async () => {
       while (!abortController.signal.aborted) {
-        await main(server, undefined, abortController.signal)
-
-        const pollIntervalMins = Number(config.get('aws.sqs.pollIntervalMins'))
-
-        if (!Number.isFinite(pollIntervalMins) || pollIntervalMins <= 0) {
-          throw new Error('aws.sqs.pollIntervalMins must be a positive number')
+        try {
+          await main(server, undefined, abortController.signal)
+        } catch (err) {
+          server.logger?.error({ err }, 'SQS poll loop failed')
         }
 
-        const pollIntervalMs = pollIntervalMins * 60 * 1000
+        if (abortController.signal.aborted) {
+          break
+        }
+
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
       }
     }
 
-    void poll().catch((err) => {
-      server.logger?.error({ err }, 'SQS poll loop failed')
+    server.events.on('start', () => {
+      void poll().catch((err) => {
+        server.logger?.error({ err }, 'SQS poll loop failed')
+      })
     })
 
     server.events.on('stop', () => {
