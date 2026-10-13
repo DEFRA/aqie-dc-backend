@@ -135,7 +135,10 @@ export const createNewApplicationRecord = async (message, server) => {
     // Validate JSON before processing
     messageBody = JSON.parse(message.Body)
   } catch {
-    logger.error({ messageId: message.MessageId, }, 'Invalid JSON in SQS message')
+    logger.error(
+      { messageId: message.MessageId },
+      'Invalid JSON in SQS message'
+    )
     return // Skip this invalid message so the outer batch loop can continue with the next SQS message.
   }
   //application details extraction
