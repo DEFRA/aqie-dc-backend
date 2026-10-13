@@ -31,7 +31,11 @@ vi.mock('../../config.js', () => ({
 }))
 
 vi.mock('#src/common/helpers/logging/logger.js', () => ({
-  createLogger: vi.fn(() => ({ info: vi.fn(), error: vi.fn() }))
+  createLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn()
+  }))
 }))
 
 vi.mock('../mapper.js', () => ({ mapKeys: vi.fn(() => ({ mapped: true })) }))
@@ -62,6 +66,21 @@ describe('sqs client', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    sendMock.mockReset()
+    ingestSqsMessage.mockReset()
+    createApplicationRecordViaRoute.mockReset()
+    applicationRecordExists.mockReset()
+    markSqsMessageProcessed.mockReset()
+    mapKeys.mockReset()
+    splitRepeaterJson.mockReset()
+
+    ingestSqsMessage.mockResolvedValue({ duplicate: false, processed: false })
+    createApplicationRecordViaRoute.mockResolvedValue({})
+    applicationRecordExists.mockResolvedValue(false)
+    markSqsMessageProcessed.mockResolvedValue(undefined)
+    splitRepeaterJson.mockReturnValue([{ item: 1 }])
+    mapKeys.mockImplementation(() => ({ mapped: true }))
+
     server = {}
   })
 
