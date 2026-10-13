@@ -255,6 +255,20 @@ describe('Update Certification Status Route', () => {
       expect(error).toBeDefined()
     })
 
+    it('should return 500 when the controller throws', async () => {
+      // controller guards throw rather than returning a result object
+      mockRequest.db = null
+
+      const response = await updateCertificationStatus.handler(
+        mockRequest,
+        mockH
+      )
+
+      expect(response.statusCode).toBe(500)
+      expect(response.data.error.message).toBe('Internal server error')
+      expect(mockRequest.logger.error).toHaveBeenCalled()
+    })
+
     it('should use default user info when no auth credentials', async () => {
       const appliance = {
         id: 'APP-001',

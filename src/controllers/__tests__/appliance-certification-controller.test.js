@@ -249,4 +249,91 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     expect(result.success).toBe(true)
     expect(logger.error).toHaveBeenCalled()
   })
+
+  test.each([
+    ['db', [null, 'APP-1', 'england', 'certified', { name: 'A' }, {}]],
+    ['applianceId', [{}, '', 'england', 'certified', { name: 'A' }, {}]],
+    ['country', [{}, 'APP-1', '', 'certified', { name: 'A' }, {}]],
+    ['newStatus', [{}, 'APP-1', 'england', '', { name: 'A' }, {}]],
+    ['decidedBy', [{}, 'APP-1', 'england', 'certified', null, {}]],
+    ['logger', [{}, 'APP-1', 'england', 'certified', { name: 'A' }, null]]
+  ])('throws when %s is missing', async (name, args) => {
+    await expect(updateCertificationStatus(...args)).rejects.toThrow(
+      `${name} is required`
+    )
+  })
+
+  test('defaults a missing certification field to awaiting_decision', async () => {
+    const { db, appliances } = makeDb({ id: 'APP-1' })
+
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'certified',
+      decidedBy,
+      logger
+    )
+
+    expect(result.success).toBe(true)
+    const { $set } = appliances.findOneAndUpdate.mock.calls[0][1]
+    expect($set.englandCertification.status).toBe('certified')
+  })
+
+  test('rejects a transition from an unrecognised stored status', async () => {
+    const { db } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'revoked' }
+    })
+
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'certified',
+      decidedBy,
+      logger
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('Cannot change status')
+  })
+
+  test('returns an error when the update matches nothing', async () => {
+    const { db, appliances } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'certified' }
+    })
+    appliances.findOneAndUpdate.mockResolvedValueOnce(null)
+
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'uncertified',
+      decidedBy,
+      logger
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('Failed to update appliance')
+  })
+
+  test('returns a generic error when the database throws', async () => {
+    const { db, appliances } = makeDb({ id: 'APP-1' })
+    appliances.findOne.mockRejectedValueOnce(new Error('connection lost'))
+
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'certified',
+      decidedBy,
+      logger
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('Internal server error')
+    expect(logger.error).toHaveBeenCalled()
+  })
 })
