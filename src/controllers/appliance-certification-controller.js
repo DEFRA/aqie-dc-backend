@@ -1,11 +1,8 @@
 import {
-  buildCertification,
-  countryToCertificationField,
   isValidStatusTransition,
-  readCertification,
-  recordCertificationAction,
-  refreshApplianceStatus,
-  requireArgs
+  loadDecisionTarget,
+  requireArgs,
+  saveDecision
 } from './helpers/appliance-certification-helper.js'
 
 /**
@@ -29,81 +26,42 @@ export const updateCertificationStatus = async (
   requireArgs({ db, applianceId, country, newStatus, decidedBy, logger })
 
   try {
-    const certificationField = countryToCertificationField[country]
+    const target = await loadDecisionTarget(db, applianceId, country, logger)
 
-    if (!certificationField) {
-      logger.warn(`Invalid country code: ${country}`)
-      return {
-        success: false,
-        error: `Invalid country: ${country}. Must be one of: england, scotland, wales, northern-ireland`
-      }
+    if (target.failure) {
+      return target.failure
     }
 
-    const appliancesCollection = db.collection('Appliances')
-    const appliance = await appliancesCollection.findOne({ id: applianceId })
-
-    if (!appliance) {
-      logger.warn(`Appliance not found: ${applianceId}`)
-      return { success: false, error: `Appliance not found: ${applianceId}` }
-    }
-
-    const { certification: currentCertification, status: currentStatus } =
-      readCertification(appliance, certificationField)
+    const { appliance, certificationField, certification, status } = target
 
     // Re-submitting the same decision is a no-op rather than an error
-    if (currentStatus === newStatus) {
+    if (status === newStatus) {
       return { success: true, data: appliance }
     }
 
-    if (!isValidStatusTransition(currentStatus, newStatus)) {
+    if (!isValidStatusTransition(status, newStatus)) {
       logger.warn(
-        `Invalid status transition for ${applianceId} (${country}): ${currentStatus} -> ${newStatus}`
+        `Invalid status transition for ${applianceId} (${country}): ${status} -> ${newStatus}`
       )
       return {
         success: false,
-        error: `Cannot change status from ${currentStatus} to ${newStatus}`
+        error: `Cannot change status from ${status} to ${newStatus}`
       }
     }
 
-    const now = new Date()
-    const certification = buildCertification(
-      currentCertification,
-      newStatus,
-      decidedBy,
-      now
-    )
-
-    const updated = await appliancesCollection.findOneAndUpdate(
-      { id: applianceId },
-      { $set: { [certificationField]: certification, updatedAt: now } },
-      { returnDocument: 'after' }
-    )
-
-    if (!updated) {
-      logger.error(`Failed to update appliance: ${applianceId}`)
-      return { success: false, error: 'Failed to update appliance' }
-    }
-
-    await refreshApplianceStatus(db, applianceId, logger)
-
-    await recordCertificationAction(
+    return await saveDecision(
       db,
       {
         applianceId,
         country,
-        fromStatus: currentStatus,
-        toStatus: newStatus,
-        decidedBy,
-        at: now
+        certificationField,
+        currentCertification: certification,
+        currentStatus: status,
+        newStatus,
+        decidedBy
       },
       logger
     )
-
-    logger.info(
-      `Certification status updated: ${applianceId} (${country}: ${currentStatus} -> ${newStatus})`
-    )
-
-    return { success: true, data: updated }
   } catch (error) {
     logger.error(`Error updating certification status: ${error.message}`)
     return { success: false, error: 'Internal server error' }

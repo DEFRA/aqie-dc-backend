@@ -3,7 +3,7 @@ import { calculateItemStatus } from '../../common/helpers/item-status.js'
 import { actionDescriptions } from '../../common/schemas/action-schema.js'
 
 // Map of country codes to certification field names
-export const countryToCertificationField = {
+const countryToCertificationField = {
   england: 'englandCertification',
   scotland: 'scotlandCertification',
   wales: 'walesCertification',
@@ -42,7 +42,7 @@ export const requireArgs = (args) => {
 }
 
 // An appliance with no recorded certification is still awaiting a decision.
-export const readCertification = (appliance, certificationField) => {
+const readCertification = (appliance, certificationField) => {
   const certification = appliance[certificationField] || {}
   return {
     certification,
@@ -51,7 +51,7 @@ export const readCertification = (appliance, certificationField) => {
 }
 
 // Replaces the whole object, so the milestones are carried forward explicitly.
-export const buildCertification = (current, newStatus, decidedBy, now) => {
+const buildCertification = (current, newStatus, decidedBy, now) => {
   const isCertified = newStatus === 'certified'
   const lastCertifiedAt = current.lastCertifiedAt ?? null
   const firstCertifiedAt = current.firstCertifiedAt ?? null
@@ -68,7 +68,7 @@ export const buildCertification = (current, newStatus, decidedBy, now) => {
 }
 
 // The decision is already saved, so a failed rollup is logged, not surfaced.
-export const refreshApplianceStatus = async (db, applianceId, logger) => {
+const refreshApplianceStatus = async (db, applianceId, logger) => {
   try {
     await calculateItemStatus(db, 'appliance', applianceId)
   } catch (error) {
@@ -82,7 +82,7 @@ export const refreshApplianceStatus = async (db, applianceId, logger) => {
  * Append an audit entry. Failure to record history must not fail the decision
  * itself, so errors are logged and swallowed.
  */
-export const recordCertificationAction = async (
+const recordCertificationAction = async (
   db,
   { applianceId, country, fromStatus, toStatus, decidedBy, at },
   logger
@@ -107,4 +107,102 @@ export const recordCertificationAction = async (
       `Failed to record certification action for ${applianceId}: ${error.message}`
     )
   }
+}
+
+/**
+ * Resolve the appliance and the country's current certification.
+ * Returns `{ failure }` with a ready-made result when either cannot be found.
+ */
+export const loadDecisionTarget = async (db, applianceId, country, logger) => {
+  const certificationField = countryToCertificationField[country]
+
+  if (!certificationField) {
+    logger.warn(`Invalid country code: ${country}`)
+    return {
+      failure: {
+        success: false,
+        error: `Invalid country: ${country}. Must be one of: england, scotland, wales, northern-ireland`
+      }
+    }
+  }
+
+  const appliance = await db
+    .collection('Appliances')
+    .findOne({ id: applianceId })
+
+  if (!appliance) {
+    logger.warn(`Appliance not found: ${applianceId}`)
+    return {
+      failure: {
+        success: false,
+        error: `Appliance not found: ${applianceId}`
+      }
+    }
+  }
+
+  return {
+    appliance,
+    certificationField,
+    ...readCertification(appliance, certificationField)
+  }
+}
+
+/**
+ * Persist a validated decision, then refresh the overall appliance status and
+ * append the audit entry.
+ */
+export const saveDecision = async (
+  db,
+  {
+    applianceId,
+    country,
+    certificationField,
+    currentCertification,
+    currentStatus,
+    newStatus,
+    decidedBy
+  },
+  logger
+) => {
+  const now = new Date()
+  const certification = buildCertification(
+    currentCertification,
+    newStatus,
+    decidedBy,
+    now
+  )
+
+  const updated = await db
+    .collection('Appliances')
+    .findOneAndUpdate(
+      { id: applianceId },
+      { $set: { [certificationField]: certification, updatedAt: now } },
+      { returnDocument: 'after' }
+    )
+
+  if (!updated) {
+    logger.error(`Failed to update appliance: ${applianceId}`)
+    return { success: false, error: 'Failed to update appliance' }
+  }
+
+  await refreshApplianceStatus(db, applianceId, logger)
+
+  await recordCertificationAction(
+    db,
+    {
+      applianceId,
+      country,
+      fromStatus: currentStatus,
+      toStatus: newStatus,
+      decidedBy,
+      at: now
+    },
+    logger
+  )
+
+  logger.info(
+    `Certification status updated: ${applianceId} (${country}: ${currentStatus} -> ${newStatus})`
+  )
+
+  return { success: true, data: updated }
 }
