@@ -1,10 +1,9 @@
 /**
  * Admin: get a single appliance record for the admin frontend
  */
-import Boom from '@hapi/boom'
 import Joi from 'joi'
 import * as applianceController from '../../controllers/appliances-controller.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
+import { createResultHandler } from '../../common/helpers/route-response.js'
 
 export const getAdminApplianceById = {
   method: 'GET',
@@ -19,34 +18,17 @@ export const getAdminApplianceById = {
       })
     }
   },
-  handler: async (request, h) => {
-    const { id } = request.params
-
-    try {
-      const result = await applianceController.getAdminApplianceById(
+  handler: createResultHandler(
+    (request) =>
+      applianceController.getAdminApplianceById(
         request.db,
-        id,
+        request.params.id,
         request.logger
-      )
-
-      if (result.notFound) {
-        return h.response(result).code(statusCodes.notFound)
-      }
-
-      return h.response(result).code(statusCodes.ok)
-    } catch (error) {
-      request.logger.error(error, 'Failed to fetch admin appliance')
-
-      if (Boom.isBoom(error)) {
-        throw error
-      }
-
-      const status = error?.status
-      if (status && status >= statusCodes.internalServerError) {
-        return Boom.badGateway('Appliance service is currently unavailable')
-      }
-
-      return Boom.internal('Failed to fetch appliance')
+      ),
+    {
+      logMessage: 'Failed to fetch admin appliance',
+      fallbackMessage: 'Failed to fetch appliance',
+      unavailableMessage: 'Appliance service is currently unavailable'
     }
-  }
+  )
 }

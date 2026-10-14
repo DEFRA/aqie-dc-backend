@@ -80,9 +80,9 @@ describe('POST /appliances', () => {
       const h = mockToolkit
       const result = await createAppliance.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(500)
       expect(result.message).toBe('Failed to create appliance')
-      expect(result.error).toBe('Database error')
       expect(mockRequest.logger.error).toHaveBeenCalledWith(
         error,
         'Failed to create appliance'
