@@ -2,11 +2,13 @@ import Boom from '@hapi/boom'
 import { statusCodes } from '../constants/status-codes.js'
 
 export function respondWithResult(h, result, successCode = statusCodes.ok) {
-  let code = successCode
+  let code
   if (result?.notFound) {
     code = statusCodes.notFound
   } else if (result?.incomplete) {
     code = statusCodes.conflict
+  } else {
+    code = successCode
   }
   return h.response(result).code(code)
 }
