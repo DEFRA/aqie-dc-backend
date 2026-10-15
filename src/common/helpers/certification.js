@@ -21,8 +21,10 @@ export const CERTIFIED_STATUS = 'certified'
 // Statuses that count as "not certified" rather than "not yet decided":
 export const UNCERTIFIED_STATUSES = 'uncertified'
 // Country certification statuses that are still awaiting a decision.
-export const UNDECIDED_CERTIFICATION_STATUSES = new Set(['new', 'awaiting_decision'])
-
+export const UNDECIDED_CERTIFICATION_STATUSES = new Set([
+  'new',
+  'awaiting_decision'
+])
 
 // For public frontend use: the regions where the item is certified.
 export const findCertified = (item) =>
