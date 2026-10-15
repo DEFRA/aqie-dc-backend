@@ -2,6 +2,8 @@
  * SQS Messages Controller
  * Business logic for handling/storing payload (body) of SQS messages in the database for debugging and backup purposes.
  */
+const DUPLICATE_KEY_ERROR = 11000
+
 async function createSqsMessage(db, payload, logger) {
   try {
     const collection = db.collection('SqsMessages')
@@ -16,17 +18,34 @@ async function createSqsMessage(db, payload, logger) {
 
     const now = new Date()
 
-    //the payload contains the messageBody, messageId, and mappedPayload. The messageBody is the raw payload of the SQS message, the messageId is the unique identifier of the SQS message, and the mappedPayload is the pre-processed version of the messageBody.
-    const { messageId, messageBody, parsedMessageBody, mappedPayload } = payload
+    //the payload contains the messageBody and messageId. The messageBody is the raw payload of the SQS message and the messageId is the unique identifier of the SQS message.
+    const { messageId, messageBody, sentTimestamp } = payload
+    const sentAt = sentTimestamp ? new Date(Number(sentTimestamp)) : undefined
 
-    // Insert into database
-    const result = await collection.insertOne({
-      id: messageId, //do i need this? can i guaraentee it will be unique? should i use the mongo _id instead? or both?
-      receivedAt: now, //should/can i pull this out of the sqs message? should it be createdAt, what exaclty am i storing here?
-      rawPayload: messageBody,
-      parsedPayload: parsedMessageBody || null,
-      mappedPayload: mappedPayload || null
-    })
+    let result
+    try {
+      result = await collection.insertOne({
+        _id: messageId, //so Mongo rejects duplicate inserts on redelivery
+        receivedAt: now,
+        ...(sentAt && { sentAt }),
+        rawPayload: messageBody,
+        processed: false // true once the message has been mapped and saved as an application record
+      })
+    } catch (insertError) {
+      if (insertError?.code !== DUPLICATE_KEY_ERROR) {
+        throw insertError
+      }
+      // Redelivery: report whether it was fully handled last time
+      const existing = await collection.findOne({ _id: messageId })
+      logger.info(`Sqs message ${messageId} already stored (redelivery)`)
+      return {
+        success: true,
+        duplicate: true,
+        processed: existing?.processed === true,
+        message: 'Sqs message already stored',
+        _id: messageId
+      }
+    }
 
     if (!result.acknowledged) {
       throw new Error('Failed to insert sqs message')
@@ -48,4 +67,24 @@ async function createSqsMessage(db, payload, logger) {
   }
 }
 
-export { createSqsMessage }
+async function markMessageProcessed(db, messageId, logger) {
+  try {
+    const collection = db.collection('SqsMessages')
+
+    const result = await collection.updateOne(
+      { _id: messageId },
+      { $set: { processed: true } }
+    )
+
+    if (!result.acknowledged) {
+      throw new Error('Failed to update sqs message')
+    }
+
+    return { success: true }
+  } catch (error) {
+    logger.error(error, `Failed to mark sqs message ${messageId} as processed`)
+    throw error
+  }
+}
+
+export { createSqsMessage, markMessageProcessed }
