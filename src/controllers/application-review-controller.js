@@ -61,7 +61,6 @@ async function completeApplication(db, id, payload, logger) {
     const { reviewedBy } = payload
     const reviewedAt = new Date()
 
-
     // Once an application completes, send the notification email to DA
     // (not yet implemented).
     //and
