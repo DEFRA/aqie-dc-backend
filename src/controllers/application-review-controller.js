@@ -5,6 +5,7 @@
 
 import { isApplicationReviewComplete } from '../common/helpers/review-status.js'
 import { getItemsCollectionName } from '../common/helpers/application-type.js'
+import { CERTIFICATION_FIELDS } from '../common/helpers/certification.js'
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const APPLICATION_NOT_FOUND = 'Application not found'
@@ -60,6 +61,22 @@ async function completeApplication(db, id, payload, logger) {
     const { reviewedBy } = payload
     const reviewedAt = new Date()
 
+
+    // Once an application completes, send the notification email to DA
+    // (not yet implemented).
+    //and
+    await Promise.all(
+      CERTIFICATION_FIELDS.map((field) =>
+        db
+          .collection(itemsCollectionName)
+          .updateMany(
+            { applicationId: id, [`${field}.status`]: 'new' },
+            { $set: { [`${field}.status`]: 'awaiting_decision' } }
+          )
+      )
+    )
+
+    //then
     await collection.updateOne(
       { id },
       {
