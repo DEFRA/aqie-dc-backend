@@ -306,14 +306,13 @@ async function getAdminApplianceById(db, id, logger) {
       }
     }
 
-    const canTogglePublicVisibility = findCertified(item).length > 0
-
     const certifications = mapCertifications(item)
-    // At this point, country DAs should already be notified (email sent) that a decision is required for the certification status, 'new' -> 'awaiting_decision'.
-    const notYetNotified = findNotYetNotifiedCountries(item)
-    if (notYetNotified.length > 0) {
+
+    // Country DAs should already have been notified (email sent) that a decision
+    // is required: 'new' -> 'awaiting_decision'.
+    if (findNotYetNotifiedCountries(item).length > 0) {
       logger.warn(
-        `Appliance ${id} has countries that have not been notified that a decision is required: ${notYetNotified.join(', ')}`
+        `Appliance ${id} has countries that have not been notified that a decision is required`
       )
     }
 
@@ -326,9 +325,9 @@ async function getAdminApplianceById(db, id, logger) {
         applicationId: item.applicationId || null,
         certifications,
         status: item.applianceStatus || 'pending',
-        canTogglePublicVisibility,
-        isVisibleToPublic: item.isVisibleToPublic || false,
-        isLegacyRecord: item.isLegacyRecord || false
+        canTogglePublicVisibility: findCertified(item).length > 0,
+        isVisibleToPublic: item.isVisibleToPublic,
+        isLegacyRecord: item.isLegacyRecord
       }
     }
   } catch (error) {
