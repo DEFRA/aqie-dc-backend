@@ -105,9 +105,9 @@ describe('calculateItemStatus', () => {
     collection.findOne.mockResolvedValue({
       technicalReview: { status: 'accepted' },
       englandCertification: { status: 'uncertified' },
-      scotlandCertification: { status: 'awaiting_decision' },
-      walesCertification: { status: 'awaiting_decision' },
-      nIrelandCertification: { status: 'awaiting_decision' },
+      scotlandCertification: { status: 'new' },
+      walesCertification: { status: 'new' },
+      nIrelandCertification: { status: 'new' },
       isVisibleToPublic: false
     })
 

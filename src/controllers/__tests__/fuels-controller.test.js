@@ -13,10 +13,12 @@ import {
 
 import {
   generateSecureId,
-  findCertified,
-  findLastUpdatedDate,
   getFullAddress
 } from '#src/common/helpers/data-transformer.js'
+import {
+  findCertified,
+  findLastCertifiedDate
+} from '#src/common/helpers/certification.js'
 
 // Only generateSecureId is non-deterministic (uses crypto), so it's the only
 // helper mocked here. findCertified/getFullAddress run for real so tests
@@ -26,9 +28,16 @@ vi.mock('#src/common/helpers/data-transformer.js', async (importOriginal) => {
   return {
     ...actual,
     generateSecureId: vi.fn(),
-    findCertified: vi.fn(),
-    findLastUpdatedDate: vi.fn(),
     getFullAddress: vi.fn()
+  }
+})
+
+vi.mock('#src/common/helpers/certification.js', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    findCertified: vi.fn(),
+    findLastCertifiedDate: vi.fn()
   }
 })
 
@@ -58,7 +67,7 @@ describe('fuels-controller', () => {
 
     generateSecureId.mockReturnValue('12345')
     findCertified.mockReturnValue('England')
-    findLastUpdatedDate.mockReturnValue('2024-01-01')
+    findLastCertifiedDate.mockReturnValue('2024-01-01')
     getFullAddress.mockReturnValue('1 Test Street')
   })
 
@@ -171,7 +180,7 @@ describe('fuels-controller', () => {
       expect(result.data[0].id).toBe('FUEL-001')
     })
 
-    test('uses certification filter', async () => {
+    test('only returns fuels visible to the public', async () => {
       collection.find.mockReturnValue({
         toArray: vi.fn().mockResolvedValue([])
       })
@@ -179,13 +188,7 @@ describe('fuels-controller', () => {
       await getAllFuels(db, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({
-        'technicalReview.status': 'accepted',
-        $or: [
-          { 'englandCertification.status': 'certified' },
-          { 'scotlandCertification.status': 'certified' },
-          { 'walesCertification.status': 'certified' },
-          { 'nIrelandCertification.status': 'certified' }
-        ]
+        isVisibleToPublic: true
       })
     })
 

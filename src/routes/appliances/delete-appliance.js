@@ -4,7 +4,7 @@
 
 import Joi from 'joi'
 import * as applianceController from '../../controllers/appliances-controller.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
+import { createResultHandler } from '../../common/helpers/route-response.js'
 
 export const deleteAppliance = {
   method: 'DELETE',
@@ -18,29 +18,16 @@ export const deleteAppliance = {
       })
     }
   },
-  handler: async (request, h) => {
-    const { id } = request.params
-
-    try {
-      const result = await applianceController.deleteAppliance(
+  handler: createResultHandler(
+    (request) =>
+      applianceController.deleteAppliance(
         request.db,
-        id,
+        request.params.id,
         request.logger
-      )
-
-      if (result.notFound) {
-        return h.response(result).code(statusCodes.notFound)
-      }
-
-      return h.response(result).code(statusCodes.ok)
-    } catch (err) {
-      return h
-        .response({
-          success: false,
-          message: 'Failed to delete appliance',
-          error: err.message
-        })
-        .code(statusCodes.internalServerError)
+      ),
+    {
+      logMessage: 'Failed to delete appliance',
+      fallbackMessage: 'Failed to delete appliance'
     }
-  }
+  )
 }

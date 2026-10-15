@@ -5,7 +5,7 @@
 import Joi from 'joi'
 import * as applianceController from '../../controllers/appliances-controller.js'
 import { applianceSchema } from '../schema.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
+import { createResultHandler } from '../../common/helpers/route-response.js'
 
 // PATCH schema: all appliance fields optional, requires at least one key, and reject unknown extra fields.
 const updateApplianceSchema = applianceSchema
@@ -29,31 +29,17 @@ export const updateAppliance = {
       payload: updateApplianceSchema
     }
   },
-  handler: async (request, h) => {
-    const { id } = request.params
-
-    try {
-      const result = await applianceController.updateAppliance(
+  handler: createResultHandler(
+    (request) =>
+      applianceController.updateAppliance(
         request.db,
-        id,
+        request.params.id,
         request.payload,
         request.logger
-      )
-
-      if (result.notFound) {
-        return h.response(result).code(statusCodes.notFound)
-      }
-
-      return h.response(result).code(statusCodes.ok)
-    } catch (err) {
-      request.logger.error(`PATCH appliance ${id} error: ${err.message}`, err)
-      return h
-        .response({
-          success: false,
-          message: 'Failed to update appliance',
-          error: err.message
-        })
-        .code(statusCodes.internalServerError)
+      ),
+    {
+      logMessage: 'Failed to update appliance',
+      fallbackMessage: 'Failed to update appliance'
     }
-  }
+  )
 }

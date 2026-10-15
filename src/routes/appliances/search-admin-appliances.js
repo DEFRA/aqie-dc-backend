@@ -2,10 +2,9 @@
  * Search appliances by model name, company, model number, or type
  */
 
-import Boom from '@hapi/boom'
 import Joi from 'joi'
 import * as applianceController from '../../controllers/appliances-controller.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
+import { createResultHandler } from '../../common/helpers/route-response.js'
 
 const MAX_QUERY_LENGTH = 50
 const DEFAULT_LIMIT = 20
@@ -34,39 +33,27 @@ export const searchAdminAppliances = {
       })
     }
   },
-  handler: async (request, h) => {
-    const { q = '', page, limit, status } = request.query
-    const statuses =
-      typeof status === 'string'
-        ? status
-            .split(',')
-            .map((value) => value.trim().toLowerCase())
-            .filter(Boolean)
-        : []
+  handler: createResultHandler(
+    (request) => {
+      const { q = '', page, limit, status } = request.query
+      const statuses =
+        typeof status === 'string'
+          ? status
+              .split(',')
+              .map((value) => value.trim().toLowerCase())
+              .filter(Boolean)
+          : []
 
-    try {
-      const result = await applianceController.searchAdminAppliances(
+      return applianceController.searchAdminAppliances(
         request.db,
         { query: q, page, limit, statuses },
         request.logger
       )
-
-      return h.response(result).code(statusCodes.ok)
-    } catch (error) {
-      request.logger.error(error, 'Failed to search admin appliances')
-
-      if (Boom.isBoom(error)) {
-        throw error
-      }
-
-      const errorStatus = error?.status
-      if (errorStatus && errorStatus >= statusCodes.internalServerError) {
-        return Boom.badGateway(
-          'Appliance search service is currently unavailable'
-        )
-      }
-
-      return Boom.internal('Failed to search appliances')
+    },
+    {
+      logMessage: 'Failed to search admin appliances',
+      fallbackMessage: 'Failed to search appliances',
+      unavailableMessage: 'Appliance search service is currently unavailable'
     }
-  }
+  )
 }

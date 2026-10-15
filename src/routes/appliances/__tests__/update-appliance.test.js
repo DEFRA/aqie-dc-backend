@@ -80,9 +80,9 @@ describe('PATCH /appliances/{id}', () => {
       const h = mockToolkit
       const result = await updateAppliance.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(500)
       expect(result.message).toBe('Failed to update appliance')
-      expect(result.error).toBe('Update failed')
     })
 
     test('passes payload as updates to controller', async () => {

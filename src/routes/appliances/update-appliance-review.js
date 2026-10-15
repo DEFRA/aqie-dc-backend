@@ -1,10 +1,9 @@
 /**
  * Record the technical review decision for an appliance
  */
-import Boom from '@hapi/boom'
 import Joi from 'joi'
 import * as applianceReviewController from '../../controllers/appliance-review-controller.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
+import { createResultHandler } from '../../common/helpers/route-response.js'
 
 const MAX_LENGTH = 255
 
@@ -36,34 +35,17 @@ export const updateApplianceReview = {
       payload: reviewDecisionSchema
     }
   },
-  handler: async (request, h) => {
-    const { id } = request.params
-
-    try {
-      const result = await applianceReviewController.updateApplianceReview(
+  handler: createResultHandler(
+    (request) =>
+      applianceReviewController.updateApplianceReview(
         request.db,
-        id,
+        request.params.id,
         request.payload,
         request.logger
-      )
-
-      if (result.notFound) {
-        return h.response(result).code(statusCodes.notFound)
-      }
-
-      if (result.incomplete) {
-        return h.response(result).code(statusCodes.conflict)
-      }
-
-      return h.response(result).code(statusCodes.ok)
-    } catch (error) {
-      request.logger.error(error, 'Failed to update appliance review')
-
-      if (Boom.isBoom(error)) {
-        throw error
-      }
-
-      return Boom.internal('Failed to update appliance review')
+      ),
+    {
+      logMessage: 'Failed to update appliance review',
+      fallbackMessage: 'Failed to update appliance review'
     }
-  }
+  )
 }

@@ -9,9 +9,8 @@
  * 5. Include pagination metadata in response
  */
 
-import Boom from '@hapi/boom'
 import * as applianceController from '../../controllers/appliances-controller.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
+import { createResultHandler } from '../../common/helpers/route-response.js'
 
 export const getAllAppliances = {
   method: 'GET',
@@ -37,37 +36,18 @@ export const getAllAppliances = {
     //   })
     // }
   },
-  handler: async (request, h) => {
-    // TODO: PAGINATION - Uncomment when pagination is re-enabled
-    // const { page, limit } = request.query
-
-    try {
-      // TODO: PAGINATION - Pass pagination params when re-enabled:
-      // const result = await applianceController.getAllAppliances(
-      //   request.db,
-      //   { page, limit },
-      //   request.logger
-      // )
-      // For now, pass default pagination values to return all appliances
-      const result = await applianceController.getAllAppliances(
+  // TODO: PAGINATION - Pass { page, limit } from request.query when re-enabled
+  handler: createResultHandler(
+    (request) =>
+      applianceController.getAllAppliances(
         request.db,
         { page: 1, limit: 999999 }, // Return all certified appliances
         request.logger
-      )
-      return h.response(result).code(statusCodes.ok)
-    } catch (error) {
-      request.logger.error(error, 'Failed to fetch appliances')
-
-      if (Boom.isBoom(error)) {
-        throw error
-      }
-
-      const status = error?.status
-      if (status && status >= statusCodes.internalServerError) {
-        return Boom.badGateway('Appliance service is currently unavailable')
-      }
-
-      return Boom.internal('Failed to fetch appliances')
+      ),
+    {
+      logMessage: 'Failed to fetch appliances',
+      fallbackMessage: 'Failed to fetch appliances',
+      unavailableMessage: 'Appliance service is currently unavailable'
     }
-  }
+  )
 }

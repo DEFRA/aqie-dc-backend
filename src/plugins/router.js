@@ -19,6 +19,7 @@ import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { recordApplianceCheck } from '../routes/appliances/record-appliance-check.js'
 import { searchAdminAppliances } from '../routes/appliances/search-admin-appliances.js'
+import { getAdminApplianceById } from '../routes/appliances/get-admin-appliance-by-id.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
 import { updateCertificationStatus } from '../routes/appliances/update-certification-status.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
@@ -124,6 +125,7 @@ const router = {
         createAppliance,
         getAllAppliances,
         searchAdminAppliances, // Must come before getApplianceById to avoid route conflict
+        getAdminApplianceById,
         getApplianceReview,
         getApplianceById,
         recordApplianceCheck,
