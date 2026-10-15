@@ -3,8 +3,35 @@ import {
   CERTIFICATION_FIELDS,
   UNCERTIFIED_STATUSES,
   findCertified,
-  findLastCertifiedDate
+  findLastCertifiedDate,
+  mapCountryCertification
 } from '#src/common/helpers/certification.js'
+
+describe('mapCountryCertification', () => {
+  const expected = (status) => ({
+    status,
+    firstCertifiedAt: null,
+    lastCertifiedAt: null
+  })
+
+  test('reports a missing certification as awaiting_decision', () => {
+    expect(mapCountryCertification(undefined)).toEqual(
+      expected('awaiting_decision')
+    )
+  })
+
+  test('reports new as awaiting_decision', () => {
+    expect(mapCountryCertification({ status: 'new' })).toEqual(
+      expected('awaiting_decision')
+    )
+  })
+
+  test('keeps other statuses and drops unknown fields', () => {
+    expect(
+      mapCountryCertification({ status: 'certified', extra: 'x' })
+    ).toEqual(expected('certified'))
+  })
+})
 
 describe('CERTIFICATION_FIELDS', () => {
   test('lists the four country certification fields', () => {
@@ -18,8 +45,8 @@ describe('CERTIFICATION_FIELDS', () => {
 })
 
 describe('UNCERTIFIED_STATUSES', () => {
-  test('covers the statuses that mean not certified', () => {
-    expect([...UNCERTIFIED_STATUSES]).toEqual(['revoked', 'rejected'])
+  test('is the status that means not certified', () => {
+    expect(UNCERTIFIED_STATUSES).toBe('uncertified')
   })
 })
 
@@ -39,9 +66,9 @@ describe('findCertified', () => {
     expect(
       findCertified({
         englandCertification: { status: 'certified' },
-        scotlandCertification: { status: 'rejected' },
+        scotlandCertification: { status: 'uncertified' },
         walesCertification: { status: 'certified' },
-        nIrelandCertification: { status: 'revoked' }
+        nIrelandCertification: { status: 'uncertified' }
       })
     ).toEqual(['England', 'Wales'])
   })
@@ -49,8 +76,8 @@ describe('findCertified', () => {
   test('returns empty when none are certified', () => {
     expect(
       findCertified({
-        englandCertification: { status: 'rejected' },
-        scotlandCertification: { status: 'revoked' },
+        englandCertification: { status: 'uncertified' },
+        scotlandCertification: { status: 'uncertified' },
         walesCertification: { status: 'new' },
         nIrelandCertification: { status: 'awaiting_decision' }
       })

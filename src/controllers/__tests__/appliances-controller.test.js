@@ -48,6 +48,7 @@ describe('appliances-controller', () => {
   beforeEach(() => {
     mockLogger = {
       info: vi.fn(),
+      warn: vi.fn(),
       error: vi.fn()
     }
 
@@ -357,10 +358,13 @@ describe('appliances-controller', () => {
 
       expect(result.data.status).toBe('pending')
       expect(result.data.certifications.england).toEqual({
-        status: 'new',
+        status: 'awaiting_decision',
         firstCertifiedAt: null,
         lastCertifiedAt: null
       })
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('APP-002')
+      )
       expect(result.data.applicationId).toBeNull()
       expect(result.data.canTogglePublicVisibility).toBe(false)
       expect(result.data.isVisibleToPublic).toBe(false)

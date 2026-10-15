@@ -3,11 +3,9 @@ import { isItemReviewed } from './review-status.js'
 import {
   CERTIFICATION_FIELDS,
   CERTIFIED_STATUS,
-  UNCERTIFIED_STATUSES
+  UNCERTIFIED_STATUSES,
+  UNDECIDED_CERTIFICATION_STATUSES
 } from './certification.js'
-
-// Country certification statuses that are still awaiting a decision.
-const UNDECIDED_CERTIFICATION_STATUSES = new Set(['new', 'awaiting_decision'])
 
 // Works out the $set update for an item once its technical review has reached
 // a final status (accepted/rejected) - items still mid-review are not expected here.
@@ -23,9 +21,7 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
   )
 
   const hasCertified = countryCertifications.includes(CERTIFIED_STATUS)
-  const hasUncertified = countryCertifications.some((status) =>
-    UNCERTIFIED_STATUSES.has(status)
-  )
+  const hasUncertified = countryCertifications.includes(UNCERTIFIED_STATUSES)
   const allUndecided = countryCertifications.every((status) =>
     UNDECIDED_CERTIFICATION_STATUSES.has(status)
   )

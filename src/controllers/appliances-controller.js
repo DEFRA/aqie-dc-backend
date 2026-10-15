@@ -6,8 +6,8 @@ import {
 import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 import {
   findCertified,
-  CERTIFICATION_COUNTRIES,
-  mapCountryCertification
+  findNotYetNotifiedCountries,
+  mapCertifications
 } from '../common/helpers/certification.js'
 
 /**
@@ -309,12 +309,14 @@ async function getAdminApplianceById(db, id, logger) {
 
     const canTogglePublicVisibility = findCertified(item).length > 0
 
-    const certifications = Object.fromEntries(
-      Object.entries(CERTIFICATION_COUNTRIES).map(([country, field]) => [
-        country,
-        mapCountryCertification(item[field])
-      ])
-    )
+    const certifications = mapCertifications(item)
+    // At this point, country DAs should already be notified (email sent) that a decision is required for the certification status, 'new' -> 'awaiting_decision'.
+    const notYetNotified = findNotYetNotifiedCountries(item)
+    if (notYetNotified.length > 0) {
+      logger.warn(
+        `Appliance ${id} has countries that have not been notified that a decision is required: ${notYetNotified.join(', ')}`
+      )
+    }
 
     return {
       success: true,

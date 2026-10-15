@@ -17,15 +17,12 @@ export const CERTIFICATION_COUNTRIES = {
   northernIreland: 'nIrelandCertification'
 }
 
-const EMPTY_CERTIFICATION = {
-  status: 'new',
-  firstCertifiedAt: null,
-  lastCertifiedAt: null
-}
-
 export const CERTIFIED_STATUS = 'certified'
 // Statuses that count as "not certified" rather than "not yet decided":
-export const UNCERTIFIED_STATUSES = new Set(['revoked', 'rejected'])
+export const UNCERTIFIED_STATUSES = 'uncertified'
+// Country certification statuses that are still awaiting a decision.
+export const UNDECIDED_CERTIFICATION_STATUSES = new Set(['new', 'awaiting_decision'])
+
 
 // For public frontend use: the regions where the item is certified.
 export const findCertified = (item) =>
@@ -33,17 +30,46 @@ export const findCertified = (item) =>
     (field) => item?.[field]?.status === CERTIFIED_STATUS
   ).map((field) => CERTIFICATION_REGIONS[field])
 
+// The API contract never exposes 'new'; it is reported as awaiting_decision.
+const EMPTY_CERTIFICATION = {
+  status: 'awaiting_decision',
+  firstCertifiedAt: null,
+  lastCertifiedAt: null
+}
+
 export const mapCountryCertification = (certification) => {
   if (!certification) {
     return { ...EMPTY_CERTIFICATION }
   }
 
   return {
-    status: certification.status ?? EMPTY_CERTIFICATION.status,
+    status:
+      !certification.status || certification.status === 'new'
+        ? EMPTY_CERTIFICATION.status
+        : certification.status,
     firstCertifiedAt: certification.firstCertifiedAt ?? null,
     lastCertifiedAt: certification.lastCertifiedAt ?? null
   }
 }
+
+// Per-country certification keyed by country (england, scotland, ...).
+export const mapCertifications = (item) =>
+  Object.fromEntries(
+    Object.entries(CERTIFICATION_COUNTRIES).map(([country, field]) => [
+      country,
+      mapCountryCertification(item?.[field])
+    ])
+  )
+
+// Countries whose stored status is missing or still 'new'.
+export const findNotYetNotifiedCountries = (item) =>
+  Object.entries(CERTIFICATION_COUNTRIES)
+    .filter(([, field]) => {
+      const status = item?.[field]?.status
+      return !status || status === 'new'
+    })
+    .map(([country]) => country)
+
 // The most recent lastCertifiedAt across the countries, or null if none are usable.
 export const findLastCertifiedDate = (item) => {
   const dates = CERTIFICATION_FIELDS.map(
