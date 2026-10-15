@@ -9,6 +9,7 @@ import {
   findNotYetNotifiedCountries,
   mapCertifications
 } from '../common/helpers/certification.js'
+import { calculateItemStatus } from '../common/helpers/item-status.js'
 
 /**
  * Appliances Controller
@@ -278,6 +279,14 @@ async function getAdminApplianceById(db, id, logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
+    // TESTING ONLY - remove this call, status should not be recalculated on every read
+    // Runs before the read so the returned status isn't the previously stored value.
+    try {
+      await calculateItemStatus(db, 'appliance', id)
+    } catch (statusError) {
+      logger.error(statusError, 'calculateItemStatus test call failed')
+    }
+
     const collection = db.collection('Appliances')
     const item = await collection.findOne(
       { id },
