@@ -308,6 +308,7 @@ describe('appliances-controller', () => {
         modelNumber: 'AM-001',
         applicationId: 'APPL-001',
         isLegacyRecord: true,
+        isVisibleToPublic: false,
         ...certifiedInEngland,
         applianceStatus: 'live'
       })
@@ -367,8 +368,8 @@ describe('appliances-controller', () => {
       )
       expect(result.data.applicationId).toBeNull()
       expect(result.data.canTogglePublicVisibility).toBe(false)
-      expect(result.data.isVisibleToPublic).toBe(false)
-      expect(result.data.isLegacyRecord).toBe(false)
+      expect(result.data.isVisibleToPublic).toBeUndefined()
+      expect(result.data.isLegacyRecord).toBeUndefined()
     })
 
     test('returns not found', async () => {
