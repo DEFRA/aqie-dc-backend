@@ -2,6 +2,7 @@ import Joi from 'joi'
 import * as applianceController from '../../controllers/appliances-controller.js'
 import { applianceSchema } from '../schema.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
+import { createResultHandler } from '../../common/helpers/route-response.js'
 import applianceExample from '../../sample-data/appliance-example.js'
 
 export const createAppliance = {
@@ -45,42 +46,29 @@ export const createAppliance = {
     ]
   },
 
-  handler: async (request, h) => {
-    const { payload, validationWarnings } = request.pre.validationResult
+  handler: createResultHandler(
+    async (request) => {
+      const { payload, validationWarnings } = request.pre.validationResult
 
-    // Log warnings but do not block the save to DB
-    if (validationWarnings.length > 0) {
-      request.logger.warn(
-        { details: validationWarnings },
-        'Appliance validation warnings'
-      )
-    }
+      // Log warnings but do not block the save to DB
+      if (validationWarnings.length > 0) {
+        request.logger.warn(
+          { details: validationWarnings },
+          'Appliance validation warnings'
+        )
+      }
 
-    const newItem = {
-      ...payload
-    }
-    try {
       const { data, message } = await applianceController.createAppliance(
         request.db,
-        newItem,
+        { ...payload },
         request.logger
       )
-      return h
-        .response({
-          success: true,
-          message,
-          data: { id: data.id }
-        })
-        .code(statusCodes.created)
-    } catch (err) {
-      request.logger.error(err, 'Failed to create appliance')
-      return h
-        .response({
-          success: false,
-          message: 'Failed to create appliance',
-          error: err.message
-        })
-        .code(statusCodes.internalServerError)
+      return { success: true, message, data: { id: data.id } }
+    },
+    {
+      successCode: statusCodes.created,
+      logMessage: 'Failed to create appliance',
+      fallbackMessage: 'Failed to create appliance'
     }
-  }
+  )
 }

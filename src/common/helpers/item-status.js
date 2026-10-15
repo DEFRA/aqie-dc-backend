@@ -1,10 +1,11 @@
 import { getItemsCollectionName } from './application-type.js'
 import { isItemReviewed } from './review-status.js'
-
-// Country certification statuses that count as "not yet certified" when
-// working out an item's public-facing status.
-const UNCERTIFIED_CERTIFICATION_STATUSES = new Set(['revoked', 'rejected'])
-const UNDECIDED_CERTIFICATION_STATUSES = new Set(['new', 'awaiting_decision'])
+import {
+  CERTIFICATION_FIELDS,
+  CERTIFIED_STATUS,
+  UNCERTIFIED_STATUSES,
+  UNDECIDED_CERTIFICATION_STATUSES
+} from './certification.js'
 
 // Works out the $set update for an item once its technical review has reached
 // a final status (accepted/rejected) - items still mid-review are not expected here.
@@ -15,17 +16,12 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
     return { [itemStatus]: 'rejected' }
   }
 
-  const countryCertifications = [
-    item.englandCertification?.status,
-    item.scotlandCertification?.status,
-    item.walesCertification?.status,
-    item.nIrelandCertification?.status
-  ]
-
-  const hasCertified = countryCertifications.includes('certified')
-  const hasUncertified = countryCertifications.some((status) =>
-    UNCERTIFIED_CERTIFICATION_STATUSES.has(status)
+  const countryCertifications = CERTIFICATION_FIELDS.map(
+    (field) => item[field]?.status
   )
+
+  const hasCertified = countryCertifications.includes(CERTIFIED_STATUS)
+  const hasUncertified = countryCertifications.includes(UNCERTIFIED_STATUSES)
   const allUndecided = countryCertifications.every((status) =>
     UNDECIDED_CERTIFICATION_STATUSES.has(status)
   )
@@ -90,10 +86,9 @@ export const calculateItemStatus = async (db, type, itemId) => {
     {
       projection: {
         'technicalReview.status': 1,
-        'englandCertification.status': 1,
-        'scotlandCertification.status': 1,
-        'walesCertification.status': 1,
-        'nIrelandCertification.status': 1,
+        ...Object.fromEntries(
+          CERTIFICATION_FIELDS.map((field) => [`${field}.status`, 1])
+        ),
         isVisibleToPublic: 1,
         _id: 0
       }

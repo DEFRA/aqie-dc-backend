@@ -70,9 +70,9 @@ describe('DELETE /appliances/{id}', () => {
       const h = mockToolkit
       const result = await deleteAppliance.handler(mockRequest, h)
 
-      expect(result.success).toBe(false)
+      expect(result.isBoom).toBe(true)
+      expect(result.output.statusCode).toBe(500)
       expect(result.message).toBe('Failed to delete appliance')
-      expect(result.error).toBe('Delete failed')
     })
 
     test('passes correct id from params to controller', async () => {

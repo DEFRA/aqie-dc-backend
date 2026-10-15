@@ -1,11 +1,10 @@
 /**
  * Record the result of one technical review check
  */
-import Boom from '@hapi/boom'
 import Joi from 'joi'
 import * as applianceReviewController from '../../controllers/appliance-review-controller.js'
 import { ALL_CHECKS } from '../../common/helpers/review-status.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
+import { createResultHandler } from '../../common/helpers/route-response.js'
 import { testResultsSchema } from '../../common/schemas/test-report-payload-schema.js'
 import {
   passedInstructionManualSchema,
@@ -116,32 +115,21 @@ export const recordApplianceCheck = {
       }).unknown(false)
     }
   },
-  handler: async (request, h) => {
-    const { id } = request.params
-    const { check, result, data } = request.payload
-
-    try {
-      const outcome = await applianceReviewController.recordApplianceCheck(
+  handler: createResultHandler(
+    (request) => {
+      const { check, result, data } = request.payload
+      return applianceReviewController.recordApplianceCheck(
         request.db,
-        id,
+        request.params.id,
         check,
         result,
         request.logger,
         data
       )
-      if (outcome.notFound) {
-        return h.response(outcome).code(statusCodes.notFound)
-      }
-
-      return h.response(outcome).code(statusCodes.ok)
-    } catch (error) {
-      request.logger.error(error, 'Failed to record appliance check')
-
-      if (Boom.isBoom(error)) {
-        throw error
-      }
-
-      return Boom.internal('Failed to record appliance check')
+    },
+    {
+      logMessage: 'Failed to record appliance check',
+      fallbackMessage: 'Failed to record appliance check'
     }
-  }
+  )
 }

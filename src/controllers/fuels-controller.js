@@ -1,10 +1,12 @@
 import {
   generateSecureId,
-  findCertified,
-  findLastUpdatedDate,
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
+import {
+  findCertified,
+  findLastCertifiedDate
+} from '../common/helpers/certification.js'
 /**
  * Fuels Controller
  * Business logic for fuel-related operations
@@ -64,18 +66,8 @@ async function createFuel(db, item, logger) {
 function mapFuelDetail(item) {
   return {
     ...item,
-    authorisedIn: findCertified(
-      item.englandCertification,
-      item.scotlandCertification,
-      item.walesCertification,
-      item.nIrelandCertification
-    ),
-    lastUpdatedDate: findLastUpdatedDate(
-      item.englandCertification.lastCertifiedAt,
-      item.scotlandCertification.lastCertifiedAt,
-      item.walesCertification.lastCertifiedAt,
-      item.nIrelandCertification.lastCertifiedAt
-    ),
+    authorisedIn: findCertified(item),
+    lastUpdatedDate: findLastCertifiedDate(item),
     name: item.brandNames || '',
     id: item.fuelId,
     manufacturer: item.companyName || '',
@@ -89,18 +81,8 @@ function mapFuelSummary(item) {
     name: item.brandNames || '',
     id: item.fuelId,
     manufacturer: item.companyName || '',
-    authorisedIn: findCertified(
-      item.englandCertification,
-      item.scotlandCertification,
-      item.walesCertification,
-      item.nIrelandCertification
-    ),
-    lastUpdatedDate: findLastUpdatedDate(
-      item.englandCertification.lastCertifiedAt,
-      item.scotlandCertification.lastCertifiedAt,
-      item.walesCertification.lastCertifiedAt,
-      item.nIrelandCertification.lastCertifiedAt
-    )
+    authorisedIn: findCertified(item),
+    lastUpdatedDate: findLastCertifiedDate(item)
   }
 }
 
@@ -112,19 +94,10 @@ async function getAllFuels(db, logger) {
   try {
     const collection = db.collection('Fuels')
 
-    // Get all certified fuels
-    const certificationFilter = {
-      'technicalReview.status': 'accepted',
-      $or: [
-        { 'englandCertification.status': 'certified' },
-        { 'scotlandCertification.status': 'certified' },
-        { 'walesCertification.status': 'certified' },
-        { 'nIrelandCertification.status': 'certified' }
-      ]
-    }
-
+    // Visibility is derived from review and certification outcomes when a
+    // fuel's status is calculated, so it is the only condition needed here.
     const fuels = await collection
-      .find(certificationFilter)
+      .find({ isVisibleToPublic: true })
       // .sort({ createdAt: -1 }) //what is the sort order for fuels? maybe by name?
       .toArray()
 
@@ -228,25 +201,14 @@ async function getAllFuelsWithPagination(
     const collection = db.collection('Fuels')
     const skip = (page - 1) * limit
 
-    // Get all certified fuels
-    const certificationFilter = {
-      'technicalReview.status': 'accepted',
-      $or: [
-        { englandCertification: { status: 'certified' } },
-        { scotlandCertification: { status: 'certified' } },
-        { walesCertification: { status: 'certified' } },
-        { nIrelandCertification: { status: 'certified' } }
-      ]
-    }
-
     const fuels = await collection
-      .find(certificationFilter)
+      .find({ isVisibleToPublic: true })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .toArray()
 
-    const total = await collection.countDocuments(certificationFilter)
+    const total = await collection.countDocuments({ isVisibleToPublic: true })
 
     return {
       success: true,

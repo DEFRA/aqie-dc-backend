@@ -1,10 +1,14 @@
 import {
   generateSecureId,
-  findCertified,
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
 import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
+import {
+  findCertified,
+  findNotYetNotifiedCountries,
+  mapCertifications
+} from '../common/helpers/certification.js'
 
 /**
  * Appliances Controller
@@ -66,12 +70,7 @@ async function createAppliance(db, item, logger) {
 function mapApplianceDetail(item) {
   return {
     ...item,
-    authorisedIn: findCertified(
-      item.englandCertification,
-      item.scotlandCertification,
-      item.walesCertification,
-      item.nIrelandCertification
-    ),
+    authorisedIn: findCertified(item),
     name: item.modelName || '',
     id: item.id || '',
     manufacturer: item.companyName || '',
@@ -88,12 +87,7 @@ function mapApplianceSummary(item) {
     permittedFuels: item.permittedFuels || '',
     type: item.applianceType,
     modelNumber: item.modelNumber,
-    authorisedIn: findCertified(
-      item.englandCertification,
-      item.scotlandCertification,
-      item.walesCertification,
-      item.nIrelandCertification
-    )
+    authorisedIn: findCertified(item)
   }
 }
 
@@ -108,21 +102,10 @@ async function getAllAppliances(db, _options, logger) {
   try {
     const collection = db.collection('Appliances')
 
-    const CERTIFICATION_FIELDS = [
-      'englandCertification',
-      'scotlandCertification',
-      'walesCertification',
-      'nIrelandCertification'
-    ]
-
-    const certifiedFilter = {
-      $or: CERTIFICATION_FIELDS.map((field) => ({
-        [`${field}.status`]: 'certified'
-      }))
-    }
-
+    // Visibility is derived from review and certification outcomes when an
+    // appliance's status is calculated, so it is the only condition needed here.
     const appliances = await collection
-      .find(certifiedFilter)
+      .find({ isVisibleToPublic: true })
       .sort({ createdAt: -1 })
       .toArray()
 
@@ -288,17 +271,34 @@ async function searchAdminAppliances(
 }
 
 /**
- * Get appliance with all related items (applications, etc.)
- * @deprecated Relationship queries may need review for current schema
+ * Admin: get a single appliance record for the admin frontend
  */
-async function getApplianceWithRelatedItems(db, id, logger) {
+async function getAdminApplianceById(db, id, logger) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const appliance = await db.collection('Appliances').findOne({ id })
+    const item = await db.collection('Appliances').findOne(
+      { id },
+      {
+        projection: {
+          _id: 0,
+          id: 1,
+          modelName: 1,
+          modelNumber: 1,
+          applicationId: 1,
+          isLegacyRecord: 1,
+          isVisibleToPublic: 1,
+          englandCertification: 1,
+          scotlandCertification: 1,
+          walesCertification: 1,
+          nIrelandCertification: 1,
+          applianceStatus: 1
+        }
+      }
+    )
 
-    if (!appliance) {
+    if (!item) {
       return {
         success: false,
         message: 'Appliance not found',
@@ -306,12 +306,32 @@ async function getApplianceWithRelatedItems(db, id, logger) {
       }
     }
 
+    const certifications = mapCertifications(item)
+
+    // Country DAs should already have been notified (email sent) that a decision
+    // is required: 'new' -> 'awaiting_decision'.
+    if (findNotYetNotifiedCountries(item).length > 0) {
+      logger.warn(
+        `Appliance ${id} has countries that have not been notified that a decision is required`
+      )
+    }
+
     return {
       success: true,
-      data: mapApplianceDetail(appliance)
+      data: {
+        id: item.id ?? id,
+        modelName: item.modelName || '',
+        modelNumber: item.modelNumber || '',
+        applicationId: item.applicationId || null,
+        certifications,
+        status: item.applianceStatus || 'pending',
+        canTogglePublicVisibility: findCertified(item).length > 0,
+        isVisibleToPublic: item.isVisibleToPublic,
+        isLegacyRecord: item.isLegacyRecord
+      }
     }
   } catch (error) {
-    logger.error(error, 'Failed to fetch appliance with related items')
+    logger.error(error, 'Failed to fetch admin appliance')
     throw error
   }
 }
@@ -323,5 +343,5 @@ export {
   updateAppliance,
   deleteAppliance,
   searchAdminAppliances,
-  getApplianceWithRelatedItems
+  getAdminApplianceById
 }

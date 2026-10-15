@@ -1,10 +1,9 @@
 /**
  * Get the technical review state for an appliance
  */
-import Boom from '@hapi/boom'
 import Joi from 'joi'
 import * as applianceReviewController from '../../controllers/appliance-review-controller.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
+import { createResultHandler } from '../../common/helpers/route-response.js'
 
 export const getApplianceReview = {
   method: 'GET',
@@ -19,29 +18,16 @@ export const getApplianceReview = {
       })
     }
   },
-  handler: async (request, h) => {
-    const { id } = request.params
-
-    try {
-      const result = await applianceReviewController.getApplianceReview(
+  handler: createResultHandler(
+    (request) =>
+      applianceReviewController.getApplianceReview(
         request.db,
-        id,
+        request.params.id,
         request.logger
-      )
-
-      if (result.notFound) {
-        return h.response(result).code(statusCodes.notFound)
-      }
-
-      return h.response(result).code(statusCodes.ok)
-    } catch (error) {
-      request.logger.error(error, 'Failed to fetch appliance review')
-
-      if (Boom.isBoom(error)) {
-        throw error
-      }
-
-      return Boom.internal('Failed to fetch appliance review')
+      ),
+    {
+      logMessage: 'Failed to fetch appliance review',
+      fallbackMessage: 'Failed to fetch appliance review'
     }
-  }
+  )
 }
