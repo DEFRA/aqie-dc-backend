@@ -118,7 +118,9 @@ describe('PATCH /appliances/{id}/visibility', () => {
     })
 
     test('rejects non-boolean values', () => {
-      expect(validatePayload({ isVisibleToPublic: 'false' }).error).toBeDefined()
+      expect(
+        validatePayload({ isVisibleToPublic: 'false' }).error
+      ).toBeDefined()
     })
 
     test('rejects unknown keys', () => {

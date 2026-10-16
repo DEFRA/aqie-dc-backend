@@ -7,8 +7,7 @@ import {
   updateAppliance,
   deleteAppliance,
   searchAdminAppliances,
-  getAdminApplianceById
-  getApplianceWithRelatedItems,
+  getAdminApplianceById,
   getApplianceVisibility,
   updateApplianceVisibility
 } from '#src/controllers/appliances-controller.js'
