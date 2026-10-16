@@ -74,7 +74,7 @@ describe('PATCH /appliances/{id}/visibility', () => {
     test('returns 409 when the appliance cannot be toggled', async () => {
       updateApplianceVisibilityMock.mockResolvedValue({
         success: false,
-        conflict: true
+        incomplete: true
       })
 
       const result = await updateApplianceVisibility.handler(

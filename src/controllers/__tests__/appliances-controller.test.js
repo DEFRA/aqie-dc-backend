@@ -8,7 +8,6 @@ import {
   deleteAppliance,
   searchAdminAppliances,
   getAdminApplianceById,
-  getApplianceVisibility,
   updateApplianceVisibility
 } from '#src/controllers/appliances-controller.js'
 
@@ -640,100 +639,18 @@ describe('appliances-controller', () => {
     })
   })
 
-  describe('getApplianceWithRelatedItems', () => {
-    test('returns appliance with details', async () => {
-      collection.findOne.mockResolvedValue({
-        id: 'APP-001',
-        modelName: 'Related Appliance',
-        ...certifiedInEngland,
-        ...ukAddress
-      })
-
-      const result = await getApplianceWithRelatedItems(
-        db,
-        'APP-001',
-        mockLogger
-      )
-
-      expect(result.success).toBe(true)
-      expect(result.data.authorisedIn).toEqual(['England'])
-      expect(result.data.fullAddress).toEqual([
-        '1 Test Street',
-        'Testville',
-        'AB1 2CD'
-      ])
-    })
-
-    test('returns not found when appliance missing', async () => {
-      collection.findOne.mockResolvedValue(null)
-
-      const result = await getApplianceWithRelatedItems(
-        db,
-        'missing',
-        mockLogger
-      )
-
-      expect(result.notFound).toBe(true)
-    })
-  })
-
-  describe('getApplianceVisibility', () => {
-    test('returns visibility and status', async () => {
-      collection.findOne.mockResolvedValue({
-        id: 'APP-1',
-        modelName: 'Stove',
-        isVisibleToPublic: false,
-        applianceStatus: 'hidden'
-      })
-
-      const result = await getApplianceVisibility(db, 'APP-1', mockLogger)
-
-      expect(result).toEqual({
-        success: true,
-        data: {
-          id: 'APP-1',
-          name: 'Stove',
-          isVisibleToPublic: false,
-          applianceStatus: 'hidden'
-        }
-      })
-    })
-
-    test('defaults a missing isVisibleToPublic to true', async () => {
-      collection.findOne.mockResolvedValue({ id: 'APP-1' })
-
-      const result = await getApplianceVisibility(db, 'APP-1', mockLogger)
-
-      expect(result.data.isVisibleToPublic).toBe(true)
-      expect(result.data.applianceStatus).toBe('pending')
-    })
-
-    test('returns not found when appliance missing', async () => {
-      collection.findOne.mockResolvedValue(null)
-
-      const result = await getApplianceVisibility(db, 'missing', mockLogger)
-
-      expect(result.notFound).toBe(true)
-    })
-
-    test('rethrows and logs db errors', async () => {
-      const error = new Error('db down')
-      collection.findOne.mockRejectedValue(error)
-
-      await expect(
-        getApplianceVisibility(db, 'APP-1', mockLogger)
-      ).rejects.toThrow('db down')
-      expect(mockLogger.error).toHaveBeenCalled()
-    })
-  })
-
   describe('updateApplianceVisibility', () => {
+    const acceptedAndCertified = {
+      technicalReview: { status: 'accepted' },
+      ...certifiedInEngland
+    }
+
     beforeEach(() => {
       calculateItemStatus.mockReset()
     })
 
     test('sets visibility and recalculates status', async () => {
-      collection.findOne.mockResolvedValue({ applianceStatus: 'live' })
+      collection.findOne.mockResolvedValue(acceptedAndCertified)
       collection.updateOne.mockResolvedValue({ matchedCount: 1 })
       calculateItemStatus.mockResolvedValue('hidden')
 
@@ -773,26 +690,31 @@ describe('appliances-controller', () => {
       expect(collection.updateOne).not.toHaveBeenCalled()
     })
 
-    test.each(['pending', 'rejected', undefined])(
-      'returns conflict when status is %s',
-      async (applianceStatus) => {
-        collection.findOne.mockResolvedValue({ applianceStatus })
+    test.each([
+      ['review is pending', { technicalReview: { status: 'pending' } }],
+      ['review is rejected', { technicalReview: { status: 'rejected' } }],
+      ['no review exists', {}],
+      [
+        'accepted but not certified anywhere',
+        { technicalReview: { status: 'accepted' } }
+      ]
+    ])('returns incomplete when %s', async (_label, item) => {
+      collection.findOne.mockResolvedValue({ ...item })
 
-        const result = await updateApplianceVisibility(
-          db,
-          'APP-1',
-          false,
-          mockLogger
-        )
+      const result = await updateApplianceVisibility(
+        db,
+        'APP-1',
+        false,
+        mockLogger
+      )
 
-        expect(result.conflict).toBe(true)
-        expect(collection.updateOne).not.toHaveBeenCalled()
-        expect(calculateItemStatus).not.toHaveBeenCalled()
-      }
-    )
+      expect(result.incomplete).toBe(true)
+      expect(collection.updateOne).not.toHaveBeenCalled()
+      expect(calculateItemStatus).not.toHaveBeenCalled()
+    })
 
     test('rethrows and logs status calculation errors', async () => {
-      collection.findOne.mockResolvedValue({ applianceStatus: 'hidden' })
+      collection.findOne.mockResolvedValue(acceptedAndCertified)
       collection.updateOne.mockResolvedValue({ matchedCount: 1 })
       calculateItemStatus.mockRejectedValue(new Error('calc failed'))
 
