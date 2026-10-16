@@ -3,6 +3,8 @@
  * Defines all importable entities and their schemas
  */
 
+import { generateSecureId } from './data-transformer.js'
+
 export const ENTITY_TYPES = {
   APPLIANCES: 'appliances',
   FUELS: 'fuels'
@@ -12,7 +14,7 @@ export const ENTITY_CONFIG = {
   [ENTITY_TYPES.APPLIANCES]: {
     collectionName: 'Appliances',
     defaultSheetName: 'Appliances',
-    uniqueKey: 'applianceId',
+    uniqueKey: 'id',
     transform: transformToAppliance,
     sampleData: getSampleAppliance
   },
@@ -69,128 +71,110 @@ function parseDate(dateString) {
  * Transform functions for each entity type
  */
 function transformToAppliance(row) {
-  // Validate and normalize appliance type
-  const rawType = getValueOrDefault(
-    row.applianceType,
-    row['Appliance Type'],
-    'Other'
-  )
-  const validTypes = ['Stove', 'Boiler', 'Fire', 'Heater', 'Other']
-  const applianceType = validTypes.includes(rawType) ? rawType : 'Other'
+  const modelName = row['Appliance Name (Title)']
+
+  // Returning null tells the importer to skip this record
+  if (modelName?.trim().toUpperCase() === 'TEST') {
+    return null
+  }
 
   const appliance = {
-    applianceId: getValueOrDefault(
-      row.applianceId,
-      row.ApplianceID,
-      row.ID,
+    //need to correct this when correcting the appliance ID
+    id: `APP-${generateSecureId()}`,
+    legacy: {
+      applianceId: row['Appliance ID']
+    },
+    modelName,
+    modelNumber: 'Not available',
+    companyName: row['Manufacturer Name'],
+    companyFullAddress: row['Manufacturer Address'],
+    //Need to come back to after collidate the SQS and appliance application chages
+    applianceType: row['Appliance Types'],
+    nominalOutput:
+      parseFloat(row['Output Value']) === 0 ? null : row['Output Value'],
+    //'Fuel types in excel can be ignored'
+    // TODO: check how the superscript numbers appear in the Excel source (Unicode characters vs rich-text formatting)
+    permittedFuels: row['Permitted Fuels']?.replace(
+      /[\u00B2\u00B3\u00B9\u2070\u2074-\u2079]/g,
       ''
     ),
-    manufacturer: getValueOrDefault(
-      row.manufacturer,
-      row.Manufacturer,
-      'Unknown'
-    ),
-    manufacturerAddress: getValueOrDefault(
-      row.manufacturerAddress,
-      row['Manufacturer Address'],
-      'Not Provided'
-    ),
-    manufacturerContactName: getValueOrDefault(
-      row.manufacturerContactName,
-      row['Contact Name'],
-      'Not Provided'
-    ),
-    manufacturerContactEmail: getValueOrDefault(
-      row.manufacturerContactEmail,
-      row['Contact Email'],
-      'noemail@example.com'
-    ),
-    manufacturerPhone: getValueOrDefault(
-      row.manufacturerPhone,
-      row['Contact Phone'],
-      'Not Provided'
-    ),
-    modelName: getValueOrDefault(
-      row.modelName,
-      row['Model Name'],
-      'Unknown Model'
-    ),
-    modelNumber: getValueOrDefault(row.modelNumber, row['Model Number'], 'N/A'),
-    applianceType,
-    isVariant: parseBoolean(
-      getValueOrDefault(row.isVariant, row['Is Variant'])
-    ),
-    nominalOutput: parseFloat(
-      getValueOrDefault(row.nominalOutput, row['Nominal Output (kW)'], 0)
-    ),
-    allowedFuels: getValueOrDefault(
-      row.allowedFuels,
-      row['Allowed Fuels'],
-      'Not Specified'
-    ),
-    instructionManualTitle: getValueOrDefault(
-      row.instructionManualTitle,
-      row['Manual Title'],
-      'Not Provided'
-    ),
-    instructionManualDate:
-      parseDate(
-        getValueOrDefault(row.instructionManualDate, row['Manual Date'])
-      ) || new Date(),
-    instructionManualReference: getValueOrDefault(
-      row.instructionManualReference,
-      row['Manual Reference'],
-      'N/A'
-    ),
-    submittedBy: getValueOrDefault(
-      row.submittedBy,
-      row['Submitted By'],
-      'Unknown'
-    ),
-    approvedBy: getValueOrDefault(
-      row.approvedBy,
-      row['Approved By'],
-      'Unknown'
-    ),
-    publishedDate:
-      parseDate(getValueOrDefault(row.publishedDate, row['Published Date'])) ||
-      new Date(),
+    //to be continued
+    additionalConditions: row['Additional Condition Comments'],
+    instructionManual: {
+      title: row['Instructions Manual Title'],
+      version: row['Instructions Manual Reference'],
+      //date 
+      additionalInfo: row['Additional Comments']
+    },
+  
+    // manufacturerContactName: getValueOrDefault(
+    //   row.manufacturerContactName,
+    //   row['Contact Name'],
+    //   'Not Provided'
+    // ),
+    // manufacturerContactEmail: getValueOrDefault(
+    //   row.manufacturerContactEmail,
+    //   row['Contact Email'],
+    //   'noemail@example.com'
+    // ),
+    // manufacturerPhone: getValueOrDefault(
+    //   row.manufacturerPhone,
+    //   row['Contact Phone'],
+    //   'Not Provided'
+    // ),
+    // modelName: getValueOrDefault(
+    //   row.modelName,
+    //   row['Model Name'],
+    //   'Unknown Model'
+    // ),
+    // isVariant: parseBoolean(
+    //   getValueOrDefault(row.isVariant, row['Is Variant'])
+    // ),
+    // nominalOutput: parseFloat(
+    //   getValueOrDefault(row.nominalOutput, row['Nominal Output (kW)'], 0)
+    // ),
+    // allowedFuels: getValueOrDefault(
+    //   row.allowedFuels,
+    //   row['Allowed Fuels'],
+    //   'Not Specified'
+    // ),
+    // instructionManualDate:
+    //   parseDate(
+    //     getValueOrDefault(row.instructionManualDate, row['Manual Date'])
+    //   ) || new Date(),
+    // submittedBy: getValueOrDefault(
+    //   row.submittedBy,
+    //   row['Submitted By'],
+    //   'Unknown'
+    // ),
+    // approvedBy: getValueOrDefault(
+    //   row.approvedBy,
+    //   row['Approved By'],
+    //   'Unknown'
+    // ),
+    // publishedDate:
+    //   parseDate(getValueOrDefault(row.publishedDate, row['Published Date'])) ||
+    //   new Date(),
     updatedAt: new Date(),
     createdAt: new Date()
   }
 
   // Optional fields
-  const altEmail = getValueOrDefault(
-    row.manufacturerAlternateEmail,
-    row['Alternate Email']
-  )
-  if (altEmail) {
-    appliance.manufacturerAlternateEmail = altEmail
-  }
+  // const altEmail = getValueOrDefault(
+  //   row.manufacturerAlternateEmail,
+  //   row['Alternate Email']
+  // )
+  // if (altEmail) {
+  //   appliance.manufacturerAlternateEmail = altEmail
+  // }
 
-  const existingAppliance = getValueOrDefault(
-    row.existingAuthorisedAppliance,
-    row['Existing Appliance']
-  )
-  if (existingAppliance) {
-    appliance.existingAuthorisedAppliance = existingAppliance
-  }
-
-  const additionalConds = getValueOrDefault(
-    row.additionalConditions,
-    row['Additional Conditions']
-  )
-  if (additionalConds) {
-    appliance.additionalConditions = additionalConds
-  }
-
-  const fuelsString = getValueOrDefault(
-    row.permittedFuels,
-    row['Permitted Fuels']
-  )
-  if (fuelsString) {
-    appliance.permittedFuels = fuelsString.split(',').map((f) => f.trim())
-  }
+  // const existingAppliance = getValueOrDefault(
+  //   row.existingAuthorisedAppliance,
+  //   row['Existing Appliance']
+  // )
+  // if (existingAppliance) {
+  //   appliance.existingAuthorisedAppliance = existingAppliance
+  // }
 
   return appliance
 }

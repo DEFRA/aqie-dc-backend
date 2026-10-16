@@ -30,7 +30,7 @@ const type =
 const types = type === 'both' ? Object.values(ENTITY_TYPES) : [type]
 const entities = types.map((t) => ({ type: t }))
 
-const client = await MongoClient.connect(config.get('mongo.uri'))
+const client = await MongoClient.connect(config.get('mongo.mongoUrl'))
 
 try {
   const results = await importFromExcel(

@@ -4,8 +4,12 @@
  * with upsert logic (insert new, update existing)
  */
 
+import fs from 'node:fs'
 import xlsx from 'xlsx'
 import { ENTITY_CONFIG } from '../common/helpers/entity-config.js'
+
+// The ESM build of xlsx has no fs access until it is provided
+xlsx.set_fs(fs)
 
 /**
  * Parse Excel file and return data from a specific sheet
@@ -83,6 +87,12 @@ async function importEntity(
     try {
       // Transform row to document
       const document = transform(row)
+
+      if (document === null) {
+        console.log(`Skipping TEST record at Excel row ${i + 2}`)
+        results.skipped++
+        continue
+      }
 
       // Handle entities with composite keys (UserAppliances, UserFuels)
       if (!uniqueKey) {
