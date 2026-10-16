@@ -33,8 +33,7 @@
     "test:watch": "cross-env TZ=UTC vitest",
     "import:appliances": "node src/migrations/import-from-excel.js --type appliances --file",
     "import:fuels": "node src/migrations/import-from-excel.js --type fuels --file",
-    "import:both": "node src/migrations/import-from-excel.js --type both --file",
-    "import:test": "node src/migrations/test-import.js"
+    "import:both": "node src/migrations/import-from-excel.js --type both --file"
   },
   "author": "Defra DDTS",
   "license": "OGL-UK-3.0",
