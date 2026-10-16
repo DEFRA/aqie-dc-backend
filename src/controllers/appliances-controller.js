@@ -384,14 +384,11 @@ async function updateApplianceVisibility(db, id, isVisibleToPublic, logger) {
       { $set: { isVisibleToPublic, updatedAt: new Date() } }
     )
 
-    const applianceStatus = await calculateItemStatus(db, 'appliance', id)
+    await calculateItemStatus(db, 'appliance', id)
 
     logger.info(`Appliance visibility set to ${isVisibleToPublic}: ${id}`)
 
-    return {
-      success: true,
-      data: { id, isVisibleToPublic, applianceStatus }
-    }
+    return { success: true }
   } catch (error) {
     logger.error(error, 'Failed to update appliance visibility')
     throw error

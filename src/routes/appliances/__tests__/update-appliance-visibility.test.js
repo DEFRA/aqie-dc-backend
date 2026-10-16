@@ -33,15 +33,8 @@ describe('PATCH /appliances/{id}/visibility', () => {
   })
 
   describe('handler', () => {
-    test('returns 200 with the recalculated status', async () => {
-      updateApplianceVisibilityMock.mockResolvedValue({
-        success: true,
-        data: {
-          id: 'APP-123',
-          isVisibleToPublic: false,
-          applianceStatus: 'hidden'
-        }
-      })
+    test('returns 200 when visibility is updated', async () => {
+      updateApplianceVisibilityMock.mockResolvedValue({ success: true })
 
       const result = await updateApplianceVisibility.handler(
         mockRequest,

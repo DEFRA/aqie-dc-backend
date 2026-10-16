@@ -666,14 +666,7 @@ describe('appliances-controller', () => {
         { $set: { isVisibleToPublic: false, updatedAt: expect.any(Date) } }
       )
       expect(calculateItemStatus).toHaveBeenCalledWith(db, 'appliance', 'APP-1')
-      expect(result).toEqual({
-        success: true,
-        data: {
-          id: 'APP-1',
-          isVisibleToPublic: false,
-          applianceStatus: 'hidden'
-        }
-      })
+      expect(result).toEqual({ success: true })
     })
 
     test('returns not found when appliance missing', async () => {
