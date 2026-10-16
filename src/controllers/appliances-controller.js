@@ -11,6 +11,7 @@ import {
   mapCertifications
 } from '../common/helpers/certification.js'
 import { calculateItemStatus } from '../common/helpers/item-status.js'
+import { getItemsCollectionName } from '../common/helpers/application-type.js'
 
 /**
  * Appliances Controller
@@ -340,14 +341,27 @@ async function getAdminApplianceById(db, id, logger) {
 }
 
 /**
- * Set public visibility for an appliance and recalculate its applianceStatus
+ * Set public visibility for an appliance or fuel and recalculate its status
+ *
+ * @param {'appliance'|'fuel'} [type]
  */
-async function updateApplianceVisibility(db, id, isVisibleToPublic, logger) {
+async function updateApplianceVisibility(
+  db,
+  id,
+  isVisibleToPublic,
+  logger,
+  type = 'appliance'
+) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
+  const collectionName = getItemsCollectionName(type)
+  if (!collectionName) {
+    throw new Error(`Unsupported item type: ${type}`)
+  }
+  const label = type === 'fuel' ? 'Fuel' : 'Appliance'
   try {
-    const collection = db.collection('Appliances')
+    const collection = db.collection(collectionName)
     const item = await collection.findOne(
       { id },
       {
@@ -362,7 +376,7 @@ async function updateApplianceVisibility(db, id, isVisibleToPublic, logger) {
     )
 
     if (!item) {
-      return { success: false, message: APPLIANCE_NOT_FOUND, notFound: true }
+      return { success: false, message: `${label} not found`, notFound: true }
     }
 
     // Mirrors calculateItemStatus: visibility only affects accepted, certified items
@@ -373,8 +387,7 @@ async function updateApplianceVisibility(db, id, isVisibleToPublic, logger) {
     if (!canTogglePublicVisibility) {
       return {
         success: false,
-        message:
-          'Appliance visibility can only change once its technical review is accepted and it is certified in at least one country',
+        message: `${label} visibility can only change once its technical review is accepted and it is certified in at least one country`,
         incomplete: true
       }
     }
@@ -384,13 +397,13 @@ async function updateApplianceVisibility(db, id, isVisibleToPublic, logger) {
       { $set: { isVisibleToPublic, updatedAt: new Date() } }
     )
 
-    await calculateItemStatus(db, 'appliance', id)
+    await calculateItemStatus(db, type, id)
 
-    logger.info(`Appliance visibility set to ${isVisibleToPublic}: ${id}`)
+    logger.info(`${label} visibility set to ${isVisibleToPublic}: ${id}`)
 
     return { success: true }
   } catch (error) {
-    logger.error(error, 'Failed to update appliance visibility')
+    logger.error(error, `Failed to update ${label.toLowerCase()} visibility`)
     throw error
   }
 }

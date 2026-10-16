@@ -669,6 +669,30 @@ describe('appliances-controller', () => {
       expect(result).toEqual({ success: true })
     })
 
+    test('uses the Fuels collection and fuel status for type fuel', async () => {
+      collection.findOne.mockResolvedValue(acceptedAndCertified)
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+      calculateItemStatus.mockResolvedValue('hidden')
+
+      const result = await updateApplianceVisibility(
+        db,
+        'FUEL-1',
+        false,
+        mockLogger,
+        'fuel'
+      )
+
+      expect(db.collection).toHaveBeenCalledWith('Fuels')
+      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'fuel', 'FUEL-1')
+      expect(result).toEqual({ success: true })
+    })
+
+    test('rejects an unsupported type', async () => {
+      await expect(
+        updateApplianceVisibility(db, 'X-1', true, mockLogger, 'widget')
+      ).rejects.toThrow('Unsupported item type: widget')
+    })
+
     test('returns not found when appliance missing', async () => {
       collection.findOne.mockResolvedValue(null)
 
