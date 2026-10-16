@@ -34,7 +34,6 @@
     "import:appliances": "node src/migrations/import-from-excel.js --type appliances --file",
     "import:fuels": "node src/migrations/import-from-excel.js --type fuels --file",
     "import:both": "node src/migrations/import-from-excel.js --type both --file",
-    "import:generate-templates": "node src/migrations/generate-excel-template.js",
     "import:test": "node src/migrations/test-import.js"
   },
   "author": "Defra DDTS",
