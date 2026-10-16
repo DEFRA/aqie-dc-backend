@@ -31,9 +31,9 @@
     "test:unit": "cross-env TZ=UTC vitest run --project unit",
     "test:integration": "cross-env TZ=UTC vitest run --project integration",
     "test:watch": "cross-env TZ=UTC vitest",
-    "import:appliances": "node src/migrations/import-from-excel.js --type appliances --file",
-    "import:fuels": "node src/migrations/import-from-excel.js --type fuels --file",
-    "import:both": "node src/migrations/import-from-excel.js --type both --file"
+    "import:appliances": "node src/migrations/import-cli.js --type appliances --file",
+    "import:fuels": "node src/migrations/import-cli.js --type fuels --file",
+    "import:both": "node src/migrations/import-cli.js --type both --file"
   },
   "author": "Defra DDTS",
   "license": "OGL-UK-3.0",
