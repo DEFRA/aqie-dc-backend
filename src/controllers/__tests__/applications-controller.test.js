@@ -1091,7 +1091,11 @@ describe('applications-controller', () => {
         brandNames: 'Brand A'
       })
 
-      const result = await getApplicationsSummaryByStatus(db, mockLogger, 'fuel')
+      const result = await getApplicationsSummaryByStatus(
+        db,
+        mockLogger,
+        'fuel'
+      )
 
       expect(result.success).toBe(true)
       expect(result.data.new).toHaveLength(1)
@@ -1111,7 +1115,11 @@ describe('applications-controller', () => {
     })
 
     test('returns notFound for an unknown application type', async () => {
-      const result = await getApplicationsSummaryByStatus(db, mockLogger, 'other')
+      const result = await getApplicationsSummaryByStatus(
+        db,
+        mockLogger,
+        'other'
+      )
 
       expect(result.success).toBe(false)
       expect(result.notFound).toBe(true)

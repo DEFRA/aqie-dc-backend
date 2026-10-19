@@ -31,11 +31,12 @@ export const getApplicationsSummaryByStatus = {
     const { type } = request.query
 
     try {
-      const result = await applicationsController.getApplicationsSummaryByStatus(
-        request.db,
-        request.logger,
-        type
-      )
+      const result =
+        await applicationsController.getApplicationsSummaryByStatus(
+          request.db,
+          request.logger,
+          type
+        )
 
       if (result?.notFound) {
         return Boom.badRequest(result.message)
