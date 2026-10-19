@@ -556,11 +556,16 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       { applicationId },
       {
         projection: {
+          _id: 0,
           companyName: 1,
           companyFullAddress: 1,
           companyAddress: 1,
           companyContact: 1,
-          _id: 0
+          //fuel specific fields
+          responsiblePerson: 1,
+          customerComplaints: 1,
+          fuelBagging: 1,
+          manufacturerOrReseller: 1
         }
       }
     )
@@ -583,6 +588,12 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
         companyFullAddress: companyDetails?.companyFullAddress || null,
         companyAddress: companyDetails?.companyAddress || null,
         companyContact: companyDetails?.companyContact || null,
+        ...(type === 'fuel' && {
+          responsiblePerson: companyDetails?.responsiblePerson || null,
+          customerComplaints: companyDetails?.customerComplaints ?? null,
+          fuelBagging: companyDetails?.fuelBagging || null,
+          manufacturerOrReseller: companyDetails?.manufacturerOrReseller || null
+        }),
         linkedItems // Contains item name and technicalReview
       }
     }
