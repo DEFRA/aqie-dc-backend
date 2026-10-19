@@ -112,7 +112,9 @@ describe('getApplicationsSummaryByStatus route', () => {
     })
 
     test('has correct route path', () => {
-      expect(getApplicationsSummaryByStatus.path).toBe('/applications/summary')
+      expect(getApplicationsSummaryByStatus.path).toBe(
+        '/applications/summary-by-status'
+      )
     })
 
     test('requires type query parameter', () => {

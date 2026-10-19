@@ -9,7 +9,7 @@ import { statusCodes } from '../../common/constants/status-codes.js'
 
 export const getApplicationsSummaryByStatus = {
   method: 'GET',
-  path: '/applications/summary',
+  path: '/applications/summary-by-status',
   options: {
     tags: ['api', 'applications'],
     description:
