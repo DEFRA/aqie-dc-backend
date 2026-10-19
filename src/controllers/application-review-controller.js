@@ -3,12 +3,34 @@
  * Business logic for application status transitions (start / complete)
  */
 
-import { isApplicationReviewComplete } from '../common/helpers/review-status.js'
+import {
+  groupItemsByTechReviewStatus,
+  isApplicationReviewComplete
+} from '../common/helpers/review-status.js'
 import { getItemsCollectionName } from '../common/helpers/application-type.js'
 import { CERTIFICATION_FIELDS } from '../common/helpers/certification.js'
+import { SYSTEM_ACTOR, recordAction } from '../common/helpers/action-history.js'
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const APPLICATION_NOT_FOUND = 'Application not found'
+
+// Only accepted items go to the governments; rejected ones never leave HETAS.
+const recordSentToGovernments = (db, application, linkedItems, at, logger) =>
+  Promise.all(
+    groupItemsByTechReviewStatus(linkedItems).accepted.map((item) =>
+      recordAction(
+        db,
+        {
+          itemId: item.id,
+          itemType: application.type,
+          action: 'sentToGovernments',
+          actor: SYSTEM_ACTOR,
+          at
+        },
+        logger
+      )
+    )
+  )
 
 /**
  * Complete an application once every linked appliance/fuel has been reviewed.
@@ -45,7 +67,7 @@ async function completeApplication(db, id, payload, logger) {
       .collection(itemsCollectionName)
       .find(
         { applicationId: id },
-        { projection: { technicalReview: 1, _id: 0 } }
+        { projection: { id: 1, technicalReview: 1, _id: 0 } }
       )
       .toArray()
 
@@ -87,6 +109,17 @@ async function completeApplication(db, id, payload, logger) {
         }
       }
     )
+
+    // Completing again (e.g. a double submit) must not repeat the history entry.
+    if (application.status !== 'complete') {
+      await recordSentToGovernments(
+        db,
+        application,
+        linkedItems,
+        reviewedAt,
+        logger
+      )
+    }
 
     logger.info(`Application completed: ${id}`)
 

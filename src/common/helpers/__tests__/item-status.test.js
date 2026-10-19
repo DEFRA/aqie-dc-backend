@@ -178,3 +178,145 @@ describe('calculateItemStatus', () => {
     )
   })
 })
+
+describe('calculateItemStatus history', () => {
+  let db
+  let items
+  let actions
+  const logger = { error: vi.fn() }
+
+  const certifiedEngland = {
+    technicalReview: { status: 'accepted' },
+    englandCertification: { status: 'certified' },
+    scotlandCertification: { status: 'awaiting_decision' },
+    walesCertification: { status: 'awaiting_decision' },
+    nIrelandCertification: { status: 'awaiting_decision' }
+  }
+  const uncertifiedEngland = {
+    ...certifiedEngland,
+    englandCertification: { status: 'uncertified' }
+  }
+
+  const recorded = () => actions.insertOne.mock.calls.map(([entry]) => entry)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    items = { findOne: vi.fn(), updateOne: vi.fn() }
+    actions = { insertOne: vi.fn().mockResolvedValue({ acknowledged: true }) }
+    db = {
+      collection: vi.fn((name) => (name === 'Actions' ? actions : items))
+    }
+  })
+
+  test.each([
+    ['pending', 'appliance', 'applianceStatus'],
+    [undefined, 'appliance', 'applianceStatus'],
+    ['hidden', 'appliance', 'applianceStatus'],
+    ['pending', 'fuel', 'fuelStatus']
+  ])(
+    'records "live on public list" by the system when %s becomes live (%s)',
+    async (previous, type, field) => {
+      items.findOne.mockResolvedValue({
+        ...certifiedEngland,
+        [field]: previous
+      })
+
+      await calculateItemStatus(db, type, 'ITEM-1', { logger })
+
+      expect(recorded()).toEqual([
+        expect.objectContaining({
+          itemId: 'ITEM-1',
+          itemType: type,
+          action: 'liveOnPublicList',
+          description: 'Live on public list',
+          completedBy: { name: 'System', type: 'system' }
+        })
+      ])
+    }
+  )
+
+  test('records "hidden from public list" when a live item becomes hidden', async () => {
+    items.findOne.mockResolvedValue({
+      ...uncertifiedEngland,
+      applianceStatus: 'live'
+    })
+
+    await calculateItemStatus(db, 'appliance', 'APP-1', { logger })
+
+    expect(recorded()).toEqual([
+      expect.objectContaining({
+        itemId: 'APP-1',
+        action: 'hiddenFromPublicList',
+        description: 'Hidden from public list'
+      })
+    ])
+  })
+
+  test('records nothing when the status does not change', async () => {
+    items.findOne.mockResolvedValue({
+      ...certifiedEngland,
+      applianceStatus: 'live'
+    })
+
+    await calculateItemStatus(db, 'appliance', 'APP-1', { logger })
+
+    expect(actions.insertOne).not.toHaveBeenCalled()
+  })
+
+  test.each(['pending', undefined])(
+    'does not record "hidden" for an item that was never live (%s)',
+    async (previous) => {
+      items.findOne.mockResolvedValue({
+        ...uncertifiedEngland,
+        applianceStatus: previous
+      })
+
+      await calculateItemStatus(db, 'appliance', 'APP-1', { logger })
+
+      expect(actions.insertOne).not.toHaveBeenCalled()
+    }
+  )
+
+  test('records nothing when the item is rejected', async () => {
+    items.findOne.mockResolvedValue({
+      technicalReview: { status: 'rejected' },
+      applianceStatus: 'live'
+    })
+
+    await calculateItemStatus(db, 'appliance', 'APP-1', { logger })
+
+    expect(actions.insertOne).not.toHaveBeenCalled()
+  })
+
+  test('saves the status before recording it', async () => {
+    items.findOne.mockResolvedValue(certifiedEngland)
+
+    await calculateItemStatus(db, 'appliance', 'APP-1', { logger })
+
+    expect(items.updateOne.mock.invocationCallOrder[0]).toBeLessThan(
+      actions.insertOne.mock.invocationCallOrder[0]
+    )
+  })
+
+  test('still returns the status when the history cannot be written', async () => {
+    items.findOne.mockResolvedValue(certifiedEngland)
+    actions.insertOne.mockRejectedValue(new Error('mongo down'))
+
+    const result = await calculateItemStatus(db, 'appliance', 'APP-1', {
+      logger
+    })
+
+    expect(result).toBe('live')
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to record action liveOnPublicList')
+    )
+  })
+
+  test('works without options', async () => {
+    items.findOne.mockResolvedValue(certifiedEngland)
+
+    await expect(calculateItemStatus(db, 'appliance', 'APP-1')).resolves.toBe(
+      'live'
+    )
+  })
+})

@@ -15,6 +15,7 @@ describe('application-review-controller', () => {
     let db
     let applicationsCollection
     let itemsCollection
+    let actionsCollection
 
     beforeEach(() => {
       vi.clearAllMocks()
@@ -31,17 +32,24 @@ describe('application-review-controller', () => {
         updateMany: vi.fn().mockResolvedValue({ matchedCount: 0 })
       }
 
+      actionsCollection = {
+        insertOne: vi.fn().mockResolvedValue({ acknowledged: true })
+      }
+
       db = {
-        collection: vi.fn((name) =>
-          name === 'Applications' ? applicationsCollection : itemsCollection
-        )
+        collection: vi.fn((name) => {
+          if (name === 'Applications') return applicationsCollection
+          if (name === 'Actions') return actionsCollection
+          return itemsCollection
+        })
       }
     })
 
     const reviewedBy = { name: 'Jane Doe', email: 'jane.doe@example.com' }
     const reviewedItems = [
-      { technicalReview: { status: 'accepted' } },
-      { technicalReview: { status: 'rejected' } }
+      { id: 'APP-A', technicalReview: { status: 'accepted' } },
+      { id: 'APP-B', technicalReview: { status: 'rejected' } },
+      { id: 'APP-C', technicalReview: { status: 'accepted' } }
     ]
 
     test('returns notFound when the application does not exist', async () => {
@@ -152,6 +160,126 @@ describe('application-review-controller', () => {
       await completeApplication(db, 'app-2', { reviewedBy }, mockLogger)
 
       expect(db.collection).toHaveBeenCalledWith('Fuels')
+    })
+
+    test('records "sent to governments" for each accepted item, by the system', async () => {
+      applicationsCollection.findOne.mockResolvedValue({
+        id: 'app-1',
+        type: 'appliance'
+      })
+      itemsCollection.find.mockReturnValue({
+        toArray: vi.fn().mockResolvedValue(reviewedItems)
+      })
+
+      await completeApplication(db, 'app-1', { reviewedBy }, mockLogger)
+
+      const entries = actionsCollection.insertOne.mock.calls.map(([e]) => e)
+      expect(entries.map((e) => e.itemId).sort()).toEqual(['APP-A', 'APP-C'])
+      for (const entry of entries) {
+        expect(entry).toMatchObject({
+          itemType: 'appliance',
+          action: 'sentToGovernments',
+          description: 'Sent to governments for approval',
+          completedBy: { name: 'System', type: 'system' },
+          completedAt: expect.any(Date)
+        })
+      }
+    })
+
+    test('does not record anything for a rejected item', async () => {
+      applicationsCollection.findOne.mockResolvedValue({
+        id: 'app-1',
+        type: 'appliance'
+      })
+      itemsCollection.find.mockReturnValue({
+        toArray: vi.fn().mockResolvedValue(reviewedItems)
+      })
+
+      await completeApplication(db, 'app-1', { reviewedBy }, mockLogger)
+
+      const itemIds = actionsCollection.insertOne.mock.calls.map(
+        ([e]) => e.itemId
+      )
+      expect(itemIds).not.toContain('APP-B')
+    })
+
+    test('records fuel items against the fuel type', async () => {
+      applicationsCollection.findOne.mockResolvedValue({
+        id: 'app-2',
+        type: 'fuel'
+      })
+      itemsCollection.find.mockReturnValue({
+        toArray: vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'FUEL-1', technicalReview: { status: 'accepted' } }
+          ])
+      })
+
+      await completeApplication(db, 'app-2', { reviewedBy }, mockLogger)
+
+      expect(actionsCollection.insertOne).toHaveBeenCalledWith(
+        expect.objectContaining({ itemId: 'FUEL-1', itemType: 'fuel' })
+      )
+    })
+
+    test('does not repeat the history when the application is already complete', async () => {
+      applicationsCollection.findOne.mockResolvedValue({
+        id: 'app-1',
+        type: 'appliance',
+        status: 'complete'
+      })
+      itemsCollection.find.mockReturnValue({
+        toArray: vi.fn().mockResolvedValue(reviewedItems)
+      })
+
+      const result = await completeApplication(
+        db,
+        'app-1',
+        { reviewedBy },
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(actionsCollection.insertOne).not.toHaveBeenCalled()
+    })
+
+    test('records nothing when the application cannot be completed yet', async () => {
+      applicationsCollection.findOne.mockResolvedValue({
+        id: 'app-1',
+        type: 'appliance'
+      })
+      itemsCollection.find.mockReturnValue({
+        toArray: vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'APP-A', technicalReview: { status: 'in_review' } }
+          ])
+      })
+
+      await completeApplication(db, 'app-1', { reviewedBy }, mockLogger)
+
+      expect(actionsCollection.insertOne).not.toHaveBeenCalled()
+    })
+
+    test('still completes when the history cannot be written', async () => {
+      applicationsCollection.findOne.mockResolvedValue({
+        id: 'app-1',
+        type: 'appliance'
+      })
+      itemsCollection.find.mockReturnValue({
+        toArray: vi.fn().mockResolvedValue(reviewedItems)
+      })
+      actionsCollection.insertOne.mockRejectedValue(new Error('mongo down'))
+
+      const result = await completeApplication(
+        db,
+        'app-1',
+        { reviewedBy },
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
     })
 
     test('logs and rethrows on database failure', async () => {

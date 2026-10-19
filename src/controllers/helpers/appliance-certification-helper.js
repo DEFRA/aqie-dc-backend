@@ -1,6 +1,8 @@
-import { generateSecureId } from '../../common/helpers/data-transformer.js'
 import { calculateItemStatus } from '../../common/helpers/item-status.js'
-import { actionDescriptions } from '../../common/schemas/action-schema.js'
+import {
+  recordAction,
+  toUserActor
+} from '../../common/helpers/action-history.js'
 
 // Map of country codes to certification field names
 const countryToCertificationField = {
@@ -10,18 +12,10 @@ const countryToCertificationField = {
   'northern-ireland': 'nIrelandCertification'
 }
 
-// Prefix used when building audit action keys, e.g. `nIrelandCertified`
-const countryToActionPrefix = {
-  england: 'england',
-  scotland: 'scotland',
-  wales: 'wales',
-  'northern-ireland': 'nIreland'
-}
-
-const statusToActionSuffix = {
-  certified: 'Certified',
-  uncertified: 'Uncertified',
-  awaiting_decision: 'AwaitingDecision'
+// HETAS decides on a government's behalf here, so the history says so.
+const statusToAction = {
+  certified: 'certifiedOnBehalf',
+  uncertified: 'uncertifiedOnBehalf'
 }
 
 const allowedTransitions = {
@@ -70,41 +64,10 @@ const buildCertification = (current, newStatus, decidedBy, now) => {
 // The decision is already saved, so a failed rollup is logged, not surfaced.
 const refreshApplianceStatus = async (db, applianceId, logger) => {
   try {
-    await calculateItemStatus(db, 'appliance', applianceId)
+    await calculateItemStatus(db, 'appliance', applianceId, { logger })
   } catch (error) {
     logger.error(
       `Failed to recalculate applianceStatus for ${applianceId}: ${error.message}`
-    )
-  }
-}
-
-/**
- * Append an audit entry. Failure to record history must not fail the decision
- * itself, so errors are logged and swallowed.
- */
-const recordCertificationAction = async (
-  db,
-  { applianceId, country, fromStatus, toStatus, decidedBy, at },
-  logger
-) => {
-  const action = `${countryToActionPrefix[country]}${statusToActionSuffix[toStatus]}`
-
-  try {
-    await db.collection('Actions').insertOne({
-      id: `ACT-${generateSecureId()}`,
-      itemId: applianceId,
-      type: 'certification',
-      action,
-      description: actionDescriptions[action],
-      country,
-      fromStatus,
-      toStatus,
-      completedBy: decidedBy,
-      completedAt: at
-    })
-  } catch (error) {
-    logger.error(
-      `Failed to record certification action for ${applianceId}: ${error.message}`
     )
   }
 }
@@ -187,15 +150,16 @@ export const saveDecision = async (
 
   await refreshApplianceStatus(db, applianceId, logger)
 
-  await recordCertificationAction(
+  await recordAction(
     db,
     {
-      applianceId,
+      itemId: applianceId,
+      itemType: 'appliance',
+      action: statusToAction[newStatus],
       country,
-      fromStatus: currentStatus,
-      toStatus: newStatus,
-      decidedBy,
-      at: now
+      actor: toUserActor(decidedBy),
+      at: now,
+      details: { fromStatus: currentStatus, toStatus: newStatus }
     },
     logger
   )

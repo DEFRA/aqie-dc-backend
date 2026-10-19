@@ -1,4 +1,5 @@
 import Boom from '@hapi/boom'
+import { recordAction, toUserActor } from '../common/helpers/action-history.js'
 import { calculateItemStatus } from '../common/helpers/item-status.js'
 import {
   canAcceptReview,
@@ -249,9 +250,24 @@ async function updateApplianceReview(db, id, decision, logger) {
       }
     }
 
+    // Only a real change of decision is history; re-submitting is not.
+    if (status === 'accepted' && item.technicalReview?.status !== 'accepted') {
+      await recordAction(
+        db,
+        {
+          itemId: id,
+          itemType: 'appliance',
+          action: 'acceptedAtApplication',
+          actor: toUserActor(reviewedBy),
+          at: reviewedAt
+        },
+        logger
+      )
+    }
+
     // The decision is already saved, so a failed rollup is logged, not surfaced.
     try {
-      await calculateItemStatus(db, 'appliance', id)
+      await calculateItemStatus(db, 'appliance', id, { logger })
     } catch (error) {
       logger.error(
         `Failed to recalculate applianceStatus for ${id}: ${error.message}`
