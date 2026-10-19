@@ -589,10 +589,10 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
         companyAddress: companyDetails?.companyAddress || null,
         companyContact: companyDetails?.companyContact || null,
         ...(type === 'fuel' && {
-          responsiblePerson: companyDetails?.responsiblePerson || null,
-          customerComplaints: companyDetails?.customerComplaints ?? null,
-          fuelBagging: companyDetails?.fuelBagging || null,
-          manufacturerOrReseller: companyDetails?.manufacturerOrReseller || null
+          responsiblePerson: companyDetails?.responsiblePerson,
+          customerComplaints: companyDetails?.customerComplaints,
+          fuelBagging: companyDetails?.fuelBagging,
+          manufacturerOrReseller: companyDetails?.manufacturerOrReseller
         }),
         linkedItems // Contains item name and technicalReview
       }
