@@ -7,7 +7,7 @@ import Joi from 'joi'
 import * as applicationsController from '../../controllers/applications-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
-export const getApplicationsWithSummary = {
+export const getApplicationsSummaryByStatus = {
   method: 'GET',
   path: '/applications/summary',
   options: {
@@ -31,7 +31,7 @@ export const getApplicationsWithSummary = {
     const { type } = request.query
 
     try {
-      const result = await applicationsController.getApplicationsWithSummary(
+      const result = await applicationsController.getApplicationsSummaryByStatus(
         request.db,
         request.logger,
         type

@@ -1,13 +1,13 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import Boom from '@hapi/boom'
 
-import { getApplicationsWithSummary } from '#src/routes/applications/get-applications-with-summary.js'
+import { getApplicationsSummaryByStatus } from '#src/routes/applications/get-applications-summary-by-status.js'
 import * as applicationsController from '#src/controllers/applications-controller.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
 
 vi.mock('#src/controllers/applications-controller.js')
 
-describe('getApplicationsWithSummary route', () => {
+describe('getApplicationsSummaryByStatus route', () => {
   let mockRequest
   let mockH
 
@@ -36,14 +36,14 @@ describe('getApplicationsWithSummary route', () => {
       data: { new: [], inProgress: [] }
     }
 
-    applicationsController.getApplicationsWithSummary.mockResolvedValue(
+    applicationsController.getApplicationsSummaryByStatus.mockResolvedValue(
       mockResult
     )
 
-    await getApplicationsWithSummary.handler(mockRequest, mockH)
+    await getApplicationsSummaryByStatus.handler(mockRequest, mockH)
 
     expect(
-      applicationsController.getApplicationsWithSummary
+      applicationsController.getApplicationsSummaryByStatus
     ).toHaveBeenCalledWith(mockRequest.db, mockRequest.logger, 'appliance')
 
     expect(mockH.response).toHaveBeenCalledWith(mockResult)
@@ -51,12 +51,12 @@ describe('getApplicationsWithSummary route', () => {
   })
 
   test('returns bad request when controller returns notFound flag', async () => {
-    applicationsController.getApplicationsWithSummary.mockResolvedValue({
+    applicationsController.getApplicationsSummaryByStatus.mockResolvedValue({
       notFound: true,
       message: 'Unknown application type: other'
     })
 
-    const result = await getApplicationsWithSummary.handler(mockRequest, mockH)
+    const result = await getApplicationsSummaryByStatus.handler(mockRequest, mockH)
 
     expect(result.isBoom).toBe(true)
     expect(result.output.statusCode).toBe(400)
@@ -66,12 +66,12 @@ describe('getApplicationsWithSummary route', () => {
   test('rethrows Boom errors', async () => {
     const boomError = Boom.badRequest('Invalid request')
 
-    applicationsController.getApplicationsWithSummary.mockRejectedValue(
+    applicationsController.getApplicationsSummaryByStatus.mockRejectedValue(
       boomError
     )
 
     await expect(
-      getApplicationsWithSummary.handler(mockRequest, mockH)
+      getApplicationsSummaryByStatus.handler(mockRequest, mockH)
     ).rejects.toThrow()
   })
 
@@ -79,11 +79,11 @@ describe('getApplicationsWithSummary route', () => {
     const upstreamError = new Error('Service unavailable')
     upstreamError.status = 500
 
-    applicationsController.getApplicationsWithSummary.mockRejectedValue(
+    applicationsController.getApplicationsSummaryByStatus.mockRejectedValue(
       upstreamError
     )
 
-    const result = await getApplicationsWithSummary.handler(mockRequest, mockH)
+    const result = await getApplicationsSummaryByStatus.handler(mockRequest, mockH)
 
     expect(mockRequest.logger.error).toHaveBeenCalledWith(
       upstreamError,
@@ -97,9 +97,9 @@ describe('getApplicationsWithSummary route', () => {
   test('returns internal server error for generic errors', async () => {
     const error = new Error('Unexpected failure')
 
-    applicationsController.getApplicationsWithSummary.mockRejectedValue(error)
+    applicationsController.getApplicationsSummaryByStatus.mockRejectedValue(error)
 
-    const result = await getApplicationsWithSummary.handler(mockRequest, mockH)
+    const result = await getApplicationsSummaryByStatus.handler(mockRequest, mockH)
 
     expect(result.isBoom).toBe(true)
     expect(result.output.statusCode).toBe(500)
@@ -108,15 +108,15 @@ describe('getApplicationsWithSummary route', () => {
 
   describe('route configuration', () => {
     test('uses GET method', () => {
-      expect(getApplicationsWithSummary.method).toBe('GET')
+      expect(getApplicationsSummaryByStatus.method).toBe('GET')
     })
 
     test('has correct route path', () => {
-      expect(getApplicationsWithSummary.path).toBe('/applications/summary')
+      expect(getApplicationsSummaryByStatus.path).toBe('/applications/summary')
     })
 
     test('requires type query parameter', () => {
-      const schema = getApplicationsWithSummary.options.validate.query
+      const schema = getApplicationsSummaryByStatus.options.validate.query
 
       const { error } = schema.validate({})
 
@@ -124,7 +124,7 @@ describe('getApplicationsWithSummary route', () => {
     })
 
     test('accepts appliance as query type', () => {
-      const schema = getApplicationsWithSummary.options.validate.query
+      const schema = getApplicationsSummaryByStatus.options.validate.query
 
       const { error } = schema.validate({ type: 'appliance' })
 
@@ -132,7 +132,7 @@ describe('getApplicationsWithSummary route', () => {
     })
 
     test('accepts fuel as query type', () => {
-      const schema = getApplicationsWithSummary.options.validate.query
+      const schema = getApplicationsSummaryByStatus.options.validate.query
 
       const { error } = schema.validate({ type: 'fuel' })
 
@@ -140,7 +140,7 @@ describe('getApplicationsWithSummary route', () => {
     })
 
     test('rejects invalid query type', () => {
-      const schema = getApplicationsWithSummary.options.validate.query
+      const schema = getApplicationsSummaryByStatus.options.validate.query
 
       const { error } = schema.validate({ type: 'invalid' })
 
