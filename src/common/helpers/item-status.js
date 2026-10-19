@@ -17,7 +17,8 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
     return { [itemStatus]: 'rejected' }
   }
 
-  // A country with no recorded certification is still awaiting a decision.
+  // Only reached once the application is submitted, which moves every 'new'
+  // country to awaiting_decision, so 'new' or a missing record is undecided too.
   const countryCertifications = CERTIFICATION_FIELDS.map(
     (field) => mapCountryCertification(item[field]).status
   )

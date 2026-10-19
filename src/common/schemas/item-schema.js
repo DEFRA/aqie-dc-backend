@@ -4,11 +4,12 @@ export const countryCertificationSchema = Joi.object({
   // 1. Current State Metadata
   status: Joi.string()
     .valid(
+      'new', // Application not yet submitted for approval
       'awaiting_decision', // Sent to country, no decision recorded yet
       'certified',
       'uncertified'
     )
-    .default('awaiting_decision'),
+    .default('new'),
   decidedAt: Joi.date().iso().allow(null).default(null),
   decidedBy: Joi.object({
     name: Joi.string().optional(),
@@ -249,6 +250,7 @@ export const applianceSchema = Joi.object({
     .optional()
     .description('The earliest date of certification'),
   applianceStatus: Joi.string()
+    .valid('pending', 'live', 'hidden', 'rejected')
     .description(
       'Takes in account the technical review and country certifications, and isVisibleToPublic to determine the overall status of the appliance'
     )

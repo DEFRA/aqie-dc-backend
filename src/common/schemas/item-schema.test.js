@@ -70,7 +70,7 @@ describe('item-schema applianceSchema', () => {
     expect(error.details[0].type).toBe('string.pattern.base')
   })
 
-  test('defaults country certification status to awaiting_decision', () => {
+  test('defaults country certification status to new', () => {
     const payload = {
       ...structuredClone(applianceExample),
       englandCertification: {}
@@ -79,8 +79,20 @@ describe('item-schema applianceSchema', () => {
     const { value, error } = applianceSchema.validate(payload)
 
     expect(error).toBeUndefined()
-    expect(value.englandCertification.status).toBe('awaiting_decision')
+    expect(value.englandCertification.status).toBe('new')
   })
+
+  test.each(['new', 'awaiting_decision', 'certified', 'uncertified'])(
+    'accepts country certification status %s',
+    (status) => {
+      const { error } = applianceSchema.validate({
+        ...structuredClone(applianceExample),
+        englandCertification: { status }
+      })
+
+      expect(error).toBeUndefined()
+    }
+  )
 
   test('rejects invalid country certification status', () => {
     const payload = {
@@ -597,4 +609,33 @@ describe('applianceSchema - technicalReview checks', () => {
 
     expect(error).toBeDefined()
   })
+})
+
+describe('applianceSchema - applianceStatus', () => {
+  const basePayload = { ...applianceExample }
+
+  test.each(['pending', 'live', 'hidden', 'rejected'])(
+    'accepts %s',
+    (applianceStatus) => {
+      const { error } = applianceSchema.validate({
+        ...basePayload,
+        applianceStatus
+      })
+
+      expect(error).toBeUndefined()
+    }
+  )
+
+  test.each(['new', 'Pending', 'Live', 'archived'])(
+    'rejects %s',
+    (applianceStatus) => {
+      const { error } = applianceSchema.validate({
+        ...basePayload,
+        applianceStatus
+      })
+
+      expect(error.details[0].path).toEqual(['applianceStatus'])
+      expect(error.details[0].type).toBe('any.only')
+    }
+  )
 })
