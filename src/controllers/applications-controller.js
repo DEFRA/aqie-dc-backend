@@ -527,26 +527,26 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
+    const collectionName = getItemsCollectionName(type)
+    const nameField = getItemNameField(type)
+
+    if (!collectionName || !nameField) {
+      logger.warn(`Unknown application type: ${type}`)
+      return {
+        success: false,
+        message: `Unknown application type: ${type}`,
+        notFound: true
+      }
+    }
+
     const application = await db
       .collection('Applications')
-      .findOne({ id: applicationId })
+      .findOne({ id: applicationId, type })
 
     if (!application) {
       return {
         success: false,
         message: APPLICATION_NOT_FOUND,
-        notFound: true
-      }
-    }
-
-    // type is validated by the route's Joi schema ('appliance' | 'fuel'), guard kept for defense-in-depth
-    const collectionName = getItemsCollectionName(type)
-
-    if (!collectionName) {
-      logger.warn(`Unknown application type: ${type}`)
-      return {
-        success: false,
-        message: `Unknown application type: ${type}`,
         notFound: true
       }
     }
@@ -565,12 +565,12 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       }
     )
 
-    // Fetch summary of linked items (only name and technicalApproval)
+    // Fetch summary of linked items (only name and technicalReview)
     const linkedItems = await db
       .collection(collectionName)
       .find(
         { applicationId },
-        { projection: { id: 1, modelName: 1, technicalReview: 1, _id: 0 } }
+        { projection: { id: 1, [nameField]: 1, technicalReview: 1, _id: 0 } }
       )
       .toArray()
 
@@ -582,7 +582,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
         companyName: companyDetails?.companyName,
         companyFullAddress: companyDetails?.companyFullAddress || null,
         companyAddress: companyDetails?.companyAddress || null,
-        companyContact: companyDetails?.companyContact,
+        companyContact: companyDetails?.companyContact || null,
         linkedItems // Contains item name and technicalReview
       }
     }
