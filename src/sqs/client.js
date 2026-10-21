@@ -56,6 +56,46 @@ const receiveMessage = (queueUrl, abortSignal) =>
     { abortSignal } // AbortSignal so polling can stop cleanly.
   )
 
+// Returns true when the message should be deleted from the queue
+const processMessage = async (message, server) => {
+  let stored
+  try {
+    stored = await ingestSqsMessage(
+      server,
+      message.MessageId,
+      message.Body,
+      message.Attributes?.SentTimestamp
+    )
+  } catch (err) {
+    logger.error(
+      { messageId: message.MessageId, err },
+      'ingestSqsMessage failed'
+    )
+    return false
+  }
+
+  // Already fully handled on a previous delivery: just delete it from the queue
+  if (stored.duplicate && stored.processed) {
+    return true
+  }
+
+  try {
+    await createNewApplicationRecord(message, server)
+    return true
+  } catch (err) {
+    logger.error(
+      { messageId: message.MessageId, err },
+      'createNewApplicationRecord failed'
+    )
+    await recordFailure(
+      server,
+      message.MessageId,
+      err.failureReason ?? 'create-failed'
+    )
+    return false
+  }
+}
+
 // -------------------------------
 // MAIN POLLING FUNCTION
 // -------------------------------
@@ -76,46 +116,12 @@ export const main = async (server, queueUrl, abortSignal) => {
     const processedMessages = []
 
     for (const message of Messages) {
-      try {
-        const stored = await ingestSqsMessage(
-          server,
-          message.MessageId,
-          message.Body,
-          message.Attributes?.SentTimestamp
-        )
-
-        // Already fully handled on a previous delivery: just delete it from the queue
-        if (stored.duplicate && stored.processed) {
-          processedMessages.push({
-            Id: message.MessageId,
-            ReceiptHandle: message.ReceiptHandle
-          })
-          continue
-        }
-      } catch (err) {
-        logger.error(
-          { messageId: message.MessageId, err },
-          'ingestSqsMessage failed'
-        )
-        continue
-      }
-
-      try {
-        await createNewApplicationRecord(message, server)
+      // Sequential on purpose: concurrent messages could race on the same referenceNumber
+      if (await processMessage(message, server)) {
         processedMessages.push({
           Id: message.MessageId,
           ReceiptHandle: message.ReceiptHandle
         })
-      } catch (err) {
-        logger.error(
-          { messageId: message.MessageId, err },
-          'createNewApplicationRecord failed'
-        )
-        await recordFailure(
-          server,
-          message.MessageId,
-          err.failureReason ?? 'create-failed'
-        )
       }
     }
 
