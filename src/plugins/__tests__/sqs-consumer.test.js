@@ -98,4 +98,32 @@ describe('sqsConsumer plugin', () => {
     vi.doUnmock('../../config.js')
     vi.resetModules()
   })
+
+  test('logs poll errors and keeps polling after the interval', async () => {
+    vi.useFakeTimers()
+    let startHandler
+    server.events.on.mockImplementation((eventName, handler) => {
+      if (eventName === 'start') {
+        startHandler = handler
+      }
+    })
+
+    mainMock
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockImplementationOnce(async () => {
+        server.app.sqsAbortController.abort()
+      })
+
+    await sqsConsumer.register(server)
+    const started = startHandler()
+    await vi.advanceTimersByTimeAsync(60 * 1000)
+    await started
+
+    expect(server.logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ err: expect.any(Error) }),
+      'SQS poll loop failed'
+    )
+    expect(mainMock).toHaveBeenCalledTimes(2)
+    vi.useRealTimers()
+  })
 })

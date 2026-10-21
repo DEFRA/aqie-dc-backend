@@ -122,15 +122,28 @@ describe('markMessageProcessed', () => {
       markMessageProcessed(db, 'msg-123', mockLogger)
     ).rejects.toThrow('Failed to update sqs message')
   })
+
+  test('rethrows and logs when the update fails', async () => {
+    collection.updateOne.mockRejectedValueOnce(new Error('db down'))
+
+    await expect(
+      markMessageProcessed(db, 'msg-123', mockLogger)
+    ).rejects.toThrow('db down')
+    expect(mockLogger.error).toHaveBeenCalled()
+  })
 })
 
 describe('markMessageFailed', () => {
-  test('sets failureReason and failedAt', async () => {
-    const collection = {
-      updateOne: vi.fn(async () => ({ acknowledged: true }))
-    }
-    const db = { collection: vi.fn(() => collection) }
+  let collection
+  let db
 
+  beforeEach(() => {
+    vi.clearAllMocks()
+    collection = { updateOne: vi.fn(async () => ({ acknowledged: true })) }
+    db = { collection: vi.fn(() => collection) }
+  })
+
+  test('sets failureReason and failedAt', async () => {
     const result = await markMessageFailed(
       db,
       'msg-123',
@@ -144,28 +157,63 @@ describe('markMessageFailed', () => {
     )
     expect(result).toEqual({ success: true })
   })
+
+  test('throws and logs when the update is not acknowledged', async () => {
+    collection.updateOne.mockResolvedValueOnce({ acknowledged: false })
+
+    await expect(
+      markMessageFailed(db, 'msg-123', 'no-appliances', mockLogger)
+    ).rejects.toThrow('Failed to update sqs message')
+    expect(mockLogger.error).toHaveBeenCalled()
+  })
 })
 
-describe('markMessageFailed', () => {
-  test('sets failureReason and failedAt', async () => {
-    const collection = {
-      updateOne: vi.fn(async () => ({ acknowledged: true }))
+describe('createSqsMessage - redelivery and errors', () => {
+  let collection
+  let db
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    collection = {
+      insertOne: vi.fn(),
+      findOne: vi.fn()
     }
-    const db = { collection: vi.fn(() => collection) }
+    db = { collection: vi.fn(() => collection) }
+  })
 
-    const result = await markMessageFailed(
-      db,
-      'msg-123',
-      'no-appliances',
-      mockLogger
-    )
+  const payload = { messageId: 'msg-1', messageBody: '{}' }
 
-    expect(collection.updateOne).toHaveBeenCalledWith(
-      { _id: 'msg-123' },
-      {
-        $set: { failureReason: 'no-appliances', failedAt: expect.any(Date) }
-      }
+  test.each([
+    [true, true],
+    [false, false]
+  ])(
+    'reports duplicate with processed=%s when stored processed=%s',
+    async (stored, expected) => {
+      collection.insertOne.mockRejectedValueOnce({ code: 11000 })
+      collection.findOne.mockResolvedValueOnce({ processed: stored })
+
+      const result = await createSqsMessage(db, payload, mockLogger)
+
+      expect(result).toEqual(
+        expect.objectContaining({ duplicate: true, processed: expected })
+      )
+    }
+  )
+
+  test('rethrows non-duplicate insert errors', async () => {
+    collection.insertOne.mockRejectedValueOnce(new Error('db down'))
+
+    await expect(createSqsMessage(db, payload, mockLogger)).rejects.toThrow(
+      'db down'
     )
-    expect(result).toEqual({ success: true })
+    expect(mockLogger.error).toHaveBeenCalled()
+  })
+
+  test('throws when the insert is not acknowledged', async () => {
+    collection.insertOne.mockResolvedValueOnce({ acknowledged: false })
+
+    await expect(createSqsMessage(db, payload, mockLogger)).rejects.toThrow(
+      'Failed to insert sqs message'
+    )
   })
 })

@@ -1,18 +1,27 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest'
 import {
+  applicationRecordExists,
   createApplicationRecordViaRoute,
   ingestSqsMessage,
+  markSqsMessageFailed,
   markSqsMessageProcessed
 } from '../dispatcher.js'
 import {
   createSqsMessage,
+  markMessageFailed,
   markMessageProcessed
 } from '#src/controllers/sqs-messages-controller.js'
+import { applicationExistsByReference } from '#src/controllers/applications-controller.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
 
 vi.mock('#src/controllers/sqs-messages-controller.js', () => ({
   createSqsMessage: vi.fn(),
-  markMessageProcessed: vi.fn()
+  markMessageProcessed: vi.fn(),
+  markMessageFailed: vi.fn()
+}))
+
+vi.mock('#src/controllers/applications-controller.js', () => ({
+  applicationExistsByReference: vi.fn()
 }))
 
 describe('dispatcher', () => {
@@ -44,6 +53,21 @@ describe('dispatcher', () => {
         payload: { type: 'appliance' }
       })
       expect(result).toEqual({ _id: 'app-1' })
+    })
+
+    test('logs the payload when running in the local environment', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      vi.stubEnv('ENVIRONMENT', 'local')
+      server.inject.mockResolvedValue({
+        statusCode: statusCodes.created,
+        result: {}
+      })
+
+      await createApplicationRecordViaRoute(server, { type: 'fuel' })
+
+      expect(logSpy).toHaveBeenCalledWith({ type: 'fuel' })
+      vi.unstubAllEnvs()
+      logSpy.mockRestore()
     })
 
     test('throws when the response status code is not created', async () => {
@@ -101,6 +125,40 @@ describe('dispatcher', () => {
         server.logger
       )
       expect(result).toEqual({ success: true })
+    })
+  })
+
+  describe('markSqsMessageFailed', () => {
+    test('delegates to markMessageFailed with server db/logger', async () => {
+      markMessageFailed.mockResolvedValue({ success: true })
+
+      const result = await markSqsMessageFailed(
+        server,
+        'message-id',
+        'no-appliances'
+      )
+
+      expect(markMessageFailed).toHaveBeenCalledWith(
+        server.db,
+        'message-id',
+        'no-appliances',
+        server.logger
+      )
+      expect(result).toEqual({ success: true })
+    })
+  })
+
+  describe('applicationRecordExists', () => {
+    test('delegates to applicationExistsByReference with server db', async () => {
+      applicationExistsByReference.mockResolvedValue(true)
+
+      const result = await applicationRecordExists(server, 'REF-1')
+
+      expect(applicationExistsByReference).toHaveBeenCalledWith(
+        server.db,
+        'REF-1'
+      )
+      expect(result).toBe(true)
     })
   })
 })

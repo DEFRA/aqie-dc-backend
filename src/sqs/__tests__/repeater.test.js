@@ -59,4 +59,15 @@ describe('splitRepeaterJson', () => {
 
     expect(result).toEqual([])
   })
+
+  test('returns an empty array when the repeater key is missing', () => {
+    expect(splitRepeaterJson({ main: { a: 1 }, repeaters: {} })).toEqual([])
+    expect(splitRepeaterJson(undefined)).toEqual([])
+  })
+
+  test('returns an empty array when the repeater list is empty', () => {
+    expect(
+      splitRepeaterJson({ main: { a: 1 }, repeaters: { LbZxXf: [] } })
+    ).toEqual([])
+  })
 })
