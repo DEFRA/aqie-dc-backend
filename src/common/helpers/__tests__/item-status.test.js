@@ -101,10 +101,10 @@ describe('calculateItemStatus', () => {
     expect(result).toBe('hidden')
   })
 
-  test('sets status to hidden and resets visibility when revoked/rejected', async () => {
+  test('sets status to hidden and resets visibility when uncertified', async () => {
     collection.findOne.mockResolvedValue({
       technicalReview: { status: 'accepted' },
-      englandCertification: { status: 'revoked' },
+      englandCertification: { status: 'uncertified' },
       scotlandCertification: { status: 'new' },
       walesCertification: { status: 'new' },
       nIrelandCertification: { status: 'new' },

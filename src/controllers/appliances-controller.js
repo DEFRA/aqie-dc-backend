@@ -1,10 +1,17 @@
 import {
   generateSecureId,
-  findCertified,
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
 import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
+import {
+  CERTIFICATION_FIELDS,
+  findCertified,
+  findNotYetNotifiedCountries,
+  mapCertifications
+} from '../common/helpers/certification.js'
+import { calculateItemStatus } from '../common/helpers/item-status.js'
+import { getItemsCollectionName } from '../common/helpers/application-type.js'
 
 /**
  * Appliances Controller
@@ -12,6 +19,7 @@ import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
  */
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
+const APPLIANCE_NOT_FOUND = 'Appliance not found'
 
 /**
  * Create a new appliance
@@ -66,12 +74,7 @@ async function createAppliance(db, item, logger) {
 function mapApplianceDetail(item) {
   return {
     ...item,
-    authorisedIn: findCertified(
-      item.englandCertification,
-      item.scotlandCertification,
-      item.walesCertification,
-      item.nIrelandCertification
-    ),
+    authorisedIn: findCertified(item),
     name: item.modelName || '',
     id: item.id || '',
     manufacturer: item.companyName || '',
@@ -88,12 +91,7 @@ function mapApplianceSummary(item) {
     permittedFuels: item.permittedFuels || '',
     type: item.applianceType,
     modelNumber: item.modelNumber,
-    authorisedIn: findCertified(
-      item.englandCertification,
-      item.scotlandCertification,
-      item.walesCertification,
-      item.nIrelandCertification
-    )
+    authorisedIn: findCertified(item)
   }
 }
 
@@ -108,21 +106,10 @@ async function getAllAppliances(db, _options, logger) {
   try {
     const collection = db.collection('Appliances')
 
-    const CERTIFICATION_FIELDS = [
-      'englandCertification',
-      'scotlandCertification',
-      'walesCertification',
-      'nIrelandCertification'
-    ]
-
-    const certifiedFilter = {
-      $or: CERTIFICATION_FIELDS.map((field) => ({
-        [`${field}.status`]: 'certified'
-      }))
-    }
-
+    // Visibility is derived from review and certification outcomes when an
+    // appliance's status is calculated, so it is the only condition needed here.
     const appliances = await collection
-      .find(certifiedFilter)
+      .find({ isVisibleToPublic: true })
       .sort({ createdAt: -1 })
       .toArray()
 
@@ -150,7 +137,7 @@ async function getApplianceById(db, id, logger) {
     if (!item) {
       return {
         success: false,
-        message: 'Appliance not found',
+        message: APPLIANCE_NOT_FOUND,
         notFound: true
       }
     }
@@ -288,30 +275,135 @@ async function searchAdminAppliances(
 }
 
 /**
- * Get appliance with all related items (applications, etc.)
- * @deprecated Relationship queries may need review for current schema
+ * Admin: get a single appliance record for the admin frontend
  */
-async function getApplianceWithRelatedItems(db, id, logger) {
+async function getAdminApplianceById(db, id, logger) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const appliance = await db.collection('Appliances').findOne({ id })
+    const item = await db.collection('Appliances').findOne(
+      { id },
+      {
+        projection: {
+          _id: 0,
+          id: 1,
+          modelName: 1,
+          modelNumber: 1,
+          applicationId: 1,
+          isLegacyRecord: 1,
+          isVisibleToPublic: 1,
+          englandCertification: 1,
+          scotlandCertification: 1,
+          walesCertification: 1,
+          nIrelandCertification: 1,
+          applianceStatus: 1
+        }
+      }
+    )
 
-    if (!appliance) {
+    if (!item) {
       return {
         success: false,
-        message: 'Appliance not found',
+        message: APPLIANCE_NOT_FOUND,
         notFound: true
       }
     }
 
+    const certifications = mapCertifications(item)
+
+    // Country DAs should already have been notified (email sent) that a decision
+    // is required: 'new' -> 'awaiting_decision'.
+    if (findNotYetNotifiedCountries(item).length > 0) {
+      logger.warn(
+        `Appliance ${id} has countries that have not been notified that a decision is required`
+      )
+    }
+
     return {
       success: true,
-      data: mapApplianceDetail(appliance)
+      data: {
+        id: item.id ?? id,
+        modelName: item.modelName || '',
+        modelNumber: item.modelNumber || '',
+        applicationId: item.applicationId || null,
+        certifications,
+        status: item.applianceStatus || 'pending',
+        canTogglePublicVisibility: findCertified(item).length > 0,
+        isVisibleToPublic: item.isVisibleToPublic,
+        isLegacyRecord: item.isLegacyRecord
+      }
     }
   } catch (error) {
-    logger.error(error, 'Failed to fetch appliance with related items')
+    logger.error(error, 'Failed to fetch admin appliance')
+    throw error
+  }
+}
+
+/**
+ * Set public visibility for an appliance or fuel and recalculate its status
+ *
+ * @param {'appliance'|'fuel'} [type]
+ */
+async function updateApplianceVisibility(
+  db,
+  id,
+  isVisibleToPublic,
+  logger,
+  type = 'appliance'
+) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+  const collectionName = getItemsCollectionName(type)
+  if (!collectionName) {
+    throw new Error(`Unsupported item type: ${type}`)
+  }
+  const label = type === 'fuel' ? 'Fuel' : 'Appliance'
+  try {
+    const collection = db.collection(collectionName)
+    const item = await collection.findOne(
+      { id },
+      {
+        projection: {
+          'technicalReview.status': 1,
+          ...Object.fromEntries(
+            CERTIFICATION_FIELDS.map((field) => [`${field}.status`, 1])
+          ),
+          _id: 0
+        }
+      }
+    )
+
+    if (!item) {
+      return { success: false, message: `${label} not found`, notFound: true }
+    }
+
+    // Mirrors calculateItemStatus: visibility only affects accepted, certified items
+    const canTogglePublicVisibility =
+      item.technicalReview?.status === 'accepted' &&
+      findCertified(item).length > 0
+
+    if (!canTogglePublicVisibility) {
+      return {
+        success: false,
+        message: `${label} visibility can only change once its technical review is accepted and it is certified in at least one country`,
+        incomplete: true
+      }
+    }
+
+    await collection.updateOne(
+      { id },
+      { $set: { isVisibleToPublic, updatedAt: new Date() } }
+    )
+
+    await calculateItemStatus(db, type, id)
+
+    logger.info(`${label} visibility set to ${isVisibleToPublic}: ${id}`)
+
+    return { success: true }
+  } catch (error) {
+    logger.error(error, `Failed to update ${label.toLowerCase()} visibility`)
     throw error
   }
 }
@@ -323,5 +415,6 @@ export {
   updateAppliance,
   deleteAppliance,
   searchAdminAppliances,
-  getApplianceWithRelatedItems
+  getAdminApplianceById,
+  updateApplianceVisibility
 }

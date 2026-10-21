@@ -19,6 +19,7 @@ import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { recordApplianceCheck } from '../routes/appliances/record-appliance-check.js'
 import { searchAdminAppliances } from '../routes/appliances/search-admin-appliances.js'
+import { getAdminApplianceById } from '../routes/appliances/get-admin-appliance-by-id.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
 import { getFuelById } from '../routes/fuels/get-fuel-by-id.js'
@@ -29,6 +30,7 @@ import { updateFuel } from '../routes/fuels/update-fuel.js'
 import { deleteFuel } from '../routes/fuels/delete-fuel.js'
 import { getApplianceReview } from '../routes/appliances/get-appliance-review.js'
 import { updateApplianceReview } from '../routes/appliances/update-appliance-review.js'
+import { updateApplianceVisibility } from '../routes/appliances/update-appliance-visibility.js'
 import { getApplianceTypes } from '../routes/appliance-types/get-appliance-types.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
@@ -123,10 +125,12 @@ const router = {
         createAppliance,
         getAllAppliances,
         searchAdminAppliances, // Must come before getApplianceById to avoid route conflict
+        getAdminApplianceById,
         getApplianceReview,
         getApplianceById,
         recordApplianceCheck,
         updateApplianceReview,
+        updateApplianceVisibility,
         updateAppliance,
         deleteAppliance,
         getApplianceTypes

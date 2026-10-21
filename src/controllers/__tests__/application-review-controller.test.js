@@ -27,7 +27,8 @@ describe('application-review-controller', () => {
       itemsCollection = {
         find: vi.fn().mockReturnValue({
           toArray: vi.fn()
-        })
+        }),
+        updateMany: vi.fn().mockResolvedValue({ matchedCount: 0 })
       }
 
       db = {
@@ -113,6 +114,30 @@ describe('application-review-controller', () => {
       expect(result.success).toBe(true)
       expect(result.data.status).toBe('complete')
       expect(result.data.reviewedBy).toEqual(reviewedBy)
+    })
+
+    test('moves each still-new country certification to awaiting_decision', async () => {
+      applicationsCollection.findOne.mockResolvedValue({
+        id: 'app-1',
+        type: 'appliance'
+      })
+      itemsCollection.find.mockReturnValue({
+        toArray: vi.fn().mockResolvedValue(reviewedItems)
+      })
+
+      await completeApplication(db, 'app-1', { reviewedBy }, mockLogger)
+
+      for (const field of [
+        'englandCertification',
+        'scotlandCertification',
+        'walesCertification',
+        'nIrelandCertification'
+      ]) {
+        expect(itemsCollection.updateMany).toHaveBeenCalledWith(
+          { applicationId: 'app-1', [`${field}.status`]: 'new' },
+          { $set: { [`${field}.status`]: 'awaiting_decision' } }
+        )
+      }
     })
 
     test('checks linked fuels for fuel-type applications', async () => {

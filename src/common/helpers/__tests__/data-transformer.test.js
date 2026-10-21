@@ -1,8 +1,6 @@
 import { describe, test, expect } from 'vitest'
 import {
   generateSecureId,
-  findCertified,
-  findLastUpdatedDate,
   getFullAddress,
   toDotted
 } from '#src/common/helpers/data-transformer.js'
@@ -97,70 +95,6 @@ describe('data-transformer', () => {
       ids.add(generateSecureId())
     }
     expect(ids.size).toBe(100)
-  })
-
-  test('findCertified returns correct regions', () => {
-    // All certified
-    expect(
-      findCertified(
-        { status: 'certified' },
-        { status: 'certified' },
-        { status: 'certified' },
-        { status: 'certified' }
-      )
-    ).toEqual(['England', 'Scotland', 'Wales', 'Northern Ireland'])
-    // England and Wales only
-    expect(
-      findCertified(
-        { status: 'certified' },
-        { status: 'uncertified' },
-        { status: 'certified' },
-        { status: 'uncertified' }
-      )
-    ).toEqual(['England', 'Wales'])
-    // None certified
-    expect(
-      findCertified(
-        { status: 'uncertified' },
-        { status: 'uncertified' },
-        { status: 'uncertified' },
-        { status: 'uncertified' }
-      )
-    ).toEqual([])
-    // All undefined
-    expect(findCertified(undefined, undefined, undefined, undefined)).toEqual(
-      []
-    )
-  })
-
-  describe('findLastUpdatedDate', () => {
-    test('returns the latest valid ISO date', () => {
-      const d1 = '2024-01-01T10:00:00Z'
-      const d2 = '2025-05-05T12:00:00Z'
-      const d3 = '2023-12-31T23:59:59Z'
-      const d4 = '2022-06-15T08:30:00Z'
-      expect(findLastUpdatedDate(d1, d2, d3, d4)).toBe(
-        '2025-05-05T12:00:00.000Z'
-      )
-    })
-
-    test('returns null if all dates are invalid', () => {
-      expect(findLastUpdatedDate('foo', '', null, undefined)).toBeNull()
-    })
-
-    test('ignores invalid dates and returns latest valid', () => {
-      const d1 = 'not-a-date'
-      const d2 = '2022-01-01T00:00:00Z'
-      const d3 = ''
-      const d4 = '2021-12-31T23:59:59Z'
-      expect(findLastUpdatedDate(d1, d2, d3, d4)).toBe(
-        '2022-01-01T00:00:00.000Z'
-      )
-    })
-
-    test('returns null if all arguments are missing', () => {
-      expect(findLastUpdatedDate()).toBeNull()
-    })
   })
 })
 

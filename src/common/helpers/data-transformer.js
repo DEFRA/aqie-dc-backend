@@ -18,50 +18,6 @@ export const generateSecureId = () => {
   return id.slice(0, SECURE_ID_LENGTH)
 }
 
-export const findCertified = (
-  englandCertification,
-  scotlandCertification,
-  walesCertification,
-  nIrelandCertification
-) => {
-  const approvedRegions = []
-
-  if (englandCertification?.status === 'certified') {
-    approvedRegions.push('England')
-  }
-  if (scotlandCertification?.status === 'certified') {
-    approvedRegions.push('Scotland')
-  }
-  if (walesCertification?.status === 'certified') {
-    approvedRegions.push('Wales')
-  }
-  if (nIrelandCertification?.status === 'certified') {
-    approvedRegions.push('Northern Ireland')
-  }
-
-  return approvedRegions
-}
-
-// Finds the most recent updatedDate from the provided country date strings
-export const findLastUpdatedDate = (
-  englandDate,
-  scotlandDate,
-  walesDate,
-  nIrelandDate
-) => {
-  const validDates = [englandDate, scotlandDate, walesDate, nIrelandDate]
-    .filter(
-      (dateString) =>
-        (typeof dateString === 'string' && dateString.trim() !== '') ||
-        dateString instanceof Date
-    )
-    .map((dateString) => new Date(dateString))
-    .filter((date) => !Number.isNaN(date.getTime()) && date.getTime() !== 0)
-    .sort((a, b) => b.getTime() - a.getTime())
-
-  return validDates.length > 0 ? validDates[0].toISOString() : null
-}
-
 // Returns the full address array for an item, handling UK and non-UK logic
 export const getFullAddress = (item) => {
   const filterLines = (...lines) =>
