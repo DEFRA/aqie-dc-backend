@@ -1,6 +1,5 @@
 import Boom from '@hapi/boom'
 import { recordAction, toUserActor } from '../common/helpers/action-history.js'
-import { calculateItemStatus } from '../common/helpers/item-status.js'
 import {
   canAcceptReview,
   getCheckGroup,
@@ -262,15 +261,6 @@ async function updateApplianceReview(db, id, decision, logger) {
           at: reviewedAt
         },
         logger
-      )
-    }
-
-    // The decision is already saved, so a failed rollup is logged, not surfaced.
-    try {
-      await calculateItemStatus(db, 'appliance', id, { logger })
-    } catch (error) {
-      logger.error(
-        `Failed to recalculate applianceStatus for ${id}: ${error.message}`
       )
     }
 

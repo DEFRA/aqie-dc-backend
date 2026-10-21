@@ -139,6 +139,20 @@ describe('calculateItemStatus', () => {
     )
   })
 
+  test('sets status to pending when every country is still new', async () => {
+    collection.findOne.mockResolvedValue({
+      technicalReview: { status: 'accepted' },
+      englandCertification: { status: 'new' },
+      scotlandCertification: { status: 'new' },
+      walesCertification: { status: 'new' },
+      nIrelandCertification: { status: 'new' }
+    })
+
+    const result = await calculateItemStatus(db, 'appliance', 'APP-1')
+
+    expect(result).toBe('pending')
+  })
+
   test('sets status to hidden when every country is uncertified', async () => {
     collection.findOne.mockResolvedValue({
       technicalReview: { status: 'accepted' },

@@ -3,7 +3,7 @@ import {
   loadDecisionTarget,
   requireArgs,
   saveDecision
-} from './helpers/appliance-certification-helper.js'
+} from './helpers/certification-helper.js'
 
 /**
  * Update appliance certification status for a specific country

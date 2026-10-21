@@ -10,6 +10,7 @@ import {
 import { getItemsCollectionName } from '../common/helpers/application-type.js'
 import { CERTIFICATION_FIELDS } from '../common/helpers/certification.js'
 import { SYSTEM_ACTOR, recordAction } from '../common/helpers/action-history.js'
+import { calculateItemStatus } from '../common/helpers/item-status.js'
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const APPLICATION_NOT_FOUND = 'Application not found'
@@ -30,6 +31,20 @@ const recordSentToGovernments = (db, application, linkedItems, at, logger) =>
         logger
       )
     )
+  )
+
+// The application is already complete, so a failed rollup is logged, not surfaced.
+const refreshItemStatuses = (db, type, items, logger) =>
+  Promise.all(
+    items.map(async ({ id }) => {
+      try {
+        await calculateItemStatus(db, type, id, { logger })
+      } catch (error) {
+        logger.error(
+          `Failed to recalculate ${type} status for ${id}: ${error.message}`
+        )
+      }
+    })
   )
 
 /**
@@ -85,7 +100,7 @@ async function completeApplication(db, id, payload, logger) {
 
     // Once an application completes, send the notification email to DA
     // (not yet implemented).
-    //and
+    // Submitting moves every still-new country to awaiting_decision...
     await Promise.all(
       CERTIFICATION_FIELDS.map((field) =>
         db
@@ -97,7 +112,7 @@ async function completeApplication(db, id, payload, logger) {
       )
     )
 
-    //then
+    // ...and marks the application complete.
     await collection.updateOne(
       { id },
       {
@@ -120,6 +135,9 @@ async function completeApplication(db, id, payload, logger) {
         logger
       )
     }
+
+    // Last, so each item is rolled up from its awaiting_decision countries.
+    await refreshItemStatuses(db, application.type, linkedItems, logger)
 
     logger.info(`Application completed: ${id}`)
 

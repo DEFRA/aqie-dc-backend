@@ -248,48 +248,25 @@ describe('appliance-review-controller', () => {
       expect(result.data.status).toBe('rejected')
     })
 
-    test('recalculates the appliance status once the decision is saved', async () => {
-      collection.findOne
-        .mockResolvedValueOnce({ technicalReview: allPassed })
-        .mockResolvedValueOnce({ id: 'APP-1' })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+    test.each(['accepted', 'rejected'])(
+      'does not recalculate the appliance status when %s (left to application completion)',
+      async (status) => {
+        collection.findOne
+          .mockResolvedValueOnce({ technicalReview: allPassed })
+          .mockResolvedValueOnce({ id: 'APP-1' })
+        collection.updateOne.mockResolvedValue({ matchedCount: 1 })
 
-      await updateApplianceReview(
-        db,
-        'APP-1',
-        { status: 'accepted' },
-        mockLogger
-      )
+        const result = await updateApplianceReview(
+          db,
+          'APP-1',
+          { status },
+          mockLogger
+        )
 
-      expect(calculateItemStatus).toHaveBeenCalledWith(
-        db,
-        'appliance',
-        'APP-1',
-        {
-          logger: mockLogger
-        }
-      )
-    })
-
-    test('still succeeds when the status recalculation fails', async () => {
-      collection.findOne
-        .mockResolvedValueOnce({ technicalReview: allPassed })
-        .mockResolvedValueOnce({ id: 'APP-1' })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
-      calculateItemStatus.mockRejectedValueOnce(new Error('boom'))
-
-      const result = await updateApplianceReview(
-        db,
-        'APP-1',
-        { status: 'accepted' },
-        mockLogger
-      )
-
-      expect(result.success).toBe(true)
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to recalculate applianceStatus')
-      )
-    })
+        expect(result.success).toBe(true)
+        expect(calculateItemStatus).not.toHaveBeenCalled()
+      }
+    )
 
     test('records "accepted at application" against the reviewer', async () => {
       collection.findOne
