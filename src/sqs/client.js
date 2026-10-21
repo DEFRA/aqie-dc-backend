@@ -13,7 +13,8 @@ import {
   ingestSqsMessage,
   createApplicationRecordViaRoute,
   applicationRecordExists,
-  markSqsMessageProcessed
+  markSqsMessageProcessed,
+  markSqsMessageFailed
 } from './dispatcher.js'
 
 const logger = createLogger()
@@ -110,6 +111,11 @@ export const main = async (server, queueUrl, abortSignal) => {
           { messageId: message.MessageId, err },
           'createNewApplicationRecord failed'
         )
+        await recordFailure(
+          server,
+          message.MessageId,
+          err.failureReason ?? 'create-failed'
+        )
       }
     }
 
@@ -129,6 +135,15 @@ export const main = async (server, queueUrl, abortSignal) => {
     logger.error({ err }, 'SQS error')
   }
 }
+// Best-effort: a failure to record must not abort the rest of the batch
+const recordFailure = async (server, messageId, failureReason) => {
+  try {
+    await markSqsMessageFailed(server, messageId, failureReason)
+  } catch (err) {
+    logger.error({ messageId, err }, 'markSqsMessageFailed failed')
+  }
+}
+
 export const createNewApplicationRecord = async (message, server) => {
   let messageBody
   try {
@@ -139,7 +154,8 @@ export const createNewApplicationRecord = async (message, server) => {
       { messageId: message.MessageId },
       'Invalid JSON in SQS message'
     )
-    return // Skip this invalid message so the outer batch loop can continue with the next SQS message.
+    await recordFailure(server, message.MessageId, 'invalid-json')
+    return // Malformed JSON never succeeds on retry, so it is deleted from the queue; payload stays in SqsMessages.
   }
   //application details extraction
   const isFuel =
@@ -160,6 +176,13 @@ export const createNewApplicationRecord = async (message, server) => {
     application.fuels.push(mappedFuelData)
   } else {
     const repeaters = splitRepeaterJson(messageBody.data)
+    if (repeaters.length === 0) {
+      // Likely a changed repeater key: keep the message on the queue for retry after a code fix
+      throw Object.assign(
+        new Error(`No appliances mapped for message ${message.MessageId}`),
+        { failureReason: 'no-appliances' }
+      )
+    }
     repeaters.forEach((repeater) => {
       const mappedAppliance = mapKeys(repeater, 'appliance')
       application.appliances.push(mappedAppliance)

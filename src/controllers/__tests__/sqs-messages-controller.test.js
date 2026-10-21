@@ -1,7 +1,8 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
 import {
   createSqsMessage,
-  markMessageProcessed
+  markMessageProcessed,
+  markMessageFailed
 } from '#src/controllers/sqs-messages-controller.js'
 
 const mockLogger = {
@@ -101,12 +102,15 @@ describe('markMessageProcessed', () => {
     }
   })
 
-  test('sets processed to true for the given messageId', async () => {
+  test('sets processed to true and clears failure fields', async () => {
     const result = await markMessageProcessed(db, 'msg-123', mockLogger)
 
     expect(collection.updateOne).toHaveBeenCalledWith(
       { _id: 'msg-123' },
-      { $set: { processed: true } }
+      {
+        $set: { processed: true },
+        $unset: { failureReason: '', failedAt: '' }
+      }
     )
     expect(result).toEqual({ success: true })
   })
@@ -117,5 +121,51 @@ describe('markMessageProcessed', () => {
     await expect(
       markMessageProcessed(db, 'msg-123', mockLogger)
     ).rejects.toThrow('Failed to update sqs message')
+  })
+})
+
+describe('markMessageFailed', () => {
+  test('sets failureReason and failedAt', async () => {
+    const collection = {
+      updateOne: vi.fn(async () => ({ acknowledged: true }))
+    }
+    const db = { collection: vi.fn(() => collection) }
+
+    const result = await markMessageFailed(
+      db,
+      'msg-123',
+      'no-appliances',
+      mockLogger
+    )
+
+    expect(collection.updateOne).toHaveBeenCalledWith(
+      { _id: 'msg-123' },
+      { $set: { failureReason: 'no-appliances', failedAt: expect.any(Date) } }
+    )
+    expect(result).toEqual({ success: true })
+  })
+})
+
+describe('markMessageFailed', () => {
+  test('sets failureReason and failedAt', async () => {
+    const collection = {
+      updateOne: vi.fn(async () => ({ acknowledged: true }))
+    }
+    const db = { collection: vi.fn(() => collection) }
+
+    const result = await markMessageFailed(
+      db,
+      'msg-123',
+      'no-appliances',
+      mockLogger
+    )
+
+    expect(collection.updateOne).toHaveBeenCalledWith(
+      { _id: 'msg-123' },
+      {
+        $set: { failureReason: 'no-appliances', failedAt: expect.any(Date) }
+      }
+    )
+    expect(result).toEqual({ success: true })
   })
 })

@@ -5,7 +5,8 @@
 import { statusCodes } from '#src/common/constants/status-codes.js'
 import {
   createSqsMessage,
-  markMessageProcessed
+  markMessageProcessed,
+  markMessageFailed
 } from '#src/controllers/sqs-messages-controller.js'
 import { applicationExistsByReference } from '#src/controllers/applications-controller.js'
 
@@ -66,4 +67,8 @@ export async function ingestSqsMessage(
 // Marks the backed-up SQS message as having successfully produced an application record
 export async function markSqsMessageProcessed(server, messageId) {
   return markMessageProcessed(server.db, messageId, server.logger)
+}
+
+export async function markSqsMessageFailed(server, messageId, failureReason) {
+  return markMessageFailed(server.db, messageId, failureReason, server.logger)
 }

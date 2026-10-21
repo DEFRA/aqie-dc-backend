@@ -73,7 +73,10 @@ async function markMessageProcessed(db, messageId, logger) {
 
     const result = await collection.updateOne(
       { _id: messageId },
-      { $set: { processed: true } }
+      {
+        $set: { processed: true },
+        $unset: { failureReason: '', failedAt: '' }
+      }
     )
 
     if (!result.acknowledged) {
@@ -87,4 +90,25 @@ async function markMessageProcessed(db, messageId, logger) {
   }
 }
 
-export { createSqsMessage, markMessageProcessed }
+// Records why a message could not be mapped so failures are queryable
+async function markMessageFailed(db, messageId, failureReason, logger) {
+  try {
+    const collection = db.collection('SqsMessages')
+
+    const result = await collection.updateOne(
+      { _id: messageId },
+      { $set: { failureReason, failedAt: new Date() } }
+    )
+
+    if (!result.acknowledged) {
+      throw new Error('Failed to update sqs message')
+    }
+
+    return { success: true }
+  } catch (error) {
+    logger.error(error, `Failed to mark sqs message ${messageId} as failed`)
+    throw error
+  }
+}
+
+export { createSqsMessage, markMessageProcessed, markMessageFailed }
