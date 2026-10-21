@@ -20,7 +20,9 @@ import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { recordApplianceCheck } from '../routes/appliances/record-appliance-check.js'
 import { searchAdminAppliances } from '../routes/appliances/search-admin-appliances.js'
 import { getAdminApplianceById } from '../routes/appliances/get-admin-appliance-by-id.js'
+import { getApplianceActionHistory } from '../routes/appliances/get-appliance-action-history.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
+import { updateCertificationStatus } from '../routes/appliances/update-certification-status.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
 import { getFuelById } from '../routes/fuels/get-fuel-by-id.js'
 import { searchFuels } from '../routes/fuels/search-fuels.js'
@@ -126,12 +128,14 @@ const router = {
         getAllAppliances,
         searchAdminAppliances, // Must come before getApplianceById to avoid route conflict
         getAdminApplianceById,
+        getApplianceActionHistory,
         getApplianceReview,
         getApplianceById,
         recordApplianceCheck,
         updateApplianceReview,
         updateApplianceVisibility,
         updateAppliance,
+        updateCertificationStatus,
         deleteAppliance,
         getApplianceTypes
       ])

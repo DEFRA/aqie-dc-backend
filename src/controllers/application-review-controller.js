@@ -3,12 +3,49 @@
  * Business logic for application status transitions (start / complete)
  */
 
-import { isApplicationReviewComplete } from '../common/helpers/review-status.js'
+import {
+  groupItemsByTechReviewStatus,
+  isApplicationReviewComplete
+} from '../common/helpers/review-status.js'
 import { getItemsCollectionName } from '../common/helpers/application-type.js'
 import { CERTIFICATION_FIELDS } from '../common/helpers/certification.js'
+import { SYSTEM_ACTOR, recordAction } from '../common/helpers/action-history.js'
+import { calculateItemStatus } from '../common/helpers/item-status.js'
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const APPLICATION_NOT_FOUND = 'Application not found'
+
+// Only accepted items go to the governments; rejected ones never leave HETAS.
+const recordSentToGovernments = (db, application, linkedItems, at, logger) =>
+  Promise.all(
+    groupItemsByTechReviewStatus(linkedItems).accepted.map((item) =>
+      recordAction(
+        db,
+        {
+          itemId: item.id,
+          itemType: application.type,
+          action: 'sentToGovernments',
+          actor: SYSTEM_ACTOR,
+          at
+        },
+        logger
+      )
+    )
+  )
+
+// The application is already complete, so a failed rollup is logged, not surfaced.
+const refreshItemStatuses = (db, type, items, logger) =>
+  Promise.all(
+    items.map(async ({ id }) => {
+      try {
+        await calculateItemStatus(db, type, id, { logger })
+      } catch (error) {
+        logger.error(
+          `Failed to recalculate ${type} status for ${id}: ${error.message}`
+        )
+      }
+    })
+  )
 
 /**
  * Complete an application once every linked appliance/fuel has been reviewed.
@@ -45,7 +82,7 @@ async function completeApplication(db, id, payload, logger) {
       .collection(itemsCollectionName)
       .find(
         { applicationId: id },
-        { projection: { technicalReview: 1, _id: 0 } }
+        { projection: { id: 1, technicalReview: 1, _id: 0 } }
       )
       .toArray()
 
@@ -63,7 +100,7 @@ async function completeApplication(db, id, payload, logger) {
 
     // Once an application completes, send the notification email to DA
     // (not yet implemented).
-    //and
+    // Submitting moves every still-new country to awaiting_decision...
     await Promise.all(
       CERTIFICATION_FIELDS.map((field) =>
         db
@@ -75,7 +112,7 @@ async function completeApplication(db, id, payload, logger) {
       )
     )
 
-    //then
+    // ...and marks the application complete.
     await collection.updateOne(
       { id },
       {
@@ -87,6 +124,20 @@ async function completeApplication(db, id, payload, logger) {
         }
       }
     )
+
+    // Completing again (e.g. a double submit) must not repeat the history entry.
+    if (application.status !== 'complete') {
+      await recordSentToGovernments(
+        db,
+        application,
+        linkedItems,
+        reviewedAt,
+        logger
+      )
+    }
+
+    // Last, so each item is rolled up from its awaiting_decision countries.
+    await refreshItemStatuses(db, application.type, linkedItems, logger)
 
     logger.info(`Application completed: ${id}`)
 

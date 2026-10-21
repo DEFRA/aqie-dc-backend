@@ -1,10 +1,12 @@
 import { getItemsCollectionName } from './application-type.js'
+import { SYSTEM_ACTOR, recordAction } from './action-history.js'
 import { isItemReviewed } from './review-status.js'
 import {
   CERTIFICATION_FIELDS,
   CERTIFIED_STATUS,
   UNCERTIFIED_STATUSES,
-  UNDECIDED_CERTIFICATION_STATUSES
+  UNDECIDED_CERTIFICATION_STATUSES,
+  mapCountryCertification
 } from './certification.js'
 
 // Works out the $set update for an item once its technical review has reached
@@ -16,8 +18,10 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
     return { [itemStatus]: 'rejected' }
   }
 
+  // Only reached once the application is submitted, which moves every 'new'
+  // country to awaiting_decision, so 'new' or a missing record is undecided too.
   const countryCertifications = CERTIFICATION_FIELDS.map(
-    (field) => item[field]?.status
+    (field) => mapCountryCertification(item[field]).status
   )
 
   const hasCertified = countryCertifications.includes(CERTIFIED_STATUS)
@@ -35,7 +39,7 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
     }
   }
 
-  // None certified, but at least one revoked/rejected - hidden.
+  // None certified, but at least one uncertified - hidden.
   // Visibility resets to the default so a later re-certification starts as live.
   if (hasUncertified) {
     return { [itemStatus]: 'hidden', isVisibleToPublic: true }
@@ -54,17 +58,39 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
 }
 
 /**
+ * Going live, or leaving live for hidden, is public-list history. Any other
+ * change (e.g. pending to hidden, or a recalculation that changes nothing) is
+ * not: the item was never on the public list, or nothing happened.
+ */
+const resolveVisibilityAction = (previous, next) => {
+  if (next === 'live' && previous !== 'live') {
+    return 'liveOnPublicList'
+  }
+  if (next === 'hidden' && previous === 'live') {
+    return 'hiddenFromPublicList'
+  }
+  return null
+}
+
+/**
  * Derive an appliance/fuel's overall itemStatus from its technical review
  * outcome and per-country certification statuses, then persist it.
  * Only called once technical review has reached a final status
  * (accepted/rejected) - items still mid-review are not expected here.
+ * A change onto or off the public list is recorded in the item's history.
  *
  * @param {import('mongodb').Db} db
  * @param {'appliance'|'fuel'} type
  * @param {string} itemId - applianceId or fuelId, depending on type
+ * @param {{ logger?: object }} [options]
  * @returns {Promise<string>} the itemStatus value that was persisted
  */
-export const calculateItemStatus = async (db, type, itemId) => {
+export const calculateItemStatus = async (
+  db,
+  type,
+  itemId,
+  { logger } = {}
+) => {
   if (!db) {
     throw new Error('Database instance is required')
   }
@@ -90,6 +116,7 @@ export const calculateItemStatus = async (db, type, itemId) => {
           CERTIFICATION_FIELDS.map((field) => [`${field}.status`, 1])
         ),
         isVisibleToPublic: 1,
+        [itemStatus]: 1,
         _id: 0
       }
     }
@@ -112,6 +139,15 @@ export const calculateItemStatus = async (db, type, itemId) => {
   )
 
   await collection.updateOne({ id: itemId }, { $set: update })
+
+  const action = resolveVisibilityAction(item[itemStatus], update[itemStatus])
+  if (action) {
+    await recordAction(
+      db,
+      { itemId, itemType: type, action, actor: SYSTEM_ACTOR },
+      logger
+    )
+  }
 
   return update[itemStatus]
 }

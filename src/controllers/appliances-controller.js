@@ -229,6 +229,19 @@ async function searchAdminAppliances(
       'technicalReview.status': { $in: REVIEWED_STATUSES }
     }
 
+    // Appliances stay out of the list until their application is submitted.
+    // Records with no application (legacy imports) are not affected.
+    const unfinishedApplications = await db
+      .collection('Applications')
+      .find({ status: { $ne: 'complete' } }, { projection: { id: 1, _id: 0 } })
+      .toArray()
+
+    if (unfinishedApplications.length > 0) {
+      searchQuery.applicationId = {
+        $nin: unfinishedApplications.map(({ id }) => id)
+      }
+    }
+
     if (query?.trim()) {
       const trimmedQuery = query.trim()
       searchQuery.$or = [

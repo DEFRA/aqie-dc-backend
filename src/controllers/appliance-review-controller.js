@@ -1,4 +1,5 @@
 import Boom from '@hapi/boom'
+import { recordAction, toUserActor } from '../common/helpers/action-history.js'
 import {
   canAcceptReview,
   getCheckGroup,
@@ -246,6 +247,21 @@ async function updateApplianceReview(db, id, decision, logger) {
         message: APPLIANCE_NOT_FOUND,
         notFound: true
       }
+    }
+
+    // Only a real change of decision is history; re-submitting is not.
+    if (status === 'accepted' && item.technicalReview?.status !== 'accepted') {
+      await recordAction(
+        db,
+        {
+          itemId: id,
+          itemType: 'appliance',
+          action: 'acceptedAtApplication',
+          actor: toUserActor(reviewedBy),
+          at: reviewedAt
+        },
+        logger
+      )
     }
 
     logger.info(`Appliance review ${status}: ${id}`) // Only the decision is returned - the full record from updateAppliance
