@@ -117,7 +117,8 @@ export const main = async (server, queueUrl, abortSignal) => {
 
     for (const message of Messages) {
       // Sequential on purpose: concurrent messages could race on the same referenceNumber
-      if (await processMessage(message, server)) {
+      const shouldDelete = await processMessage(message, server) // NOSONAR
+      if (shouldDelete) {
         processedMessages.push({
           Id: message.MessageId,
           ReceiptHandle: message.ReceiptHandle
