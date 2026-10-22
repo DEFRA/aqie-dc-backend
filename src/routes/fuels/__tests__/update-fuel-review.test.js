@@ -57,6 +57,19 @@ describe('PATCH /fuels/{fuelId}/technical-review', () => {
       )
     })
 
+    test('returns 409 with the outstanding checks when incomplete', async () => {
+      updateFuelReviewMock.mockResolvedValue({
+        success: false,
+        incomplete: true,
+        outstandingChecks: ['testResults', 'fuelDetails']
+      })
+
+      const result = await updateFuelReview.handler(mockRequest, mockToolkit)
+
+      expect(result.statusCode).toBe(statusCodes.conflict)
+      expect(result.outstandingChecks).toEqual(['testResults', 'fuelDetails'])
+    })
+
     test('returns 404 when the fuel is not found', async () => {
       updateFuelReviewMock.mockResolvedValue({
         success: false,

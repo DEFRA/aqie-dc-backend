@@ -1,8 +1,8 @@
 // Technical review status helpers
 //
 // Two levels of review:
-// - Item level (one appliance or fuel): every DOCUMENTATION_CHECKS and LISTING_CHECKS
-//   entry must be `true` before that item can be accepted; it can be rejected at any time.
+// - Item level (one appliance or fuel): every documentation and listing check for
+//   that item type must be `true` before that item can be accepted; it can be rejected at any time.
 // - Application level (many items): the application is review-complete once every one
 //   of its items has reached `accepted` or `rejected` - not before.
 //
@@ -12,6 +12,10 @@
 // - null: set by schema default, when no one has reviewed the check yet
 // - undefined: the key is missing from the object
 //Not to be confused with the `status` of a review, which is overall outcome of the review, and is either `accepted`, `rejected`, or any other possible value that is not `accepted` or `rejected` (e.g. `pending`, `in progress`, etc.)
+
+// ---------------------------------------------------------------------------
+// Appliance review (original logic, unchanged)
+// ---------------------------------------------------------------------------
 
 export const DOCUMENTATION_CHECKS = [
   'testReports',
@@ -56,6 +60,68 @@ export const getOutstandingChecks = (technicalReview) => [
 // Item level: an item can only be accepted once every check has passed.
 export const canAcceptReview = (technicalReview) =>
   getOutstandingChecks(technicalReview).length === 0
+
+// ---------------------------------------------------------------------------
+// Fuel review
+// ---------------------------------------------------------------------------
+
+export const FUEL_DOCUMENTATION_CHECKS = ['manufacturerLetter', 'testResults']
+
+export const FUEL_LISTING_CHECKS = ['fuelDetails', 'fuelDescription']
+
+export const ALL_FUEL_CHECKS = [
+  ...FUEL_DOCUMENTATION_CHECKS,
+  ...FUEL_LISTING_CHECKS
+]
+
+// Checks required per supplierType; any other type falls back to every check.
+const FUEL_CHECKS_BY_SUPPLIER_TYPE = {
+  Rebrand: {
+    documentation: ['manufacturerLetter'],
+    listing: ['fuelDetails', 'fuelDescription']
+  },
+  Manufacture: {
+    documentation: ['testResults'],
+    listing: ['fuelDetails']
+  }
+}
+
+const getRequiredFuelChecks = (supplierType) =>
+  FUEL_CHECKS_BY_SUPPLIER_TYPE[supplierType] ?? {
+    documentation: FUEL_DOCUMENTATION_CHECKS,
+    listing: FUEL_LISTING_CHECKS
+  }
+
+export const getFuelCheckGroup = (check) => {
+  if (FUEL_DOCUMENTATION_CHECKS.includes(check)) {
+    return 'documentationChecks'
+  }
+  if (FUEL_LISTING_CHECKS.includes(check)) {
+    return 'listingChecks'
+  }
+  return null
+}
+
+// True if the check is one the given supplierType has to pass.
+export const isFuelCheckRequired = (check, supplierType) => {
+  const { documentation, listing } = getRequiredFuelChecks(supplierType)
+  return documentation.includes(check) || listing.includes(check)
+}
+
+export const getFuelOutstandingChecks = (technicalReview, supplierType) => {
+  const { documentation, listing } = getRequiredFuelChecks(supplierType)
+  return [
+    ...findOutstanding(technicalReview?.documentationChecks, documentation),
+    ...findOutstanding(technicalReview?.listingChecks, listing)
+  ]
+}
+
+export const canAcceptFuelReview = (technicalReview, supplierType) =>
+  getFuelOutstandingChecks(technicalReview, supplierType).length === 0
+
+// ---------------------------------------------------------------------------
+// Application level (items of either type)
+// ---------------------------------------------------------------------------
 
 // Application level: splits an application's items into accepted/rejected groups.
 // Items still outstanding ('new'/'in_review') are excluded from both groups - see

@@ -326,9 +326,9 @@ export const fuelSchema = Joi.object({
     .required()
     .description('How do you sell this fuel, options provided'),
   supplierType: Joi.string()
-    .valid('Manufacturer', 'Rebrand')
+    .valid('Manufacture', 'Rebrand')
     .required()
-    .description('Manufacturer or Rebrand (used to be Reseller)'),
+    .description('Manufacture or Rebrand (used to be Reseller)'),
   fuelDescription: Joi.string().required().description('Fuel description'),
   //If a rebrand, these fields become required:
   originalFuelManufacturer: Joi.string()
@@ -365,42 +365,42 @@ export const fuelSchema = Joi.object({
   //If a manufacturer, these fields become required:
   fuelWeight: Joi.number()
     .when('supplierType', {
-      is: 'Manufacturer',
+      is: 'Manufacture',
       then: Joi.number().required(),
       otherwise: Joi.number().optional()
     })
     .description('Fuel weight'),
   fuelComposition: Joi.string()
     .when('supplierType', {
-      is: 'Manufacturer',
+      is: 'Manufacture',
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
     .description('Fuel composition'),
   sulphurContent: Joi.number()
     .when('supplierType', {
-      is: 'Manufacturer',
+      is: 'Manufacture',
       then: Joi.number().required(),
       otherwise: Joi.number().optional()
     })
     .description('Sulphur content (%)'),
   manufacturingProcess: Joi.string()
     .when('supplierType', {
-      is: 'Manufacturer',
+      is: 'Manufacture',
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
     .description('Manufacturing process'),
   qualityControlSystem: Joi.string()
     .when('supplierType', {
-      is: 'Manufacturer',
+      is: 'Manufacture',
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
     .description('Quality manufactured system in place'),
   brandNames: Joi.string()
     .when('supplierType', {
-      is: 'Manufacturer',
+      is: 'Manufacture',
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
@@ -428,7 +428,15 @@ export const fuelSchema = Joi.object({
       email: Joi.string().email().optional()
     })
       .allow(null)
-      .default(null)
+      .default(null),
+    documentationChecks: Joi.object({
+      manufacturerLetter: Joi.boolean().allow(null).default(null),
+      testResults: Joi.boolean().allow(null).default(null)
+    }).default(),
+    listingChecks: Joi.object({
+      fuelDetails: Joi.boolean().allow(null).default(null),
+      fuelDescription: Joi.boolean().allow(null).default(null)
+    }).default()
   })
     .default()
     .description('This technical review happens during the application stage'),
