@@ -1,11 +1,11 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { createFuel } from './create-fuel.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
-import fuelExample from '../../sample-data/fuel-example.js'
-import * as fuelController from '../../controllers/fuels-controller.js'
+import { createFuel } from '../create-fuel.js'
+import { statusCodes } from '../../../common/constants/status-codes.js'
+import fuelExample from '../../../sample-data/fuel-example.js'
+import * as fuelController from '../../../controllers/fuels-controller.js'
 
 // Mock the controller
-vi.mock('../../controllers/fuels-controller.js', () => ({
+vi.mock('../../../controllers/fuels-controller.js', () => ({
   default: {},
   createFuel: vi.fn()
 }))
