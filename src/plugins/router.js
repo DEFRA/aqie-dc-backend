@@ -30,6 +30,7 @@ import { updateFuel } from '../routes/fuels/update-fuel.js'
 import { deleteFuel } from '../routes/fuels/delete-fuel.js'
 import { getApplianceReview } from '../routes/appliances/get-appliance-review.js'
 import { updateApplianceReview } from '../routes/appliances/update-appliance-review.js'
+import { updateFuelReview } from '../routes/fuels/update-fuel-review.js'
 import { updateApplianceVisibility } from '../routes/appliances/update-appliance-visibility.js'
 import { getApplianceTypes } from '../routes/appliance-types/get-appliance-types.js'
 import Inert from '@hapi/inert'
@@ -143,6 +144,7 @@ const router = {
         updateFuel,
         deleteFuel,
         searchFuels, // Must come before getFuelById to avoid route conflict
+        updateFuelReview,
         getFuelById
       ])
     }
