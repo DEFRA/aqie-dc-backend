@@ -325,29 +325,29 @@ export const fuelSchema = Joi.object({
   fuelBagging: Joi.string()
     .required()
     .description('How do you sell this fuel, options provided'),
-  manufacturerOrReseller: Joi.string()
-    .valid('Manufacturer', 'Reseller')
+  supplierType: Joi.string()
+    .valid('Manufacturer', 'Rebrand')
     .required()
-    .description('Manufacturer or rebranded/reseller'),
+    .description('Manufacturer or Rebrand (used to be Reseller)'),
   fuelDescription: Joi.string().required().description('Fuel description'),
-  //If a reseller, these fields become required:
+  //If a rebrand, these fields become required:
   originalFuelManufacturer: Joi.string()
-    .when('manufacturerOrReseller', {
-      is: 'Reseller',
+    .when('supplierType', {
+      is: 'Rebrand',
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
     .description('Original fuel manufacturer'),
   originalFuelNameOrBrand: Joi.string()
-    .when('manufacturerOrReseller', {
-      is: 'Reseller',
+    .when('supplierType', {
+      is: 'Rebrand',
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
     .description('Original fuel name or brand'),
   changedFromOriginalFuel: Joi.boolean()
-    .when('manufacturerOrReseller', {
-      is: 'Reseller',
+    .when('supplierType', {
+      is: 'Rebrand',
       then: Joi.boolean().required(),
       otherwise: Joi.boolean().optional()
     })
@@ -356,50 +356,50 @@ export const fuelSchema = Joi.object({
     .optional()
     .description('Explain changes made to the original fuel'),
   resellBrandName: Joi.string()
-    .when('manufacturerOrReseller', {
-      is: 'Reseller',
+    .when('supplierType', {
+      is: 'Rebrand',
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
     .description('What brand name will you be reselling'), //NEEDTO: new so needs to be added to cilent DB or mapped here
   //If a manufacturer, these fields become required:
   fuelWeight: Joi.number()
-    .when('manufacturerOrReseller', {
+    .when('supplierType', {
       is: 'Manufacturer',
       then: Joi.number().required(),
       otherwise: Joi.number().optional()
     })
     .description('Fuel weight'),
   fuelComposition: Joi.string()
-    .when('manufacturerOrReseller', {
+    .when('supplierType', {
       is: 'Manufacturer',
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
     .description('Fuel composition'),
   sulphurContent: Joi.number()
-    .when('manufacturerOrReseller', {
+    .when('supplierType', {
       is: 'Manufacturer',
       then: Joi.number().required(),
       otherwise: Joi.number().optional()
     })
     .description('Sulphur content (%)'),
   manufacturingProcess: Joi.string()
-    .when('manufacturerOrReseller', {
+    .when('supplierType', {
       is: 'Manufacturer',
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
     .description('Manufacturing process'),
   qualityControlSystem: Joi.string()
-    .when('manufacturerOrReseller', {
+    .when('supplierType', {
       is: 'Manufacturer',
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
     .description('Quality manufactured system in place'),
   brandNames: Joi.string()
-    .when('manufacturerOrReseller', {
+    .when('supplierType', {
       is: 'Manufacturer',
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
