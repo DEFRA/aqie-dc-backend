@@ -89,6 +89,14 @@ export async function setupAppliancesAndFuels(
     await db.collection('Fuels').createIndex({ certificationScheme: 1 })
     console.log('   ✓ Indexes created')
 
+    // Create Actions collection (audit history)
+    console.log('📦 Creating Actions collection...')
+    // createIndex creates the collection if absent, keeping this re-runnable
+    await db.collection('Actions').createIndex({ id: 1 }, { unique: true })
+    await db.collection('Actions').createIndex({ itemId: 1, completedAt: -1 })
+    await db.collection('Actions').createIndex({ type: 1 })
+    console.log('   ✓ Indexes created')
+
     // Insert sample data if requested
     if (options.insertSamples) {
       console.log('📝 Inserting sample data...')
