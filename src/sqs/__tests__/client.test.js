@@ -31,7 +31,11 @@ vi.mock('../../config.js', () => ({
 }))
 
 vi.mock('#src/common/helpers/logging/logger.js', () => ({
-  createLogger: vi.fn(() => ({ info: vi.fn(), error: vi.fn() }))
+  createLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn()
+  }))
 }))
 
 vi.mock('../mapper.js', () => ({ mapKeys: vi.fn(() => ({ mapped: true })) }))
@@ -41,22 +45,75 @@ vi.mock('../repeater.js', () => ({
 }))
 
 vi.mock('../dispatcher.js', () => ({
-  ingestSqsMessageViaRoute: vi.fn(),
-  createApplicationRecordViaRoute: vi.fn()
+  ingestSqsMessage: vi.fn(),
+  createApplicationRecordViaRoute: vi.fn(),
+  applicationRecordExists: vi.fn(),
+  markSqsMessageProcessed: vi.fn(),
+  markSqsMessageFailed: vi.fn()
 }))
 
 const { main, createNewApplicationRecord } = await import('../client.js')
 const { mapKeys } = await import('../mapper.js')
 const { splitRepeaterJson } = await import('../repeater.js')
-const { ingestSqsMessageViaRoute, createApplicationRecordViaRoute } =
-  await import('../dispatcher.js')
+const {
+  ingestSqsMessage,
+  createApplicationRecordViaRoute,
+  applicationRecordExists,
+  markSqsMessageProcessed,
+  markSqsMessageFailed
+} = await import('../dispatcher.js')
 
 describe('sqs client', () => {
   let server
 
   beforeEach(() => {
     vi.clearAllMocks()
+    sendMock.mockReset()
+    ingestSqsMessage.mockReset()
+    createApplicationRecordViaRoute.mockReset()
+    applicationRecordExists.mockReset()
+    markSqsMessageProcessed.mockReset()
+    markSqsMessageFailed.mockReset()
+    mapKeys.mockReset()
+    splitRepeaterJson.mockReset()
+
+    ingestSqsMessage.mockResolvedValue({ duplicate: false, processed: false })
+    createApplicationRecordViaRoute.mockResolvedValue({})
+    applicationRecordExists.mockResolvedValue(false)
+    markSqsMessageProcessed.mockResolvedValue(undefined)
+    markSqsMessageFailed.mockResolvedValue(undefined)
+    splitRepeaterJson.mockReturnValue([{ item: 1 }])
+    mapKeys.mockImplementation(() => ({ mapped: true }))
+
     server = {}
+  })
+
+  describe('createNewApplicationRecord duplicate guard', () => {
+    const message = {
+      MessageId: 'm1',
+      Body: JSON.stringify({
+        meta: { formSlug: 'other', referenceNumber: 'REF-1', timestamp: 't' },
+        data: {}
+      })
+    }
+
+    test('skips create but marks processed when application already exists', async () => {
+      applicationRecordExists.mockResolvedValueOnce(true)
+
+      await createNewApplicationRecord(message, server)
+
+      expect(createApplicationRecordViaRoute).not.toHaveBeenCalled()
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'm1')
+    })
+
+    test('creates application when none exists', async () => {
+      applicationRecordExists.mockResolvedValueOnce(false)
+
+      await createNewApplicationRecord(message, server)
+
+      expect(createApplicationRecordViaRoute).toHaveBeenCalled()
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'm1')
+    })
   })
 
   describe('main', () => {
@@ -98,7 +155,7 @@ describe('sqs client', () => {
 
       await main(server, 'http://queue-url', undefined)
 
-      expect(ingestSqsMessageViaRoute).toHaveBeenCalledTimes(2)
+      expect(ingestSqsMessage).toHaveBeenCalledTimes(2)
       expect(createApplicationRecordViaRoute).toHaveBeenCalledTimes(2)
       expect(sendMock).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -114,7 +171,7 @@ describe('sqs client', () => {
       )
     })
 
-    test('continues processing remaining messages when one fails', async () => {
+    test('continues processing remaining messages when one fails and only deletes successful ones', async () => {
       const body = JSON.stringify({
         meta: {
           formSlug: 'apply-for-an-appliance',
@@ -138,7 +195,98 @@ describe('sqs client', () => {
 
       await main(server, 'http://queue-url', undefined)
 
-      expect(ingestSqsMessageViaRoute).toHaveBeenCalledTimes(2)
+      expect(ingestSqsMessage).toHaveBeenCalledTimes(2)
+      expect(sendMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          type: 'DeleteMessageBatch',
+          args: expect.objectContaining({
+            QueueUrl: 'http://queue-url',
+            Entries: [{ Id: '2', ReceiptHandle: 'rh-2' }]
+          })
+        })
+      )
+    })
+
+    test('leaves the message on the queue when ingest fails', async () => {
+      sendMock.mockResolvedValueOnce({
+        Messages: [{ MessageId: '1', ReceiptHandle: 'rh-1', Body: '{}' }]
+      })
+      ingestSqsMessage.mockRejectedValueOnce(new Error('db down'))
+
+      await main(server, 'http://queue-url', undefined)
+
+      expect(createApplicationRecordViaRoute).not.toHaveBeenCalled()
+      expect(sendMock).toHaveBeenCalledTimes(1)
+    })
+
+    test('deletes without reprocessing a redelivery that was already processed', async () => {
+      sendMock
+        .mockResolvedValueOnce({
+          Messages: [{ MessageId: '1', ReceiptHandle: 'rh-1', Body: '{}' }]
+        })
+        .mockResolvedValueOnce({})
+      ingestSqsMessage.mockResolvedValueOnce({
+        duplicate: true,
+        processed: true
+      })
+
+      await main(server, 'http://queue-url', undefined)
+
+      expect(createApplicationRecordViaRoute).not.toHaveBeenCalled()
+      expect(sendMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          type: 'DeleteMessageBatch',
+          args: expect.objectContaining({
+            Entries: [{ Id: '1', ReceiptHandle: 'rh-1' }]
+          })
+        })
+      )
+    })
+
+    test('records create-failed and keeps the message when creation throws', async () => {
+      sendMock.mockResolvedValueOnce({
+        Messages: [
+          {
+            MessageId: '1',
+            ReceiptHandle: 'rh-1',
+            Body: JSON.stringify({
+              meta: { formSlug: 'x', referenceNumber: 'R', timestamp: 't' },
+              data: {}
+            })
+          }
+        ]
+      })
+      createApplicationRecordViaRoute.mockRejectedValueOnce(new Error('boom'))
+
+      await main(server, 'http://queue-url', undefined)
+
+      expect(markSqsMessageFailed).toHaveBeenCalledWith(
+        server,
+        '1',
+        'create-failed'
+      )
+      expect(sendMock).toHaveBeenCalledTimes(1)
+    })
+
+    test('keeps going when recording the failure itself fails', async () => {
+      sendMock.mockResolvedValueOnce({
+        Messages: [
+          {
+            MessageId: '1',
+            ReceiptHandle: 'rh-1',
+            Body: JSON.stringify({
+              meta: { formSlug: 'x', referenceNumber: 'R', timestamp: 't' },
+              data: {}
+            })
+          }
+        ]
+      })
+      createApplicationRecordViaRoute.mockRejectedValueOnce(new Error('boom'))
+      markSqsMessageFailed.mockRejectedValueOnce(new Error('db down'))
+
+      await expect(
+        main(server, 'http://queue-url', undefined)
+      ).resolves.toBeUndefined()
     })
 
     test('swallows AbortError raised while polling', async () => {
@@ -178,17 +326,11 @@ describe('sqs client', () => {
 
       expect(splitRepeaterJson).toHaveBeenCalled()
       expect(mapKeys).toHaveBeenCalledWith({ item: 1 }, 'appliance')
-      expect(ingestSqsMessageViaRoute).toHaveBeenCalledWith(
-        server,
-        'msg-1',
-        message.Body,
-        expect.any(Object),
-        expect.any(String)
-      )
       expect(createApplicationRecordViaRoute).toHaveBeenCalledWith(
         server,
         expect.any(String)
       )
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'msg-1')
     })
 
     test('builds a fuel application when the form slug matches', async () => {
@@ -212,6 +354,7 @@ describe('sqs client', () => {
         server,
         expect.any(String)
       )
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'msg-2')
     })
 
     test('logs and returns early when the message body is invalid JSON', async () => {
@@ -219,8 +362,34 @@ describe('sqs client', () => {
 
       await createNewApplicationRecord(message, server)
 
-      expect(ingestSqsMessageViaRoute).not.toHaveBeenCalled()
       expect(createApplicationRecordViaRoute).not.toHaveBeenCalled()
+      expect(markSqsMessageProcessed).not.toHaveBeenCalled()
+      expect(markSqsMessageFailed).toHaveBeenCalledWith(
+        server,
+        'msg-3',
+        'invalid-json'
+      )
+    })
+
+    test('throws a no-appliances error when no repeaters are mapped', async () => {
+      splitRepeaterJson.mockReturnValue([])
+      const message = {
+        MessageId: 'msg-4',
+        Body: JSON.stringify({
+          meta: {
+            formSlug: 'apply-for-an-appliance',
+            referenceNumber: 'REF-4',
+            timestamp: 't'
+          },
+          data: {}
+        })
+      }
+
+      await expect(
+        createNewApplicationRecord(message, server)
+      ).rejects.toMatchObject({ failureReason: 'no-appliances' })
+      expect(createApplicationRecordViaRoute).not.toHaveBeenCalled()
+      expect(markSqsMessageProcessed).not.toHaveBeenCalled()
     })
   })
 })

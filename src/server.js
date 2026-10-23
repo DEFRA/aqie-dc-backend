@@ -64,7 +64,6 @@ async function createServer() {
   // mongoDb        - sets up mongo connection pool and attaches to `server` and `request` objects
   // router         - routes used in the app
   await server.register([
-    sqsConsumer,
     Inert,
     Vision,
     {
@@ -79,7 +78,8 @@ async function createServer() {
       plugin: mongoDb,
       options: config.get('mongo')
     },
-    router
+    router,
+    sqsConsumer
   ])
 
   return server
