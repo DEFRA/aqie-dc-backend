@@ -1,15 +1,14 @@
 import Joi from 'joi'
+import {
+  COUNTRY_CERTIFICATION_STATUSES,
+  DEFAULT_COUNTRY_CERTIFICATION_STATUS
+} from '../helpers/certification.js'
 
 export const countryCertificationSchema = Joi.object({
   // 1. Current State Metadata
   status: Joi.string()
-    .valid(
-      'new', // Application not yet submitted for approval
-      'awaiting_decision', // Sent to country, no decision recorded yet
-      'certified',
-      'uncertified'
-    )
-    .default('new'),
+    .valid(...COUNTRY_CERTIFICATION_STATUSES)
+    .default(DEFAULT_COUNTRY_CERTIFICATION_STATUS),
   decidedAt: Joi.date().iso().allow(null).default(null),
   decidedBy: Joi.object({
     name: Joi.string().optional(),
@@ -32,7 +31,9 @@ export const applianceSchema = Joi.object({
   // Fields from DXT form input
   applicationId: Joi.string()
     .optional()
-    .description('Application ID (foreign key)'),
+    .description(
+      'Application ID (foreign key), unique identifier and display identifier (last digits) (server-generated)'
+    ),
   // Start of appliance application fields
   companyName: Joi.string().required().description('Company name'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),

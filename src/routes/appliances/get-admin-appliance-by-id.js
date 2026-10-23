@@ -7,7 +7,7 @@ import { createResultHandler } from '../../common/helpers/route-response.js'
 
 export const getAdminApplianceById = {
   method: 'GET',
-  path: '/api/admin/appliances/{id}',
+  path: '/admin/appliances/{id}',
   options: {
     tags: ['api', 'read', 'admin'],
     description:

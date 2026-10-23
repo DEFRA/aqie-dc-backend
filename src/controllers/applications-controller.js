@@ -3,8 +3,10 @@
  * Business logic for application-related operations
  */
 
-import { randomUUID } from 'node:crypto'
-import { generateSecureId } from '../common/helpers/data-transformer.js'
+import {
+  generateNextId,
+  generateSecureId
+} from '../common/helpers/data-transformer.js'
 import {
   groupItemsByTechReviewStatus,
   isApplicationReviewComplete
@@ -18,6 +20,17 @@ import { getCompleteApplicationRecordsFilter } from './complete-application-reco
 const APPLICATION_NOT_FOUND = 'Application not found'
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const MONGO_ILLEGAL_OPERATION_CODE = 20
+
+const APPLICATION_ID_PATTERN = /^\d{4}-\d+$/
+
+// Next id in "PPPP-SSSS" format, sequenced from the most recent application
+async function generateApplicationId(collection, session) {
+  const lastApplication = await collection.findOne(
+    { id: { $regex: APPLICATION_ID_PATTERN } },
+    { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
+  )
+  return generateNextId(lastApplication?.id)
+}
 
 /**
  * Create a new application with appliances using MongoDB transactions (if available)
@@ -75,8 +88,7 @@ function isTransactionUnsupportedError(error) {
   )
 }
 
-function buildApplication(applicationData) {
-  const id = randomUUID()
+function buildApplication(applicationData, id) {
   const now = new Date()
 
   return {
@@ -116,8 +128,8 @@ async function performApplicationInsert(db, payload, logger, session) {
   const itemsCollectionName = getItemsCollectionName(applicationData.type)
   const idPrefix = ID_PREFIX_BY_TYPE[applicationData.type]
 
-  // Build and insert Application
-  const application = buildApplication(applicationData)
+  const applicationId = await generateApplicationId(appCollection, session)
+  const application = buildApplication(applicationData, applicationId)
 
   const insertOptions = session ? { session } : {}
   const appResult = await appCollection.insertOne(application, insertOptions)
@@ -125,14 +137,14 @@ async function performApplicationInsert(db, payload, logger, session) {
     throw new Error('Failed to insert application')
   }
 
-  // Insert linked items with applicationId link
+  // Linked items reference their parent via applicationId
   let savedItems = []
   if (Array.isArray(items) && items.length > 0) {
     const itemsCollection = db.collection(itemsCollectionName)
     const itemsToInsert = items.map((item) => ({
       ...item,
       id: item.id || `${idPrefix}-${generateSecureId()}`,
-      applicationId: application.id
+      applicationId
     }))
 
     const itemsResult = await itemsCollection.insertMany(
