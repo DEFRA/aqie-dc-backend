@@ -42,7 +42,7 @@ function makeDb(appliance) {
 describe('appliance-certification-controller updateCertificationStatus', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  test('rejects an unknown country', async () => {
+  test('rejects an unknown country with an explicit error code', async () => {
     const { db } = makeDb({ id: 'APP-1' })
 
     const result = await updateCertificationStatus(
@@ -55,6 +55,7 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     )
 
     expect(result.success).toBe(false)
+    expect(result.code).toBe('INVALID_COUNTRY')
     expect(result.error).toContain('Invalid country')
   })
 
@@ -187,7 +188,7 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     expect(actionsCollection.insertOne).not.toHaveBeenCalled()
   })
 
-  test('rejects going from certified back to awaiting_decision', async () => {
+  test('rejects going from certified back to awaiting_decision with a transition code', async () => {
     const { db } = makeDb({
       id: 'APP-1',
       englandCertification: { status: 'certified' }
@@ -203,6 +204,7 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     )
 
     expect(result.success).toBe(false)
+    expect(result.code).toBe('INVALID_TRANSITION')
     expect(result.error).toContain('Cannot change status')
   })
 

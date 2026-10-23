@@ -45,6 +45,7 @@ export const updateCertificationStatus = async (
       )
       return {
         success: false,
+        code: 'INVALID_TRANSITION',
         error: `Cannot change status from ${status} to ${newStatus}`
       }
     }
@@ -64,6 +65,10 @@ export const updateCertificationStatus = async (
     )
   } catch (error) {
     logger.error(`Error updating certification status: ${error.message}`)
-    return { success: false, error: 'Internal server error' }
+    return {
+      success: false,
+      code: 'INTERNAL_SERVER_ERROR',
+      error: 'Internal server error'
+    }
   }
 }

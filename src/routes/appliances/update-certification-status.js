@@ -39,6 +39,13 @@ export const updateCertificationStatus = {
   handler: async (request, h) => {
     const { id, country } = request.params
     const { status, decidedBy } = request.payload
+    const httpStatusByErrorCode = {
+      NOT_FOUND: statusCodes.notFound,
+      INVALID_COUNTRY: statusCodes.badRequest,
+      INVALID_TRANSITION: statusCodes.badRequest,
+      UPDATE_FAILED: statusCodes.internalServerError,
+      INTERNAL_SERVER_ERROR: statusCodes.internalServerError
+    }
 
     // Get decidedBy from request context (logged-in user) or use provided value
     const userInfo = decidedBy || {
@@ -58,17 +65,10 @@ export const updateCertificationStatus = {
         )
 
       if (!result.success) {
-        // Check if it's a validation error or not found
-        if (result.error?.includes('not found')) {
-          return h.response(result).code(statusCodes.notFound)
-        }
-        if (result.error?.includes('Invalid')) {
-          return h.response(result).code(statusCodes.badRequest)
-        }
-        if (result.error?.includes('Cannot change status')) {
-          return h.response(result).code(statusCodes.badRequest)
-        }
-        return h.response(result).code(statusCodes.internalServerError)
+        const statusCode =
+          httpStatusByErrorCode[result.code] ?? statusCodes.internalServerError
+
+        return h.response(result).code(statusCode)
       }
 
       return h

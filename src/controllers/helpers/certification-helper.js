@@ -37,6 +37,7 @@ export const loadDecisionTarget = async (db, applianceId, country, logger) => {
     return {
       failure: {
         success: false,
+        code: 'INVALID_COUNTRY',
         error: `Invalid country: ${country}. Must be one of: england, scotland, wales, northern-ireland`
       }
     }
@@ -51,6 +52,7 @@ export const loadDecisionTarget = async (db, applianceId, country, logger) => {
     return {
       failure: {
         success: false,
+        code: 'NOT_FOUND',
         error: `Appliance not found: ${applianceId}`
       }
     }
@@ -184,7 +186,11 @@ export const saveDecision = async (
 
   if (!updated) {
     logger.error(`Failed to update appliance: ${applianceId}`)
-    return { success: false, error: 'Failed to update appliance' }
+    return {
+      success: false,
+      code: 'UPDATE_FAILED',
+      error: 'Failed to update appliance'
+    }
   }
 
   await refreshApplianceStatus(db, applianceId, logger)
