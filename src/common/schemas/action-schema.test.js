@@ -72,4 +72,31 @@ describe('action-schema actionDescriptions', () => {
     expect(Object.keys(actionDescriptions)).toContain('walesCertified')
     expect(Object.keys(actionDescriptions)).toContain('nIrelandCertified')
   })
+
+  test('describes certification decisions as "<status> in <country>"', () => {
+    expect(actionDescriptions.englandCertified).toBe('Certified in England')
+    expect(actionDescriptions.scotlandUncertified).toBe(
+      'Uncertified in Scotland'
+    )
+    expect(actionDescriptions.walesAwaitingDecision).toBe(
+      'Awaiting decision in Wales'
+    )
+    expect(actionDescriptions.nIrelandCertified).toBe(
+      'Certified in Northern Ireland'
+    )
+    expect(actionDescriptions.nIrelandUncertified).toBe(
+      'Uncertified in Northern Ireland'
+    )
+  })
+
+  test('covers every country and status combination', () => {
+    const countries = ['england', 'scotland', 'wales', 'nIreland']
+    const statuses = ['Certified', 'Uncertified', 'AwaitingDecision']
+
+    for (const country of countries) {
+      for (const status of statuses) {
+        expect(actionDescriptions[`${country}${status}`]).toBeDefined()
+      }
+    }
+  })
 })

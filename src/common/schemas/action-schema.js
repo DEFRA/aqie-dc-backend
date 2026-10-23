@@ -3,23 +3,22 @@ import Joi from 'joi'
 // ============================================================================
 // ACTION SCHEMA for audit log
 // ============================================================================
-//need clarify:
 export const actionDescriptions = {
-  englandCertified: 'England status changed to certified',
-  englandRevoked: 'England status changed to revoked',
-  englandRejected: 'England status changed to rejected',
+  englandCertified: 'Certified in England',
+  englandUncertified: 'Uncertified in England',
+  englandAwaitingDecision: 'Awaiting decision in England',
 
-  scotlandCertified: 'Scotland status changed to certified',
-  scotlandRevoked: 'Scotland status changed to revoked',
-  scotlandRejected: 'Scotland status changed to rejected',
+  scotlandCertified: 'Certified in Scotland',
+  scotlandUncertified: 'Uncertified in Scotland',
+  scotlandAwaitingDecision: 'Awaiting decision in Scotland',
 
-  walesCertified: 'Wales status changed to certified',
-  walesRevoked: 'Wales status changed to revoked',
-  walesRejected: 'Wales status changed to rejected',
+  walesCertified: 'Certified in Wales',
+  walesUncertified: 'Uncertified in Wales',
+  walesAwaitingDecision: 'Awaiting decision in Wales',
 
-  nIrelandCertified: 'Northern Ireland status changed to certified',
-  nIrelandRevoked: 'Northern Ireland status changed to revoked',
-  nIrelandRejected: 'Northern Ireland status changed to rejected',
+  nIrelandCertified: 'Certified in Northern Ireland',
+  nIrelandUncertified: 'Uncertified in Northern Ireland',
+  nIrelandAwaitingDecision: 'Awaiting decision in Northern Ireland',
 
   technicalReviewStarted: 'Technical review started',
   technicalReviewAccepted: 'Technical review accepted',
@@ -37,6 +36,15 @@ export const actionSchema = Joi.object({
   action: Joi.string()
     .valid(...Object.keys(actionDescriptions))
     .required(),
+  description: Joi.string()
+    .optional()
+    .description('Human-readable description of the action'),
+  country: Joi.string()
+    .valid('england', 'scotland', 'wales', 'northern-ireland')
+    .optional()
+    .description('Country the certification decision applies to'),
+  fromStatus: Joi.string().optional().description('Status before the change'),
+  toStatus: Joi.string().optional().description('Status after the change'),
   completedBy: Joi.object({
     name: Joi.string()
       .required()

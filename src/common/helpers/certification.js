@@ -10,6 +10,15 @@ const CERTIFICATION_REGIONS = {
 
 export const CERTIFICATION_FIELDS = Object.keys(CERTIFICATION_REGIONS)
 
+export const COUNTRY_CERTIFICATION_FIELDS = {
+  england: 'englandCertification',
+  scotland: 'scotlandCertification',
+  wales: 'walesCertification',
+  'northern-ireland': 'nIrelandCertification'
+}
+
+export const VALID_COUNTRY_CODES = Object.keys(COUNTRY_CERTIFICATION_FIELDS)
+
 export const CERTIFICATION_COUNTRIES = {
   england: 'englandCertification',
   scotland: 'scotlandCertification',

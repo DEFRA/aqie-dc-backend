@@ -250,9 +250,12 @@ export const applianceSchema = Joi.object({
   publishedDate: Joi.date()
     .optional()
     .description('The earliest date of certification'),
-  applianceStatus: Joi.string().description(
-    'Takes in account the technical review and country certifications, and isVisibleToPublic to determine the overall status of the appliance'
-  )
+  applianceStatus: Joi.string()
+    .valid('pending', 'live', 'hidden', 'rejected')
+    .description(
+      'Takes in account the technical review and country certifications, and isVisibleToPublic to determine the overall status of the appliance'
+    )
+    .default('pending')
 }).label('Appliance')
 
 // ============================================================================
