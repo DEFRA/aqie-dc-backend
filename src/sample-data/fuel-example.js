@@ -21,7 +21,7 @@
   customerComplaints: false,
   fuelBagging: 'Bagged',
   //   baggedAtSource: true,
-  manufacturerOrReseller: 'Manufacturer',
+  supplierType: 'Manufacture',
   fuelDescription: 'Premium pellets',
 
   //If reseller:
@@ -115,7 +115,7 @@ export default {
   customerComplaints: false,
   fuelBagging: 'Bagged',
   fuelDescription: 'Premium pellets',
-  manufacturerOrReseller: 'Manufacturer',
+  supplierType: 'Manufacture',
   //If manufacturer:
   fuelWeight: 20,
   fuelComposition: 'Wood 100%',

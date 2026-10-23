@@ -59,7 +59,7 @@ const keyMapFuel = {
 
   Buaprr: 'customerComplaints',
   gefTHa: 'fuelBagging',
-  AmmLSb: 'manufacturerOrReseller',
+  AmmLSb: 'supplierType',
 
   iqYLKO: 'fuelDescription',
 

@@ -6,6 +6,11 @@ import {
   DOCUMENTATION_CHECKS,
   LISTING_CHECKS,
   ALL_CHECKS,
+  ALL_FUEL_CHECKS,
+  getFuelCheckGroup,
+  getFuelOutstandingChecks,
+  canAcceptFuelReview,
+  isFuelCheckRequired,
   getCheckGroup
 } from '#src/common/helpers/review-status.js'
 
@@ -133,5 +138,75 @@ describe('getCheckGroup', () => {
 
   test('returns null for an unknown check', () => {
     expect(getCheckGroup('somethingElse')).toBeNull()
+  })
+})
+
+describe('fuel checks', () => {
+  const rebrandPassed = {
+    documentationChecks: { manufacturerLetter: true },
+    listingChecks: { fuelDetails: true, fuelDescription: true }
+  }
+  const manufacturerPassed = {
+    documentationChecks: { testResults: true },
+    listingChecks: { fuelDetails: true }
+  }
+
+  test('ALL_FUEL_CHECKS lists the four fuel checks', () => {
+    expect(ALL_FUEL_CHECKS).toEqual([
+      'manufacturerLetter',
+      'testResults',
+      'fuelDetails',
+      'fuelDescription'
+    ])
+  })
+
+  test('getFuelCheckGroup resolves fuel checks', () => {
+    expect(getFuelCheckGroup('manufacturerLetter')).toBe('documentationChecks')
+    expect(getFuelCheckGroup('fuelDetails')).toBe('listingChecks')
+    expect(getFuelCheckGroup('technicalDrawings')).toBeNull()
+  })
+
+  test('isFuelCheckRequired depends on supplierType', () => {
+    expect(isFuelCheckRequired('manufacturerLetter', 'Rebrand')).toBe(true)
+    expect(isFuelCheckRequired('fuelDescription', 'Rebrand')).toBe(true)
+    expect(isFuelCheckRequired('fuelDetails', 'Rebrand')).toBe(true)
+    expect(isFuelCheckRequired('testResults', 'Rebrand')).toBe(false)
+
+    expect(isFuelCheckRequired('testResults', 'Manufacture')).toBe(true)
+    expect(isFuelCheckRequired('fuelDetails', 'Manufacture')).toBe(true)
+    expect(isFuelCheckRequired('manufacturerLetter', 'Manufacture')).toBe(false)
+    expect(isFuelCheckRequired('fuelDescription', 'Manufacture')).toBe(false)
+  })
+
+  test('getFuelOutstandingChecks lists the checks for the supplierType', () => {
+    expect(getFuelOutstandingChecks({}, 'Rebrand')).toEqual([
+      'manufacturerLetter',
+      'fuelDetails',
+      'fuelDescription'
+    ])
+    expect(getFuelOutstandingChecks({}, 'Manufacture')).toEqual([
+      'testResults',
+      'fuelDetails'
+    ])
+  })
+
+  test('getFuelOutstandingChecks treats failed checks as outstanding', () => {
+    expect(
+      getFuelOutstandingChecks(
+        { ...rebrandPassed, listingChecks: { fuelDetails: false } },
+        'Rebrand'
+      )
+    ).toEqual(['fuelDetails', 'fuelDescription'])
+  })
+
+  test('getFuelOutstandingChecks falls back to every check for an unknown supplierType', () => {
+    expect(getFuelOutstandingChecks({}, undefined)).toEqual(ALL_FUEL_CHECKS)
+  })
+
+  test('canAcceptFuelReview requires the supplierType checks to pass', () => {
+    expect(canAcceptFuelReview(rebrandPassed, 'Rebrand')).toBe(true)
+    expect(canAcceptFuelReview(manufacturerPassed, 'Manufacture')).toBe(true)
+    expect(canAcceptFuelReview(rebrandPassed, 'Manufacture')).toBe(false)
+    expect(canAcceptFuelReview(manufacturerPassed, 'Rebrand')).toBe(false)
   })
 })

@@ -150,7 +150,7 @@ export const fuelApplicationExample = {
       customerComplaints: false,
       fuelBagging: 'Bagged',
       fuelDescription: 'Premium pellets',
-      manufacturerOrReseller: 'Manufacturer',
+      supplierType: 'Manufacture',
       fuelWeight: 20,
       fuelComposition: 'Wood 100%',
       sulphurContent: 0.7,
