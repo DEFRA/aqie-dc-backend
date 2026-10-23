@@ -27,6 +27,13 @@ export const CERTIFICATION_COUNTRIES = {
 }
 
 export const CERTIFIED_STATUS = 'certified'
+export const COUNTRY_CERTIFICATION_STATUSES = [
+  'new',
+  'awaiting_decision',
+  'certified',
+  'uncertified'
+]
+export const DEFAULT_COUNTRY_CERTIFICATION_STATUS = 'new'
 // Statuses that count as "not certified" rather than "not yet decided":
 export const UNCERTIFIED_STATUSES = 'uncertified'
 // Country certification statuses that are still awaiting a decision.
