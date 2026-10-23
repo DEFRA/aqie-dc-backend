@@ -1,14 +1,7 @@
 import { generateSecureId } from '../../common/helpers/data-transformer.js'
 import { calculateItemStatus } from '../../common/helpers/item-status.js'
+import { COUNTRY_CERTIFICATION_FIELDS } from '../../common/helpers/certification.js'
 import { actionDescriptions } from '../../common/schemas/action-schema.js'
-
-// Map of country codes to certification field names
-const countryToCertificationField = {
-  england: 'englandCertification',
-  scotland: 'scotlandCertification',
-  wales: 'walesCertification',
-  'northern-ireland': 'nIrelandCertification'
-}
 
 // Prefix used when building audit action keys, e.g. `nIrelandCertified`
 const countryToActionPrefix = {
@@ -37,7 +30,7 @@ export const requireArgs = (args) => {
  * Returns `{ failure }` with a ready-made result when either cannot be found.
  */
 export const loadDecisionTarget = async (db, applianceId, country, logger) => {
-  const certificationField = countryToCertificationField[country]
+  const certificationField = COUNTRY_CERTIFICATION_FIELDS[country]
 
   if (!certificationField) {
     logger.warn(`Invalid country code: ${country}`)

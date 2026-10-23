@@ -6,6 +6,7 @@
 import Joi from 'joi'
 import * as applianceCertificationController from '../../controllers/appliance-certification-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
+import { VALID_COUNTRY_CODES } from '../../common/helpers/certification.js'
 
 export const updateCertificationStatus = {
   method: 'PATCH',
@@ -17,7 +18,7 @@ export const updateCertificationStatus = {
       params: Joi.object({
         id: Joi.string().required().description('Appliance ID'),
         country: Joi.string()
-          .valid('england', 'scotland', 'wales', 'northern-ireland')
+          .valid(...VALID_COUNTRY_CODES)
           .required()
           .description('Country code')
       }),
