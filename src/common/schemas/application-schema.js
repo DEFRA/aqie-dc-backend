@@ -11,7 +11,9 @@ export const applicationsSchema = Joi.object({
     .description('Type of application'),
   id: Joi.string()
     .optional()
-    .description('Unique application identifier (server-generated)'),
+    .description(
+      'Acts as unique application identifier as well as display identifier (last digits) (server-generated)'
+    ),
   submittedAt: Joi.date()
     .optional()
     .description(

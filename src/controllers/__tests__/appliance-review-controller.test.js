@@ -1,11 +1,11 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest'
 
+import { calculateItemStatus } from '#src/common/helpers/item-status.js'
 import {
   getApplianceReview,
   updateApplianceReview,
   recordApplianceCheck
 } from '#src/controllers/appliance-review-controller.js'
-import { calculateItemStatus } from '#src/common/helpers/item-status.js'
 
 vi.mock('#src/common/helpers/item-status.js', () => ({
   calculateItemStatus: vi.fn()
@@ -240,10 +240,11 @@ describe('appliance-review-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.data.status).toBe('rejected')
+      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'appliance', 'APP-1')
     })
 
     test.each(['accepted', 'rejected'])(
-      'does not recalculate the appliance status when %s (left to application completion)',
+      'recalculates the appliance status after a %s decision',
       async (status) => {
         collection.findOne
           .mockResolvedValueOnce({ technicalReview: allPassed })
@@ -258,7 +259,11 @@ describe('appliance-review-controller', () => {
         )
 
         expect(result.success).toBe(true)
-        expect(calculateItemStatus).not.toHaveBeenCalled()
+        expect(calculateItemStatus).toHaveBeenCalledWith(
+          db,
+          'appliance',
+          'APP-1'
+        )
       }
     )
 
