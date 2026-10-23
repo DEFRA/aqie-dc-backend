@@ -25,50 +25,41 @@ export const updateCertificationStatus = async (
 ) => {
   requireArgs({ db, applianceId, country, newStatus, decidedBy, logger })
 
-  try {
-    const target = await loadDecisionTarget(db, applianceId, country, logger)
+  const target = await loadDecisionTarget(db, applianceId, country, logger)
 
-    if (target.failure) {
-      return target.failure
-    }
+  if (target.failure) {
+    return target.failure
+  }
 
-    const { appliance, certificationField, certification, status } = target
+  const { appliance, certificationField, certification, status } = target
 
-    // Re-submitting the same decision is a no-op rather than an error
-    if (status === newStatus) {
-      return { success: true, data: appliance }
-    }
+  // Re-submitting the same decision is a no-op rather than an error
+  if (status === newStatus) {
+    return { success: true, data: appliance }
+  }
 
-    if (!isValidStatusTransition(status, newStatus)) {
-      logger.warn(
-        `Invalid status transition for ${applianceId} (${country}): ${status} -> ${newStatus}`
-      )
-      return {
-        success: false,
-        code: 'INVALID_TRANSITION',
-        error: `Cannot change status from ${status} to ${newStatus}`
-      }
-    }
-
-    return await saveDecision(
-      db,
-      {
-        applianceId,
-        country,
-        certificationField,
-        currentCertification: certification,
-        currentStatus: status,
-        newStatus,
-        decidedBy
-      },
-      logger
+  if (!isValidStatusTransition(status, newStatus)) {
+    logger.warn(
+      `Invalid status transition for ${applianceId} (${country}): ${status} -> ${newStatus}`
     )
-  } catch (error) {
-    logger.error(`Error updating certification status: ${error.message}`)
     return {
       success: false,
-      code: 'INTERNAL_SERVER_ERROR',
-      error: 'Internal server error'
+      code: 'INVALID_TRANSITION',
+      error: `Cannot change status from ${status} to ${newStatus}`
     }
   }
+
+  return await saveDecision(
+    db,
+    {
+      applianceId,
+      country,
+      certificationField,
+      currentCertification: certification,
+      currentStatus: status,
+      newStatus,
+      decidedBy
+    },
+    logger
+  )
 }

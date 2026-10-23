@@ -416,21 +416,19 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     expect(result.error).toBe('Failed to update appliance')
   })
 
-  test('returns a generic error when the database throws', async () => {
+  test('rethrows unexpected database failures so the route can return a 500', async () => {
     const { db, appliances } = makeDb({ id: 'APP-1' })
     appliances.findOne.mockRejectedValueOnce(new Error('connection lost'))
 
-    const result = await updateCertificationStatus(
-      db,
-      'APP-1',
-      'england',
-      'certified',
-      decidedBy,
-      logger
-    )
-
-    expect(result.success).toBe(false)
-    expect(result.error).toBe('Internal server error')
-    expect(logger.error).toHaveBeenCalled()
+    await expect(
+      updateCertificationStatus(
+        db,
+        'APP-1',
+        'england',
+        'certified',
+        decidedBy,
+        logger
+      )
+    ).rejects.toThrow('connection lost')
   })
 })
