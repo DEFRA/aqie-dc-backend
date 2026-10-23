@@ -1,16 +1,14 @@
 import Joi from 'joi'
+import {
+  COUNTRY_CERTIFICATION_STATUSES,
+  DEFAULT_COUNTRY_CERTIFICATION_STATUS
+} from '../helpers/certification.js'
 
 export const countryCertificationSchema = Joi.object({
   // 1. Current State Metadata
   status: Joi.string()
-    .valid(
-      'new', // Appliance/Item in technical review, hasn't been sent to country
-      'awaiting_decision',
-      'certified',
-      'revoked', // Previously certified, now uncertified
-      'rejected' // Denied initial certification
-    )
-    .default('new'),
+    .valid(...COUNTRY_CERTIFICATION_STATUSES)
+    .default(DEFAULT_COUNTRY_CERTIFICATION_STATUS),
   decidedAt: Joi.date().iso().allow(null).default(null),
   decidedBy: Joi.object({
     name: Joi.string().optional(),
