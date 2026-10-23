@@ -256,6 +256,32 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     )
   })
 
+  test('returns the recalculated appliance status after saving the decision', async () => {
+    const { db, appliances } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'certified' }
+    })
+
+    appliances.findOne.mockResolvedValueOnce({
+      id: 'APP-1',
+      applianceStatus: 'hidden',
+      englandCertification: { status: 'uncertified' }
+    })
+
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'uncertified',
+      decidedBy,
+      logger
+    )
+
+    expect(result.success).toBe(true)
+    expect(appliances.findOne).toHaveBeenCalledWith({ id: 'APP-1' })
+    expect(result.data.applianceStatus).toBe('hidden')
+  })
+
   test('still succeeds and records the action when the recalculation fails', async () => {
     const { db, actions } = makeDb({
       id: 'APP-1',

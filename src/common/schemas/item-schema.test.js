@@ -82,6 +82,15 @@ describe('item-schema applianceSchema', () => {
     expect(value.englandCertification.status).toBe('new')
   })
 
+  test('defaults applianceStatus to pending in lowercase', () => {
+    const payload = structuredClone(applianceExample)
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.applianceStatus).toBe('pending')
+  })
+
   test.each(['new', 'awaiting_decision', 'certified', 'uncertified'])(
     'accepts country certification status %s',
     (status) => {

@@ -23,7 +23,7 @@ export const updateCertificationStatus = {
       }),
       payload: Joi.object({
         status: Joi.string()
-          .valid('certified', 'uncertified', 'awaiting_decision')
+          .valid('certified', 'uncertified')
           .required()
           .description('New certification status'),
         decidedBy: Joi.object({

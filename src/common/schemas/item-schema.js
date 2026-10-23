@@ -254,7 +254,7 @@ export const applianceSchema = Joi.object({
     .description(
       'Takes in account the technical review and country certifications, and isVisibleToPublic to determine the overall status of the appliance'
     )
-    .default('Pending')
+    .default('pending')
 }).label('Appliance')
 
 // ============================================================================
