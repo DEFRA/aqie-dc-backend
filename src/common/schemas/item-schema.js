@@ -33,7 +33,9 @@ export const applianceSchema = Joi.object({
   // Fields from DXT form input
   applicationId: Joi.string()
     .optional()
-    .description('Application ID (foreign key), unique identifier and display identifier (last digits) (server-generated)'),
+    .description(
+      'Application ID (foreign key), unique identifier and display identifier (last digits) (server-generated)'
+    ),
   // Start of appliance application fields
   companyName: Joi.string().required().description('Company name'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),

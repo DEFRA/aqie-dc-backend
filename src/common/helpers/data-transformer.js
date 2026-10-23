@@ -26,7 +26,10 @@ export const generateNextId = (lastId) => {
     ? Number.parseInt(lastId.slice(PREFIX_LENGTH + 1), 10)
     : 0
 
-  const prefix = String(crypto.randomInt(0, 10_000)).padStart(PREFIX_LENGTH, '0')
+  const prefix = String(crypto.randomInt(0, 10_000)).padStart(
+    PREFIX_LENGTH,
+    '0'
+  )
   const sequence = String(
     (Number.isNaN(lastSequence) ? 0 : lastSequence) + 1
   ).padStart(SEQUENCE_MIN_LENGTH, '0')
