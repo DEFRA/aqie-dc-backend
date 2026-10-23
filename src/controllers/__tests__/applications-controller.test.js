@@ -7,7 +7,7 @@ import {
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getApplicationsWithSummary,
+  getApplicationsSummaryByStatus,
   getApplicationSummaryById
 } from '#src/controllers/applications-controller.js'
 
@@ -1033,7 +1033,7 @@ describe('applications-controller', () => {
     })
   })
 
-  describe('getApplicationsWithSummary', () => {
+  describe('getApplicationsSummaryByStatus', () => {
     test('returns applications grouped by status with appliance model names', async () => {
       docs.push(
         {
@@ -1064,7 +1064,7 @@ describe('applications-controller', () => {
         }
       )
 
-      const result = await getApplicationsWithSummary(
+      const result = await getApplicationsSummaryByStatus(
         db,
         mockLogger,
         'appliance'
@@ -1091,7 +1091,11 @@ describe('applications-controller', () => {
         brandNames: 'Brand A'
       })
 
-      const result = await getApplicationsWithSummary(db, mockLogger, 'fuel')
+      const result = await getApplicationsSummaryByStatus(
+        db,
+        mockLogger,
+        'fuel'
+      )
 
       expect(result.success).toBe(true)
       expect(result.data.new).toHaveLength(1)
@@ -1099,7 +1103,7 @@ describe('applications-controller', () => {
     })
 
     test('returns empty result when no matching applications exist', async () => {
-      const result = await getApplicationsWithSummary(
+      const result = await getApplicationsSummaryByStatus(
         db,
         mockLogger,
         'appliance'
@@ -1111,7 +1115,11 @@ describe('applications-controller', () => {
     })
 
     test('returns notFound for an unknown application type', async () => {
-      const result = await getApplicationsWithSummary(db, mockLogger, 'other')
+      const result = await getApplicationsSummaryByStatus(
+        db,
+        mockLogger,
+        'other'
+      )
 
       expect(result.success).toBe(false)
       expect(result.notFound).toBe(true)
@@ -1126,7 +1134,7 @@ describe('applications-controller', () => {
       })
 
       await expect(
-        getApplicationsWithSummary(db, mockLogger, 'appliance')
+        getApplicationsSummaryByStatus(db, mockLogger, 'appliance')
       ).rejects.toThrow('Summary fetch failed')
       expect(mockLogger.error).toHaveBeenCalled()
     })
@@ -1138,7 +1146,7 @@ describe('applications-controller', () => {
         status: 'archived'
       })
 
-      const result = await getApplicationsWithSummary(
+      const result = await getApplicationsSummaryByStatus(
         db,
         mockLogger,
         'appliance',
@@ -1154,7 +1162,7 @@ describe('applications-controller', () => {
 
     test('throws when logger is not provided', async () => {
       await expect(
-        getApplicationsWithSummary(db, null, 'appliance')
+        getApplicationsSummaryByStatus(db, null, 'appliance')
       ).rejects.toThrow('logger is required')
     })
   })

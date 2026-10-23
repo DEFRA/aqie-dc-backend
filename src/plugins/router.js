@@ -10,7 +10,7 @@ import { completeApplication } from '../routes/applications/complete-application
 import { startApplication } from '../routes/applications/start-application.js'
 import { getAllApplications } from '../routes/applications/get-all-applications.js'
 import { getApplicationById } from '../routes/applications/get-application-by-id.js'
-import { getApplicationsWithSummary } from '../routes/applications/get-applications-with-summary.js'
+import { getApplicationsSummaryByStatus } from '../routes/applications/get-applications-summary-by-status.js'
 import { getApplicationSummary } from '../routes/applications/get-application-summary.js'
 import { getCounts } from '../routes/applications/get-counts.js'
 import { searchApplications } from '../routes/applications/search-applications.js'
@@ -31,6 +31,7 @@ import { updateFuel } from '../routes/fuels/update-fuel.js'
 import { deleteFuel } from '../routes/fuels/delete-fuel.js'
 import { getApplianceReview } from '../routes/appliances/get-appliance-review.js'
 import { updateApplianceReview } from '../routes/appliances/update-appliance-review.js'
+import { updateApplianceVisibility } from '../routes/appliances/update-appliance-visibility.js'
 import { getApplianceTypes } from '../routes/appliance-types/get-appliance-types.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
@@ -114,7 +115,7 @@ const router = {
         startApplication,
         getAllApplications,
         getCounts,
-        getApplicationsWithSummary,
+        getApplicationsSummaryByStatus,
         getApplicationSummary,
         searchApplications, // Must come before getApplicationById to avoid route conflict
         getApplicationById
@@ -130,6 +131,7 @@ const router = {
         getApplianceById,
         recordApplianceCheck,
         updateApplianceReview,
+        updateApplianceVisibility,
         updateAppliance,
         updateCertificationStatus,
         deleteAppliance,

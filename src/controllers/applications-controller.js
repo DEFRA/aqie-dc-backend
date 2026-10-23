@@ -432,7 +432,7 @@ async function getAllApplicationsWithAppliances(db, logger) {
  * @param {string} type - Type of applications/linked items to summarise ('appliance' | 'fuel')
  * @param {string[]} statuses - Application statuses to include
  */
-async function getApplicationsWithSummary(
+async function getApplicationsSummaryByStatus(
   db,
   logger,
   type,
@@ -599,6 +599,6 @@ export {
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getApplicationsWithSummary, //getApplicationsSummaryByStatus?
+  getApplicationsSummaryByStatus,
   getApplicationSummaryById
 }
