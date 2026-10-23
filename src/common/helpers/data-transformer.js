@@ -6,6 +6,8 @@ import crypto from 'node:crypto'
 const SECURE_ID_LENGTH = 12
 const RANDOM_BYTES_LENGTH = 9
 const NON_ALPHANUMERIC_REGEX = /[^a-zA-Z0-9]/g
+const PREFIX_LENGTH = 4
+const SEQUENCE_MIN_LENGTH = 4
 
 export const generateSecureId = () => {
   let id = ''
@@ -16,6 +18,20 @@ export const generateSecureId = () => {
       .replaceAll(NON_ALPHANUMERIC_REGEX, '')
   }
   return id.slice(0, SECURE_ID_LENGTH)
+}
+
+// Id format is "PPPP-SSSS": 4-digit random prefix, "-", then the sequence
+export const generateNextId = (lastId) => {
+  const lastSequence = lastId
+    ? Number.parseInt(lastId.slice(PREFIX_LENGTH + 1), 10)
+    : 0
+
+  const prefix = String(crypto.randomInt(0, 10_000)).padStart(PREFIX_LENGTH, '0')
+  const sequence = String(
+    (Number.isNaN(lastSequence) ? 0 : lastSequence) + 1
+  ).padStart(SEQUENCE_MIN_LENGTH, '0')
+
+  return `${prefix}-${sequence}`
 }
 
 // Returns the full address array for an item, handling UK and non-UK logic

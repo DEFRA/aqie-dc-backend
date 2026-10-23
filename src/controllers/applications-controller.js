@@ -3,8 +3,10 @@
  * Business logic for application-related operations
  */
 
-import { randomUUID } from 'node:crypto'
-import { generateSecureId } from '../common/helpers/data-transformer.js'
+import {
+  generateNextId,
+  generateSecureId
+} from '../common/helpers/data-transformer.js'
 import {
   groupItemsByTechReviewStatus,
   isApplicationReviewComplete
@@ -18,6 +20,15 @@ import { getCompleteApplicationRecordsFilter } from './complete-application-reco
 const APPLICATION_NOT_FOUND = 'Application not found'
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const MONGO_ILLEGAL_OPERATION_CODE = 20
+
+// Next id in "PPPP-SSSS" format
+async function generateApplicationId(collection, session) {
+  const last = await collection.findOne(
+    { id: { $regex: /^\d{4}-\d+$/ } },
+    { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
+  )
+  return generateNextId(last?.id)
+}
 
 /**
  * Create a new application with appliances using MongoDB transactions (if available)
@@ -75,8 +86,7 @@ function isTransactionUnsupportedError(error) {
   )
 }
 
-function buildApplication(applicationData) {
-  const id = randomUUID()
+function buildApplication(applicationData, id) {
   const now = new Date()
 
   return {
@@ -117,7 +127,10 @@ async function performApplicationInsert(db, payload, logger, session) {
   const idPrefix = ID_PREFIX_BY_TYPE[applicationData.type]
 
   // Build and insert Application
-  const application = buildApplication(applicationData)
+  const application = buildApplication(
+    applicationData,
+    await generateApplicationId(appCollection, session)
+  )
 
   const insertOptions = session ? { session } : {}
   const appResult = await appCollection.insertOne(application, insertOptions)
