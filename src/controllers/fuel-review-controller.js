@@ -51,7 +51,7 @@ async function recordFuelCheck(db, fuelId, check, result, logger) {
     const item = await db
       .collection('Fuels')
       .findOne(
-        { fuelId },
+        { id: fuelId },
         { projection: { supplierType: 1, technicalReview: 1, _id: 0 } }
       )
 
@@ -98,7 +98,7 @@ async function updateFuelReview(db, fuelId, decision, logger) {
     const item = await db
       .collection('Fuels')
       .findOne(
-        { fuelId },
+        { id: fuelId },
         { projection: { supplierType: 1, technicalReview: 1, _id: 0 } }
       )
 

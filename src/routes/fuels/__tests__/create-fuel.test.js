@@ -54,7 +54,7 @@ describe('POST /fuels', () => {
         success: true,
         message: 'Fuel created successfully',
         data: {
-          fuelId: mockId,
+          id: mockId,
           ...fuelExample
         }
       })
@@ -118,7 +118,7 @@ describe('POST /fuels', () => {
         success: true,
         message: 'Fuel created successfully',
         data: {
-          fuelId,
+          id: fuelId,
           ...fuelExample
         }
       })

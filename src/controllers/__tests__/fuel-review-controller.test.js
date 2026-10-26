@@ -33,7 +33,7 @@ describe('fuel-review-controller', () => {
           supplierType: 'Rebrand',
           technicalReview: { status: 'new' }
         })
-        .mockResolvedValueOnce({ fuelId: 'FUEL-1' })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
       collection.updateOne.mockResolvedValue({ matchedCount: 1 })
 
       const result = await recordFuelCheck(
@@ -63,7 +63,7 @@ describe('fuel-review-controller', () => {
           supplierType: 'Rebrand',
           technicalReview: { status: 'in_review' }
         })
-        .mockResolvedValueOnce({ fuelId: 'FUEL-1' })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
       collection.updateOne.mockResolvedValue({ matchedCount: 1 })
 
       await recordFuelCheck(db, 'FUEL-1', 'fuelDetails', false, mockLogger)
@@ -82,7 +82,7 @@ describe('fuel-review-controller', () => {
           supplierType: 'Rebrand',
           technicalReview: { status: 'accepted' }
         })
-        .mockResolvedValueOnce({ fuelId: 'FUEL-1' })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
       collection.updateOne.mockResolvedValue({ matchedCount: 1 })
 
       await recordFuelCheck(db, 'FUEL-1', 'fuelDescription', true, mockLogger)
@@ -111,7 +111,7 @@ describe('fuel-review-controller', () => {
           supplierType: 'Manufacture',
           technicalReview: { status: 'in_review' }
         })
-        .mockResolvedValueOnce({ fuelId: 'FUEL-1' })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
       collection.updateOne.mockResolvedValue({ matchedCount: 1 })
 
       await recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger)
@@ -189,7 +189,7 @@ describe('fuel-review-controller', () => {
     ) => {
       collection.findOne
         .mockResolvedValueOnce({ supplierType, technicalReview })
-        .mockResolvedValueOnce({ fuelId: 'FUEL-1' })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
       collection.updateOne.mockResolvedValue({ matchedCount: 1 })
     }
 
@@ -304,7 +304,7 @@ describe('fuel-review-controller', () => {
 
       const [filter, update] = collection.updateOne.mock.calls[0]
 
-      expect(filter).toEqual({ fuelId: 'FUEL-1' })
+      expect(filter).toEqual({ id: 'FUEL-1' })
       expect(update.$set).toHaveProperty('technicalReview.status', 'accepted')
       expect(update.$set).toHaveProperty('technicalReview.reviewedAt')
       expect(update.$set).not.toHaveProperty('technicalReview')
