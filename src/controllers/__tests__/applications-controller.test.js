@@ -1088,7 +1088,7 @@ describe('applications-controller', () => {
       fuelDocs.push({
         _id: 'fuel-1',
         applicationId: 'app-3',
-        brandNames: 'Brand A'
+        brandName: 'Brand A'
       })
 
       const result = await getApplicationsSummaryByStatus(

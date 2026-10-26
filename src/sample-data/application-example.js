@@ -156,7 +156,7 @@ export const fuelApplicationExample = {
       sulphurContent: 0.7,
       manufacturingProcess: 'Kiln-dried',
       qualityControlSystem: 'ISO certified',
-      brandNames: 'PelletBrand',
+      brandName: 'PelletBrand',
       declaration: true
     }
   ]

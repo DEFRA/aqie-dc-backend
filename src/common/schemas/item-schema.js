@@ -333,6 +333,8 @@ export const fuelSchema = Joi.object({
     .required()
     .description('Manufacture or Rebrand (used to be Reseller)'),
   fuelDescription: Joi.string().required().description('Fuel description'),
+  brandName: Joi.string().required().description('Brand name'),
+  additionalNames: Joi.string().optional().description('Additional brand names, entered as a comma-separated list'),
   //If a rebrand, these fields become required:
   originalFuelManufacturer: Joi.string()
     .when('supplierType', {
@@ -358,13 +360,6 @@ export const fuelSchema = Joi.object({
   changesMade: Joi.string()
     .optional()
     .description('Explain changes made to the original fuel'),
-  resellBrandName: Joi.string()
-    .when('supplierType', {
-      is: 'Rebrand',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('What brand name will you be reselling'), //NEEDTO: new so needs to be added to cilent DB or mapped here
   //If a manufacturer, these fields become required:
   fuelWeight: Joi.number()
     .when('supplierType', {
@@ -401,13 +396,6 @@ export const fuelSchema = Joi.object({
       otherwise: Joi.string().optional()
     })
     .description('Quality manufactured system in place'),
-  brandNames: Joi.string()
-    .when('supplierType', {
-      is: 'Manufacture',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Brand name(s)'),
   //End of manufacturer/reseller
   declaration: Joi.boolean().required().description('Declaration'),
   createdAt: Joi.date()

@@ -68,9 +68,9 @@ function mapFuelDetail(item) {
     ...item,
     authorisedIn: findCertified(item),
     lastUpdatedDate: findLastCertifiedDate(item),
-    name: item.brandNames || '',
+    name: item.brandName,
     id: item.id,
-    manufacturer: item.companyName || '',
+    manufacturer: item.companyName,
     fullAddress: getFullAddress(item)
   }
 }
@@ -78,9 +78,9 @@ function mapFuelDetail(item) {
 // Returns summary object for list views
 function mapFuelSummary(item) {
   return {
-    name: item.brandNames || '',
+    name: item.brandName,
     id: item.id,
-    manufacturer: item.companyName || '',
+    manufacturer: item.companyName,
     authorisedIn: findCertified(item),
     lastUpdatedDate: findLastCertifiedDate(item)
   }
@@ -239,9 +239,9 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
 
     const searchQuery = {
       $or: [
-        { brandNames: { $regex: query, $options: 'i' } },
-        { companyName: { $regex: query, $options: 'i' } },
-        { resellBrandName: { $regex: query, $options: 'i' } }
+        { brandName: { $regex: query, $options: 'i' } },
+        { additionalNames: { $regex: query, $options: 'i' } },
+        { companyName: { $regex: query, $options: 'i' } }
       ]
     }
 

@@ -9,7 +9,7 @@ const TYPE_TO_COLLECTION = {
 // Maps an application's `type` field to the field on its linked items that holds the display name.
 const TYPE_TO_NAME_FIELD = {
   appliance: 'modelName',
-  fuel: 'brandNames'
+  fuel: 'brandName'
 }
 
 // Returns undefined for an unrecognised type - callers decide how to log/handle that.

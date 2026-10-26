@@ -80,7 +80,7 @@ describe('fuels-controller', () => {
 
       const result = await createFuel(
         db,
-        { brandNames: 'Premium Fuel' },
+        { brandName: 'Premium Fuel' },
         mockLogger
       )
 
@@ -144,7 +144,7 @@ describe('fuels-controller', () => {
         insertedId: 'mongo-id'
       })
 
-      await createFuel(db, { brandNames: 'Premium Fuel' }, mockLogger)
+      await createFuel(db, { brandName: 'Premium Fuel' }, mockLogger)
 
       expect(collection.insertOne).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -160,7 +160,7 @@ describe('fuels-controller', () => {
         toArray: vi.fn().mockResolvedValue([
           {
             id: 'FUEL-001',
-            brandNames: 'Premium Fuel',
+            brandName: 'Premium Fuel',
             companyName: 'Fuel Company',
             englandCertification: {},
             scotlandCertification: {},
@@ -211,7 +211,7 @@ describe('fuels-controller', () => {
     test('returns mapped fuel detail', async () => {
       collection.findOne.mockResolvedValue({
         id: 'FUEL-001',
-        brandNames: 'Premium Fuel',
+        brandName: 'Premium Fuel',
         companyName: 'Fuel Company',
         englandCertification: {
           lastCertifiedAt: '2024-01-01'
@@ -260,17 +260,17 @@ describe('fuels-controller', () => {
 
       collection.findOne.mockResolvedValue({
         id: 'FUEL-001',
-        brandNames: 'Updated Fuel'
+        brandName: 'Updated Fuel'
       })
 
       const result = await updateFuel(
         db,
         'FUEL-001',
-        { brandNames: 'Updated Fuel' },
+        { brandName: 'Updated Fuel' },
         mockLogger
       )
 
-      expect(result.updated.brandNames).toBe('Updated Fuel')
+      expect(result.updated.brandName).toBe('Updated Fuel')
     })
 
     test('returns notFound when no match', async () => {
@@ -331,7 +331,7 @@ describe('fuels-controller', () => {
         toArray: vi.fn().mockResolvedValue([
           {
             id: 'FUEL-001',
-            brandNames: 'Fuel A',
+            brandName: 'Fuel A',
             englandCertification: {
               lastCertifiedAt: '2024-01-01'
             },
@@ -371,7 +371,7 @@ describe('fuels-controller', () => {
         toArray: vi.fn().mockResolvedValue([
           {
             id: 'FUEL-001',
-            brandNames: 'Search Fuel',
+            brandName: 'Search Fuel',
             englandCertification: {
               lastCertifiedAt: '2024-01-01'
             },
@@ -412,7 +412,7 @@ describe('fuels-controller', () => {
     test('returns fuel detail', async () => {
       collection.findOne.mockResolvedValue({
         id: 'FUEL-001',
-        brandNames: 'Related Fuel',
+        brandName: 'Related Fuel',
         englandCertification: {
           lastCertifiedAt: '2024-01-01'
         },

@@ -68,7 +68,6 @@ const keyMapFuel = {
   qHMgAu: 'originalFuelNameOrBrand',
   wSvNbv: 'changedFromOriginalFuel',
   UPvcFc: 'changesMade',
-  gGFSnh: 'resellBrandName',
 
   // Manufacture-only fields
   vUJklv: 'fuelWeight',
@@ -76,7 +75,9 @@ const keyMapFuel = {
   kOXZSk: 'sulphurContent',
   Hdxrqy: 'manufacturingProcess',
   dDwQia: 'qualityControlSystem',
-  GgFWEK: 'brandNames',
+
+  GgFWEK: 'brandName',
+  fvgxNC: 'additionalNames',
 
   dytkGm: 'declaration',
 

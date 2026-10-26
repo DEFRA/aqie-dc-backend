@@ -92,7 +92,7 @@ describe('POST /fuels', () => {
     test('returns request.pre.validationResult.payload as newItem', async () => {
       const customPayload = {
         ...fuelExample,
-        brandNames: 'Custom Brand'
+        brandName: 'Custom Brand'
       }
       mockRequest.pre.validationResult.payload = customPayload
 

@@ -29,7 +29,6 @@
   // originalFuelNameOrBrand: 'FireFuel',
   // changedFromOriginalFuel: false,
   // changesMade: 'The fuels was turned into love hearts',
-  // resellBrandName: 'PelletBrand',
 
   //If manufacturer:
   fuelWeight: 20,
@@ -37,7 +36,7 @@
   sulphurContent: 0.7,
   manufacturingProcess: 'Kiln-dried',
   qualityControlSystem: 'ISO certified',
-  brandNames: 'PelletBrand',
+  brandName: 'PelletBrand',
 
   declaration: true,
 
@@ -122,12 +121,11 @@ export default {
   sulphurContent: 0.7,
   manufacturingProcess: 'Kiln-dried',
   qualityControlSystem: 'ISO certified',
-  brandNames: 'PelletBrand',
+  brandName: 'PelletBrand',
   //If reseller:
   // originalFuelManufacturer: 'Fuels LTD',
   // originalFuelNameOrBrand: 'FireFuel',
   // changedFromOriginalFuel: false,
   // changesMade: 'The fuels was turned into love hearts',
-  // resellBrandName: 'PelletBrand',
   declaration: true
 }
