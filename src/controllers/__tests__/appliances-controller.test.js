@@ -353,7 +353,8 @@ describe('appliances-controller', () => {
           status: 'live',
           canTogglePublicVisibility: true,
           isVisibleToPublic: false,
-          isLegacyRecord: true
+          isLegacyRecord: true,
+          technicalReview: null
         }
       })
     })
