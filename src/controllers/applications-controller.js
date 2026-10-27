@@ -245,6 +245,14 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
         .collection(collectionName)
         .find({ applicationId })
         .toArray()
+
+      // Frontend reads fuel brand as `name`
+      if (application.type === 'fuel') {
+        linkedItems = linkedItems.map((item) => ({
+          ...item,
+          name: item.brandName
+        }))
+      }
     } else {
       logger.warn(`Unknown application type: ${application.type}`)
     }
