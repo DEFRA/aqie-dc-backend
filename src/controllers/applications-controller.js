@@ -498,7 +498,12 @@ async function getApplicationsSummaryByStatus(
     const applicationIds = applications.map((app) => app.id)
     const items = await itemsCollection
       .find({ applicationId: { $in: applicationIds } })
-      .project({ applicationId: 1, [nameField]: 1 })
+      .project({
+        _id: 0,
+        id: 1,
+        applicationId: 1,
+        [nameField]: 1
+      })
       .toArray()
 
     // 3. Build result organized by status
@@ -519,7 +524,7 @@ async function getApplicationsSummaryByStatus(
         submittedAt: app.submittedAt,
         items: items
           .filter((item) => item.applicationId === app.id)
-          .map((item) => ({ id: item._id, name: item[nameField] })),
+          .map((item) => ({ id: item.id, name: item[nameField] })),
         reviewedBy: app.reviewedBy
       })
     }
@@ -585,7 +590,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
           responsiblePerson: 1,
           customerComplaints: 1,
           fuelBagging: 1,
-          manufacturerOrReseller: 1
+          supplierType: 1
         }
       }
     )
@@ -595,7 +600,14 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       .collection(collectionName)
       .find(
         { applicationId },
-        { projection: { id: 1, [nameField]: 1, technicalReview: 1, _id: 0 } }
+        {
+          projection: {
+            id: 1,
+            [nameField]: 1,
+            technicalReview: 1,
+            _id: 0
+          }
+        }
       )
       .toArray()
 

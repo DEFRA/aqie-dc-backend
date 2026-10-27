@@ -76,8 +76,7 @@ const keyMapFuel = {
   dDwQia: 'qualityControlSystem',
 
   GgFWEK: 'brandName',
-  fvgxNC: 'additionalNames',
-
+  fvgxNC: 'additionalBrandNames',
   dytkGm: 'declaration',
 
   userConfirmationEmailAddress: 'userConfirmationEmailAddress'

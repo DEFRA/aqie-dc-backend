@@ -1053,12 +1053,12 @@ describe('applications-controller', () => {
       )
       applianceDocs.push(
         {
-          _id: 'appl-1',
+          id: 'APPL-1',
           applicationId: 'app-1',
           modelName: 'Model A'
         },
         {
-          _id: 'appl-2',
+          id: 'APPL-2',
           applicationId: 'app-2',
           modelName: 'Model B'
         }
@@ -1075,6 +1075,7 @@ describe('applications-controller', () => {
       expect(result.data.inProgress).toHaveLength(1)
       expect(result.data.new[0].items[0].name).toBe('Model A')
       expect(result.data.inProgress[0].items[0].name).toBe('Model B')
+      expect(result.data.new[0].items[0].id).toBe('APPL-1')
     })
 
     test('returns applications grouped by status with fuel brand names', async () => {
@@ -1086,7 +1087,7 @@ describe('applications-controller', () => {
         createdAt: new Date('2026-01-06')
       })
       fuelDocs.push({
-        _id: 'fuel-1',
+        id: 'FUEL-1',
         applicationId: 'app-3',
         brandName: 'Brand A'
       })
