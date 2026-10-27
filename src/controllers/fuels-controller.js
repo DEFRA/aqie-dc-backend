@@ -240,7 +240,7 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
     const searchQuery = {
       $or: [
         { brandName: { $regex: query, $options: 'i' } },
-        { additionalNames: { $regex: query, $options: 'i' } },
+        { additionalBrandNames: { $regex: query, $options: 'i' } },
         { companyName: { $regex: query, $options: 'i' } }
       ]
     }

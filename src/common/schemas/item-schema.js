@@ -334,7 +334,7 @@ export const fuelSchema = Joi.object({
     .description('Manufacture or Rebrand (used to be Reseller)'),
   fuelDescription: Joi.string().required().description('Fuel description'),
   brandName: Joi.string().required().description('Brand name'),
-  additionalNames: Joi.string()
+  additionalBrandNames: Joi.string()
     .optional()
     .description('Additional brand names, entered as a comma-separated list'),
   //If a rebrand, these fields become required:
