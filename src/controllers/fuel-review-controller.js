@@ -5,6 +5,7 @@ import {
   getFuelOutstandingChecks,
   isFuelCheckRequired
 } from '../common/helpers/review-status.js'
+import { calculateItemStatus } from '../common/helpers/item-status.js'
 import { updateFuel } from './fuels-controller.js'
 
 /**
@@ -126,22 +127,20 @@ async function updateFuelReview(db, fuelId, decision, logger) {
 
     const reviewedAt = new Date()
 
-    // reviewedBy is set whole: stored value is often null, so a nested path like reviewedBy.name would fail.
-    const result = await db.collection('Fuels').updateOne(
-      { id: fuelId },
+    const result = await updateFuel(
+      db,
+      fuelId,
       {
-        $set: {
-          'technicalReview.status': status,
-          'technicalReview.reviewedAt': reviewedAt,
-          'technicalReview.reviewedBy': reviewedBy ?? null,
-          updatedAt: reviewedAt
-        }
-      }
+        technicalReview: { status, reviewedAt, reviewedBy: reviewedBy ?? null }
+      },
+      logger
     )
 
-    if (result.matchedCount === 0) {
+    if (result.notFound) {
       return notFoundResult()
     }
+
+    await calculateItemStatus(db, 'fuel', fuelId)
 
     logger.info(`Fuel review ${status}: ${fuelId}`)
 

@@ -334,7 +334,9 @@ export const fuelSchema = Joi.object({
     .description('Manufacture or Rebrand (used to be Reseller)'),
   fuelDescription: Joi.string().required().description('Fuel description'),
   brandName: Joi.string().required().description('Brand name'),
-  additionalNames: Joi.string().optional().description('Additional brand names, entered as a comma-separated list'),
+  additionalNames: Joi.string()
+    .optional()
+    .description('Additional brand names, entered as a comma-separated list'),
   //If a rebrand, these fields become required:
   originalFuelManufacturer: Joi.string()
     .when('supplierType', {
@@ -415,11 +417,9 @@ export const fuelSchema = Joi.object({
       .default(null)
       .description('Date technical review status changed'),
     reviewedBy: Joi.object({
-      name: Joi.string().optional(),
-      email: Joi.string().email().optional()
-    })
-      .allow(null)
-      .default(null),
+      name: Joi.string().optional().default(null),
+      email: Joi.string().email().optional().default(null)
+    }).default(),
     documentationChecks: Joi.object({
       manufacturerLetter: Joi.boolean().allow(null).default(null),
       testResults: Joi.boolean().allow(null).default(null)

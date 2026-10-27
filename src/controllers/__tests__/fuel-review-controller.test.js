@@ -1,9 +1,14 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest'
 
+import { calculateItemStatus } from '#src/common/helpers/item-status.js'
 import {
   recordFuelCheck,
   updateFuelReview
 } from '#src/controllers/fuel-review-controller.js'
+
+vi.mock('#src/common/helpers/item-status.js', () => ({
+  calculateItemStatus: vi.fn()
+}))
 
 const rebrandPassed = {
   documentationChecks: { manufacturerLetter: true },
@@ -328,10 +333,11 @@ describe('fuel-review-controller', () => {
 
       const [, update] = collection.updateOne.mock.calls[0]
 
-      expect(update.$set['technicalReview.reviewedBy']).toEqual({
-        name: 'A Reviewer',
-        email: 'a@defra.gov.uk'
-      })
+      expect(update.$set['technicalReview.reviewedBy.name']).toBe('A Reviewer')
+      expect(update.$set['technicalReview.reviewedBy.email']).toBe(
+        'a@defra.gov.uk'
+      )
+      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'fuel', 'FUEL-1')
     })
 
     test('records a null reviewer when nobody is signed in', async () => {
