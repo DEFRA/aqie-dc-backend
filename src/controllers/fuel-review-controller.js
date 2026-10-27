@@ -126,16 +126,20 @@ async function updateFuelReview(db, fuelId, decision, logger) {
 
     const reviewedAt = new Date()
 
-    const result = await updateFuel(
-      db,
-      fuelId,
+    // reviewedBy is set whole: stored value is often null, so a nested path like reviewedBy.name would fail.
+    const result = await db.collection('Fuels').updateOne(
+      { id: fuelId },
       {
-        technicalReview: { status, reviewedAt, reviewedBy: reviewedBy ?? null }
-      },
-      logger
+        $set: {
+          'technicalReview.status': status,
+          'technicalReview.reviewedAt': reviewedAt,
+          'technicalReview.reviewedBy': reviewedBy ?? null,
+          updatedAt: reviewedAt
+        }
+      }
     )
 
-    if (result.notFound) {
+    if (result.matchedCount === 0) {
       return notFoundResult()
     }
 
