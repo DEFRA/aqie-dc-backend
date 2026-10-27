@@ -88,7 +88,7 @@ describe('PATCH /fuels/{fuelId}', () => {
     test('passes payload as updates to controller', async () => {
       const payload = {
         brandName: 'New Brand',
-        fuelWeight: 25
+        weight: 25
       }
       mockRequest.payload = payload
 

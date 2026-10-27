@@ -90,7 +90,7 @@ describe('mapKeys', () => {
       expect(result).toEqual({
         companyName: 'Fuel Co',
         isUkBased: false,
-        fuelDescription: 'Solid fuel description'
+        appearance: 'Solid fuel description'
       })
     })
 

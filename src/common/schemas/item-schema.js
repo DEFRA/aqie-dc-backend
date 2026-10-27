@@ -332,45 +332,55 @@ export const fuelSchema = Joi.object({
     .valid('Manufacture', 'Rebrand')
     .required()
     .description('Manufacture or Rebrand (used to be Reseller)'),
-  fuelDescription: Joi.string().required().description('Fuel description'),
   brandName: Joi.string().required().description('Brand name'),
   additionalBrandNames: Joi.string()
     .optional()
     .description('Additional brand names, entered as a comma-separated list'),
   //If a rebrand, these fields become required:
-  originalFuelManufacturer: Joi.string()
+  originalFuel: Joi.object({
+    manufacturer: Joi.string()
+      .when('...supplierType', {
+        is: 'Rebrand',
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Original fuel manufacturer'),
+    name: Joi.string()
+      .when('...supplierType', {
+        is: 'Rebrand',
+        then: Joi.string().required(),
+        otherwise: Joi.string().optional()
+      })
+      .description('Original fuel name or brand'),
+    isChangedOrMixed: Joi.boolean()
+      .when('...supplierType', {
+        is: 'Rebrand',
+        then: Joi.boolean().required(),
+        otherwise: Joi.boolean().optional()
+      })
+      .description(
+        'Has the original fuel been changed or mixed with another fuel: yes or no'
+      ),
+    changes: Joi.string()
+      .optional()
+      .description('Explain changes made to the original fuel')
+  })
     .when('supplierType', {
       is: 'Rebrand',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
+      then: Joi.required(),
+      otherwise: Joi.optional()
     })
-    .description('Original fuel manufacturer'),
-  originalFuelNameOrBrand: Joi.string()
-    .when('supplierType', {
-      is: 'Rebrand',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Original fuel name or brand'),
-  changedFromOriginalFuel: Joi.boolean()
-    .when('supplierType', {
-      is: 'Rebrand',
-      then: Joi.boolean().required(),
-      otherwise: Joi.boolean().optional()
-    })
-    .description('Changes to original fuel: yes or no'),
-  changesMade: Joi.string()
-    .optional()
-    .description('Explain changes made to the original fuel'),
+    .description('Original fuel details (required for rebranders)'),
   //If a manufacturer, these fields become required:
-  fuelWeight: Joi.number()
+  appearance: Joi.string().required().description('Fuel description'),
+  weight: Joi.number()
     .when('supplierType', {
       is: 'Manufacture',
       then: Joi.number().required(),
       otherwise: Joi.number().optional()
     })
     .description('Fuel weight'),
-  fuelComposition: Joi.string()
+  composition: Joi.string()
     .when('supplierType', {
       is: 'Manufacture',
       then: Joi.string().required(),

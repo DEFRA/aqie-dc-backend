@@ -61,17 +61,16 @@ const keyMapFuel = {
   gefTHa: 'fuelBagging',
   AmmLSb: 'supplierType',
 
-  iqYLKO: 'fuelDescription',
-
   // Rebrand-only fields
-  mGVwfX: 'originalFuelManufacturer',
-  qHMgAu: 'originalFuelNameOrBrand',
-  wSvNbv: 'changedFromOriginalFuel',
-  UPvcFc: 'changesMade',
+  mGVwfX: 'originalFuel.manufacturer',
+  qHMgAu: 'originalFuel.name',
+  wSvNbv: 'originalFuel.isChangedOrMixed',
+  UPvcFc: 'originalFuel.changes',
 
   // Manufacture-only fields
-  vUJklv: 'fuelWeight',
-  rIyajj: 'fuelComposition',
+  iqYLKO: 'appearance',
+  vUJklv: 'weight',
+  rIyajj: 'composition',
   kOXZSk: 'sulphurContent',
   Hdxrqy: 'manufacturingProcess',
   dDwQia: 'qualityControlSystem',

@@ -125,9 +125,9 @@ function transformToFuel(row) {
     isBaggedAtSource: parseBoolean(
       row.isBaggedAtSource || row['Bagged at Source']
     ),
-    fuelDescription: row.fuelDescription || row['Fuel Description'],
-    fuelWeight: row.fuelWeight || row['Fuel Weight'],
-    fuelComposition: row.fuelComposition || row['Fuel Composition'],
+    appearance: row.fuelDescription || row['Fuel Description'],
+    weight: row.fuelWeight || row['Fuel Weight'],
+    composition: row.fuelComposition || row['Fuel Composition'],
     sulphurContent: parseFloat(
       row.sulphurContent || row['Sulphur Content (%)'] || 0
     ),

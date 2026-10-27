@@ -255,17 +255,17 @@ function transformToFuel(row) {
     isBaggedAtSource: parseBoolean(
       getValueOrDefault(row.isBaggedAtSource, row['Bagged at Source'])
     ),
-    fuelDescription: getValueOrDefault(
+    appearance: getValueOrDefault(
       row.fuelDescription,
       row['Fuel Description'],
       'No description'
     ),
-    fuelWeight: getValueOrDefault(
+    weight: getValueOrDefault(
       row.fuelWeight,
       row['Fuel Weight'],
       'Not Specified'
     ),
-    fuelComposition: getValueOrDefault(
+    composition: getValueOrDefault(
       row.fuelComposition,
       row['Fuel Composition'],
       'Not Specified'
@@ -356,9 +356,9 @@ function getSampleFuel() {
     fuelName: 'Eco Briquettes Premium',
     fuelBagging: 'Bagged',
     isBaggedAtSource: 'Yes',
-    fuelDescription: 'Pillow-shaped briquettes with single line indentation',
-    fuelWeight: 'Average weight of 125 to 135 grams per briquette',
-    fuelComposition: 'Anthracite fines (60% to 80%)',
+    appearance: 'Pillow-shaped briquettes with single line indentation',
+    weight: 'Average weight of 125 to 135 grams per briquette',
+    composition: 'Anthracite fines (60% to 80%)',
     sulphurContent: '20',
     manufacturingProcess:
       'Roll pressing and heat treatment at 300 degrees celsius',
