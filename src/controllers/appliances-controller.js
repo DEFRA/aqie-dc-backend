@@ -346,7 +346,7 @@ async function getAdminApplianceById(db, id, logger) {
         canTogglePublicVisibility: findCertified(item).length > 0,
         isVisibleToPublic: item.isVisibleToPublic,
         isLegacyRecord: item.isLegacyRecord,
-        technicalReview: item.technicalReview
+        technicalReview: item.technicalReview ?? null
       }
     }
   } catch (error) {
