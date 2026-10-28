@@ -48,7 +48,11 @@ describe('getFullAddress', () => {
       isUkBased: false,
       companyFullAddress: '456 Rue de Paris\n Paris \n\nFrance'
     }
-    expect(getFullAddress(item)).toEqual(['456 Rue de Paris', 'Paris', 'France'])
+    expect(getFullAddress(item)).toEqual([
+      '456 Rue de Paris',
+      'Paris',
+      'France'
+    ])
   })
 
   test('filters out empty or null address lines', () => {

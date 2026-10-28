@@ -43,7 +43,9 @@ export const applianceSchema = Joi.object({
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
-    .description('Company address for overseas/non-UK-based companies. String with \n if user put enter in the DXT form.'),
+    .description(
+      'Company address for overseas/non-UK-based companies. String with \n if user put enter in the DXT form.'
+    ),
   companyAddress: Joi.object({
     uprn: Joi.string()
       .optional()
