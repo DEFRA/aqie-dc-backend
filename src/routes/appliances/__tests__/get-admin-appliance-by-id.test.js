@@ -9,7 +9,7 @@ vi.mock('#src/controllers/appliances-controller.js', () => ({
   getAdminApplianceById: vi.fn()
 }))
 
-describe('GET /api/admin/appliances/{id}', () => {
+describe('GET /admin/appliances/{id}', () => {
   let mockRequest
   let mockToolkit
 

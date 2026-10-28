@@ -7,9 +7,9 @@ import Joi from 'joi'
 import * as applicationsController from '../../controllers/applications-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
-export const getApplicationsWithSummary = {
+export const getApplicationsSummaryByStatus = {
   method: 'GET',
-  path: '/applications/summary',
+  path: '/applications/summary-by-status',
   options: {
     tags: ['api', 'applications'],
     description:
@@ -31,11 +31,12 @@ export const getApplicationsWithSummary = {
     const { type } = request.query
 
     try {
-      const result = await applicationsController.getApplicationsWithSummary(
-        request.db,
-        request.logger,
-        type
-      )
+      const result =
+        await applicationsController.getApplicationsSummaryByStatus(
+          request.db,
+          request.logger,
+          type
+        )
 
       if (result?.notFound) {
         return Boom.badRequest(result.message)

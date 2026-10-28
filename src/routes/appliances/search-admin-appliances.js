@@ -11,7 +11,7 @@ const DEFAULT_LIMIT = 20
 
 export const searchAdminAppliances = {
   method: 'GET',
-  path: '/api/admin/appliances/search',
+  path: '/admin/appliances/search',
   options: {
     validate: {
       query: Joi.object({

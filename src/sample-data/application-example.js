@@ -114,10 +114,10 @@ export const applianceApplicationExample = {
         status: 'certified'
       },
       walesCertification: {
-        status: 'revoked'
+        status: 'uncertified'
       },
       nIrelandCertification: {
-        status: 'rejected'
+        status: 'uncertified'
       }
       // legacyRecord: false // default to false
     }

@@ -4,7 +4,8 @@ import {
   CERTIFICATION_FIELDS,
   CERTIFIED_STATUS,
   UNCERTIFIED_STATUSES,
-  UNDECIDED_CERTIFICATION_STATUSES
+  UNDECIDED_CERTIFICATION_STATUSES,
+  mapCountryCertification
 } from './certification.js'
 
 // Works out the $set update for an item once its technical review has reached
@@ -16,8 +17,10 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
     return { [itemStatus]: 'rejected' }
   }
 
+  // Only reached once the application is submitted, which moves every 'new'
+  // country to awaiting_decision, so 'new' or a missing record is undecided too.
   const countryCertifications = CERTIFICATION_FIELDS.map(
-    (field) => item[field]?.status
+    (field) => mapCountryCertification(item[field]).status
   )
 
   const hasCertified = countryCertifications.includes(CERTIFIED_STATUS)
@@ -35,7 +38,7 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
     }
   }
 
-  // None certified, but at least one revoked/rejected - hidden.
+  // None certified, but at least one uncertified - hidden.
   // Visibility resets to the default so a later re-certification starts as live.
   if (hasUncertified) {
     return { [itemStatus]: 'hidden', isVisibleToPublic: true }

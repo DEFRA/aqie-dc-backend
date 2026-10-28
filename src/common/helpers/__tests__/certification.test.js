@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest'
 import {
   CERTIFICATION_FIELDS,
+  COUNTRY_CERTIFICATION_STATUSES,
   UNCERTIFIED_STATUSES,
   findCertified,
   findLastCertifiedDate,
@@ -40,6 +41,17 @@ describe('CERTIFICATION_FIELDS', () => {
       'scotlandCertification',
       'walesCertification',
       'nIrelandCertification'
+    ])
+  })
+})
+
+describe('COUNTRY_CERTIFICATION_STATUSES', () => {
+  test('lists the allowed country certification statuses in one place', () => {
+    expect(COUNTRY_CERTIFICATION_STATUSES).toEqual([
+      'new',
+      'awaiting_decision',
+      'certified',
+      'uncertified'
     ])
   })
 })

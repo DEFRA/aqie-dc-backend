@@ -70,9 +70,9 @@ describe('calculateItemStatus', () => {
     collection.findOne.mockResolvedValue({
       technicalReview: { status: 'accepted' },
       englandCertification: { status: 'certified' },
-      scotlandCertification: { status: 'new' },
-      walesCertification: { status: 'new' },
-      nIrelandCertification: { status: 'new' },
+      scotlandCertification: { status: 'awaiting_decision' },
+      walesCertification: { status: 'awaiting_decision' },
+      nIrelandCertification: { status: 'awaiting_decision' },
       isVisibleToPublic: true
     })
 
@@ -90,9 +90,9 @@ describe('calculateItemStatus', () => {
     collection.findOne.mockResolvedValue({
       technicalReview: { status: 'accepted' },
       englandCertification: { status: 'certified' },
-      scotlandCertification: { status: 'new' },
-      walesCertification: { status: 'new' },
-      nIrelandCertification: { status: 'new' },
+      scotlandCertification: { status: 'awaiting_decision' },
+      walesCertification: { status: 'awaiting_decision' },
+      nIrelandCertification: { status: 'awaiting_decision' },
       isVisibleToPublic: false
     })
 
@@ -123,9 +123,9 @@ describe('calculateItemStatus', () => {
   test('sets status to pending when all countries undecided', async () => {
     collection.findOne.mockResolvedValue({
       technicalReview: { status: 'accepted' },
-      englandCertification: { status: 'new' },
+      englandCertification: { status: 'awaiting_decision' },
       scotlandCertification: { status: 'awaiting_decision' },
-      walesCertification: { status: 'new' },
+      walesCertification: { status: 'awaiting_decision' },
       nIrelandCertification: { status: 'awaiting_decision' },
       isVisibleToPublic: true
     })
@@ -139,13 +139,51 @@ describe('calculateItemStatus', () => {
     )
   })
 
+  test('sets status to pending when every country is still new', async () => {
+    collection.findOne.mockResolvedValue({
+      technicalReview: { status: 'accepted' },
+      englandCertification: { status: 'new' },
+      scotlandCertification: { status: 'new' },
+      walesCertification: { status: 'new' },
+      nIrelandCertification: { status: 'new' }
+    })
+
+    const result = await calculateItemStatus(db, 'appliance', 'APP-1')
+
+    expect(result).toBe('pending')
+  })
+
+  test('sets status to hidden when every country is uncertified', async () => {
+    collection.findOne.mockResolvedValue({
+      technicalReview: { status: 'accepted' },
+      englandCertification: { status: 'uncertified' },
+      scotlandCertification: { status: 'uncertified' },
+      walesCertification: { status: 'uncertified' },
+      nIrelandCertification: { status: 'uncertified' }
+    })
+
+    const result = await calculateItemStatus(db, 'appliance', 'APP-1')
+
+    expect(result).toBe('hidden')
+  })
+
+  test('treats countries with no certification as awaiting a decision', async () => {
+    collection.findOne.mockResolvedValue({
+      technicalReview: { status: 'accepted' }
+    })
+
+    const result = await calculateItemStatus(db, 'appliance', 'APP-1')
+
+    expect(result).toBe('pending')
+  })
+
   test('throws on an unexpected certification combination', async () => {
     collection.findOne.mockResolvedValue({
       technicalReview: { status: 'accepted' },
       englandCertification: { status: 'some_unknown_status' },
-      scotlandCertification: { status: 'new' },
-      walesCertification: { status: 'new' },
-      nIrelandCertification: { status: 'new' },
+      scotlandCertification: { status: 'awaiting_decision' },
+      walesCertification: { status: 'awaiting_decision' },
+      nIrelandCertification: { status: 'awaiting_decision' },
       isVisibleToPublic: true
     })
 

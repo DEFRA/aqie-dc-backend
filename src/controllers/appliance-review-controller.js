@@ -4,6 +4,7 @@ import {
   getCheckGroup,
   getOutstandingChecks
 } from '../common/helpers/review-status.js'
+import { calculateItemStatus } from '../common/helpers/item-status.js'
 import { updateAppliance } from './appliances-controller.js'
 
 /**
@@ -247,6 +248,8 @@ async function updateApplianceReview(db, id, decision, logger) {
         notFound: true
       }
     }
+
+    await calculateItemStatus(db, 'appliance', id)
 
     logger.info(`Appliance review ${status}: ${id}`) // Only the decision is returned - the full record from updateAppliance
     // carries company contact details this endpoint has no reason to expose.
