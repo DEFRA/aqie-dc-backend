@@ -43,12 +43,12 @@ describe('getFullAddress', () => {
     ])
   })
 
-  test('returns non-UK address as single-element array', () => {
+  test('splits non-UK address on newline, trimming and dropping blanks', () => {
     const item = {
       isUkBased: false,
-      companyFullAddress: '456 Rue de Paris, Paris, France'
+      companyFullAddress: '456 Rue de Paris\n Paris \n\nFrance'
     }
-    expect(getFullAddress(item)).toEqual(['456 Rue de Paris, Paris, France'])
+    expect(getFullAddress(item)).toEqual(['456 Rue de Paris', 'Paris', 'France'])
   })
 
   test('filters out empty or null address lines', () => {
@@ -67,6 +67,13 @@ describe('getFullAddress', () => {
       ADDRESS_COUNTY,
       ADDRESS_POSTCODE
     ])
+  })
+
+  test('includes country and returns empty array when no address', () => {
+    expect(
+      getFullAddress({ companyAddress: { line1: 'A', country: 'UK' } })
+    ).toEqual(['A', 'UK'])
+    expect(getFullAddress(null)).toEqual([])
   })
 })
 
