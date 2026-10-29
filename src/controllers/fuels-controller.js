@@ -35,7 +35,7 @@ async function createFuel(db, item, logger) {
     // Build fuel document
     const fuel = {
       ...item,
-      fuelId: item.fuelId || `FUEL-${generateSecureId()}`,
+      id: item.id || `FUEL-${generateSecureId()}`,
       createdAt: item.createdAt || now,
       updatedAt: now
     }
@@ -47,7 +47,7 @@ async function createFuel(db, item, logger) {
       throw new Error('Failed to insert fuel')
     }
 
-    logger.info(`Fuel created: ${fuel.fuelId}`)
+    logger.info(`Fuel created: ${fuel.id}`)
 
     return {
       success: true,
@@ -68,9 +68,9 @@ function mapFuelDetail(item) {
     ...item,
     authorisedIn: findCertified(item),
     lastUpdatedDate: findLastCertifiedDate(item),
-    name: item.brandNames || '',
-    id: item.fuelId,
-    manufacturer: item.companyName || '',
+    name: item.brandName,
+    id: item.id,
+    manufacturer: item.companyName,
     fullAddress: getFullAddress(item)
   }
 }
@@ -78,9 +78,9 @@ function mapFuelDetail(item) {
 // Returns summary object for list views
 function mapFuelSummary(item) {
   return {
-    name: item.brandNames || '',
-    id: item.fuelId,
-    manufacturer: item.companyName || '',
+    name: item.brandName,
+    id: item.id,
+    manufacturer: item.companyName,
     authorisedIn: findCertified(item),
     lastUpdatedDate: findLastCertifiedDate(item)
   }
@@ -120,7 +120,7 @@ async function getFuelById(db, fuelId, logger) {
   }
   try {
     const collection = db.collection('Fuels')
-    const item = await collection.findOne({ fuelId })
+    const item = await collection.findOne({ id: fuelId })
 
     if (!item) {
       return {
@@ -151,13 +151,13 @@ async function updateFuel(db, fuelId, updates, logger) {
     const collection = db.collection('Fuels')
     const now = new Date()
     const result = await collection.updateOne(
-      { fuelId },
+      { id: fuelId },
       { $set: { ...toDotted(updates), updatedAt: now } }
     )
     if (result.matchedCount === 0) {
       return { notFound: true }
     }
-    const updated = await collection.findOne({ fuelId })
+    const updated = await collection.findOne({ id: fuelId })
     return { updated }
   } catch (error) {
     logger.error(error, 'Failed to update fuel')
@@ -174,7 +174,7 @@ async function deleteFuel(db, fuelId, logger) {
   }
   try {
     const collection = db.collection('Fuels')
-    const result = await collection.deleteOne({ fuelId })
+    const result = await collection.deleteOne({ id: fuelId })
     if (result.deletedCount === 0) {
       return { notFound: true }
     }
@@ -239,9 +239,9 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
 
     const searchQuery = {
       $or: [
-        { brandNames: { $regex: query, $options: 'i' } },
-        { companyName: { $regex: query, $options: 'i' } },
-        { resellBrandName: { $regex: query, $options: 'i' } }
+        { brandName: { $regex: query, $options: 'i' } },
+        { additionalBrandNames: { $regex: query, $options: 'i' } },
+        { companyName: { $regex: query, $options: 'i' } }
       ]
     }
 
@@ -280,7 +280,7 @@ async function getFuelWithRelatedItems(db, fuelId, logger) {
   }
   try {
     // Get fuel
-    const fuel = await db.collection('Fuels').findOne({ fuelId })
+    const fuel = await db.collection('Fuels').findOne({ id: fuelId })
 
     if (!fuel) {
       return {

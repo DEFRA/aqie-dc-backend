@@ -37,19 +37,33 @@ export const generateNextId = (lastId) => {
   return `${prefix}-${sequence}`
 }
 
-// Returns the full address array for an item, handling UK and non-UK logic
+// Returns the full address as an array of strings containing only non-empty address lines (UK and non-UK)
+// Examples:
+//   UK:       { companyAddress: { line1: '1 High St', line2: '', city: 'Leeds', county: null, postcode: 'LS1 1AA', country: 'England' } }
+//             -> ['1 High St', 'Leeds', 'LS1 1AA', 'England']
+//   Overseas: { companyFullAddress: '456 Rue de Paris\n Paris \n\nFrance' }
+//             -> ['456 Rue de Paris', 'Paris', 'France']
+//   Overseas (single line): { companyFullAddress: '456 Rue de Paris, Paris, France' }
+//             -> ['456 Rue de Paris,', 'Paris,', 'France']
+//   Overseas (no commas or newlines): { companyFullAddress: '456 Rue de Paris' }
+//             -> ['456 Rue de Paris']
 export const getFullAddress = (item) => {
-  const filterLines = (...lines) =>
-    lines.filter((line) => typeof line === 'string' && line.trim() !== '')
-  return item.isUkBased === false
-    ? filterLines(item.companyFullAddress)
-    : filterLines(
-        item.companyAddress.line1,
-        item.companyAddress.line2,
-        item.companyAddress.city,
-        item.companyAddress.county,
-        item.companyAddress.postcode
-      )
+  const address = item?.companyAddress
+  const lines =
+    typeof item?.companyFullAddress === 'string' && item.companyFullAddress
+      ? item.companyFullAddress.replaceAll(',', ',\n').split('\n')
+      : [
+          address?.line1,
+          address?.line2,
+          address?.city,
+          address?.county,
+          address?.postcode,
+          address?.country
+        ]
+  return lines
+    .filter((line) => typeof line === 'string')
+    .map((line) => line.trim())
+    .filter(Boolean)
 }
 
 /**
