@@ -1,10 +1,7 @@
 // Example application payloads for tests and API documentation.
 // Keep both examples available and switch the default export when needed for Swagger.
 
-import {
-  rebrandFuelExample,
-  manufactureFuelExample
-} from './fuel-example.js'
+import { rebrandFuelExample, manufactureFuelExample } from './fuel-example.js'
 
 export const applianceApplicationExample = {
   type: 'appliance',
