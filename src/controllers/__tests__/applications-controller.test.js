@@ -1205,8 +1205,7 @@ describe('applications-controller', () => {
       expect(result.message).toBe('Application summary retrieved successfully')
       expect(result.data.id).toBe('app-1')
       expect(result.data.companyName).toBe('ACME')
-      expect(result.data.companyFullAddress).toBe('123 Street')
-      expect(result.data.companyAddress).toEqual({ city: 'London' })
+      expect(result.data.fullAddress).toEqual(['123 Street'])
       expect(result.data.companyContact).toEqual({
         name: 'Jane',
         email: 'jane@acme.com'
@@ -1252,8 +1251,7 @@ describe('applications-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.data.companyName).toBeUndefined()
-      expect(result.data.companyFullAddress).toBeNull()
-      expect(result.data.companyAddress).toBeNull()
+      expect(result.data.fullAddress).toEqual([])
       expect(result.data.linkedItems).toEqual([])
     })
 
