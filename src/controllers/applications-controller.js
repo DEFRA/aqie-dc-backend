@@ -5,7 +5,8 @@
 
 import {
   generateNextId,
-  generateSecureId
+  generateSecureId,
+  getFullAddress
 } from '../common/helpers/data-transformer.js'
 import {
   groupItemsByTechReviewStatus,
@@ -597,8 +598,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       data: {
         id: application.id,
         companyName: companyDetails?.companyName,
-        companyFullAddress: companyDetails?.companyFullAddress || null,
-        companyAddress: companyDetails?.companyAddress || null,
+        fullAddress: getFullAddress(companyDetails),
         companyContact: companyDetails?.companyContact || null,
         ...(type === 'fuel' && {
           responsiblePerson: companyDetails?.responsiblePerson,
