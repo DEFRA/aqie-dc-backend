@@ -40,6 +40,7 @@ const keyMapFuel = {
   IIQWii: 'isUkBased',
 
   mwGItn: 'addressObject', //Address comes in this block
+  koQFjV: 'addressObject', // Address block for Fuels
   uprn: 'companyAddress.uprn',
   addressLine1: 'companyAddress.line1',
   addressLine2: 'companyAddress.line2',
@@ -53,11 +54,13 @@ const keyMapFuel = {
   zCPkvh: 'companyContact.email',
   FwtbfD: 'companyContact.alternativeEmail',
   OIMWWP: 'companyContact.phone',
+  yDTjQn: 'companyContact.phone', //For fuels
 
   ChfkKZ: 'responsiblePerson.name',
   OOrscG: 'responsiblePerson.email',
 
-  Buaprr: 'customerComplaints',
+  //Buaprr: 'hasCustomerComplaintsSystem',
+  BUaprr: 'hasCustomerComplaintsSystem',
   gefTHa: 'fuelBagging',
   AmmLSb: 'manufacturerOrReseller',
 
@@ -113,7 +116,11 @@ export function mapKeys(input, type) {
       typeof value === 'object' && value !== null && !Array.isArray(value)
 
     if (!isObject) {
-      setByPath(result, mappedKey, value)
+      // The form sends a sentence ("Yes, the fuel has been changed...") not a boolean
+      const isYesNoText =
+        mappedKey === 'originalFuel.isChangedOrMixed' &&
+        typeof value === 'string'
+      setByPath(result, mappedKey, isYesNoText ? /^yes/i.test(value) : value)
       continue
     }
 
