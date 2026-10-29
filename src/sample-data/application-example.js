@@ -1,6 +1,8 @@
 // Example application payloads for tests and API documentation.
 // Keep both examples available and switch the default export when needed for Swagger.
 
+import { rebrandFuelExample, manufactureFuelExample } from './fuel-example.js'
+
 export const applianceApplicationExample = {
   type: 'appliance',
   // id: 'app-uuid-12345',
@@ -124,7 +126,7 @@ export const applianceApplicationExample = {
   ]
 }
 
-export const fuelApplicationExample = {
+const fuelApplicationBase = {
   type: 'fuel',
   submittedAt: new Date('2026-04-24T12:00:00Z'),
   status: 'new',
@@ -132,34 +134,18 @@ export const fuelApplicationExample = {
     name: 'John Reviewer',
     email: 'john@reviewer.com'
   },
-  referenceNumber: 'referencenumber435435',
-  fuels: [
-    {
-      companyName: 'FuelCo',
-      isUkBased: false,
-      companyFullAddress:
-        '789 Industrial Estate, \n Building C, \n Manchester, \n Greater Manchester, \n M1 3CD',
-      companyContact: {
-        name: 'Fuel Person',
-        email: 'JD@email.com'
-      },
-      responsiblePerson: {
-        name: 'Rep Name',
-        email: 'rep@co.com'
-      },
-      hasCustomerComplaintsSystem: false,
-      fuelBagging: 'Bagged',
-      supplierType: 'Manufacture', //Or Rebrand
-      fuelDescription: {
-        appearance: 'Premium pellets',
-        weight: 20,
-        composition: 'Wood 100%',
-        sulphurContent: 0.7
-      },
-      manufacturingProcess: 'Kiln-dried',
-      hasQualityControlSystem: true,
-      brandName: 'PelletBrand',
-      declaration: true
-    }
-  ]
+  referenceNumber: 'referencenumber435435'
 }
+
+export const rebrandFuelApplicationExample = {
+  ...fuelApplicationBase,
+  fuels: [rebrandFuelExample]
+}
+
+export const manufactureFuelApplicationExample = {
+  ...fuelApplicationBase,
+  fuels: [manufactureFuelExample]
+}
+
+// Default fuel example, used by tests and Swagger
+export const fuelApplicationExample = manufactureFuelApplicationExample

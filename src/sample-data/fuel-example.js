@@ -99,24 +99,48 @@
 }
 */
 
-//Simplified version for testing purposes
-export default {
+//Simplified versions for testing purposes
+const baseFuel = {
   companyName: 'FuelCo',
-  isUkBased: false,
-  companyFullAddress:
-    '789 Industrial Estate, Building C, Manchester, Greater Manchester, M1 3CD',
+  isUkBased: true,
+  companyAddress: {
+    uprn: '100071384716',
+    line1: 'Unit 6 Caxton Gate',
+    line2: 'Corporation Street',
+    city: 'Birmingham',
+    postcode: 'B2 4LP'
+  },
   companyContact: {
     name: 'Fuel Person',
-    email: 'JD@email.com'
+    email: 'JD@email.com',
+    alternativeEmail: 'alt@email.com',
+    phone: '07594416260'
   },
   responsiblePerson: {
     name: 'Rep Name',
     email: 'rep@co.com'
   },
-  hasCustomerComplaintsSystem: false,
-  fuelBagging: 'Bagged',
-  supplierType: 'Manufacture', //or Rebrand
-  //If manufacturer:
+  hasCustomerComplaintsSystem: true,
+  fuelBagging: 'Loose (unbagged)',
+  brandName: 'PelletBrand',
+  additionalBrandNames: 'Brand Two',
+  declaration: true
+}
+
+export const rebrandFuelExample = {
+  ...baseFuel,
+  supplierType: 'Rebrand',
+  originalFuel: {
+    manufacturer: 'Fuels LTD',
+    name: 'FireFuel',
+    isChangedOrMixed: true,
+    changes: 'The fuel was mixed with another fuel'
+  }
+}
+
+export const manufactureFuelExample = {
+  ...baseFuel,
+  supplierType: 'Manufacture',
   fuelDescription: {
     appearance: 'Premium pellets',
     weight: 20,
@@ -124,14 +148,7 @@ export default {
     sulphurContent: 0.7
   },
   manufacturingProcess: 'Kiln-dried',
-  hasQualityControlSystem: true,
-  brandName: 'PelletBrand',
-  //If reseller:
-  // originalFuel: {
-  //   manufacturer: 'Fuels LTD',
-  //   name: 'FireFuel',
-  //   isChangedOrMixed: false,
-  //   changes: 'The fuels was turned into love hearts'
-  // },
-  declaration: true
+  hasQualityControlSystem: true
 }
+
+export default rebrandFuelExample

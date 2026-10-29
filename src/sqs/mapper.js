@@ -1,9 +1,12 @@
+const COMPANY_PHONE = 'companyContact.phone'
+const ADDRESS_OBJECT = 'addressObject'
+
 // Mapping dictionary
 const keyMapAppliance = {
   CTGxGs: 'companyName',
   TbMaXV: 'isUkBased',
 
-  mwGItn: 'addressObject', //Address comes in this block
+  mwGItn: ADDRESS_OBJECT, //Address comes in this block
   uprn: 'companyAddress.uprn',
   addressLine1: 'companyAddress.line1',
   addressLine2: 'companyAddress.line2',
@@ -16,7 +19,7 @@ const keyMapAppliance = {
   CfdMSm: 'companyContact.name',
   gTshkc: 'companyContact.email',
   eDOPFB: 'companyContact.alternativeEmail',
-  JIeTGU: 'companyContact.phone',
+  JIeTGU: COMPANY_PHONE,
 
   cciwNV: 'modelName',
   oSUxHw: 'modelNumber',
@@ -39,7 +42,8 @@ const keyMapFuel = {
   XpAWNK: 'companyName',
   IIQWii: 'isUkBased',
 
-  mwGItn: 'addressObject', //Address comes in this block
+  mwGItn: ADDRESS_OBJECT, //Address comes in this block
+  koQFjV: ADDRESS_OBJECT, // Address block for Fuels
   uprn: 'companyAddress.uprn',
   addressLine1: 'companyAddress.line1',
   addressLine2: 'companyAddress.line2',
@@ -52,12 +56,14 @@ const keyMapFuel = {
   lhhoTX: 'companyContact.name',
   zCPkvh: 'companyContact.email',
   FwtbfD: 'companyContact.alternativeEmail',
-  OIMWWP: 'companyContact.phone',
+  OIMWWP: COMPANY_PHONE,
+  yDTjQn: COMPANY_PHONE, //For fuels
 
   ChfkKZ: 'responsiblePerson.name',
   OOrscG: 'responsiblePerson.email',
 
-  Buaprr: 'hasCustomerComplaintsSystem',
+  //Buaprr: 'hasCustomerComplaintsSystem',
+  BUaprr: 'hasCustomerComplaintsSystem',
   gefTHa: 'fuelBagging',
   AmmLSb: 'supplierType',
 
@@ -112,7 +118,11 @@ export function mapKeys(input, type) {
       typeof value === 'object' && value !== null && !Array.isArray(value)
 
     if (!isObject) {
-      setByPath(result, mappedKey, value)
+      // The form sends a sentence ("Yes, the fuel has been changed...") not a boolean
+      const isYesNoText =
+        mappedKey === 'originalFuel.isChangedOrMixed' &&
+        typeof value === 'string'
+      setByPath(result, mappedKey, isYesNoText ? /^yes/i.test(value) : value)
       continue
     }
 
