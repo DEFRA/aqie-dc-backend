@@ -138,7 +138,7 @@ export const fuelApplicationExample = {
       companyName: 'FuelCo',
       isUkBased: false,
       companyFullAddress:
-        '789 Industrial Estate, Building C, Manchester, Greater Manchester, M1 3CD',
+        '789 Industrial Estate, \n Building C, \n Manchester, \n Greater Manchester, \n M1 3CD',
       companyContact: {
         name: 'Fuel Person',
         email: 'JD@email.com'

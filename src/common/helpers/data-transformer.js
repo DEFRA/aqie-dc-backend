@@ -44,12 +44,14 @@ export const generateNextId = (lastId) => {
 //   Overseas: { companyFullAddress: '456 Rue de Paris\n Paris \n\nFrance' }
 //             -> ['456 Rue de Paris', 'Paris', 'France']
 //   Overseas (single line): { companyFullAddress: '456 Rue de Paris, Paris, France' }
-//             -> ['456 Rue de Paris, Paris, France']
+//             -> ['456 Rue de Paris,', 'Paris,', 'France']
+//   Overseas (no commas or newlines): { companyFullAddress: '456 Rue de Paris' }
+//             -> ['456 Rue de Paris']
 export const getFullAddress = (item) => {
   const address = item?.companyAddress
   const lines =
     typeof item?.companyFullAddress === 'string' && item.companyFullAddress
-      ? item.companyFullAddress.split('\n')
+      ? item.companyFullAddress.replaceAll(',', ',\n').split('\n')
       : [
           address?.line1,
           address?.line2,

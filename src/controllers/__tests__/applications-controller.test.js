@@ -577,6 +577,27 @@ describe('applications-controller', () => {
       expect(result.data.linkedItems).toBeDefined()
     })
 
+    test('returns fullAddress from the first linked item', async () => {
+      collection.findOne.mockResolvedValueOnce({
+        id: 'app-123',
+        type: 'appliance',
+        status: 'new'
+      })
+      applianceDocs.push({
+        id: 'app-001',
+        applicationId: 'app-123',
+        companyAddress: {
+          line1: '1 High St',
+          city: 'Leeds',
+          postcode: 'LS1 1AA'
+        }
+      })
+
+      const result = await getApplicationById(db, 'app-123', mockLogger)
+
+      expect(result.data.fullAddress).toEqual(['1 High St', 'Leeds', 'LS1 1AA'])
+    })
+
     test('fetches linked fuel records when type is fuel', async () => {
       const mockApp = {
         id: 'app-456',

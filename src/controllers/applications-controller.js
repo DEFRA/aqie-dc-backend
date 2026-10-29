@@ -265,6 +265,7 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
       message: 'Application retrieved successfully',
       data: {
         ...application,
+        fullAddress: getFullAddress(linkedItems[0]),
         linkedItems: isGrouped
           ? groupItemsByTechReviewStatus(linkedItems)
           : linkedItems,
