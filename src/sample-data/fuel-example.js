@@ -18,26 +18,27 @@
   },
   responsibleName: 'Rep Name',
   responsibleEmailAddress: 'rep@co.com',
-  customerComplaints: false,
+  hasCustomerComplaintsSystem: false,
   fuelBagging: 'Bagged',
   //   baggedAtSource: true,
-  manufacturerOrReseller: 'Manufacturer',
-  fuelDescription: 'Premium pellets',
+  supplierType: 'Manufacture',
+  appearance: 'Premium pellets',
 
   //If reseller:
-  // originalFuelManufacturer: 'Fuels LTD',
-  // originalFuelNameOrBrand: 'FireFuel',
-  // changedFromOriginalFuel: false,
-  // changesMade: 'The fuels was turned into love hearts',
-  // resellBrandName: 'PelletBrand',
+  // originalFuel: {
+  //   manufacturer: 'Fuels LTD',
+  //   name: 'FireFuel',
+  //   isChangedOrMixed: false,
+  //   changes: 'The fuels was turned into love hearts'
+  // },
 
   //If manufacturer:
-  fuelWeight: 20,
-  fuelComposition: 'Wood 100%',
+  weight: 20,
+  composition: 'Wood 100%',
   sulphurContent: 0.7,
   manufacturingProcess: 'Kiln-dried',
-  qualityControlSystem: 'ISO certified',
-  brandNames: 'PelletBrand',
+  hasQualityControlSystem: true,
+  brandName: 'PelletBrand',
 
   declaration: true,
 
@@ -112,22 +113,25 @@ export default {
     name: 'Rep Name',
     email: 'rep@co.com'
   },
-  customerComplaints: false,
+  hasCustomerComplaintsSystem: false,
   fuelBagging: 'Bagged',
-  fuelDescription: 'Premium pellets',
-  manufacturerOrReseller: 'Manufacturer',
+  supplierType: 'Manufacture', //or Rebrand
   //If manufacturer:
-  fuelWeight: 20,
-  fuelComposition: 'Wood 100%',
-  sulphurContent: 0.7,
+  fuelDescription: {
+    appearance: 'Premium pellets',
+    weight: 20,
+    composition: 'Wood 100%',
+    sulphurContent: 0.7
+  },
   manufacturingProcess: 'Kiln-dried',
-  qualityControlSystem: 'ISO certified',
-  brandNames: 'PelletBrand',
+  hasQualityControlSystem: true,
+  brandName: 'PelletBrand',
   //If reseller:
-  // originalFuelManufacturer: 'Fuels LTD',
-  // originalFuelNameOrBrand: 'FireFuel',
-  // changedFromOriginalFuel: false,
-  // changesMade: 'The fuels was turned into love hearts',
-  // resellBrandName: 'PelletBrand',
+  // originalFuel: {
+  //   manufacturer: 'Fuels LTD',
+  //   name: 'FireFuel',
+  //   isChangedOrMixed: false,
+  //   changes: 'The fuels was turned into love hearts'
+  // },
   declaration: true
 }

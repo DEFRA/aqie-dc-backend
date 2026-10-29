@@ -69,7 +69,7 @@ export const createFuel = {
         .response({
           success: true,
           message,
-          data: { fuelId: data.fuelId }
+          data: { fuelId: data.id }
         })
         .code(statusCodes.created)
     } catch (err) {

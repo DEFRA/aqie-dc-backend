@@ -392,16 +392,21 @@ describe('item-schema fuelSchema', () => {
     expect(error.details[0].type).toBe('string.pattern.base')
   })
 
-  test('changesMade field is accepted as string', () => {
+  test('originalFuel.changes field is accepted as string', () => {
     const payload = {
       ...structuredClone(validFuelPayload),
-      changesMade: 'Changed bagging method'
+      originalFuel: {
+        manufacturer: 'Original Co',
+        name: 'Original Fuel',
+        isChangedOrMixed: true,
+        changes: 'Changed bagging method'
+      }
     }
 
     const { value, error } = fuelSchema.validate(payload)
 
     expect(error).toBeUndefined()
-    expect(value.changesMade).toBe('Changed bagging method')
+    expect(value.originalFuel.changes).toBe('Changed bagging method')
   })
 
   test('valid phone with country code passes', () => {

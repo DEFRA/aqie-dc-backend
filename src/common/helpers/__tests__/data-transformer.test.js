@@ -55,6 +55,18 @@ describe('getFullAddress', () => {
     ])
   })
 
+  test('breaks non-UK address after each comma', () => {
+    const item = {
+      isUkBased: false,
+      companyFullAddress: '456 Rue de Paris, Paris, France'
+    }
+    expect(getFullAddress(item)).toEqual([
+      '456 Rue de Paris,',
+      'Paris,',
+      'France'
+    ])
+  })
+
   test('filters out empty or null address lines', () => {
     const item = {
       isUkBased: true,

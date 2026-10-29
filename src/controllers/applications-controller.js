@@ -108,10 +108,7 @@ function buildApplication(applicationData, id) {
 }
 
 // Maps application type to the id prefix used for its linked items
-const ID_PREFIX_BY_TYPE = {
-  appliance: 'APP',
-  fuel: 'FUEL'
-}
+const ID_PREFIX_BY_TYPE = { appliance: 'APP', fuel: 'FUEL' }
 
 /**
  * Perform the application and linked items (appliances/fuels) insert
@@ -186,10 +183,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   return {
     success: true,
     message: 'Application and linked items created successfully',
-    data: {
-      ...application,
-      [itemsKey]: savedItems
-    }
+    data: { ...application, [itemsKey]: savedItems }
   }
 }
 
@@ -259,6 +253,14 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
         .collection(collectionName)
         .find({ applicationId })
         .toArray()
+
+      // Frontend reads fuel brand as `name`
+      if (application.type === 'fuel') {
+        linkedItems = linkedItems.map((item) => ({
+          ...item,
+          name: item.brandName
+        }))
+      }
     } else {
       logger.warn(`Unknown application type: ${application.type}`)
     }
@@ -270,6 +272,7 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
       message: 'Application retrieved successfully',
       data: {
         ...application,
+        fullAddress: getFullAddress(linkedItems[0]),
         linkedItems: isGrouped
           ? groupItemsByTechReviewStatus(linkedItems)
           : linkedItems,
@@ -493,10 +496,7 @@ async function getApplicationsSummaryByStatus(
     if (applications.length === 0) {
       return {
         success: true,
-        data: {
-          new: [],
-          inProgress: []
-        }
+        data: { new: [], inProgress: [] }
       }
     }
 
@@ -504,7 +504,12 @@ async function getApplicationsSummaryByStatus(
     const applicationIds = applications.map((app) => app.id)
     const items = await itemsCollection
       .find({ applicationId: { $in: applicationIds } })
-      .project({ applicationId: 1, [nameField]: 1 })
+      .project({
+        _id: 0,
+        id: 1,
+        applicationId: 1,
+        [nameField]: 1
+      })
       .toArray()
 
     // 3. Build result organized by status
@@ -525,7 +530,7 @@ async function getApplicationsSummaryByStatus(
         submittedAt: app.submittedAt,
         items: items
           .filter((item) => item.applicationId === app.id)
-          .map((item) => ({ id: item._id, name: item[nameField] })),
+          .map((item) => ({ id: item.id, name: item[nameField] })),
         reviewedBy: app.reviewedBy
       })
     }
@@ -582,16 +587,14 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       { applicationId },
       {
         projection: {
-          _id: 0,
           companyName: 1,
           companyFullAddress: 1,
           companyAddress: 1,
           companyContact: 1,
-          //fuel specific fields
           responsiblePerson: 1,
-          customerComplaints: 1,
+          hasCustomerComplaintsSystem: 1,
           fuelBagging: 1,
-          manufacturerOrReseller: 1
+          supplierType: 1
         }
       }
     )
@@ -601,7 +604,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       .collection(collectionName)
       .find(
         { applicationId },
-        { projection: { id: 1, [nameField]: 1, technicalReview: 1, _id: 0 } }
+        { projection: { id: 1, [nameField]: 1, technicalReview: 1 } }
       )
       .toArray()
 
@@ -612,12 +615,13 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
         id: application.id,
         companyName: companyDetails?.companyName,
         fullAddress: getFullAddress(companyDetails),
-        companyContact: companyDetails?.companyContact || null,
+        companyContact: companyDetails?.companyContact,
         ...(type === 'fuel' && {
           responsiblePerson: companyDetails?.responsiblePerson,
-          customerComplaints: companyDetails?.customerComplaints,
+          hasCustomerComplaintsSystem:
+            companyDetails?.hasCustomerComplaintsSystem,
           fuelBagging: companyDetails?.fuelBagging,
-          manufacturerOrReseller: companyDetails?.manufacturerOrReseller
+          supplierType: companyDetails?.supplierType
         }),
         linkedItems // Contains item name and technicalReview
       }

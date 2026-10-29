@@ -138,7 +138,7 @@ export const fuelApplicationExample = {
       companyName: 'FuelCo',
       isUkBased: false,
       companyFullAddress:
-        '789 Industrial Estate, Building C, Manchester, Greater Manchester, M1 3CD',
+        '789 Industrial Estate, \n Building C, \n Manchester, \n Greater Manchester, \n M1 3CD',
       companyContact: {
         name: 'Fuel Person',
         email: 'JD@email.com'
@@ -147,16 +147,18 @@ export const fuelApplicationExample = {
         name: 'Rep Name',
         email: 'rep@co.com'
       },
-      customerComplaints: false,
+      hasCustomerComplaintsSystem: false,
       fuelBagging: 'Bagged',
-      fuelDescription: 'Premium pellets',
-      manufacturerOrReseller: 'Manufacturer',
-      fuelWeight: 20,
-      fuelComposition: 'Wood 100%',
-      sulphurContent: 0.7,
+      supplierType: 'Manufacture', //Or Rebrand
+      fuelDescription: {
+        appearance: 'Premium pellets',
+        weight: 20,
+        composition: 'Wood 100%',
+        sulphurContent: 0.7
+      },
       manufacturingProcess: 'Kiln-dried',
-      qualityControlSystem: 'ISO certified',
-      brandNames: 'PelletBrand',
+      hasQualityControlSystem: true,
+      brandName: 'PelletBrand',
       declaration: true
     }
   ]

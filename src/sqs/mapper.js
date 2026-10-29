@@ -57,27 +57,26 @@ const keyMapFuel = {
   ChfkKZ: 'responsiblePerson.name',
   OOrscG: 'responsiblePerson.email',
 
-  Buaprr: 'customerComplaints',
+  Buaprr: 'hasCustomerComplaintsSystem',
   gefTHa: 'fuelBagging',
-  AmmLSb: 'manufacturerOrReseller',
-
-  iqYLKO: 'fuelDescription',
+  AmmLSb: 'supplierType',
 
   // Rebrand-only fields
-  mGVwfX: 'originalFuelManufacturer',
-  qHMgAu: 'originalFuelNameOrBrand',
-  wSvNbv: 'changedFromOriginalFuel',
-  UPvcFc: 'changesMade',
-  gGFSnh: 'resellBrandName',
+  mGVwfX: 'originalFuel.manufacturer',
+  qHMgAu: 'originalFuel.name',
+  wSvNbv: 'originalFuel.isChangedOrMixed',
+  UPvcFc: 'originalFuel.changes',
 
   // Manufacture-only fields
-  vUJklv: 'fuelWeight',
-  rIyajj: 'fuelComposition',
-  kOXZSk: 'sulphurContent',
+  iqYLKO: 'fuelDescription.appearance',
+  vUJklv: 'fuelDescription.weight',
+  rIyajj: 'fuelDescription.composition',
+  kOXZSk: 'fuelDescription.sulphurContent',
   Hdxrqy: 'manufacturingProcess',
-  dDwQia: 'qualityControlSystem',
-  GgFWEK: 'brandNames',
+  dDwQia: 'hasQualityControlSystem',
 
+  GgFWEK: 'brandName',
+  fvgxNC: 'additionalBrandNames',
   dytkGm: 'declaration',
 
   userConfirmationEmailAddress: 'userConfirmationEmailAddress'

@@ -1,10 +1,10 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { updateFuel } from './update-fuel.js'
-import { statusCodes } from '../../common/constants/status-codes.js'
-import * as fuelController from '../../controllers/fuels-controller.js'
+import { updateFuel } from '../update-fuel.js'
+import { statusCodes } from '../../../common/constants/status-codes.js'
+import * as fuelController from '../../../controllers/fuels-controller.js'
 
 // Mock the controller
-vi.mock('../../controllers/fuels-controller.js', () => ({
+vi.mock('../../../controllers/fuels-controller.js', () => ({
   default: {},
   updateFuel: vi.fn()
 }))
@@ -27,7 +27,7 @@ describe('PATCH /fuels/{fuelId}', () => {
         fuelId: 'FUEL-123'
       },
       payload: {
-        brandNames: 'Updated Brand'
+        brandName: 'Updated Brand'
       },
       db: {},
       logger: {
@@ -41,7 +41,7 @@ describe('PATCH /fuels/{fuelId}', () => {
     test('updates fuel successfully', async () => {
       const updatedFuel = {
         fuelId: 'FUEL-123',
-        brandNames: 'Updated Brand',
+        brandName: 'Updated Brand',
         updatedAt: new Date()
       }
 
@@ -87,8 +87,8 @@ describe('PATCH /fuels/{fuelId}', () => {
 
     test('passes payload as updates to controller', async () => {
       const payload = {
-        brandNames: 'New Brand',
-        fuelWeight: 25
+        brandName: 'New Brand',
+        weight: 25
       }
       mockRequest.payload = payload
 
@@ -185,7 +185,7 @@ describe('PATCH /fuels/{fuelId}', () => {
     test('rejects unknown payload fields', () => {
       const payloadSchema = updateFuel.options.validate.payload
       const { error } = payloadSchema.validate({
-        brandNames: 'Test',
+        brandName: 'Test',
         unknownField: 'value'
       })
       expect(error).toBeDefined()
