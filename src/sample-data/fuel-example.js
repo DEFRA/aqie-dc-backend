@@ -115,7 +115,7 @@ export default {
   },
   customerComplaints: false,
   fuelBagging: 'Bagged',
-  supplierType: 'Manufacture', //or Rebrand 
+  supplierType: 'Manufacture', //or Rebrand
   //If manufacturer:
   fuelDescription: {
     appearance: 'Premium pellets',
