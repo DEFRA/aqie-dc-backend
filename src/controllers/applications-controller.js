@@ -587,7 +587,6 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
           companyFullAddress: 1,
           companyAddress: 1,
           companyContact: 1,
-          //fuel specific fields
           responsiblePerson: 1,
           customerComplaints: 1,
           fuelBagging: 1,
@@ -623,6 +622,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
           responsiblePerson: companyDetails?.responsiblePerson,
           customerComplaints: companyDetails?.customerComplaints,
           fuelBagging: companyDetails?.fuelBagging,
+          supplierType: companyDetails?.supplierType,
           manufacturerOrReseller: companyDetails?.manufacturerOrReseller
         }),
         linkedItems // Contains item name and technicalReview
