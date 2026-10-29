@@ -108,10 +108,7 @@ function buildApplication(applicationData, id) {
 }
 
 // Maps application type to the id prefix used for its linked items
-const ID_PREFIX_BY_TYPE = {
-  appliance: 'APP',
-  fuel: 'FUEL'
-}
+const ID_PREFIX_BY_TYPE = { appliance: 'APP', fuel: 'FUEL' }
 
 /**
  * Perform the application and linked items (appliances/fuels) insert
@@ -186,10 +183,7 @@ async function performApplicationInsert(db, payload, logger, session) {
   return {
     success: true,
     message: 'Application and linked items created successfully',
-    data: {
-      ...application,
-      [itemsKey]: savedItems
-    }
+    data: { ...application, [itemsKey]: savedItems }
   }
 }
 
@@ -489,10 +483,7 @@ async function getApplicationsSummaryByStatus(
     if (applications.length === 0) {
       return {
         success: true,
-        data: {
-          new: [],
-          inProgress: []
-        }
+        data: { new: [], inProgress: [] }
       }
     }
 
