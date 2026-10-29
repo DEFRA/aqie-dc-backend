@@ -350,7 +350,7 @@ export const fuelSchema = Joi.object({
         'Has the original fuel been changed or mixed with another fuel: yes or no'
       ),
     changes: Joi.string()
-      .optional()
+      .required()
       .description('Explain changes made to the original fuel')
   })
     .when('supplierType', {
