@@ -188,6 +188,19 @@ async function performApplicationInsert(db, payload, logger, session) {
 }
 
 /**
+ * Check whether an application submitted via forms, has already been created in our system, using form 'reference number'
+ */
+async function applicationExistsByReference(db, referenceNumber) {
+  if (!referenceNumber) {
+    return false
+  }
+  const found = await db
+    .collection('Applications')
+    .findOne({ referenceNumber }, { projection: { _id: 1 } })
+  return Boolean(found)
+}
+
+/**
  * Get all applications (pagination not currently supported)
  */
 async function getAllApplications(db, _options, logger) {
@@ -621,6 +634,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
 
 export {
   createApplication,
+  applicationExistsByReference,
   getAllApplications,
   getApplicationById,
   searchApplications,
