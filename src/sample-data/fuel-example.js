@@ -18,7 +18,7 @@
   },
   responsibleName: 'Rep Name',
   responsibleEmailAddress: 'rep@co.com',
-  customerComplaints: false,
+  hasCustomerComplaintsSystem: false,
   fuelBagging: 'Bagged',
   //   baggedAtSource: true,
   supplierType: 'Manufacture',
@@ -37,7 +37,7 @@
   composition: 'Wood 100%',
   sulphurContent: 0.7,
   manufacturingProcess: 'Kiln-dried',
-  qualityControlSystem: 'ISO certified',
+  hasQualityControlSystem: true,
   brandName: 'PelletBrand',
 
   declaration: true,
@@ -113,7 +113,7 @@ export default {
     name: 'Rep Name',
     email: 'rep@co.com'
   },
-  customerComplaints: false,
+  hasCustomerComplaintsSystem: false,
   fuelBagging: 'Bagged',
   supplierType: 'Manufacture', //or Rebrand
   //If manufacturer:
@@ -124,7 +124,7 @@ export default {
     sulphurContent: 0.7
   },
   manufacturingProcess: 'Kiln-dried',
-  qualityControlSystem: 'ISO certified',
+  hasQualityControlSystem: true,
   brandName: 'PelletBrand',
   //If reseller:
   // originalFuel: {

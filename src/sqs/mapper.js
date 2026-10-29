@@ -57,7 +57,7 @@ const keyMapFuel = {
   ChfkKZ: 'responsiblePerson.name',
   OOrscG: 'responsiblePerson.email',
 
-  Buaprr: 'customerComplaints',
+  Buaprr: 'hasCustomerComplaintsSystem',
   gefTHa: 'fuelBagging',
   AmmLSb: 'supplierType',
 
@@ -73,7 +73,7 @@ const keyMapFuel = {
   rIyajj: 'fuelDescription.composition',
   kOXZSk: 'fuelDescription.sulphurContent',
   Hdxrqy: 'manufacturingProcess',
-  dDwQia: 'qualityControlSystem',
+  dDwQia: 'hasQualityControlSystem',
 
   GgFWEK: 'brandName',
   fvgxNC: 'additionalBrandNames',

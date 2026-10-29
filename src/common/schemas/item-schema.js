@@ -324,9 +324,9 @@ export const fuelSchema = Joi.object({
       .empty(null) // allow null to be treated as missing i.e optional
       .description('Responsible email address')
   }),
-  customerComplaints: Joi.boolean()
+  hasCustomerComplaintsSystem: Joi.boolean()
     .required()
-    .description('System for customer complaints in place'),
+    .description('Is a system for handling customer complaints in place?'),
   fuelBagging: Joi.string()
     .required()
     .description('How do you sell this fuel, options provided'),
@@ -379,13 +379,13 @@ export const fuelSchema = Joi.object({
       otherwise: Joi.string().optional()
     })
     .description('Manufacturing process'),
-  qualityControlSystem: Joi.string()
+  hasQualityControlSystem: Joi.boolean()
     .when('supplierType', {
       is: 'Manufacture',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
+      then: Joi.boolean().required(),
+      otherwise: Joi.boolean().optional()
     })
-    .description('Quality manufactured system in place'),
+    .description('Is a monitored quality control system in place?'),
   //End of manufacturer/reseller
   declaration: Joi.boolean().required().description('Declaration'),
   createdAt: Joi.date()

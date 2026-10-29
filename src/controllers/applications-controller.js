@@ -588,7 +588,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
           companyAddress: 1,
           companyContact: 1,
           responsiblePerson: 1,
-          customerComplaints: 1,
+          hasCustomerComplaintsSystem: 1,
           fuelBagging: 1,
           supplierType: 1
         }
@@ -620,7 +620,8 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
         companyContact: companyDetails?.companyContact,
         ...(type === 'fuel' && {
           responsiblePerson: companyDetails?.responsiblePerson,
-          customerComplaints: companyDetails?.customerComplaints,
+          hasCustomerComplaintsSystem:
+            companyDetails?.hasCustomerComplaintsSystem,
           fuelBagging: companyDetails?.fuelBagging,
           supplierType: companyDetails?.supplierType
         }),

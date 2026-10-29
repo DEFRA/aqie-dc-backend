@@ -147,7 +147,7 @@ export const fuelApplicationExample = {
         name: 'Rep Name',
         email: 'rep@co.com'
       },
-      customerComplaints: false,
+      hasCustomerComplaintsSystem: false,
       fuelBagging: 'Bagged',
       supplierType: 'Manufacture', //Or Rebrand
       fuelDescription: {
@@ -157,7 +157,7 @@ export const fuelApplicationExample = {
         sulphurContent: 0.7
       },
       manufacturingProcess: 'Kiln-dried',
-      qualityControlSystem: 'ISO certified',
+      hasQualityControlSystem: true,
       brandName: 'PelletBrand',
       declaration: true
     }
