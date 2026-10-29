@@ -583,7 +583,6 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       { applicationId },
       {
         projection: {
-          _id: 0,
           companyName: 1,
           companyFullAddress: 1,
           companyAddress: 1,
@@ -606,8 +605,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
           projection: {
             id: 1,
             [nameField]: 1,
-            technicalReview: 1,
-            _id: 0
+            technicalReview: 1
           }
         }
       )
@@ -620,7 +618,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
         id: application.id,
         companyName: companyDetails?.companyName,
         fullAddress: getFullAddress(companyDetails),
-        companyContact: companyDetails?.companyContact || null,
+        companyContact: companyDetails?.companyContact,
         ...(type === 'fuel' && {
           responsiblePerson: companyDetails?.responsiblePerson,
           customerComplaints: companyDetails?.customerComplaints,
