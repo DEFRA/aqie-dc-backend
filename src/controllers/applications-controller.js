@@ -622,8 +622,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
           responsiblePerson: companyDetails?.responsiblePerson,
           customerComplaints: companyDetails?.customerComplaints,
           fuelBagging: companyDetails?.fuelBagging,
-          supplierType: companyDetails?.supplierType,
-          manufacturerOrReseller: companyDetails?.manufacturerOrReseller
+          supplierType: companyDetails?.supplierType
         }),
         linkedItems // Contains item name and technicalReview
       }
