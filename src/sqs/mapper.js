@@ -68,10 +68,10 @@ const keyMapFuel = {
   UPvcFc: 'originalFuel.changes',
 
   // Manufacture-only fields
-  iqYLKO: 'appearance',
-  vUJklv: 'weight',
-  rIyajj: 'composition',
-  kOXZSk: 'sulphurContent',
+  iqYLKO: 'fuelDescription.appearance',
+  vUJklv: 'fuelDescription.weight',
+  rIyajj: 'fuelDescription.composition',
+  kOXZSk: 'fuelDescription.sulphurContent',
   Hdxrqy: 'manufacturingProcess',
   dDwQia: 'qualityControlSystem',
 

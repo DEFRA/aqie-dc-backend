@@ -395,7 +395,12 @@ describe('item-schema fuelSchema', () => {
   test('originalFuel.changes field is accepted as string', () => {
     const payload = {
       ...structuredClone(validFuelPayload),
-      originalFuel: { changes: 'Changed bagging method' }
+      originalFuel: {
+        manufacturer: 'Original Co',
+        name: 'Original Fuel',
+        isChangedOrMixed: true,
+        changes: 'Changed bagging method'
+      }
     }
 
     const { value, error } = fuelSchema.validate(payload)

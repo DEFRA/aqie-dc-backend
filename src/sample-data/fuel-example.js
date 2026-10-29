@@ -115,12 +115,14 @@ export default {
   },
   customerComplaints: false,
   fuelBagging: 'Bagged',
-  appearance: 'Premium pellets',
-  supplierType: 'Manufacture',
+  supplierType: 'Manufacture', //or Rebrand 
   //If manufacturer:
-  weight: 20,
-  composition: 'Wood 100%',
-  sulphurContent: 0.7,
+  fuelDescription: {
+    appearance: 'Premium pellets',
+    weight: 20,
+    composition: 'Wood 100%',
+    sulphurContent: 0.7
+  },
   manufacturingProcess: 'Kiln-dried',
   qualityControlSystem: 'ISO certified',
   brandName: 'PelletBrand',

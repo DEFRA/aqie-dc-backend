@@ -339,25 +339,11 @@ export const fuelSchema = Joi.object({
   //If a rebrand, these fields become required:
   originalFuel: Joi.object({
     manufacturer: Joi.string()
-      .when('...supplierType', {
-        is: 'Rebrand',
-        then: Joi.string().required(),
-        otherwise: Joi.string().optional()
-      })
+      .required()
       .description('Original fuel manufacturer'),
-    name: Joi.string()
-      .when('...supplierType', {
-        is: 'Rebrand',
-        then: Joi.string().required(),
-        otherwise: Joi.string().optional()
-      })
-      .description('Original fuel name or brand'),
+    name: Joi.string().required().description('Original fuel name or brand'),
     isChangedOrMixed: Joi.boolean()
-      .when('...supplierType', {
-        is: 'Rebrand',
-        then: Joi.boolean().required(),
-        otherwise: Joi.boolean().optional()
-      })
+      .required()
       .description(
         'Has the original fuel been changed or mixed with another fuel: yes or no'
       ),
@@ -372,28 +358,18 @@ export const fuelSchema = Joi.object({
     })
     .description('Original fuel details (required for rebranders)'),
   //If a manufacturer, these fields become required:
-  appearance: Joi.string().required().description('Fuel description'),
-  weight: Joi.number()
+  fuelDescription: Joi.object({
+    appearance: Joi.string().required().description('Fuel description'),
+    weight: Joi.number().required().description('Fuel weight'),
+    composition: Joi.string().required().description('Fuel composition'),
+    sulphurContent: Joi.number().required().description('Sulphur content (%)')
+  })
     .when('supplierType', {
       is: 'Manufacture',
-      then: Joi.number().required(),
-      otherwise: Joi.number().optional()
+      then: Joi.required(),
+      otherwise: Joi.optional()
     })
-    .description('Fuel weight'),
-  composition: Joi.string()
-    .when('supplierType', {
-      is: 'Manufacture',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Fuel composition'),
-  sulphurContent: Joi.number()
-    .when('supplierType', {
-      is: 'Manufacture',
-      then: Joi.number().required(),
-      otherwise: Joi.number().optional()
-    })
-    .description('Sulphur content (%)'),
+    .description('Fuel description details (required for manufacturers)'),
   manufacturingProcess: Joi.string()
     .when('supplierType', {
       is: 'Manufacture',

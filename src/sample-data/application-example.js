@@ -149,11 +149,13 @@ export const fuelApplicationExample = {
       },
       customerComplaints: false,
       fuelBagging: 'Bagged',
-      appearance: 'Premium pellets',
-      supplierType: 'Manufacture',
-      weight: 20,
-      composition: 'Wood 100%',
-      sulphurContent: 0.7,
+      supplierType: 'Manufacture', //Or Rebrand
+      fuelDescription: {
+        appearance: 'Premium pellets',
+        weight: 20,
+        composition: 'Wood 100%',
+        sulphurContent: 0.7
+      },
       manufacturingProcess: 'Kiln-dried',
       qualityControlSystem: 'ISO certified',
       brandName: 'PelletBrand',
