@@ -600,13 +600,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       .collection(collectionName)
       .find(
         { applicationId },
-        {
-          projection: {
-            id: 1,
-            [nameField]: 1,
-            technicalReview: 1
-          }
-        }
+        { projection: { id: 1, [nameField]: 1, technicalReview: 1 } }
       )
       .toArray()
 
