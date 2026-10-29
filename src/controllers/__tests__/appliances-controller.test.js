@@ -353,7 +353,8 @@ describe('appliances-controller', () => {
           status: 'live',
           canTogglePublicVisibility: true,
           isVisibleToPublic: false,
-          isLegacyRecord: true
+          isLegacyRecord: true,
+          technicalReview: null
         }
       })
     })
@@ -470,6 +471,19 @@ describe('appliances-controller', () => {
   })
 
   describe('searchAdminAppliances', () => {
+    let applicationsCollection
+
+    beforeEach(() => {
+      applicationsCollection = {
+        find: vi
+          .fn()
+          .mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) })
+      }
+      db.collection.mockImplementation((name) =>
+        name === 'Applications' ? applicationsCollection : collection
+      )
+    })
+
     test('returns paginated results', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
@@ -636,6 +650,49 @@ describe('appliances-controller', () => {
       })
       expect(searchQuery.$or).toBeUndefined()
       expect(searchQuery.applianceStatus).toBeUndefined()
+    })
+
+    test('excludes appliances whose application is not yet complete', async () => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([])
+      }
+      collection.find.mockReturnValue(cursor)
+      collection.countDocuments.mockResolvedValue(0)
+      applicationsCollection.find.mockReturnValue({
+        toArray: vi
+          .fn()
+          .mockResolvedValue([{ id: 'app-new' }, { id: 'app-in-progress' }])
+      })
+
+      await searchAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
+
+      expect(applicationsCollection.find).toHaveBeenCalledWith(
+        { status: { $ne: 'complete' } },
+        { projection: { id: 1, _id: 0 } }
+      )
+      const expected = { $nin: ['app-new', 'app-in-progress'] }
+      expect(collection.find.mock.calls[0][0].applicationId).toEqual(expected)
+      expect(collection.countDocuments.mock.calls[0][0].applicationId).toEqual(
+        expected
+      )
+    })
+
+    test('does not restrict by application when every application is complete', async () => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([])
+      }
+      collection.find.mockReturnValue(cursor)
+      collection.countDocuments.mockResolvedValue(0)
+
+      await searchAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
+
+      expect(collection.find.mock.calls[0][0].applicationId).toBeUndefined()
     })
   })
 

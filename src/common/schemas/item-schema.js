@@ -1,16 +1,14 @@
 import Joi from 'joi'
+import {
+  COUNTRY_CERTIFICATION_STATUSES,
+  DEFAULT_COUNTRY_CERTIFICATION_STATUS
+} from '../helpers/certification.js'
 
 export const countryCertificationSchema = Joi.object({
   // 1. Current State Metadata
   status: Joi.string()
-    .valid(
-      'new', // Appliance/Item in technical review, hasn't been sent to country
-      'awaiting_decision',
-      'certified',
-      'revoked', // Previously certified, now uncertified
-      'rejected' // Denied initial certification
-    )
-    .default('new'),
+    .valid(...COUNTRY_CERTIFICATION_STATUSES)
+    .default(DEFAULT_COUNTRY_CERTIFICATION_STATUS),
   decidedAt: Joi.date().iso().allow(null).default(null),
   decidedBy: Joi.object({
     name: Joi.string().optional(),
@@ -33,7 +31,9 @@ export const applianceSchema = Joi.object({
   // Fields from DXT form input
   applicationId: Joi.string()
     .optional()
-    .description('Application ID (foreign key)'),
+    .description(
+      'Application ID (foreign key), unique identifier and display identifier (last digits) (server-generated)'
+    ),
   // Start of appliance application fields
   companyName: Joi.string().required().description('Company name'),
   isUkBased: Joi.boolean().required().description('Is the company UK based?'),
@@ -43,7 +43,9 @@ export const applianceSchema = Joi.object({
       then: Joi.string().required(),
       otherwise: Joi.string().optional()
     })
-    .description('Company address for overseas/non-UK-based companies'),
+    .description(
+      'Company address for overseas/non-UK-based companies. String with \n if user put enter in the DXT form.'
+    ),
   companyAddress: Joi.object({
     uprn: Joi.string()
       .optional()
@@ -250,9 +252,12 @@ export const applianceSchema = Joi.object({
   publishedDate: Joi.date()
     .optional()
     .description('The earliest date of certification'),
-  applianceStatus: Joi.string().description(
-    'Takes in account the technical review and country certifications, and isVisibleToPublic to determine the overall status of the appliance'
-  )
+  applianceStatus: Joi.string()
+    .valid('pending', 'live', 'hidden', 'rejected')
+    .description(
+      'Takes in account the technical review and country certifications, and isVisibleToPublic to determine the overall status of the appliance'
+    )
+    .default('pending')
 }).label('Appliance')
 
 // ============================================================================

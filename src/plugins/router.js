@@ -1,6 +1,5 @@
 import { health } from '../routes/health.js'
 import { example } from '../routes/example.js'
-import { uploadCallback } from '../routes/upload-callback.js'
 import {
   initiateImportController,
   checkUploadStatusController
@@ -10,7 +9,7 @@ import { completeApplication } from '../routes/applications/complete-application
 import { startApplication } from '../routes/applications/start-application.js'
 import { getAllApplications } from '../routes/applications/get-all-applications.js'
 import { getApplicationById } from '../routes/applications/get-application-by-id.js'
-import { getApplicationsWithSummary } from '../routes/applications/get-applications-with-summary.js'
+import { getApplicationsSummaryByStatus } from '../routes/applications/get-applications-summary-by-status.js'
 import { getApplicationSummary } from '../routes/applications/get-application-summary.js'
 import { getCounts } from '../routes/applications/get-counts.js'
 import { searchApplications } from '../routes/applications/search-applications.js'
@@ -21,6 +20,7 @@ import { recordApplianceCheck } from '../routes/appliances/record-appliance-chec
 import { searchAdminAppliances } from '../routes/appliances/search-admin-appliances.js'
 import { getAdminApplianceById } from '../routes/appliances/get-admin-appliance-by-id.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
+import { updateCertificationStatus } from '../routes/appliances/update-certification-status.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
 import { getFuelById } from '../routes/fuels/get-fuel-by-id.js'
 import { searchFuels } from '../routes/fuels/search-fuels.js'
@@ -49,9 +49,6 @@ const router = {
       // Health check, example, routes
       const baseRoutes = [health].concat(example)
       server.route(baseRoutes)
-
-      // CDP Uploader callback route
-      server.route(uploadCallback)
 
       // Admin import routes
       server.route([
@@ -114,7 +111,7 @@ const router = {
         startApplication,
         getAllApplications,
         getCounts,
-        getApplicationsWithSummary,
+        getApplicationsSummaryByStatus,
         getApplicationSummary,
         searchApplications, // Must come before getApplicationById to avoid route conflict
         getApplicationById
@@ -132,6 +129,7 @@ const router = {
         updateApplianceReview,
         updateApplianceVisibility,
         updateAppliance,
+        updateCertificationStatus,
         deleteAppliance,
         getApplianceTypes
       ])

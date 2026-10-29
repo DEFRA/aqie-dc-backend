@@ -1,10 +1,15 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest'
 
+import { calculateItemStatus } from '#src/common/helpers/item-status.js'
 import {
   getApplianceReview,
   updateApplianceReview,
   recordApplianceCheck
 } from '#src/controllers/appliance-review-controller.js'
+
+vi.mock('#src/common/helpers/item-status.js', () => ({
+  calculateItemStatus: vi.fn()
+}))
 
 const allPassed = {
   documentationChecks: {
@@ -26,6 +31,8 @@ describe('appliance-review-controller', () => {
   let mockLogger
 
   beforeEach(() => {
+    vi.clearAllMocks()
+
     mockLogger = {
       info: vi.fn(),
       error: vi.fn()
@@ -233,6 +240,44 @@ describe('appliance-review-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.data.status).toBe('rejected')
+      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'appliance', 'APP-1')
+    })
+
+    test.each(['accepted', 'rejected'])(
+      'recalculates the appliance status after a %s decision',
+      async (status) => {
+        collection.findOne
+          .mockResolvedValueOnce({ technicalReview: allPassed })
+          .mockResolvedValueOnce({ id: 'APP-1' })
+        collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+        const result = await updateApplianceReview(
+          db,
+          'APP-1',
+          { status },
+          mockLogger
+        )
+
+        expect(result.success).toBe(true)
+        expect(calculateItemStatus).toHaveBeenCalledWith(
+          db,
+          'appliance',
+          'APP-1'
+        )
+      }
+    )
+
+    test('does not recalculate when the decision is refused', async () => {
+      collection.findOne.mockResolvedValue({ technicalReview: {} })
+
+      await updateApplianceReview(
+        db,
+        'APP-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(calculateItemStatus).not.toHaveBeenCalled()
     })
 
     test('writes dot-notation paths so the check results survive', async () => {
