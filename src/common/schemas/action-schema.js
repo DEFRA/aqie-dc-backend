@@ -26,6 +26,15 @@ export const actionWording = {
   retestFailed: () => 'Retest failed'
 }
 
+// Actions worded with a country, so they cannot be recorded without one.
+export const COUNTRY_ACTIONS = [
+  'certified',
+  'uncertified',
+  'certifiedOnBehalf',
+  'uncertifiedOnBehalf',
+  'certificationSuspended'
+]
+
 export const actionSchema = Joi.object({
   id: Joi.string().required().description('Primary key'),
   itemId: Joi.string().required().description('Foreign key to the item'),
@@ -41,7 +50,11 @@ export const actionSchema = Joi.object({
     .description('Human-readable description shown in the action history'),
   country: Joi.string()
     .valid('england', 'scotland', 'wales', 'northern-ireland')
-    .optional()
+    .when('action', {
+      is: Joi.valid(...COUNTRY_ACTIONS),
+      then: Joi.required(),
+      otherwise: Joi.optional()
+    })
     .description('Country the action applies to'),
   fromStatus: Joi.string().optional().description('Status before the change'),
   toStatus: Joi.string().optional().description('Status after the change'),

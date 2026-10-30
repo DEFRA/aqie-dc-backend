@@ -3,8 +3,26 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   SYSTEM_ACTOR,
   recordAction,
+  toGovernmentActor,
   toUserActor
 } from '#src/common/helpers/action-history.js'
+
+describe('toGovernmentActor', () => {
+  test.each([
+    ['england', 'Defra'],
+    ['scotland', 'Scottish Government'],
+    ['wales', 'Welsh Government'],
+    ['northern-ireland', 'DAERA']
+  ])('names the government for %s', (country, name) => {
+    expect(toGovernmentActor(country)).toEqual({ name, type: 'government' })
+  })
+
+  test('rejects an unknown country', () => {
+    expect(() => toGovernmentActor('atlantis')).toThrow(
+      'Unknown country: atlantis'
+    )
+  })
+})
 
 describe('toUserActor', () => {
   test('describes a signed-in user', () => {
@@ -70,6 +88,62 @@ describe('recordAction', () => {
       completedAt: at
     })
     expect(logger.error).not.toHaveBeenCalled()
+  })
+
+  test('records a government decision with the government as actor', async () => {
+    await recordAction(
+      db,
+      {
+        itemId: 'APP-1',
+        itemType: 'appliance',
+        action: 'certified',
+        country: 'wales',
+        actor: toGovernmentActor('wales')
+      },
+      logger
+    )
+
+    expect(insertOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: 'Certified in Wales',
+        completedBy: { name: 'Welsh Government', type: 'government' }
+      })
+    )
+  })
+
+  test.each([
+    'certified',
+    'uncertified',
+    'certifiedOnBehalf',
+    'uncertifiedOnBehalf',
+    'certificationSuspended'
+  ])('does not record %s without a country', async (action) => {
+    await recordAction(
+      db,
+      { itemId: 'APP-1', itemType: 'appliance', action, actor: SYSTEM_ACTOR },
+      logger
+    )
+
+    expect(insertOne).not.toHaveBeenCalled()
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('"country" is required')
+    )
+  })
+
+  test('does not record an unknown country', async () => {
+    await recordAction(
+      db,
+      {
+        itemId: 'APP-1',
+        itemType: 'appliance',
+        action: 'certified',
+        country: 'atlantis',
+        actor: SYSTEM_ACTOR
+      },
+      logger
+    )
+
+    expect(insertOne).not.toHaveBeenCalled()
   })
 
   test('words and stores a system action without a country', async () => {

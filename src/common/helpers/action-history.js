@@ -27,6 +27,27 @@ export const toUserActor = (user) => {
   }
 }
 
+// The government body that decides for each country, as shown in the history.
+const GOVERNMENT_NAMES = {
+  england: 'Defra',
+  scotland: 'Scottish Government',
+  wales: 'Welsh Government',
+  'northern-ireland': 'DAERA'
+}
+
+/**
+ * A country's government as an action's `completedBy`, for decisions made by
+ * a DA from the link in their email.
+ */
+export const toGovernmentActor = (country) => {
+  const name = GOVERNMENT_NAMES[country]
+  if (!name) {
+    throw new Error(`Unknown country: ${country}`)
+  }
+
+  return { name, type: 'government' }
+}
+
 /**
  * Append an entry to an item's action history. History must never fail the
  * change it describes, so any error (including an invalid entry) is logged
@@ -37,8 +58,8 @@ export const toUserActor = (user) => {
  * @param {string} entry.itemId - applianceId or fuelId
  * @param {'appliance'|'fuel'} entry.itemType
  * @param {string} entry.action - a key of `actionWording`
- * @param {string} [entry.country] - country slug, for country-specific actions
- * @param {object} entry.actor - see `toUserActor` / `SYSTEM_ACTOR`
+ * @param {string} [entry.country] - country slug; required for country-specific actions
+ * @param {object} entry.actor - see `toUserActor` / `toGovernmentActor` / `SYSTEM_ACTOR`
  * @param {Date} [entry.at] - defaults to now
  * @param {object} [entry.details] - extra fields, e.g. fromStatus/toStatus
  * @param {object} [logger]

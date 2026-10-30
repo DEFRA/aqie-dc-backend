@@ -6,6 +6,8 @@ import {
 } from '../../common/helpers/action-history.js'
 
 // HETAS decides on a government's behalf here, so the history says so.
+// HERE: DA decisions (email link, not built yet) should record `certified` /
+// `uncertified` with `actor: toGovernmentActor(country)` instead.
 const statusToAction = {
   certified: 'certifiedOnBehalf',
   uncertified: 'uncertifiedOnBehalf'
