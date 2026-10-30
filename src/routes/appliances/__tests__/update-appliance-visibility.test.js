@@ -46,7 +46,9 @@ describe('PATCH /appliances/{id}/visibility', () => {
         mockRequest.db,
         'APP-123',
         false,
-        mockRequest.logger
+        mockRequest.logger,
+        'appliance',
+        undefined
       )
     })
 

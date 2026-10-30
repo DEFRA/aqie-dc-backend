@@ -17,7 +17,13 @@ export const updateApplianceVisibility = {
         id: Joi.string().max(64).required()
       }),
       payload: Joi.object({
-        isVisibleToPublic: Joi.boolean().strict().required()
+        isVisibleToPublic: Joi.boolean().strict().required(),
+        reviewedBy: Joi.object({
+          name: Joi.string().max(255).required(),
+          email: Joi.string().email().max(255).required()
+        })
+          .optional()
+          .description('The signed-in user, supplied by the admin frontend')
       }).unknown(false)
     }
   },
@@ -27,7 +33,9 @@ export const updateApplianceVisibility = {
         request.db,
         request.params.id,
         request.payload.isVisibleToPublic,
-        request.logger
+        request.logger,
+        'appliance',
+        request.payload.reviewedBy
       ),
     {
       logMessage: 'Failed to update appliance visibility',
