@@ -147,7 +147,11 @@ describe('application-review-controller', () => {
         'nIrelandCertification'
       ]) {
         expect(itemsCollection.updateMany).toHaveBeenCalledWith(
-          { applicationId: 'app-1', id: { $in: ['APP-A', 'APP-C'] }, [`${field}.status`]: 'new' },
+          {
+            applicationId: 'app-1',
+            id: { $in: ['APP-A', 'APP-C'] },
+            [`${field}.status`]: 'new'
+          },
           { $set: { [`${field}.status`]: 'awaiting_decision' } }
         )
       }
@@ -192,7 +196,7 @@ describe('application-review-controller', () => {
       }
     })
 
-    test('records each item\'s review outcome against the reviewer', async () => {
+    test("records each item's review outcome against the reviewer", async () => {
       applicationsCollection.findOne.mockResolvedValue({
         id: 'app-1',
         type: 'appliance'

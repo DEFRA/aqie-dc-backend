@@ -142,11 +142,7 @@ export const calculateItemStatus = async (
 
   const action = resolveVisibilityAction(item[itemStatus], update[itemStatus])
   if (action) {
-    await recordAction(
-      db,
-      { itemId, itemType: type, action, actor },
-      logger
-    )
+    await recordAction(db, { itemId, itemType: type, action, actor }, logger)
   }
 
   return update[itemStatus]
