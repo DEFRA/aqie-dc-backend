@@ -147,7 +147,7 @@ describe('application-review-controller', () => {
         'nIrelandCertification'
       ]) {
         expect(itemsCollection.updateMany).toHaveBeenCalledWith(
-          { applicationId: 'app-1', [`${field}.status`]: 'new' },
+          { applicationId: 'app-1', id: { $in: ['APP-A', 'APP-C'] }, [`${field}.status`]: 'new' },
           { $set: { [`${field}.status`]: 'awaiting_decision' } }
         )
       }
@@ -178,12 +178,13 @@ describe('application-review-controller', () => {
 
       await completeApplication(db, 'app-1', { reviewedBy }, mockLogger)
 
-      const entries = actionsCollection.insertOne.mock.calls.map(([e]) => e)
+      const entries = actionsCollection.insertOne.mock.calls
+        .map(([e]) => e)
+        .filter((e) => e.action === 'sentToGovernments')
       expect(entries.map((e) => e.itemId).sort()).toEqual(['APP-A', 'APP-C'])
       for (const entry of entries) {
         expect(entry).toMatchObject({
           itemType: 'appliance',
-          action: 'sentToGovernments',
           description: 'Sent to governments for approval',
           completedBy: { name: 'System', type: 'system' },
           completedAt: expect.any(Date)
@@ -191,7 +192,7 @@ describe('application-review-controller', () => {
       }
     })
 
-    test('does not record anything for a rejected item', async () => {
+    test('records each item\'s review outcome against the reviewer', async () => {
       applicationsCollection.findOne.mockResolvedValue({
         id: 'app-1',
         type: 'appliance'
@@ -202,10 +203,65 @@ describe('application-review-controller', () => {
 
       await completeApplication(db, 'app-1', { reviewedBy }, mockLogger)
 
-      const itemIds = actionsCollection.insertOne.mock.calls.map(
-        ([e]) => e.itemId
+      const outcomes = actionsCollection.insertOne.mock.calls
+        .map(([e]) => e)
+        .filter((e) => e.action !== 'sentToGovernments')
+      expect(
+        outcomes.map((e) => [e.itemId, e.action, e.description]).sort()
+      ).toEqual([
+        ['APP-A', 'acceptedAtApplication', 'Accepted at application'],
+        ['APP-B', 'rejectedAtApplication', 'Rejected at application'],
+        ['APP-C', 'acceptedAtApplication', 'Accepted at application']
+      ])
+      for (const entry of outcomes) {
+        expect(entry.completedBy).toEqual({
+          name: 'Jane Doe',
+          email: 'jane.doe@example.com',
+          type: 'user'
+        })
+      }
+    })
+
+    test('sends nothing to the governments when every item was rejected', async () => {
+      applicationsCollection.findOne.mockResolvedValue({
+        id: 'app-1',
+        type: 'appliance'
+      })
+      itemsCollection.find.mockReturnValue({
+        toArray: vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'APP-B', technicalReview: { status: 'rejected' } }
+          ])
+      })
+
+      await completeApplication(db, 'app-1', { reviewedBy }, mockLogger)
+
+      const actions = actionsCollection.insertOne.mock.calls.map(
+        ([e]) => e.action
       )
-      expect(itemIds).not.toContain('APP-B')
+      expect(actions).toEqual(['rejectedAtApplication'])
+      expect(mockLogger.info).not.toHaveBeenCalledWith(
+        expect.stringContaining('Email sent to DA')
+      )
+    })
+
+    test('does not send a rejected item to the governments', async () => {
+      applicationsCollection.findOne.mockResolvedValue({
+        id: 'app-1',
+        type: 'appliance'
+      })
+      itemsCollection.find.mockReturnValue({
+        toArray: vi.fn().mockResolvedValue(reviewedItems)
+      })
+
+      await completeApplication(db, 'app-1', { reviewedBy }, mockLogger)
+
+      const sentIds = actionsCollection.insertOne.mock.calls
+        .map(([e]) => e)
+        .filter((e) => e.action === 'sentToGovernments')
+        .map((e) => e.itemId)
+      expect(sentIds).not.toContain('APP-B')
     })
 
     test('records fuel items against the fuel type', async () => {

@@ -286,38 +286,7 @@ describe('appliance-review-controller', () => {
       expect(calculateItemStatus).not.toHaveBeenCalled()
     })
 
-    test('records "accepted at application" against the reviewer', async () => {
-      collection.findOne
-        .mockResolvedValueOnce({ technicalReview: allPassed })
-        .mockResolvedValueOnce({ id: 'APP-1' })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
-      const reviewedBy = { name: 'Jane Doe', email: 'jane.doe@example.com' }
-
-      const result = await updateApplianceReview(
-        db,
-        'APP-1',
-        { status: 'accepted', reviewedBy },
-        mockLogger
-      )
-
-      expect(recordAction).toHaveBeenCalledWith(
-        db,
-        {
-          itemId: 'APP-1',
-          itemType: 'appliance',
-          action: 'acceptedAtApplication',
-          actor: {
-            name: 'Jane Doe',
-            email: 'jane.doe@example.com',
-            type: 'user'
-          },
-          at: result.data.reviewedAt
-        },
-        mockLogger
-      )
-    })
-
-    test('records the system as the actor when no reviewer is given', async () => {
+    test('does not record history; that happens when the application completes', async () => {
       collection.findOne
         .mockResolvedValueOnce({ technicalReview: allPassed })
         .mockResolvedValueOnce({ id: 'APP-1' })
@@ -326,31 +295,7 @@ describe('appliance-review-controller', () => {
       await updateApplianceReview(
         db,
         'APP-1',
-        { status: 'accepted' },
-        mockLogger
-      )
-
-      expect(recordAction).toHaveBeenCalledWith(
-        db,
-        expect.objectContaining({
-          actor: { name: 'System', type: 'system' }
-        }),
-        mockLogger
-      )
-    })
-
-    test('does not record again when the item was already accepted', async () => {
-      collection.findOne
-        .mockResolvedValueOnce({
-          technicalReview: { ...allPassed, status: 'accepted' }
-        })
-        .mockResolvedValueOnce({ id: 'APP-1' })
-      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
-
-      await updateApplianceReview(
-        db,
-        'APP-1',
-        { status: 'accepted' },
+        { status: 'accepted', reviewedBy: { name: 'Jane Doe' } },
         mockLogger
       )
 
@@ -384,19 +329,6 @@ describe('appliance-review-controller', () => {
       )
 
       expect(recordAction).not.toHaveBeenCalled()
-    })
-
-    test('does not recalculate when the decision is refused', async () => {
-      collection.findOne.mockResolvedValue({ technicalReview: {} })
-
-      await updateApplianceReview(
-        db,
-        'APP-1',
-        { status: 'accepted' },
-        mockLogger
-      )
-
-      expect(calculateItemStatus).not.toHaveBeenCalled()
     })
 
     test('writes dot-notation paths so the check results survive', async () => {

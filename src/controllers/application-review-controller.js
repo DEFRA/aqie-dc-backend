@@ -9,16 +9,59 @@ import {
 } from '../common/helpers/review-status.js'
 import { getItemsCollectionName } from '../common/helpers/application-type.js'
 import { CERTIFICATION_FIELDS } from '../common/helpers/certification.js'
-import { SYSTEM_ACTOR, recordAction } from '../common/helpers/action-history.js'
+import {
+  SYSTEM_ACTOR,
+  recordAction,
+  toUserActor
+} from '../common/helpers/action-history.js'
 import { calculateItemStatus } from '../common/helpers/item-status.js'
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const APPLICATION_NOT_FOUND = 'Application not found'
 
-// Only accepted items go to the governments; rejected ones never leave HETAS.
-const recordSentToGovernments = (db, application, linkedItems, at, logger) =>
+const REVIEW_OUTCOME_ACTIONS = {
+  accepted: 'acceptedAtApplication',
+  rejected: 'rejectedAtApplication'
+}
+
+// Every item's final technical review outcome, recorded once the application completes.
+const recordReviewOutcomes = (
+  db,
+  application,
+  linkedItems,
+  reviewedBy,
+  at,
+  logger
+) =>
   Promise.all(
-    groupItemsByTechReviewStatus(linkedItems).accepted.map((item) =>
+    linkedItems.map((item) =>
+      recordAction(
+        db,
+        {
+          itemId: item.id,
+          itemType: application.type,
+          action: REVIEW_OUTCOME_ACTIONS[item.technicalReview.status],
+          actor: toUserActor(reviewedBy),
+          at
+        },
+        logger
+      )
+    )
+  )
+
+// TODO: the email to the DAs (governments) is NOT built yet; only the log line below
+// stands in for it. Replace the body with the real send, and throw if it fails so
+// nothing after it runs.
+const sendEmailToDAs = async (application, acceptedItems, logger) => {
+  logger.info(
+    `Email sent to DA for application ${application.id} (${acceptedItems.length} accepted items)`
+  )
+}
+
+// Only accepted items go to the governments; rejected ones never leave HETAS.
+const recordSentToGovernments = (db, application, acceptedItems, at, logger) =>
+  Promise.all(
+    acceptedItems.map((item) =>
       recordAction(
         db,
         {
@@ -97,22 +140,49 @@ async function completeApplication(db, id, payload, logger) {
 
     const { reviewedBy } = payload
     const reviewedAt = new Date()
+    const acceptedItems = groupItemsByTechReviewStatus(linkedItems).accepted
 
-    // Once an application completes, send the notification email to DA
-    // (not yet implemented).
-    // Submitting moves every still-new country to awaiting_decision...
+    // A repeat completion (e.g. a double submit) must not repeat history or the email.
+    const firstCompletion = application.status !== 'complete'
+
+    if (firstCompletion) {
+      await recordReviewOutcomes(
+        db,
+        application,
+        linkedItems,
+        reviewedBy,
+        reviewedAt,
+        logger
+      )
+      // Nothing to send when every item was rejected.
+      if (acceptedItems.length > 0) {
+        // Everything below only happens once the email has gone out.
+        await sendEmailToDAs(application, acceptedItems, logger)
+        await recordSentToGovernments(
+          db,
+          application,
+          acceptedItems,
+          reviewedAt,
+          logger
+        )
+      }
+    }
+
+    // Sent to the DAs, so each accepted item's still-new countries now await their decision...
     await Promise.all(
       CERTIFICATION_FIELDS.map((field) =>
-        db
-          .collection(itemsCollectionName)
-          .updateMany(
-            { applicationId: id, [`${field}.status`]: 'new' },
-            { $set: { [`${field}.status`]: 'awaiting_decision' } }
-          )
+        db.collection(itemsCollectionName).updateMany(
+          {
+            applicationId: id,
+            id: { $in: acceptedItems.map((item) => item.id) },
+            [`${field}.status`]: 'new'
+          },
+          { $set: { [`${field}.status`]: 'awaiting_decision' } }
+        )
       )
     )
 
-    // ...and marks the application complete.
+    // ...and the application is complete.
     await collection.updateOne(
       { id },
       {
@@ -124,17 +194,6 @@ async function completeApplication(db, id, payload, logger) {
         }
       }
     )
-
-    // Completing again (e.g. a double submit) must not repeat the history entry.
-    if (application.status !== 'complete') {
-      await recordSentToGovernments(
-        db,
-        application,
-        linkedItems,
-        reviewedAt,
-        logger
-      )
-    }
 
     // Last, so each item is rolled up from its awaiting_decision countries.
     await refreshItemStatuses(db, application.type, linkedItems, logger)

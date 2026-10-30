@@ -22,7 +22,7 @@ export const updateApplianceVisibility = {
           name: Joi.string().max(255).required(),
           email: Joi.string().email().max(255).required()
         })
-          .optional()
+          .required()
           .description('The signed-in user, supplied by the admin frontend')
       }).unknown(false)
     }

@@ -82,14 +82,14 @@ const resolveVisibilityAction = (previous, next) => {
  * @param {import('mongodb').Db} db
  * @param {'appliance'|'fuel'} type
  * @param {string} itemId - applianceId or fuelId, depending on type
- * @param {{ logger?: object }} [options]
+ * @param {{ logger?: object, actor?: object }} [options] - actor defaults to the system
  * @returns {Promise<string>} the itemStatus value that was persisted
  */
 export const calculateItemStatus = async (
   db,
   type,
   itemId,
-  { logger } = {}
+  { logger, actor = SYSTEM_ACTOR } = {}
 ) => {
   if (!db) {
     throw new Error('Database instance is required')
@@ -144,7 +144,7 @@ export const calculateItemStatus = async (
   if (action) {
     await recordAction(
       db,
-      { itemId, itemType: type, action, actor: SYSTEM_ACTOR },
+      { itemId, itemType: type, action, actor },
       logger
     )
   }

@@ -26,7 +26,10 @@ describe('PATCH /appliances/{id}/visibility', () => {
 
     mockRequest = {
       params: { id: 'APP-123' },
-      payload: { isVisibleToPublic: false },
+      payload: {
+        isVisibleToPublic: false,
+        reviewedBy: { name: 'Jane Doe', email: 'jane.doe@example.com' }
+      },
       db: {},
       logger: { info: vi.fn(), error: vi.fn() }
     }
@@ -48,7 +51,7 @@ describe('PATCH /appliances/{id}/visibility', () => {
         false,
         mockRequest.logger,
         'appliance',
-        undefined
+        { name: 'Jane Doe', email: 'jane.doe@example.com' }
       )
     })
 
@@ -102,25 +105,42 @@ describe('PATCH /appliances/{id}/visibility', () => {
     const validatePayload = (payload) =>
       updateApplianceVisibility.options.validate.payload.validate(payload)
 
+    const reviewedBy = { name: 'Jane Doe', email: 'jane.doe@example.com' }
+
     test.each([true, false])('accepts isVisibleToPublic: %s', (value) => {
       expect(
-        validatePayload({ isVisibleToPublic: value }).error
+        validatePayload({ isVisibleToPublic: value, reviewedBy }).error
       ).toBeUndefined()
     })
 
     test('requires isVisibleToPublic', () => {
-      expect(validatePayload({}).error).toBeDefined()
+      expect(validatePayload({ reviewedBy }).error).toBeDefined()
+    })
+
+    test('requires reviewedBy', () => {
+      expect(validatePayload({ isVisibleToPublic: true }).error).toBeDefined()
+    })
+
+    test.each([
+      [{ name: 'Jane Doe' }],
+      [{ email: 'jane.doe@example.com' }],
+      [{ name: 'Jane Doe', email: 'not-an-email' }]
+    ])('rejects an incomplete reviewedBy %j', (value) => {
+      expect(
+        validatePayload({ isVisibleToPublic: true, reviewedBy: value }).error
+      ).toBeDefined()
     })
 
     test('rejects non-boolean values', () => {
       expect(
-        validatePayload({ isVisibleToPublic: 'false' }).error
+        validatePayload({ isVisibleToPublic: 'false', reviewedBy }).error
       ).toBeDefined()
     })
 
     test('rejects unknown keys', () => {
       const { error } = validatePayload({
         isVisibleToPublic: true,
+        reviewedBy,
         applianceStatus: 'live'
       })
 

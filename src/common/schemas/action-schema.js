@@ -12,6 +12,8 @@ export const ITEM_TYPES = ['appliance', 'fuel']
 // name where the action applies, e.g. "Northern Ireland".
 export const actionWording = {
   acceptedAtApplication: () => 'Accepted at application',
+  rejectedAtApplication: () => 'Rejected at application',
+  // History entry only: the notification email to the governments is not built yet.
   sentToGovernments: () => 'Sent to governments for approval',
   certified: (place) => `Certified in ${place}`,
   uncertified: (place) => `Uncertified in ${place}`,

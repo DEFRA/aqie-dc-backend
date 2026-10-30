@@ -66,6 +66,7 @@ describe('action-schema actionWording', () => {
     expect(Object.keys(actionWording).sort()).toEqual(
       [
         'acceptedAtApplication',
+        'rejectedAtApplication',
         'sentToGovernments',
         'certified',
         'uncertified',
@@ -82,6 +83,7 @@ describe('action-schema actionWording', () => {
 
   test.each([
     ['acceptedAtApplication', undefined, 'Accepted at application'],
+    ['rejectedAtApplication', undefined, 'Rejected at application'],
     ['sentToGovernments', undefined, 'Sent to governments for approval'],
     ['certified', 'Wales', 'Certified in Wales'],
     ['uncertified', 'Scotland', 'Uncertified in Scotland'],
