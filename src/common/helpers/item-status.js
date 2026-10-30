@@ -4,7 +4,7 @@ import { isItemReviewed } from './review-status.js'
 import {
   CERTIFICATION_FIELDS,
   CERTIFIED_STATUS,
-  UNCERTIFIED_STATUSES,
+  UNCERTIFIED_STATUS,
   UNDECIDED_CERTIFICATION_STATUSES,
   mapCountryCertification
 } from './certification.js'
@@ -25,7 +25,7 @@ function resolveStatusUpdate(item, itemStatus, reviewStatus) {
   )
 
   const hasCertified = countryCertifications.includes(CERTIFIED_STATUS)
-  const hasUncertified = countryCertifications.includes(UNCERTIFIED_STATUSES)
+  const hasUncertified = countryCertifications.includes(UNCERTIFIED_STATUS)
   const allUndecided = countryCertifications.every((status) =>
     UNDECIDED_CERTIFICATION_STATUSES.has(status)
   )
