@@ -62,7 +62,7 @@ export const createApplication = {
           request.logger.warn(
             {
               field: warning.field,
-              message: warning.message
+              reason: warning.message
             },
             'Application validation warning'
           )
@@ -77,7 +77,13 @@ export const createApplication = {
         request.logger
       )
 
-      return h.response(result).code(statusCodes.created)
+      // Returned so the SQS ingest can store them on the SqsMessages record
+      const body =
+        validationWarnings.length > 0
+          ? { ...result, validationWarnings }
+          : result
+
+      return h.response(body).code(statusCodes.created)
     } catch (error) {
       request.logger.error(error, 'Failed to create application')
 

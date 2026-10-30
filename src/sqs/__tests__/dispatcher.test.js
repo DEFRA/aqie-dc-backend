@@ -122,7 +122,8 @@ describe('dispatcher', () => {
       expect(markMessageProcessed).toHaveBeenCalledWith(
         server.db,
         'message-id',
-        server.logger
+        server.logger,
+        undefined
       )
       expect(result).toEqual({ success: true })
     })

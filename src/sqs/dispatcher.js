@@ -65,8 +65,17 @@ export async function ingestSqsMessage(
 }
 
 // Marks the backed-up SQS message as having successfully produced an application record
-export async function markSqsMessageProcessed(server, messageId) {
-  return markMessageProcessed(server.db, messageId, server.logger)
+export async function markSqsMessageProcessed(
+  server,
+  messageId,
+  validationWarnings
+) {
+  return markMessageProcessed(
+    server.db,
+    messageId,
+    server.logger,
+    validationWarnings
+  )
 }
 
 export async function markSqsMessageFailed(server, messageId, failureReason) {
