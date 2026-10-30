@@ -9,6 +9,15 @@ import {
   mapCountryCertification
 } from './certification.js'
 
+// Fields that drive an item's overall status. Only the dedicated review,
+// certification and visibility endpoints may change them, so the status is
+// recalculated and the action history recorded.
+export const STATUS_DRIVING_FIELDS = [
+  'technicalReview',
+  ...CERTIFICATION_FIELDS,
+  'isVisibleToPublic'
+]
+
 // Works out the $set update for an item once its technical review has reached
 // a final status (accepted/rejected) - items still mid-review are not expected here.
 function resolveStatusUpdate(item, itemStatus, reviewStatus) {
