@@ -5,6 +5,8 @@ import Joi from 'joi'
 import * as applianceController from '../../controllers/appliances-controller.js'
 import { createResultHandler } from '../../common/helpers/route-response.js'
 
+const MAX_LENGTH = 255
+
 export const updateApplianceVisibility = {
   method: 'PATCH',
   path: '/appliances/{id}/visibility',
@@ -19,8 +21,8 @@ export const updateApplianceVisibility = {
       payload: Joi.object({
         isVisibleToPublic: Joi.boolean().strict().required(),
         reviewedBy: Joi.object({
-          name: Joi.string().max(255).required(),
-          email: Joi.string().email().max(255).required()
+          name: Joi.string().max(MAX_LENGTH).required(),
+          email: Joi.string().email().max(MAX_LENGTH).required()
         })
           .required()
           .description('The signed-in user, supplied by the admin frontend')
@@ -34,8 +36,8 @@ export const updateApplianceVisibility = {
         request.params.id,
         request.payload.isVisibleToPublic,
         request.logger,
-        'appliance',
-        request.payload.reviewedBy
+        request.payload.reviewedBy,
+        'appliance'
       ),
     {
       logMessage: 'Failed to update appliance visibility',

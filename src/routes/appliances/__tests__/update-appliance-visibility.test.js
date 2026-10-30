@@ -50,8 +50,8 @@ describe('PATCH /appliances/{id}/visibility', () => {
         'APP-123',
         false,
         mockRequest.logger,
-        'appliance',
-        { name: 'Jane Doe', email: 'jane.doe@example.com' }
+        { name: 'Jane Doe', email: 'jane.doe@example.com' },
+        'appliance'
       )
     })
 

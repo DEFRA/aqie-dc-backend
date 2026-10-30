@@ -359,16 +359,16 @@ async function getAdminApplianceById(db, id, logger) {
 /**
  * Set public visibility for an appliance or fuel and recalculate its status
  *
- * @param {'appliance'|'fuel'} [type]
  * @param {{ name: string, email?: string }} reviewedBy - signed-in user who clicked
+ * @param {'appliance'|'fuel'} [type]
  */
 async function updateApplianceVisibility(
   db,
   id,
   isVisibleToPublic,
   logger,
-  type = 'appliance',
-  reviewedBy
+  reviewedBy,
+  type = 'appliance'
 ) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)

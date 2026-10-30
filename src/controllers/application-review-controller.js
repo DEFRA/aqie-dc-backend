@@ -49,9 +49,10 @@ const recordReviewOutcomes = (
     )
   )
 
-// TODO: the email to the DAs (governments) is NOT built yet; only the log line below
+// NEEDTO: the email to the DAs (governments) is NOT built yet; only the log line below
 // stands in for it. Replace the body with the real send, and throw if it fails so
-// nothing after it runs.
+// nothing after it runs. A retry must only send for items that still have a `new`
+// country, so a failure after the email can't send it twice.
 const sendEmailToDAs = async (application, acceptedItems, logger) => {
   logger.info(
     `Email sent to DA for application ${application.id} (${acceptedItems.length} accepted items)`
@@ -76,6 +77,50 @@ const recordSentToGovernments = (db, application, acceptedItems, at, logger) =>
     )
   )
 
+// Sent to the DAs, so each accepted item's still-new countries now await their decision.
+// This is the record that the email went out.
+const markAwaitingDecision = (db, collectionName, applicationId, items) =>
+  Promise.all(
+    CERTIFICATION_FIELDS.map((field) =>
+      db.collection(collectionName).updateMany(
+        {
+          applicationId,
+          id: { $in: items.map((item) => item.id) },
+          [`${field}.status`]: 'new'
+        },
+        { $set: { [`${field}.status`]: 'awaiting_decision' } }
+      )
+    )
+  )
+
+// Email the DAs, then mark the items as awaiting their decision and record it in the
+// history. Only accepted items go; if none, nothing is sent.
+const sendToGovernments = async (
+  db,
+  { application, itemsCollectionName, acceptedItems, reviewedAt },
+  logger
+) => {
+  if (acceptedItems.length === 0) {
+    return
+  }
+
+  // Everything after the email only happens once it has gone out.
+  await sendEmailToDAs(application, acceptedItems, logger)
+  await markAwaitingDecision(
+    db,
+    itemsCollectionName,
+    application.id,
+    acceptedItems
+  )
+  await recordSentToGovernments(
+    db,
+    application,
+    acceptedItems,
+    reviewedAt,
+    logger
+  )
+}
+
 // The application is already complete, so a failed rollup is logged, not surfaced.
 const refreshItemStatuses = (db, type, items, logger) =>
   Promise.all(
@@ -91,6 +136,58 @@ const refreshItemStatuses = (db, type, items, logger) =>
   )
 
 /**
+ * Load the application and its linked items, ready to complete.
+ * Returns `{ failure }` with a ready-made result when it cannot be completed.
+ */
+const loadCompletableApplication = async (db, id, logger) => {
+  const application = await db.collection('Applications').findOne({ id })
+
+  if (!application) {
+    return {
+      failure: {
+        success: false,
+        message: APPLICATION_NOT_FOUND,
+        notFound: true
+      }
+    }
+  }
+
+  const itemsCollectionName = getItemsCollectionName(application.type)
+
+  if (!itemsCollectionName) {
+    logger.warn(`Unknown application type: ${application.type}`)
+    return {
+      failure: {
+        success: false,
+        message: `Unknown application type: ${application.type}`,
+        notFound: true
+      }
+    }
+  }
+
+  const linkedItems = await db
+    .collection(itemsCollectionName)
+    .find(
+      { applicationId: id },
+      { projection: { id: 1, technicalReview: 1, _id: 0 } }
+    )
+    .toArray()
+
+  if (!isApplicationReviewComplete(linkedItems)) {
+    return {
+      failure: {
+        success: false,
+        message:
+          'Application cannot be completed until every item has been reviewed',
+        incomplete: true
+      }
+    }
+  }
+
+  return { application, itemsCollectionName, linkedItems }
+}
+
+/**
  * Complete an application once every linked appliance/fuel has been reviewed.
  * Records who completed it (reviewedBy) and when (reviewedAt).
  */
@@ -99,43 +196,11 @@ async function completeApplication(db, id, payload, logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const collection = db.collection('Applications')
-    const application = await collection.findOne({ id })
+    const { failure, application, itemsCollectionName, linkedItems } =
+      await loadCompletableApplication(db, id, logger)
 
-    if (!application) {
-      return {
-        success: false,
-        message: APPLICATION_NOT_FOUND,
-        notFound: true
-      }
-    }
-
-    const itemsCollectionName = getItemsCollectionName(application.type)
-
-    if (!itemsCollectionName) {
-      logger.warn(`Unknown application type: ${application.type}`)
-      return {
-        success: false,
-        message: `Unknown application type: ${application.type}`,
-        notFound: true
-      }
-    }
-
-    const linkedItems = await db
-      .collection(itemsCollectionName)
-      .find(
-        { applicationId: id },
-        { projection: { id: 1, technicalReview: 1, _id: 0 } }
-      )
-      .toArray()
-
-    if (!isApplicationReviewComplete(linkedItems)) {
-      return {
-        success: false,
-        message:
-          'Application cannot be completed until every item has been reviewed',
-        incomplete: true
-      }
+    if (failure) {
+      return failure
     }
 
     const { reviewedBy } = payload
@@ -154,36 +219,15 @@ async function completeApplication(db, id, payload, logger) {
         reviewedAt,
         logger
       )
-      // Nothing to send when every item was rejected.
-      if (acceptedItems.length > 0) {
-        // Everything below only happens once the email has gone out.
-        await sendEmailToDAs(application, acceptedItems, logger)
-        await recordSentToGovernments(
-          db,
-          application,
-          acceptedItems,
-          reviewedAt,
-          logger
-        )
-      }
+      await sendToGovernments(
+        db,
+        { application, itemsCollectionName, acceptedItems, reviewedAt },
+        logger
+      )
     }
 
-    // Sent to the DAs, so each accepted item's still-new countries now await their decision...
-    await Promise.all(
-      CERTIFICATION_FIELDS.map((field) =>
-        db.collection(itemsCollectionName).updateMany(
-          {
-            applicationId: id,
-            id: { $in: acceptedItems.map((item) => item.id) },
-            [`${field}.status`]: 'new'
-          },
-          { $set: { [`${field}.status`]: 'awaiting_decision' } }
-        )
-      )
-    )
-
-    // ...and the application is complete.
-    await collection.updateOne(
+    // The application is now complete.
+    await db.collection('Applications').updateOne(
       { id },
       {
         $set: {

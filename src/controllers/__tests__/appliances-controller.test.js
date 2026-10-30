@@ -718,8 +718,8 @@ describe('appliances-controller', () => {
         'APP-1',
         false,
         mockLogger,
-        'appliance',
-        reviewedBy
+        reviewedBy,
+        'appliance'
       )
 
       expect(collection.updateOne).toHaveBeenCalledWith(
@@ -746,8 +746,8 @@ describe('appliances-controller', () => {
         'APP-1',
         false,
         mockLogger,
-        'appliance',
-        reviewedBy
+        reviewedBy,
+        'appliance'
       )
 
       expect(calculateItemStatus).toHaveBeenCalledWith(
@@ -775,8 +775,8 @@ describe('appliances-controller', () => {
         'FUEL-1',
         false,
         mockLogger,
-        'fuel',
-        reviewedBy
+        reviewedBy,
+        'fuel'
       )
 
       expect(db.collection).toHaveBeenCalledWith('Fuels')
@@ -791,7 +791,14 @@ describe('appliances-controller', () => {
 
     test('rejects an unsupported type', async () => {
       await expect(
-        updateApplianceVisibility(db, 'X-1', true, mockLogger, 'widget')
+        updateApplianceVisibility(
+          db,
+          'X-1',
+          true,
+          mockLogger,
+          reviewedBy,
+          'widget'
+        )
       ).rejects.toThrow('Unsupported item type: widget')
     })
 
@@ -803,8 +810,8 @@ describe('appliances-controller', () => {
         'missing',
         true,
         mockLogger,
-        'appliance',
-        reviewedBy
+        reviewedBy,
+        'appliance'
       )
 
       expect(result.notFound).toBe(true)
@@ -827,8 +834,8 @@ describe('appliances-controller', () => {
         'APP-1',
         false,
         mockLogger,
-        'appliance',
-        reviewedBy
+        reviewedBy,
+        'appliance'
       )
 
       expect(result.incomplete).toBe(true)
@@ -847,8 +854,8 @@ describe('appliances-controller', () => {
           'APP-1',
           true,
           mockLogger,
-          'appliance',
-          reviewedBy
+          reviewedBy,
+          'appliance'
         )
       ).rejects.toThrow('calc failed')
       expect(mockLogger.error).toHaveBeenCalled()
