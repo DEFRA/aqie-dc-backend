@@ -11,10 +11,13 @@ export const getApplianceActionHistory = {
   options: {
     tags: ['api', 'admin', 'read'],
     description:
-      'Fetch the action history for the given appliance ID, newest first',
+      'Fetch one page (10 per page) of the action history for the given appliance ID, newest first',
     validate: {
       params: Joi.object({
         id: Joi.string().max(64).required()
+      }),
+      query: Joi.object({
+        page: Joi.number().integer().min(1).default(1)
       })
     }
   },
@@ -24,7 +27,8 @@ export const getApplianceActionHistory = {
         request.db,
         'appliance',
         request.params.id,
-        request.logger
+        request.logger,
+        { page: request.query.page }
       ),
     {
       logMessage: 'Failed to fetch appliance action history',

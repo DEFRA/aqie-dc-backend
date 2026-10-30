@@ -26,6 +26,7 @@ describe('GET /api/admin/appliances/{id}/action-history', () => {
 
     mockRequest = {
       params: { id: 'APP-123' },
+      query: { page: 1 },
       db: {},
       logger: { info: vi.fn(), error: vi.fn() }
     }
@@ -67,8 +68,34 @@ describe('GET /api/admin/appliances/{id}/action-history', () => {
       mockRequest.db,
       'appliance',
       'APP-123',
-      mockRequest.logger
+      mockRequest.logger,
+      { page: 1 }
     )
+  })
+
+  test('passes the requested page to the controller', async () => {
+    getActionHistoryMock.mockResolvedValue({ success: true, data: {} })
+    mockRequest.query = { page: 3 }
+
+    await getApplianceActionHistory.handler(mockRequest, mockToolkit)
+
+    expect(getActionHistoryMock).toHaveBeenCalledWith(
+      mockRequest.db,
+      'appliance',
+      'APP-123',
+      mockRequest.logger,
+      { page: 3 }
+    )
+  })
+
+  test('validates the page query, defaulting to 1', () => {
+    const { query } = getApplianceActionHistory.options.validate
+
+    expect(query.validate({}).value).toEqual({ page: 1 })
+    expect(query.validate({ page: '2' }).value).toEqual({ page: 2 })
+    expect(query.validate({ page: 0 }).error).toBeDefined()
+    expect(query.validate({ page: 1.5 }).error).toBeDefined()
+    expect(query.validate({ limit: 50 }).error).toBeDefined()
   })
 
   test('returns 404 when the appliance does not exist', async () => {

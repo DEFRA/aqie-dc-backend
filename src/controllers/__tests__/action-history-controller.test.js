@@ -10,9 +10,17 @@ describe('action-history-controller getActionHistory', () => {
   let logger
 
   beforeEach(() => {
-    cursor = { sort: vi.fn().mockReturnThis(), toArray: vi.fn() }
+    cursor = {
+      sort: vi.fn().mockReturnThis(),
+      skip: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      toArray: vi.fn()
+    }
     itemsCollection = { findOne: vi.fn() }
-    actionsCollection = { find: vi.fn().mockReturnValue(cursor) }
+    actionsCollection = {
+      find: vi.fn().mockReturnValue(cursor),
+      countDocuments: vi.fn().mockResolvedValue(0)
+    }
     db = {
       collection: vi.fn((name) =>
         name === 'Actions' ? actionsCollection : itemsCollection
@@ -56,6 +64,8 @@ describe('action-history-controller getActionHistory', () => {
       itemType: 'appliance'
     })
     expect(cursor.sort).toHaveBeenCalledWith({ completedAt: -1, _id: -1 })
+    expect(cursor.skip).toHaveBeenCalledWith(0)
+    expect(cursor.limit).toHaveBeenCalledWith(10)
     expect(result).toEqual({
       success: true,
       data: {
@@ -75,7 +85,31 @@ describe('action-history-controller getActionHistory', () => {
             completedAt: new Date('2026-01-24T09:00:00Z')
           }
         ]
-      }
+      },
+      pagination: { page: 1, limit: 10, total: 0, totalPages: 0 }
+    })
+  })
+
+  test('returns the requested page of 10 with the paging details', async () => {
+    itemsCollection.findOne.mockResolvedValue({ modelName: 'Stove' })
+    actionsCollection.countDocuments.mockResolvedValue(25)
+    cursor.toArray.mockResolvedValue([])
+
+    const result = await getActionHistory(db, 'appliance', 'APP-1', logger, {
+      page: 3
+    })
+
+    expect(actionsCollection.countDocuments).toHaveBeenCalledWith({
+      itemId: 'APP-1',
+      itemType: 'appliance'
+    })
+    expect(cursor.skip).toHaveBeenCalledWith(20)
+    expect(cursor.limit).toHaveBeenCalledWith(10)
+    expect(result.pagination).toEqual({
+      page: 3,
+      limit: 10,
+      total: 25,
+      totalPages: 3
     })
   })
 
