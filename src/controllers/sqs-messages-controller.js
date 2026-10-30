@@ -67,14 +67,22 @@ async function createSqsMessage(db, payload, logger) {
   }
 }
 
-async function markMessageProcessed(db, messageId, logger) {
+async function markMessageProcessed(
+  db,
+  messageId,
+  logger,
+  validationWarnings = []
+) {
   try {
     const collection = db.collection('SqsMessages')
 
     const result = await collection.updateOne(
       { _id: messageId },
       {
-        $set: { processed: true },
+        $set: {
+          processed: true,
+          ...(validationWarnings.length > 0 && { validationWarnings })
+        },
         $unset: { failureReason: '', failedAt: '' }
       }
     )

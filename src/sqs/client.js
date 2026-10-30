@@ -196,13 +196,18 @@ export const createNewApplicationRecord = async (message, server) => {
     })
   }
   const applicationPayload = JSON.stringify(application)
+  let validationWarnings
   if (await applicationRecordExists(server, application.referenceNumber)) {
     logger.warn(
       `Application for ${application.referenceNumber} already exists, skipping create`
     )
   } else {
-    await createApplicationRecordViaRoute(server, applicationPayload)
+    const created = await createApplicationRecordViaRoute(
+      server,
+      applicationPayload
+    )
+    validationWarnings = created?.validationWarnings
     logger.info(`Creating ${application.type} Application Record`)
   }
-  await markSqsMessageProcessed(server, message.MessageId)
+  await markSqsMessageProcessed(server, message.MessageId, validationWarnings)
 }

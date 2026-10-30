@@ -111,7 +111,7 @@ describe('POST /applications', () => {
       expect(mockRequest.logger.warn).toHaveBeenCalledWith(
         {
           field: 'companyName',
-          message: '"companyName" is required'
+          reason: '"companyName" is required'
         },
         'Application validation warning'
       )
