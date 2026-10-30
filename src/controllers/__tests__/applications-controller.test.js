@@ -7,7 +7,7 @@ import {
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getApplicationsWithSummary,
+  getApplicationsSummaryByStatus,
   getApplicationSummaryById
 } from '#src/controllers/applications-controller.js'
 
@@ -577,6 +577,27 @@ describe('applications-controller', () => {
       expect(result.data.linkedItems).toBeDefined()
     })
 
+    test('returns fullAddress from the first linked item', async () => {
+      collection.findOne.mockResolvedValueOnce({
+        id: 'app-123',
+        type: 'appliance',
+        status: 'new'
+      })
+      applianceDocs.push({
+        id: 'app-001',
+        applicationId: 'app-123',
+        companyAddress: {
+          line1: '1 High St',
+          city: 'Leeds',
+          postcode: 'LS1 1AA'
+        }
+      })
+
+      const result = await getApplicationById(db, 'app-123', mockLogger)
+
+      expect(result.data.fullAddress).toEqual(['1 High St', 'Leeds', 'LS1 1AA'])
+    })
+
     test('fetches linked fuel records when type is fuel', async () => {
       const mockApp = {
         id: 'app-456',
@@ -1033,7 +1054,7 @@ describe('applications-controller', () => {
     })
   })
 
-  describe('getApplicationsWithSummary', () => {
+  describe('getApplicationsSummaryByStatus', () => {
     test('returns applications grouped by status with appliance model names', async () => {
       docs.push(
         {
@@ -1053,18 +1074,18 @@ describe('applications-controller', () => {
       )
       applianceDocs.push(
         {
-          _id: 'appl-1',
+          id: 'APPL-1',
           applicationId: 'app-1',
           modelName: 'Model A'
         },
         {
-          _id: 'appl-2',
+          id: 'APPL-2',
           applicationId: 'app-2',
           modelName: 'Model B'
         }
       )
 
-      const result = await getApplicationsWithSummary(
+      const result = await getApplicationsSummaryByStatus(
         db,
         mockLogger,
         'appliance'
@@ -1075,6 +1096,7 @@ describe('applications-controller', () => {
       expect(result.data.inProgress).toHaveLength(1)
       expect(result.data.new[0].items[0].name).toBe('Model A')
       expect(result.data.inProgress[0].items[0].name).toBe('Model B')
+      expect(result.data.new[0].items[0].id).toBe('APPL-1')
     })
 
     test('returns applications grouped by status with fuel brand names', async () => {
@@ -1086,12 +1108,16 @@ describe('applications-controller', () => {
         createdAt: new Date('2026-01-06')
       })
       fuelDocs.push({
-        _id: 'fuel-1',
+        id: 'FUEL-1',
         applicationId: 'app-3',
-        brandNames: 'Brand A'
+        brandName: 'Brand A'
       })
 
-      const result = await getApplicationsWithSummary(db, mockLogger, 'fuel')
+      const result = await getApplicationsSummaryByStatus(
+        db,
+        mockLogger,
+        'fuel'
+      )
 
       expect(result.success).toBe(true)
       expect(result.data.new).toHaveLength(1)
@@ -1099,7 +1125,7 @@ describe('applications-controller', () => {
     })
 
     test('returns empty result when no matching applications exist', async () => {
-      const result = await getApplicationsWithSummary(
+      const result = await getApplicationsSummaryByStatus(
         db,
         mockLogger,
         'appliance'
@@ -1111,7 +1137,11 @@ describe('applications-controller', () => {
     })
 
     test('returns notFound for an unknown application type', async () => {
-      const result = await getApplicationsWithSummary(db, mockLogger, 'other')
+      const result = await getApplicationsSummaryByStatus(
+        db,
+        mockLogger,
+        'other'
+      )
 
       expect(result.success).toBe(false)
       expect(result.notFound).toBe(true)
@@ -1126,7 +1156,7 @@ describe('applications-controller', () => {
       })
 
       await expect(
-        getApplicationsWithSummary(db, mockLogger, 'appliance')
+        getApplicationsSummaryByStatus(db, mockLogger, 'appliance')
       ).rejects.toThrow('Summary fetch failed')
       expect(mockLogger.error).toHaveBeenCalled()
     })
@@ -1138,7 +1168,7 @@ describe('applications-controller', () => {
         status: 'archived'
       })
 
-      const result = await getApplicationsWithSummary(
+      const result = await getApplicationsSummaryByStatus(
         db,
         mockLogger,
         'appliance',
@@ -1154,7 +1184,7 @@ describe('applications-controller', () => {
 
     test('throws when logger is not provided', async () => {
       await expect(
-        getApplicationsWithSummary(db, null, 'appliance')
+        getApplicationsSummaryByStatus(db, null, 'appliance')
       ).rejects.toThrow('logger is required')
     })
   })
@@ -1196,8 +1226,7 @@ describe('applications-controller', () => {
       expect(result.message).toBe('Application summary retrieved successfully')
       expect(result.data.id).toBe('app-1')
       expect(result.data.companyName).toBe('ACME')
-      expect(result.data.companyFullAddress).toBe('123 Street')
-      expect(result.data.companyAddress).toEqual({ city: 'London' })
+      expect(result.data.fullAddress).toEqual(['123 Street'])
       expect(result.data.companyContact).toEqual({
         name: 'Jane',
         email: 'jane@acme.com'
@@ -1243,8 +1272,7 @@ describe('applications-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.data.companyName).toBeUndefined()
-      expect(result.data.companyFullAddress).toBeNull()
-      expect(result.data.companyAddress).toBeNull()
+      expect(result.data.fullAddress).toEqual([])
       expect(result.data.linkedItems).toEqual([])
     })
 

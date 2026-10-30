@@ -7,10 +7,16 @@ import {
   updateAppliance,
   deleteAppliance,
   searchAdminAppliances,
-  getAdminApplianceById
+  getAdminApplianceById,
+  updateApplianceVisibility
 } from '#src/controllers/appliances-controller.js'
 
 import { generateSecureId } from '#src/common/helpers/data-transformer.js'
+import { calculateItemStatus } from '#src/common/helpers/item-status.js'
+
+vi.mock('#src/common/helpers/item-status.js', () => ({
+  calculateItemStatus: vi.fn()
+}))
 
 // Only generateSecureId is non-deterministic (uses crypto), so it's the only
 // helper mocked here. findCertified/getFullAddress run for real so tests
@@ -347,7 +353,8 @@ describe('appliances-controller', () => {
           status: 'live',
           canTogglePublicVisibility: true,
           isVisibleToPublic: false,
-          isLegacyRecord: true
+          isLegacyRecord: true,
+          technicalReview: null
         }
       })
     })
@@ -686,6 +693,109 @@ describe('appliances-controller', () => {
       await searchAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
 
       expect(collection.find.mock.calls[0][0].applicationId).toBeUndefined()
+    })
+  })
+
+  describe('updateApplianceVisibility', () => {
+    const acceptedAndCertified = {
+      technicalReview: { status: 'accepted' },
+      ...certifiedInEngland
+    }
+
+    beforeEach(() => {
+      calculateItemStatus.mockReset()
+    })
+
+    test('sets visibility and recalculates status', async () => {
+      collection.findOne.mockResolvedValue(acceptedAndCertified)
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+      calculateItemStatus.mockResolvedValue('hidden')
+
+      const result = await updateApplianceVisibility(
+        db,
+        'APP-1',
+        false,
+        mockLogger
+      )
+
+      expect(collection.updateOne).toHaveBeenCalledWith(
+        { id: 'APP-1' },
+        { $set: { isVisibleToPublic: false, updatedAt: expect.any(Date) } }
+      )
+      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'appliance', 'APP-1')
+      expect(result).toEqual({ success: true })
+    })
+
+    test('uses the Fuels collection and fuel status for type fuel', async () => {
+      collection.findOne.mockResolvedValue(acceptedAndCertified)
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+      calculateItemStatus.mockResolvedValue('hidden')
+
+      const result = await updateApplianceVisibility(
+        db,
+        'FUEL-1',
+        false,
+        mockLogger,
+        'fuel'
+      )
+
+      expect(db.collection).toHaveBeenCalledWith('Fuels')
+      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'fuel', 'FUEL-1')
+      expect(result).toEqual({ success: true })
+    })
+
+    test('rejects an unsupported type', async () => {
+      await expect(
+        updateApplianceVisibility(db, 'X-1', true, mockLogger, 'widget')
+      ).rejects.toThrow('Unsupported item type: widget')
+    })
+
+    test('returns not found when appliance missing', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const result = await updateApplianceVisibility(
+        db,
+        'missing',
+        true,
+        mockLogger
+      )
+
+      expect(result.notFound).toBe(true)
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test.each([
+      ['review is pending', { technicalReview: { status: 'pending' } }],
+      ['review is rejected', { technicalReview: { status: 'rejected' } }],
+      ['no review exists', {}],
+      [
+        'accepted but not certified anywhere',
+        { technicalReview: { status: 'accepted' } }
+      ]
+    ])('returns incomplete when %s', async (_label, item) => {
+      collection.findOne.mockResolvedValue({ ...item })
+
+      const result = await updateApplianceVisibility(
+        db,
+        'APP-1',
+        false,
+        mockLogger
+      )
+
+      expect(result.incomplete).toBe(true)
+      expect(collection.updateOne).not.toHaveBeenCalled()
+      expect(calculateItemStatus).not.toHaveBeenCalled()
+    })
+
+    test('rethrows and logs status calculation errors', async () => {
+      collection.findOne.mockResolvedValue(acceptedAndCertified)
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+      calculateItemStatus.mockRejectedValue(new Error('calc failed'))
+
+      await expect(
+        updateApplianceVisibility(db, 'APP-1', true, mockLogger)
+      ).rejects.toThrow('calc failed')
+      expect(mockLogger.error).toHaveBeenCalled()
     })
   })
 })

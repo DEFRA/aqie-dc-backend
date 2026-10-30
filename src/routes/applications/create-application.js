@@ -8,8 +8,9 @@ import * as applicationsController from '../../controllers/applications-controll
 import { applicationsSchema } from '../schema.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 import Joi from 'joi'
-import { applianceApplicationExample } from '../../sample-data/application-example.js'
-// import { fuelApplicationExample }from '../../sample-data/application-example.js'
+//import { applianceApplicationExample } from '../../sample-data/application-example.js'
+import { rebrandFuelApplicationExample } from '../../sample-data/application-example.js'
+// import { manufactureFuelApplicationExample } from '../../sample-data/application-example.js'
 
 //This doesnt have items (appliances/fuels in it)
 export const createApplication = {
@@ -21,7 +22,7 @@ export const createApplication = {
     notes: 'Creates a new appliance or fuel application in the system',
     validate: {
       payload: Joi.object()
-        .example(applianceApplicationExample) //can change to fuelApplicationExample when testing locally
+        .example(rebrandFuelApplicationExample) //For fuel- change to rebrandFuelApplicationExample or manufactureFuelApplicationExample when testing locally
         .description('Payload for application creation')
     },
     pre: [
@@ -55,15 +56,19 @@ export const createApplication = {
     try {
       const { payload, validationWarnings } = request.pre.validationResult
 
-      // Log warnings but do not block the save to DB
+      // Log warnings but do not block the save to DB, log indivdually so each is visible in the logs.
       if (validationWarnings.length > 0) {
-        request.logger.warn(
-          {
-            details: validationWarnings
-          },
-          'Application validation warnings'
-        )
+        for (const warning of validationWarnings) {
+          request.logger.warn(
+            {
+              field: warning.field,
+              message: warning.message
+            },
+            'Application validation warning'
+          )
+        }
       }
+      //if this does work, try: logger.warn(`Application validation warning: ${warning.field} - ${warning.message}`)
 
       const result = await applicationsController.createApplication(
         request.server.mongoClient,

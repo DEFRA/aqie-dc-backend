@@ -6,6 +6,8 @@ import crypto from 'node:crypto'
 const SECURE_ID_LENGTH = 12
 const RANDOM_BYTES_LENGTH = 9
 const NON_ALPHANUMERIC_REGEX = /[^a-zA-Z0-9]/g
+const PREFIX_LENGTH = 4
+const SEQUENCE_MIN_LENGTH = 4
 
 export const generateSecureId = () => {
   let id = ''
@@ -18,19 +20,50 @@ export const generateSecureId = () => {
   return id.slice(0, SECURE_ID_LENGTH)
 }
 
-// Returns the full address array for an item, handling UK and non-UK logic
+// Id format is "PPPP-SSSS": 4-digit random prefix, "-", then the sequence
+export const generateNextId = (lastId) => {
+  const lastSequence = lastId
+    ? Number.parseInt(lastId.slice(PREFIX_LENGTH + 1), 10)
+    : 0
+
+  const prefix = String(crypto.randomInt(0, 10_000)).padStart(
+    PREFIX_LENGTH,
+    '0'
+  )
+  const sequence = String(
+    (Number.isNaN(lastSequence) ? 0 : lastSequence) + 1
+  ).padStart(SEQUENCE_MIN_LENGTH, '0')
+
+  return `${prefix}-${sequence}`
+}
+
+// Returns the full address as an array of strings containing only non-empty address lines (UK and non-UK)
+// Examples:
+//   UK:       { companyAddress: { line1: '1 High St', line2: '', city: 'Leeds', county: null, postcode: 'LS1 1AA', country: 'England' } }
+//             -> ['1 High St', 'Leeds', 'LS1 1AA', 'England']
+//   Overseas: { companyFullAddress: '456 Rue de Paris\n Paris \n\nFrance' }
+//             -> ['456 Rue de Paris', 'Paris', 'France']
+//   Overseas (single line): { companyFullAddress: '456 Rue de Paris, Paris, France' }
+//             -> ['456 Rue de Paris,', 'Paris,', 'France']
+//   Overseas (no commas or newlines): { companyFullAddress: '456 Rue de Paris' }
+//             -> ['456 Rue de Paris']
 export const getFullAddress = (item) => {
-  const filterLines = (...lines) =>
-    lines.filter((line) => typeof line === 'string' && line.trim() !== '')
-  return item.isUkBased === false
-    ? filterLines(item.companyFullAddress)
-    : filterLines(
-        item.companyAddress.line1,
-        item.companyAddress.line2,
-        item.companyAddress.city,
-        item.companyAddress.county,
-        item.companyAddress.postcode
-      )
+  const address = item?.companyAddress
+  const lines =
+    typeof item?.companyFullAddress === 'string' && item.companyFullAddress
+      ? item.companyFullAddress.replaceAll(',', ',\n').split('\n')
+      : [
+          address?.line1,
+          address?.line2,
+          address?.city,
+          address?.county,
+          address?.postcode,
+          address?.country
+        ]
+  return lines
+    .filter((line) => typeof line === 'string')
+    .map((line) => line.trim())
+    .filter(Boolean)
 }
 
 /**

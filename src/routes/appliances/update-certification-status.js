@@ -6,6 +6,7 @@
 import Joi from 'joi'
 import * as applianceCertificationController from '../../controllers/appliance-certification-controller.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
+import { VALID_COUNTRY_CODES } from '../../common/helpers/certification.js'
 
 export const updateCertificationStatus = {
   method: 'PATCH',
@@ -17,13 +18,13 @@ export const updateCertificationStatus = {
       params: Joi.object({
         id: Joi.string().required().description('Appliance ID'),
         country: Joi.string()
-          .valid('england', 'scotland', 'wales', 'northern-ireland')
+          .valid(...VALID_COUNTRY_CODES)
           .required()
           .description('Country code')
       }),
       payload: Joi.object({
         status: Joi.string()
-          .valid('certified', 'uncertified', 'awaiting_decision')
+          .valid('certified', 'uncertified')
           .required()
           .description('New certification status'),
         decidedBy: Joi.object({
@@ -38,6 +39,13 @@ export const updateCertificationStatus = {
   handler: async (request, h) => {
     const { id, country } = request.params
     const { status, decidedBy } = request.payload
+    const httpStatusByErrorCode = {
+      NOT_FOUND: statusCodes.notFound,
+      INVALID_COUNTRY: statusCodes.badRequest,
+      INVALID_TRANSITION: statusCodes.badRequest,
+      UPDATE_FAILED: statusCodes.internalServerError,
+      INTERNAL_SERVER_ERROR: statusCodes.internalServerError
+    }
 
     // Get decidedBy from request context (logged-in user) or use provided value
     const userInfo = decidedBy || {
@@ -57,17 +65,10 @@ export const updateCertificationStatus = {
         )
 
       if (!result.success) {
-        // Check if it's a validation error or not found
-        if (result.error?.includes('not found')) {
-          return h.response(result).code(statusCodes.notFound)
-        }
-        if (result.error?.includes('Invalid')) {
-          return h.response(result).code(statusCodes.badRequest)
-        }
-        if (result.error?.includes('Cannot change status')) {
-          return h.response(result).code(statusCodes.badRequest)
-        }
-        return h.response(result).code(statusCodes.internalServerError)
+        const statusCode =
+          httpStatusByErrorCode[result.code] ?? statusCodes.internalServerError
+
+        return h.response(result).code(statusCode)
       }
 
       return h

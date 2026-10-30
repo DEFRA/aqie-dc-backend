@@ -1,6 +1,5 @@
 import { health } from '../routes/health.js'
 import { example } from '../routes/example.js'
-import { uploadCallback } from '../routes/upload-callback.js'
 import {
   initiateImportController,
   checkUploadStatusController
@@ -10,7 +9,7 @@ import { completeApplication } from '../routes/applications/complete-application
 import { startApplication } from '../routes/applications/start-application.js'
 import { getAllApplications } from '../routes/applications/get-all-applications.js'
 import { getApplicationById } from '../routes/applications/get-application-by-id.js'
-import { getApplicationsWithSummary } from '../routes/applications/get-applications-with-summary.js'
+import { getApplicationsSummaryByStatus } from '../routes/applications/get-applications-summary-by-status.js'
 import { getApplicationSummary } from '../routes/applications/get-application-summary.js'
 import { getCounts } from '../routes/applications/get-counts.js'
 import { searchApplications } from '../routes/applications/search-applications.js'
@@ -32,6 +31,9 @@ import { updateFuel } from '../routes/fuels/update-fuel.js'
 import { deleteFuel } from '../routes/fuels/delete-fuel.js'
 import { getApplianceReview } from '../routes/appliances/get-appliance-review.js'
 import { updateApplianceReview } from '../routes/appliances/update-appliance-review.js'
+import { updateFuelReview } from '../routes/fuels/update-fuel-review.js'
+import { recordFuelCheck } from '../routes/fuels/record-fuel-check.js'
+import { updateApplianceVisibility } from '../routes/appliances/update-appliance-visibility.js'
 import { getApplianceTypes } from '../routes/appliance-types/get-appliance-types.js'
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
@@ -50,9 +52,6 @@ const router = {
       // Health check, example, routes
       const baseRoutes = [health].concat(example)
       server.route(baseRoutes)
-
-      // CDP Uploader callback route
-      server.route(uploadCallback)
 
       // Admin import routes
       server.route([
@@ -115,7 +114,7 @@ const router = {
         startApplication,
         getAllApplications,
         getCounts,
-        getApplicationsWithSummary,
+        getApplicationsSummaryByStatus,
         getApplicationSummary,
         searchApplications, // Must come before getApplicationById to avoid route conflict
         getApplicationById
@@ -132,6 +131,7 @@ const router = {
         getApplianceById,
         recordApplianceCheck,
         updateApplianceReview,
+        updateApplianceVisibility,
         updateAppliance,
         updateCertificationStatus,
         deleteAppliance,
@@ -145,6 +145,8 @@ const router = {
         updateFuel,
         deleteFuel,
         searchFuels, // Must come before getFuelById to avoid route conflict
+        updateFuelReview,
+        recordFuelCheck,
         getFuelById
       ])
     }

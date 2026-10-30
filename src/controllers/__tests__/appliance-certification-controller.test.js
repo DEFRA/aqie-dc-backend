@@ -42,7 +42,7 @@ function makeDb(appliance) {
 describe('appliance-certification-controller updateCertificationStatus', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  test('rejects an unknown country', async () => {
+  test('rejects an unknown country with an explicit error code', async () => {
     const { db } = makeDb({ id: 'APP-1' })
 
     const result = await updateCertificationStatus(
@@ -55,6 +55,7 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     )
 
     expect(result.success).toBe(false)
+    expect(result.code).toBe('INVALID_COUNTRY')
     expect(result.error).toContain('Invalid country')
   })
 
@@ -187,7 +188,7 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     expect(actionsCollection.insertOne).not.toHaveBeenCalled()
   })
 
-  test('rejects going from certified back to awaiting_decision', async () => {
+  test('rejects going from certified back to awaiting_decision with a transition code', async () => {
     const { db } = makeDb({
       id: 'APP-1',
       englandCertification: { status: 'certified' }
@@ -203,6 +204,7 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     )
 
     expect(result.success).toBe(false)
+    expect(result.code).toBe('INVALID_TRANSITION')
     expect(result.error).toContain('Cannot change status')
   })
 
@@ -277,6 +279,32 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     expect(calculateItemStatus.mock.invocationCallOrder[0]).toBeLessThan(
       actionsCollection.insertOne.mock.invocationCallOrder[0]
     )
+  })
+
+  test('returns the recalculated appliance status after saving the decision', async () => {
+    const { db, appliances } = makeDb({
+      id: 'APP-1',
+      englandCertification: { status: 'certified' }
+    })
+
+    appliances.findOne.mockResolvedValueOnce({
+      id: 'APP-1',
+      applianceStatus: 'hidden',
+      englandCertification: { status: 'uncertified' }
+    })
+
+    const result = await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'uncertified',
+      decidedBy,
+      logger
+    )
+
+    expect(result.success).toBe(true)
+    expect(appliances.findOne).toHaveBeenCalledWith({ id: 'APP-1' })
+    expect(result.data.applianceStatus).toBe('hidden')
   })
 
   test('still succeeds and records the action when the recalculation fails', async () => {
@@ -411,21 +439,19 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     expect(result.error).toBe('Failed to update appliance')
   })
 
-  test('returns a generic error when the database throws', async () => {
+  test('rethrows unexpected database failures so the route can return a 500', async () => {
     const { db, appliances } = makeDb({ id: 'APP-1' })
     appliances.findOne.mockRejectedValueOnce(new Error('connection lost'))
 
-    const result = await updateCertificationStatus(
-      db,
-      'APP-1',
-      'england',
-      'certified',
-      decidedBy,
-      logger
-    )
-
-    expect(result.success).toBe(false)
-    expect(result.error).toBe('Internal server error')
-    expect(logger.error).toHaveBeenCalled()
+    await expect(
+      updateCertificationStatus(
+        db,
+        'APP-1',
+        'england',
+        'certified',
+        decidedBy,
+        logger
+      )
+    ).rejects.toThrow('connection lost')
   })
 })

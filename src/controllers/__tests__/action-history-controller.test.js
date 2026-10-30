@@ -102,7 +102,7 @@ describe('action-history-controller getActionHistory', () => {
   })
 
   test('uses the fuel collection and name field for a fuel', async () => {
-    itemsCollection.findOne.mockResolvedValue({ brandNames: 'Smokeless Coal' })
+    itemsCollection.findOne.mockResolvedValue({ brandName: 'Smokeless Coal' })
     cursor.toArray.mockResolvedValue([])
 
     const result = await getActionHistory(db, 'fuel', 'FUEL-1', logger)

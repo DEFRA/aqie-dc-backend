@@ -3,8 +3,11 @@
  * Business logic for application-related operations
  */
 
-import { randomUUID } from 'node:crypto'
-import { generateSecureId } from '../common/helpers/data-transformer.js'
+import {
+  generateNextId,
+  generateSecureId,
+  getFullAddress
+} from '../common/helpers/data-transformer.js'
 import {
   groupItemsByTechReviewStatus,
   isApplicationReviewComplete
@@ -18,6 +21,17 @@ import { getCompleteApplicationRecordsFilter } from './complete-application-reco
 const APPLICATION_NOT_FOUND = 'Application not found'
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const MONGO_ILLEGAL_OPERATION_CODE = 20
+
+const APPLICATION_ID_PATTERN = /^\d{4}-\d+$/
+
+// Next id in "PPPP-SSSS" format, sequenced from the most recent application
+async function generateApplicationId(collection, session) {
+  const lastApplication = await collection.findOne(
+    { id: { $regex: APPLICATION_ID_PATTERN } },
+    { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
+  )
+  return generateNextId(lastApplication?.id)
+}
 
 /**
  * Create a new application with appliances using MongoDB transactions (if available)
@@ -75,8 +89,7 @@ function isTransactionUnsupportedError(error) {
   )
 }
 
-function buildApplication(applicationData) {
-  const id = randomUUID()
+function buildApplication(applicationData, id) {
   const now = new Date()
 
   return {
@@ -95,10 +108,7 @@ function buildApplication(applicationData) {
 }
 
 // Maps application type to the id prefix used for its linked items
-const ID_PREFIX_BY_TYPE = {
-  appliance: 'APP',
-  fuel: 'FUEL'
-}
+const ID_PREFIX_BY_TYPE = { appliance: 'APP', fuel: 'FUEL' }
 
 /**
  * Perform the application and linked items (appliances/fuels) insert
@@ -116,8 +126,8 @@ async function performApplicationInsert(db, payload, logger, session) {
   const itemsCollectionName = getItemsCollectionName(applicationData.type)
   const idPrefix = ID_PREFIX_BY_TYPE[applicationData.type]
 
-  // Build and insert Application
-  const application = buildApplication(applicationData)
+  const applicationId = await generateApplicationId(appCollection, session)
+  const application = buildApplication(applicationData, applicationId)
 
   const insertOptions = session ? { session } : {}
   const appResult = await appCollection.insertOne(application, insertOptions)
@@ -125,14 +135,14 @@ async function performApplicationInsert(db, payload, logger, session) {
     throw new Error('Failed to insert application')
   }
 
-  // Insert linked items with applicationId link
+  // Linked items reference their parent via applicationId
   let savedItems = []
   if (Array.isArray(items) && items.length > 0) {
     const itemsCollection = db.collection(itemsCollectionName)
     const itemsToInsert = items.map((item) => ({
       ...item,
       id: item.id || `${idPrefix}-${generateSecureId()}`,
-      applicationId: application.id
+      applicationId
     }))
 
     const itemsResult = await itemsCollection.insertMany(
@@ -173,11 +183,21 @@ async function performApplicationInsert(db, payload, logger, session) {
   return {
     success: true,
     message: 'Application and linked items created successfully',
-    data: {
-      ...application,
-      [itemsKey]: savedItems
-    }
+    data: { ...application, [itemsKey]: savedItems }
   }
+}
+
+/**
+ * Check whether an application submitted via forms, has already been created in our system, using form 'reference number'
+ */
+async function applicationExistsByReference(db, referenceNumber) {
+  if (!referenceNumber) {
+    return false
+  }
+  const found = await db
+    .collection('Applications')
+    .findOne({ referenceNumber }, { projection: { _id: 1 } })
+  return Boolean(found)
 }
 
 /**
@@ -233,6 +253,14 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
         .collection(collectionName)
         .find({ applicationId })
         .toArray()
+
+      // Frontend reads fuel brand as `name`
+      if (application.type === 'fuel') {
+        linkedItems = linkedItems.map((item) => ({
+          ...item,
+          name: item.brandName
+        }))
+      }
     } else {
       logger.warn(`Unknown application type: ${application.type}`)
     }
@@ -244,6 +272,7 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
       message: 'Application retrieved successfully',
       data: {
         ...application,
+        fullAddress: getFullAddress(linkedItems[0]),
         linkedItems: isGrouped
           ? groupItemsByTechReviewStatus(linkedItems)
           : linkedItems,
@@ -432,7 +461,7 @@ async function getAllApplicationsWithAppliances(db, logger) {
  * @param {string} type - Type of applications/linked items to summarise ('appliance' | 'fuel')
  * @param {string[]} statuses - Application statuses to include
  */
-async function getApplicationsWithSummary(
+async function getApplicationsSummaryByStatus(
   db,
   logger,
   type,
@@ -467,10 +496,7 @@ async function getApplicationsWithSummary(
     if (applications.length === 0) {
       return {
         success: true,
-        data: {
-          new: [],
-          inProgress: []
-        }
+        data: { new: [], inProgress: [] }
       }
     }
 
@@ -478,7 +504,12 @@ async function getApplicationsWithSummary(
     const applicationIds = applications.map((app) => app.id)
     const items = await itemsCollection
       .find({ applicationId: { $in: applicationIds } })
-      .project({ applicationId: 1, [nameField]: 1 })
+      .project({
+        _id: 0,
+        id: 1,
+        applicationId: 1,
+        [nameField]: 1
+      })
       .toArray()
 
     // 3. Build result organized by status
@@ -499,7 +530,7 @@ async function getApplicationsWithSummary(
         submittedAt: app.submittedAt,
         items: items
           .filter((item) => item.applicationId === app.id)
-          .map((item) => ({ id: item._id, name: item[nameField] })),
+          .map((item) => ({ id: item.id, name: item[nameField] })),
         reviewedBy: app.reviewedBy
       })
     }
@@ -527,26 +558,26 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
+    const collectionName = getItemsCollectionName(type)
+    const nameField = getItemNameField(type)
+
+    if (!collectionName || !nameField) {
+      logger.warn(`Unknown application type: ${type}`)
+      return {
+        success: false,
+        message: `Unknown application type: ${type}`,
+        notFound: true
+      }
+    }
+
     const application = await db
       .collection('Applications')
-      .findOne({ id: applicationId })
+      .findOne({ id: applicationId, type })
 
     if (!application) {
       return {
         success: false,
         message: APPLICATION_NOT_FOUND,
-        notFound: true
-      }
-    }
-
-    // type is validated by the route's Joi schema ('appliance' | 'fuel'), guard kept for defense-in-depth
-    const collectionName = getItemsCollectionName(type)
-
-    if (!collectionName) {
-      logger.warn(`Unknown application type: ${type}`)
-      return {
-        success: false,
-        message: `Unknown application type: ${type}`,
         notFound: true
       }
     }
@@ -560,17 +591,20 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
           companyFullAddress: 1,
           companyAddress: 1,
           companyContact: 1,
-          _id: 0
+          responsiblePerson: 1,
+          hasCustomerComplaintsSystem: 1,
+          fuelBagging: 1,
+          supplierType: 1
         }
       }
     )
 
-    // Fetch summary of linked items (only name and technicalApproval)
+    // Fetch summary of linked items (only name and technicalReview)
     const linkedItems = await db
       .collection(collectionName)
       .find(
         { applicationId },
-        { projection: { id: 1, modelName: 1, technicalReview: 1, _id: 0 } }
+        { projection: { id: 1, [nameField]: 1, technicalReview: 1 } }
       )
       .toArray()
 
@@ -580,9 +614,15 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
       data: {
         id: application.id,
         companyName: companyDetails?.companyName,
-        companyFullAddress: companyDetails?.companyFullAddress || null,
-        companyAddress: companyDetails?.companyAddress || null,
+        fullAddress: getFullAddress(companyDetails),
         companyContact: companyDetails?.companyContact,
+        ...(type === 'fuel' && {
+          responsiblePerson: companyDetails?.responsiblePerson,
+          hasCustomerComplaintsSystem:
+            companyDetails?.hasCustomerComplaintsSystem,
+          fuelBagging: companyDetails?.fuelBagging,
+          supplierType: companyDetails?.supplierType
+        }),
         linkedItems // Contains item name and technicalReview
       }
     }
@@ -594,11 +634,12 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
 
 export {
   createApplication,
+  applicationExistsByReference,
   getAllApplications,
   getApplicationById,
   searchApplications,
   getCounts,
   getAllApplicationsWithAppliances,
-  getApplicationsWithSummary, //getApplicationsSummaryByStatus?
+  getApplicationsSummaryByStatus,
   getApplicationSummaryById
 }

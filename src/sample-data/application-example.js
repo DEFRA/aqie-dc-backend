@@ -1,6 +1,8 @@
 // Example application payloads for tests and API documentation.
 // Keep both examples available and switch the default export when needed for Swagger.
 
+import { rebrandFuelExample, manufactureFuelExample } from './fuel-example.js'
+
 export const applianceApplicationExample = {
   type: 'appliance',
   // id: 'app-uuid-12345',
@@ -25,7 +27,7 @@ export const applianceApplicationExample = {
         name: 'John Doe',
         email: 'john@acme.com',
         alternativeEmail: 'alt@acme.com',
-        phone: '+44753732890'
+        phone: '+447537328930'
       },
       isUkBased: true,
       // companyFullAddress: '456 Factory Road, Unit 7, Birmingham, West Midlands, B1 2AB',
@@ -124,7 +126,7 @@ export const applianceApplicationExample = {
   ]
 }
 
-export const fuelApplicationExample = {
+const fuelApplicationBase = {
   type: 'fuel',
   submittedAt: new Date('2026-04-24T12:00:00Z'),
   status: 'new',
@@ -132,32 +134,18 @@ export const fuelApplicationExample = {
     name: 'John Reviewer',
     email: 'john@reviewer.com'
   },
-  referenceNumber: 'referencenumber435435',
-  fuels: [
-    {
-      companyName: 'FuelCo',
-      isUkBased: false,
-      companyFullAddress:
-        '789 Industrial Estate, Building C, Manchester, Greater Manchester, M1 3CD',
-      companyContact: {
-        name: 'Fuel Person',
-        email: 'JD@email.com'
-      },
-      responsiblePerson: {
-        name: 'Rep Name',
-        email: 'rep@co.com'
-      },
-      customerComplaints: false,
-      fuelBagging: 'Bagged',
-      fuelDescription: 'Premium pellets',
-      manufacturerOrReseller: 'Manufacturer',
-      fuelWeight: 20,
-      fuelComposition: 'Wood 100%',
-      sulphurContent: 0.7,
-      manufacturingProcess: 'Kiln-dried',
-      qualityControlSystem: 'ISO certified',
-      brandNames: 'PelletBrand',
-      declaration: true
-    }
-  ]
+  referenceNumber: 'referencenumber435435'
 }
+
+export const rebrandFuelApplicationExample = {
+  ...fuelApplicationBase,
+  fuels: [rebrandFuelExample]
+}
+
+export const manufactureFuelApplicationExample = {
+  ...fuelApplicationBase,
+  fuels: [manufactureFuelExample]
+}
+
+// Default fuel example, used by tests and Swagger
+export const fuelApplicationExample = manufactureFuelApplicationExample

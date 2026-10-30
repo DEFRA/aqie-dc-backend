@@ -5,10 +5,13 @@ import {
 } from '../common/helpers/data-transformer.js'
 import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 import {
+  CERTIFICATION_FIELDS,
   findCertified,
   findNotYetNotifiedCountries,
   mapCertifications
 } from '../common/helpers/certification.js'
+import { calculateItemStatus } from '../common/helpers/item-status.js'
+import { getItemsCollectionName } from '../common/helpers/application-type.js'
 
 /**
  * Appliances Controller
@@ -16,6 +19,7 @@ import {
  */
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
+const APPLIANCE_NOT_FOUND = 'Appliance not found'
 
 /**
  * Create a new appliance
@@ -133,7 +137,7 @@ async function getApplianceById(db, id, logger) {
     if (!item) {
       return {
         success: false,
-        message: 'Appliance not found',
+        message: APPLIANCE_NOT_FOUND,
         notFound: true
       }
     }
@@ -306,7 +310,8 @@ async function getAdminApplianceById(db, id, logger) {
           scotlandCertification: 1,
           walesCertification: 1,
           nIrelandCertification: 1,
-          applianceStatus: 1
+          applianceStatus: 1,
+          technicalReview: 1
         }
       }
     )
@@ -314,7 +319,7 @@ async function getAdminApplianceById(db, id, logger) {
     if (!item) {
       return {
         success: false,
-        message: 'Appliance not found',
+        message: APPLIANCE_NOT_FOUND,
         notFound: true
       }
     }
@@ -340,11 +345,80 @@ async function getAdminApplianceById(db, id, logger) {
         status: item.applianceStatus || 'pending',
         canTogglePublicVisibility: findCertified(item).length > 0,
         isVisibleToPublic: item.isVisibleToPublic,
-        isLegacyRecord: item.isLegacyRecord
+        isLegacyRecord: item.isLegacyRecord,
+        technicalReview: item.technicalReview ?? null
       }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch admin appliance')
+    throw error
+  }
+}
+
+/**
+ * Set public visibility for an appliance or fuel and recalculate its status
+ *
+ * @param {'appliance'|'fuel'} [type]
+ */
+async function updateApplianceVisibility(
+  db,
+  id,
+  isVisibleToPublic,
+  logger,
+  type = 'appliance'
+) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+  const collectionName = getItemsCollectionName(type)
+  if (!collectionName) {
+    throw new Error(`Unsupported item type: ${type}`)
+  }
+  const label = type === 'fuel' ? 'Fuel' : 'Appliance'
+  try {
+    const collection = db.collection(collectionName)
+    const item = await collection.findOne(
+      { id },
+      {
+        projection: {
+          'technicalReview.status': 1,
+          ...Object.fromEntries(
+            CERTIFICATION_FIELDS.map((field) => [`${field}.status`, 1])
+          ),
+          _id: 0
+        }
+      }
+    )
+
+    if (!item) {
+      return { success: false, message: `${label} not found`, notFound: true }
+    }
+
+    // Mirrors calculateItemStatus: visibility only affects accepted, certified items
+    const canTogglePublicVisibility =
+      item.technicalReview?.status === 'accepted' &&
+      findCertified(item).length > 0
+
+    if (!canTogglePublicVisibility) {
+      return {
+        success: false,
+        message: `${label} visibility can only change once its technical review is accepted and it is certified in at least one country`,
+        incomplete: true
+      }
+    }
+
+    await collection.updateOne(
+      { id },
+      { $set: { isVisibleToPublic, updatedAt: new Date() } }
+    )
+
+    await calculateItemStatus(db, type, id)
+
+    logger.info(`${label} visibility set to ${isVisibleToPublic}: ${id}`)
+
+    return { success: true }
+  } catch (error) {
+    logger.error(error, `Failed to update ${label.toLowerCase()} visibility`)
     throw error
   }
 }
@@ -356,5 +430,6 @@ export {
   updateAppliance,
   deleteAppliance,
   searchAdminAppliances,
-  getAdminApplianceById
+  getAdminApplianceById,
+  updateApplianceVisibility
 }
