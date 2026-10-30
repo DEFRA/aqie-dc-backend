@@ -366,7 +366,9 @@ export const fuelSchema = Joi.object({
   //If a manufacturer, these fields become required:
   fuelDescription: Joi.object({
     appearance: Joi.string().required().description('Fuel description'),
-    weight: Joi.string().required().description('Fuel weight comes as string from DXGT form'),
+    weight: Joi.string()
+      .required()
+      .description('Fuel weight comes as string from DXGT form'),
     composition: Joi.string().required().description('Fuel composition'),
     sulphurContent: Joi.number().required().description('Sulphur content (%)')
   })
