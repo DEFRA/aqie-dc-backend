@@ -77,7 +77,7 @@ const keyMapFuel = {
   iqYLKO: 'fuelDescription.appearance',
   vUJklv: 'fuelDescription.weight',
   rIyajj: 'fuelDescription.composition',
-  kOXZSk: 'fuelDescription.sulphurContent',
+  qdosae: 'fuelDescription.sulphurContent',
   Hdxrqy: 'manufacturingProcess',
   dDwQia: 'hasQualityControlSystem',
 
