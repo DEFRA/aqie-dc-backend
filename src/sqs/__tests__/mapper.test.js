@@ -197,7 +197,7 @@ describe('mapKeys', () => {
         {
           vUJklv: '10g',
           rIyajj: 'Wood',
-          kOXZSk: '0.1%',
+          qdosae: 0.1,
           Hdxrqy: 'Kiln',
           dDwQia: true,
           GgFWEK: 'Brand',
@@ -212,7 +212,7 @@ describe('mapKeys', () => {
         fuelDescription: {
           weight: '10g',
           composition: 'Wood',
-          sulphurContent: '0.1%'
+          sulphurContent: 0.1
         },
         manufacturingProcess: 'Kiln',
         hasQualityControlSystem: true,
