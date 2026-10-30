@@ -45,7 +45,7 @@ async function getActionHistory(db, itemType, itemId, logger) {
 
     const actions = await db
       .collection('Actions')
-      .find({ itemId })
+      .find({ itemId, itemType })
       .sort(NEWEST_FIRST)
       .toArray()
 

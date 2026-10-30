@@ -51,7 +51,10 @@ describe('action-history-controller getActionHistory', () => {
       { id: 'APP-1' },
       { projection: { modelName: 1, _id: 0 } }
     )
-    expect(actionsCollection.find).toHaveBeenCalledWith({ itemId: 'APP-1' })
+    expect(actionsCollection.find).toHaveBeenCalledWith({
+      itemId: 'APP-1',
+      itemType: 'appliance'
+    })
     expect(cursor.sort).toHaveBeenCalledWith({ completedAt: -1, _id: -1 })
     expect(result).toEqual({
       success: true,
