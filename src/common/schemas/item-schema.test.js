@@ -14,7 +14,7 @@ describe('item-schema applianceSchema', () => {
     expect(error).toBeUndefined()
   })
 
-  test('optional phone -> undefined passes', () => {
+  test('optional phone -> absent defaults to null', () => {
     const payload = structuredClone(applianceBasePayload)
 
     delete payload.companyContact.phone
@@ -22,7 +22,7 @@ describe('item-schema applianceSchema', () => {
     const { value, error } = applianceSchema.validate(payload)
 
     expect(error).toBeUndefined()
-    expect(value.companyContact.phone).toBeUndefined()
+    expect(value.companyContact.phone).toBeNull()
   })
 
   test('valid phone string passes', () => {
@@ -424,7 +424,7 @@ describe('item-schema fuelSchema', () => {
     expect(value.companyContact.phone).toBe('+447405334441')
   })
 
-  test('optional phone -> undefined passes', () => {
+  test('optional phone -> absent defaults to null', () => {
     const payload = structuredClone(validFuelPayload)
 
     delete payload.companyContact.phone
@@ -432,7 +432,7 @@ describe('item-schema fuelSchema', () => {
     const { value, error } = fuelSchema.validate(payload)
 
     expect(error).toBeUndefined()
-    expect(value.companyContact.phone).toBeUndefined()
+    expect(value.companyContact.phone).toBeNull()
   })
 
   test('invalid phone -> validation error', () => {

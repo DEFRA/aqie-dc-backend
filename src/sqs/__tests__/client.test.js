@@ -103,7 +103,11 @@ describe('sqs client', () => {
       await createNewApplicationRecord(message, server)
 
       expect(createApplicationRecordViaRoute).not.toHaveBeenCalled()
-      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'm1')
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(
+        server,
+        'm1',
+        undefined
+      )
     })
 
     test('creates application when none exists', async () => {
@@ -112,7 +116,11 @@ describe('sqs client', () => {
       await createNewApplicationRecord(message, server)
 
       expect(createApplicationRecordViaRoute).toHaveBeenCalled()
-      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'm1')
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(
+        server,
+        'm1',
+        undefined
+      )
     })
   })
 
@@ -330,7 +338,11 @@ describe('sqs client', () => {
         server,
         expect.any(String)
       )
-      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'msg-1')
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(
+        server,
+        'msg-1',
+        undefined
+      )
     })
 
     test('builds a fuel application when the form slug matches', async () => {
@@ -354,7 +366,11 @@ describe('sqs client', () => {
         server,
         expect.any(String)
       )
-      expect(markSqsMessageProcessed).toHaveBeenCalledWith(server, 'msg-2')
+      expect(markSqsMessageProcessed).toHaveBeenCalledWith(
+        server,
+        'msg-2',
+        undefined
+      )
     })
 
     test('logs and returns early when the message body is invalid JSON', async () => {

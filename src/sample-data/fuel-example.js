@@ -143,7 +143,7 @@ export const manufactureFuelExample = {
   supplierType: 'Manufacture',
   fuelDescription: {
     appearance: 'Premium pellets',
-    weight: 20,
+    weight: '20kg',
     composition: 'Wood 100%',
     sulphurContent: 0.7
   },
