@@ -47,6 +47,12 @@ async function createIndexes(db, logger) {
   // Example of how to create a mongodb index. Remove as required
   await db.collection('example-data').createIndex({ id: 1 })
 
+  // Action history: createIndex also creates the collection, and is safe on every start
+  await db.collection('Actions').createIndex({ id: 1 }, { unique: true })
+  await db
+    .collection('Actions')
+    .createIndex({ itemId: 1, itemType: 1, completedAt: -1 })
+
   // Setup Appliances and Fuels collections if they don't exist
   await ensureAppliancesAndFuelsCollections(db, logger)
 
