@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest'
 import {
   CERTIFICATION_FIELDS,
   COUNTRY_CERTIFICATION_STATUSES,
-  UNCERTIFIED_STATUSES,
+  UNCERTIFIED_STATUS,
   findCertified,
   findLastCertifiedDate,
   mapCountryCertification
@@ -56,9 +56,9 @@ describe('COUNTRY_CERTIFICATION_STATUSES', () => {
   })
 })
 
-describe('UNCERTIFIED_STATUSES', () => {
+describe('UNCERTIFIED_STATUS', () => {
   test('is the status that means not certified', () => {
-    expect(UNCERTIFIED_STATUSES).toBe('uncertified')
+    expect(UNCERTIFIED_STATUS).toBe('uncertified')
   })
 })
 

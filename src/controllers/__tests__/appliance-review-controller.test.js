@@ -6,9 +6,15 @@ import {
   updateApplianceReview,
   recordApplianceCheck
 } from '#src/controllers/appliance-review-controller.js'
+import { recordAction } from '#src/common/helpers/action-history.js'
 
 vi.mock('#src/common/helpers/item-status.js', () => ({
   calculateItemStatus: vi.fn()
+}))
+
+vi.mock('#src/common/helpers/action-history.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  recordAction: vi.fn()
 }))
 
 const allPassed = {
@@ -278,6 +284,51 @@ describe('appliance-review-controller', () => {
       )
 
       expect(calculateItemStatus).not.toHaveBeenCalled()
+    })
+
+    test('does not record history; that happens when the application completes', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({ technicalReview: allPassed })
+        .mockResolvedValueOnce({ id: 'APP-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      await updateApplianceReview(
+        db,
+        'APP-1',
+        { status: 'accepted', reviewedBy: { name: 'Jane Doe' } },
+        mockLogger
+      )
+
+      expect(recordAction).not.toHaveBeenCalled()
+    })
+
+    test('does not record anything when the item is rejected', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({ technicalReview: {} })
+        .mockResolvedValueOnce({ id: 'APP-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      await updateApplianceReview(
+        db,
+        'APP-1',
+        { status: 'rejected' },
+        mockLogger
+      )
+
+      expect(recordAction).not.toHaveBeenCalled()
+    })
+
+    test('does not record anything when the decision is refused', async () => {
+      collection.findOne.mockResolvedValue({ technicalReview: {} })
+
+      await updateApplianceReview(
+        db,
+        'APP-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(recordAction).not.toHaveBeenCalled()
     })
 
     test('writes dot-notation paths so the check results survive', async () => {

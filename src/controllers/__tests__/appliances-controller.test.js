@@ -702,6 +702,8 @@ describe('appliances-controller', () => {
       ...certifiedInEngland
     }
 
+    const reviewedBy = { name: 'Jane Doe', email: 'jane.doe@example.com' }
+
     beforeEach(() => {
       calculateItemStatus.mockReset()
     })
@@ -715,15 +717,52 @@ describe('appliances-controller', () => {
         db,
         'APP-1',
         false,
-        mockLogger
+        mockLogger,
+        reviewedBy,
+        'appliance'
       )
 
       expect(collection.updateOne).toHaveBeenCalledWith(
         { id: 'APP-1' },
         { $set: { isVisibleToPublic: false, updatedAt: expect.any(Date) } }
       )
-      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'appliance', 'APP-1')
       expect(result).toEqual({ success: true })
+    })
+
+    test('requires reviewedBy', async () => {
+      await expect(
+        updateApplianceVisibility(db, 'APP-1', false, mockLogger)
+      ).rejects.toThrow('reviewedBy is required')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('attributes the recalculation to the signed-in user', async () => {
+      collection.findOne.mockResolvedValue(acceptedAndCertified)
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+      calculateItemStatus.mockResolvedValue('hidden')
+
+      await updateApplianceVisibility(
+        db,
+        'APP-1',
+        false,
+        mockLogger,
+        reviewedBy,
+        'appliance'
+      )
+
+      expect(calculateItemStatus).toHaveBeenCalledWith(
+        db,
+        'appliance',
+        'APP-1',
+        {
+          logger: mockLogger,
+          actor: {
+            name: 'Jane Doe',
+            email: 'jane.doe@example.com',
+            type: 'user'
+          }
+        }
+      )
     })
 
     test('uses the Fuels collection and fuel status for type fuel', async () => {
@@ -736,17 +775,30 @@ describe('appliances-controller', () => {
         'FUEL-1',
         false,
         mockLogger,
+        reviewedBy,
         'fuel'
       )
 
       expect(db.collection).toHaveBeenCalledWith('Fuels')
-      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'fuel', 'FUEL-1')
+      expect(calculateItemStatus).toHaveBeenCalledWith(
+        db,
+        'fuel',
+        'FUEL-1',
+        expect.objectContaining({ logger: mockLogger })
+      )
       expect(result).toEqual({ success: true })
     })
 
     test('rejects an unsupported type', async () => {
       await expect(
-        updateApplianceVisibility(db, 'X-1', true, mockLogger, 'widget')
+        updateApplianceVisibility(
+          db,
+          'X-1',
+          true,
+          mockLogger,
+          reviewedBy,
+          'widget'
+        )
       ).rejects.toThrow('Unsupported item type: widget')
     })
 
@@ -757,7 +809,9 @@ describe('appliances-controller', () => {
         db,
         'missing',
         true,
-        mockLogger
+        mockLogger,
+        reviewedBy,
+        'appliance'
       )
 
       expect(result.notFound).toBe(true)
@@ -779,7 +833,9 @@ describe('appliances-controller', () => {
         db,
         'APP-1',
         false,
-        mockLogger
+        mockLogger,
+        reviewedBy,
+        'appliance'
       )
 
       expect(result.incomplete).toBe(true)
@@ -793,7 +849,14 @@ describe('appliances-controller', () => {
       calculateItemStatus.mockRejectedValue(new Error('calc failed'))
 
       await expect(
-        updateApplianceVisibility(db, 'APP-1', true, mockLogger)
+        updateApplianceVisibility(
+          db,
+          'APP-1',
+          true,
+          mockLogger,
+          reviewedBy,
+          'appliance'
+        )
       ).rejects.toThrow('calc failed')
       expect(mockLogger.error).toHaveBeenCalled()
     })

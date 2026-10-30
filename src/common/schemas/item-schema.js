@@ -497,6 +497,15 @@ export const fuelSchema = Joi.object({
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
     ),
+  isVisibleToPublic: Joi.boolean()
+    .default(true)
+    .description('Should this fuel be visible to the public?'),
+  fuelStatus: Joi.string()
+    .valid('pending', 'live', 'hidden', 'rejected')
+    .description(
+      'Takes in account the technical review and country certifications, and isVisibleToPublic to determine the overall status of the fuel'
+    )
+    .default('pending'),
   publishedDate: Joi.date().optional().description('Published date')
 }).label('Fuel')
 

@@ -31,8 +31,10 @@ export const updateCertificationStatus = {
           name: Joi.string().required(),
           email: Joi.string().email().required()
         })
-          .optional()
-          .description('User who made the decision (defaults to request user)')
+          .required()
+          .description(
+            'The signed-in user who made the decision, supplied by the admin frontend'
+          )
       }).unknown(false)
     }
   },
@@ -47,12 +49,6 @@ export const updateCertificationStatus = {
       INTERNAL_SERVER_ERROR: statusCodes.internalServerError
     }
 
-    // Get decidedBy from request context (logged-in user) or use provided value
-    const userInfo = decidedBy || {
-      name: request.auth?.credentials?.name || 'System',
-      email: request.auth?.credentials?.email || 'system@example.com'
-    }
-
     try {
       const result =
         await applianceCertificationController.updateCertificationStatus(
@@ -60,7 +56,7 @@ export const updateCertificationStatus = {
           id,
           country,
           status,
-          userInfo,
+          decidedBy,
           request.logger
         )
 
