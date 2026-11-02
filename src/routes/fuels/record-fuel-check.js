@@ -43,10 +43,17 @@ const FUEL_DESCRIPTION_DATA_SCHEMA = Joi.object({
 // Which fields are mandatory depends on supplierType, so the controller enforces that.
 const FUEL_DETAILS_DATA_SCHEMA = Joi.object({
   brandName: Joi.string().trim().min(1).required().description('Brand name'),
-  additionalBrandNames: Joi.string()
-    .trim()
-    .allow(null, '')
-    .description('Comma-separated additional brand names; null/empty clears'),
+  hasAdditionalBrandNames: Joi.boolean()
+    .strict()
+    .required()
+    .description('Will the fuel be sold under any additional brand names?'),
+  additionalBrandNames: Joi.when('hasAdditionalBrandNames', {
+    is: true,
+    then: Joi.string().trim().min(1).required(),
+    otherwise: Joi.valid(null, '').optional()
+  }).description(
+    'Comma-separated brand names; required when Yes, empty when No'
+  ),
   hasQualityControlSystem: Joi.boolean()
     .strict()
     .description('Monitored quality control system (Manufacture)'),

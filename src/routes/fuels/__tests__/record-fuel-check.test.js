@@ -123,8 +123,11 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
 
     test.each([false, null])('rejects fuelDetails result %s', (result) => {
       expect(
-        validate({ check: 'fuelDetails', result, data: { brandName: 'B' } })
-          .error
+        validate({
+          check: 'fuelDetails',
+          result,
+          data: { brandName: 'B', hasAdditionalBrandNames: false }
+        }).error
       ).toBeDefined()
     })
 
@@ -297,6 +300,7 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
           validate(
             payload({
               brandName: 'Kings Starterlog',
+              hasAdditionalBrandNames: true,
               additionalBrandNames: 'One, Two',
               hasQualityControlSystem: true
             })
@@ -309,6 +313,7 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
           validate(
             payload({
               brandName: 'Kings Starterlog',
+              hasAdditionalBrandNames: false,
               hasQualityControlSystem: true,
               manufacturingProcess: 'Extrusion',
               fuelDescription: {
@@ -322,19 +327,48 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
         ).toBeUndefined()
       })
 
-      test('accepts null additionalBrandNames to clear it', () => {
-        expect(
-          validate(payload({ brandName: 'B', additionalBrandNames: null }))
-            .error
-        ).toBeUndefined()
-      })
+      test.each([[null], [''], [undefined]])(
+        'accepts additionalBrandNames %j when the answer is No',
+        (additionalBrandNames) => {
+          expect(
+            validate(
+              payload({
+                brandName: 'B',
+                hasAdditionalBrandNames: false,
+                additionalBrandNames
+              })
+            ).error
+          ).toBeUndefined()
+        }
+      )
 
       test.each([
-        [{ brandName: '  ' }],
-        [{ additionalBrandNames: 'x' }],
-        [{ brandName: 'B', hasQualityControlSystem: 'yes' }],
-        [{ brandName: 'B', additionalBrandNames: 5 }],
-        [{ brandName: 'B', weight: '20' }],
+        [{ brandName: '  ', hasAdditionalBrandNames: false }],
+        [{ brandName: 'B' }],
+        [{ brandName: 'B', hasAdditionalBrandNames: 'yes' }],
+        [{ brandName: 'B', hasAdditionalBrandNames: true }],
+        [
+          {
+            brandName: 'B',
+            hasAdditionalBrandNames: true,
+            additionalBrandNames: ' '
+          }
+        ],
+        [
+          {
+            brandName: 'B',
+            hasAdditionalBrandNames: false,
+            additionalBrandNames: 'x'
+          }
+        ],
+        [
+          {
+            brandName: 'B',
+            hasAdditionalBrandNames: false,
+            hasQualityControlSystem: 'yes'
+          }
+        ],
+        [{ brandName: 'B', hasAdditionalBrandNames: false, weight: '20' }],
         [{}]
       ])('rejects %j', (data) => {
         expect(validate(payload(data)).error).toBeDefined()

@@ -132,6 +132,7 @@ async function getFuelReview(db, fuelId, logger) {
           applicationId: 1,
           brandName: 1,
           additionalBrandNames: 1,
+          hasAdditionalBrandNames: 1,
           companyAddress: 1,
           companyFullAddress: 1,
           supplierType: 1,

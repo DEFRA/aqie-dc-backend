@@ -28,9 +28,13 @@ const validDescription = {
   sulphurContent: 0.7
 }
 
-const rebrandDetails = { brandName: 'Kings Starterlog' }
+const rebrandDetails = {
+  brandName: 'Kings Starterlog',
+  hasAdditionalBrandNames: false
+}
 const manufactureDetails = {
   brandName: 'Kings Starterlog',
+  hasAdditionalBrandNames: true,
   additionalBrandNames: 'One, Two',
   hasQualityControlSystem: true,
   manufacturingProcess: 'Heat treatment and extrusion',
@@ -241,12 +245,14 @@ describe('fuel-review-controller', () => {
       test('Rebrand stores the brand details and clears blank brand names', async () => {
         await record('Rebrand', true, {
           brandName: 'Kings Starterlog',
+          hasAdditionalBrandNames: false,
           additionalBrandNames: ''
         })
 
         const [, update] = collection.updateOne.mock.calls[0]
         expect(update.$set).toMatchObject({
           brandName: 'Kings Starterlog',
+          hasAdditionalBrandNames: false,
           additionalBrandNames: null,
           'technicalReview.listingChecks.fuelDetails': true
         })
@@ -258,6 +264,7 @@ describe('fuel-review-controller', () => {
         const [, update] = collection.updateOne.mock.calls[0]
         expect(update.$set).toMatchObject({
           brandName: 'Kings Starterlog',
+          hasAdditionalBrandNames: true,
           additionalBrandNames: 'One, Two',
           hasQualityControlSystem: true,
           manufacturingProcess: 'Heat treatment and extrusion',
