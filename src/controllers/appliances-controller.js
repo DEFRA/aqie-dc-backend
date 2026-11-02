@@ -1,5 +1,5 @@
 import {
-  generateSecureId,
+  generateNextId,
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
@@ -39,10 +39,20 @@ async function createAppliance(db, item, logger) {
 
     const now = new Date()
 
+    // Generate ID if not provided, using chronological sequence
+    let id = item.id
+    if (!id) {
+      const lastAppliance = await collection.findOne(
+        { id: { $regex: /^\d{4}-\d+$/ } },
+        { sort: { _id: -1 }, projection: { id: 1 } }
+      )
+      id = generateNextId(lastAppliance?.id)
+    }
+
     // Build appliance document
     const appliance = {
       ...item,
-      id: item.id || `APP-${generateSecureId()}`,
+      id,
       applicationId: item.applicationId || null,
       createdAt: item.createdAt || now,
       updatedAt: now

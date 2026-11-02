@@ -26,7 +26,7 @@ export const countryCertificationSchema = Joi.object({
 // ============================================================================
 export const applianceSchema = Joi.object({
   id: Joi.string()
-    .pattern(/^APP-[A-Za-z0-9]+$/)
+    .pattern(/^\d{4}-\d+$/)
     .description('Appliance ID (primary key) system-generated.'),
   // Fields from DXT form input
   applicationId: Joi.string()
@@ -295,7 +295,7 @@ export const applianceSchema = Joi.object({
 // ============================================================================
 export const fuelSchema = Joi.object({
   id: Joi.string()
-    .pattern(/^FUEL-[A-Za-z0-9]+$/)
+    .pattern(/^\d{4}-\d+$/)
     .description('Fuel ID (primary key) system-generated.'),
   // Start of fuel application fields
   companyName: Joi.string().required().description('Manufacturer'),
