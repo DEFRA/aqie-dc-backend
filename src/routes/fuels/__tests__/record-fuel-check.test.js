@@ -285,6 +285,30 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
       })
     })
 
+    describe('manufacturerLetter', () => {
+      test.each([true, false, null])('accepts result %s', (result) => {
+        expect(
+          validate({ check: 'manufacturerLetter', result }).error
+        ).toBeUndefined()
+      })
+
+      test('rejects a non-boolean result', () => {
+        expect(
+          validate({ check: 'manufacturerLetter', result: 'yes' }).error
+        ).toBeDefined()
+      })
+
+      test('forbids data', () => {
+        expect(
+          validate({
+            check: 'manufacturerLetter',
+            result: true,
+            data: { anything: 1 }
+          }).error
+        ).toBeDefined()
+      })
+    })
+
     test('rejects unknown keys', () => {
       expect(
         validate({ check: 'fuelDetails', result: true, unknown: 'key' }).error
