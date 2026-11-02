@@ -60,100 +60,36 @@ function validateTestResults(result, data) {
   }
 }
 
-const isValidText = (value) =>
-  typeof value === 'string' && value.trim().length > 0
-
-const isValidPercentage = (value) =>
-  typeof value === 'number' &&
-  Number.isFinite(value) &&
-  value >= 0 &&
-  value <= 100
-
-const FUEL_DESCRIPTION_RULES = {
-  appearance: isValidText,
-  weight: isValidText,
-  composition: isValidText,
-  sulphurContent: isValidPercentage
-}
-
-function validateFuelDescription(result, data) {
-  if (result !== true) {
-    throw Boom.badRequest('fuelDescription can only be marked complete')
-  }
-
-  const description = data?.fuelDescription ?? {}
-  const complete =
-    Object.entries(FUEL_DESCRIPTION_RULES).every(([name, isValid]) =>
-      isValid(description[name])
-    ) && isValidText(data?.manufacturingProcess)
-
-  if (!complete) {
-    throw Boom.badRequest(
-      'fuelDescription requires appearance, weight, composition, sulphurContent and manufacturingProcess'
-    )
-  }
-}
-
-const REBRAND_DETAILS_FIELDS = ['brandName', 'additionalBrandNames']
-const MANUFACTURE_DETAILS_FIELDS = [
-  ...REBRAND_DETAILS_FIELDS,
+// The route's Joi schemas validate types, blanks and ranges; only the
+// supplierType-dependent field set needs checking here.
+const MANUFACTURE_ONLY_DETAILS = [
   'hasQualityControlSystem',
-  'fuelDescription',
-  'manufacturingProcess'
+  'manufacturingProcess',
+  'fuelDescription'
 ]
 
-const isCompleteDescription = (description) =>
-  Object.entries(FUEL_DESCRIPTION_RULES).every(([name, isValid]) =>
-    isValid(description?.[name])
-  )
-
 /**
- * fuelDetails can only be marked complete. Rebrand fuels capture the brand
- * details; Manufacture fuels also capture the description and process, because
- * they have no separate fuelDescription check.
+ * Manufacture fuels capture the description and process in fuelDetails
+ * (they have no separate fuelDescription check); Rebrand fuels must not.
  */
-function validateFuelDetails(supplierType, result, data) {
-  if (result !== true) {
-    throw Boom.badRequest('fuelDetails can only be marked complete')
-  }
+function validateFuelDetails(supplierType, data) {
+  const supplied = MANUFACTURE_ONLY_DETAILS.filter(
+    (field) => data[field] !== undefined
+  )
+  const expected =
+    supplierType === 'Manufacture' ? MANUFACTURE_ONLY_DETAILS.length : 0
 
-  const isManufacture = supplierType === 'Manufacture'
-  const allowed = isManufacture
-    ? MANUFACTURE_DETAILS_FIELDS
-    : REBRAND_DETAILS_FIELDS
-  const details = data ?? {}
-  const unexpected = Object.keys(details).filter((k) => !allowed.includes(k))
-
-  const complete =
-    isValidText(details.brandName) &&
-    (details.additionalBrandNames == null ||
-      typeof details.additionalBrandNames === 'string') &&
-    (!isManufacture ||
-      (typeof details.hasQualityControlSystem === 'boolean' &&
-        isCompleteDescription(details.fuelDescription) &&
-        isValidText(details.manufacturingProcess)))
-
-  if (unexpected.length > 0 || !complete) {
+  if (supplied.length !== expected) {
     throw Boom.badRequest(
-      isManufacture
-        ? 'fuelDetails requires brandName, hasQualityControlSystem, fuelDescription (appearance, weight, composition, sulphurContent) and manufacturingProcess'
-        : 'fuelDetails requires brandName'
+      expected
+        ? `fuelDetails requires ${MANUFACTURE_ONLY_DETAILS.join(', ')} for a Manufacture fuel`
+        : `fuelDetails does not accept ${MANUFACTURE_ONLY_DETAILS.join(', ')} for a Rebrand fuel`
     )
-  }
-}
-
-// A blank list of brand names clears the stored value.
-function normaliseFuelDetails(data) {
-  const { additionalBrandNames, ...rest } = data
-  return {
-    ...rest,
-    additionalBrandNames: additionalBrandNames?.trim() || null
   }
 }
 
 const checkValidators = {
-  testResults: validateTestResults,
-  fuelDescription: validateFuelDescription
+  testResults: validateTestResults
 }
 
 function validateFuelCheck(check, result, data) {
@@ -171,6 +107,10 @@ function validateFuelCheck(check, result, data) {
 function buildCheckUpdatePayload(group, check, result, data) {
   return {
     ...data,
+    // A blank list of brand names clears the stored value.
+    ...(check === 'fuelDetails' && {
+      additionalBrandNames: data.additionalBrandNames || null
+    }),
     technicalReview: { [group]: { [check]: result } }
   }
 }
@@ -259,13 +199,11 @@ async function recordFuelCheck(db, fuelId, check, result, logger, data) {
       )
     }
 
-    let payloadData = data
     if (check === 'fuelDetails') {
-      validateFuelDetails(item.supplierType, result, data)
-      payloadData = normaliseFuelDetails(data)
+      validateFuelDetails(item.supplierType, data)
     }
 
-    const updates = buildCheckUpdatePayload(group, check, result, payloadData)
+    const updates = buildCheckUpdatePayload(group, check, result, data)
 
     if (item.technicalReview?.status === 'new') {
       updates.technicalReview.status = 'in_review'

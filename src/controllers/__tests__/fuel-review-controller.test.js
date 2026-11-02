@@ -241,7 +241,7 @@ describe('fuel-review-controller', () => {
       test('Rebrand stores the brand details and clears blank brand names', async () => {
         await record('Rebrand', true, {
           brandName: 'Kings Starterlog',
-          additionalBrandNames: '  '
+          additionalBrandNames: ''
         })
 
         const [, update] = collection.updateOne.mock.calls[0]
@@ -267,35 +267,22 @@ describe('fuel-review-controller', () => {
         })
       })
 
-      test.each([false, null])('rejects result %s', async (result) => {
-        await expect(record('Rebrand', result, rebrandDetails)).rejects.toThrow(
-          'fuelDetails can only be marked complete'
-        )
-      })
-
       test.each([
-        ['Rebrand', undefined],
-        ['Rebrand', { brandName: ' ' }],
         ['Rebrand', { ...rebrandDetails, manufacturingProcess: 'x' }],
         ['Manufacture', rebrandDetails],
-        ['Manufacture', { ...manufactureDetails, manufacturingProcess: ' ' }],
         [
           'Manufacture',
-          { ...manufactureDetails, hasQualityControlSystem: undefined }
-        ],
-        [
-          'Manufacture',
-          {
-            ...manufactureDetails,
-            fuelDescription: { ...validDescription, weight: '' }
-          }
+          { ...manufactureDetails, manufacturingProcess: undefined }
         ]
-      ])('rejects incomplete %s details %j', async (supplierType, data) => {
-        await expect(record(supplierType, true, data)).rejects.toThrow(
-          'fuelDetails requires'
-        )
-        expect(collection.updateOne).not.toHaveBeenCalled()
-      })
+      ])(
+        'rejects %s fields that do not match %j',
+        async (supplierType, data) => {
+          await expect(record(supplierType, true, data)).rejects.toThrow(
+            'fuelDetails'
+          )
+          expect(collection.updateOne).not.toHaveBeenCalled()
+        }
+      )
     })
 
     test('rejects an unrecognised check', async () => {
@@ -709,48 +696,6 @@ describe('fuel-review-controller', () => {
         'technicalReview.listingChecks.fuelDescription': true,
         'technicalReview.status': 'in_review'
       })
-    })
-
-    test.each(['appearance', 'weight', 'composition', 'sulphurContent'])(
-      'requires %s',
-      async (field) => {
-        await expect(
-          record(true, { ...validDescription, [field]: undefined })
-        ).rejects.toThrow('fuelDescription requires')
-        expect(collection.updateOne).not.toHaveBeenCalled()
-      }
-    )
-
-    test.each([-1, 101, '5', NaN])(
-      'rejects sulphurContent %s',
-      async (sulphurContent) => {
-        await expect(
-          record(true, { ...validDescription, sulphurContent })
-        ).rejects.toThrow('fuelDescription requires')
-      }
-    )
-
-    test.each([false, null])('rejects result %s', async (result) => {
-      await expect(record(result, validDescription)).rejects.toThrow(
-        'fuelDescription can only be marked complete'
-      )
-      expect(collection.updateOne).not.toHaveBeenCalled()
-    })
-
-    test.each([undefined, '  '])(
-      'requires manufacturingProcess (%s)',
-      async (manufacturingProcess) => {
-        await expect(
-          record(true, validDescription, manufacturingProcess ?? '')
-        ).rejects.toThrow('fuelDescription requires')
-        expect(collection.updateOne).not.toHaveBeenCalled()
-      }
-    )
-
-    test('rejects blank text', async () => {
-      await expect(
-        record(true, { ...validDescription, appearance: '   ' })
-      ).rejects.toThrow('fuelDescription requires')
     })
   })
 
