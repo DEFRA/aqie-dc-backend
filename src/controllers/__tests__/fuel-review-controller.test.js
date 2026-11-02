@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach, vi } from 'vitest'
 
 import { calculateItemStatus } from '#src/common/helpers/item-status.js'
 import {
+  getFuelReview,
   recordFuelCheck,
   updateFuelReview
 } from '#src/controllers/fuel-review-controller.js'
@@ -29,6 +30,79 @@ describe('fuel-review-controller', () => {
     mockLogger = { info: vi.fn(), error: vi.fn() }
     collection = { findOne: vi.fn(), updateOne: vi.fn() }
     db = { collection: vi.fn().mockReturnValue(collection) }
+  })
+
+  describe('getFuelReview', () => {
+    test('returns the review with outstanding checks', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'FUEL-1',
+        supplierType: 'Rebrand',
+        technicalReview: { status: 'new' }
+      })
+
+      const result = await getFuelReview(db, 'FUEL-1', mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.id).toBe('FUEL-1')
+      expect(result.data.outstandingChecks.length).toBeGreaterThan(0)
+      expect(db.collection).toHaveBeenCalledWith('Fuels')
+    })
+
+    test('maps brandName to name and returns fullAddress only', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'FUEL-1',
+        brandName: 'PelletBrand',
+        companyAddress: { line1: '1 High St', city: 'Leeds', postcode: 'LS1' }
+      })
+
+      const result = await getFuelReview(db, 'FUEL-1', mockLogger)
+
+      expect(result.data.name).toBe('PelletBrand')
+      expect(result.data.fullAddress).toEqual(['1 High St', 'Leeds', 'LS1'])
+      expect(result.data).not.toHaveProperty('brandName')
+      expect(result.data).not.toHaveProperty('companyAddress')
+    })
+
+    test('excludes company contact fields from the projection', async () => {
+      collection.findOne.mockResolvedValue({ id: 'FUEL-1' })
+
+      await getFuelReview(db, 'FUEL-1', mockLogger)
+
+      const [filter, options] = collection.findOne.mock.calls[0]
+      expect(filter).toEqual({ id: 'FUEL-1' })
+      expect(options.projection).not.toHaveProperty('companyContact')
+    })
+
+    test('returns notFound when the fuel does not exist', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const result = await getFuelReview(db, 'missing', mockLogger)
+
+      expect(result).toEqual({
+        success: false,
+        message: 'Fuel not found',
+        notFound: true
+      })
+    })
+
+    test('logs and rethrows database errors', async () => {
+      const error = new Error('db down')
+      collection.findOne.mockRejectedValue(error)
+
+      await expect(getFuelReview(db, 'FUEL-1', mockLogger)).rejects.toThrow(
+        'db down'
+      )
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to fetch fuel review'
+      )
+    })
+
+    test('requires a logger', async () => {
+      await expect(getFuelReview(db, 'FUEL-1')).rejects.toThrow(
+        'logger is required'
+      )
+    })
   })
 
   describe('recordFuelCheck', () => {
@@ -119,7 +193,9 @@ describe('fuel-review-controller', () => {
         .mockResolvedValueOnce({ id: 'FUEL-1' })
       collection.updateOne.mockResolvedValue({ matchedCount: 1 })
 
-      await recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger)
+      await recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger, {
+        testResults: { smokeEmission: 1.25, sulphurContent: 0.5 }
+      })
 
       const [, update] = collection.updateOne.mock.calls[0]
       expect(update.$set).toHaveProperty(
@@ -141,7 +217,16 @@ describe('fuel-review-controller', () => {
         })
 
         await expect(
-          recordFuelCheck(db, 'FUEL-1', check, true, mockLogger)
+          recordFuelCheck(
+            db,
+            'FUEL-1',
+            check,
+            true,
+            mockLogger,
+            check === 'testResults'
+              ? { testResults: { smokeEmission: 1.25, sulphurContent: 0.5 } }
+              : undefined
+          )
         ).rejects.toThrow(`${check} does not apply to a ${supplierType} fuel`)
         expect(collection.updateOne).not.toHaveBeenCalled()
       }
@@ -183,6 +268,272 @@ describe('fuel-review-controller', () => {
     test('throws when logger is missing', async () => {
       await expect(
         recordFuelCheck(db, 'FUEL-1', 'fuelDetails', true)
+      ).rejects.toThrow('logger is required')
+    })
+  })
+
+  describe('recordFuelCheck', () => {
+    test('records testResults check with measurement data when passed', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Manufacture',
+          technicalReview: { status: 'new' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      const data = {
+        testResults: {
+          smokeEmission: 1.25,
+          sulphurContent: 0.5
+        }
+      }
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'testResults',
+        true,
+        mockLogger,
+        data
+      )
+
+      expect(result).toEqual({
+        success: true,
+        data: { fuelId: 'FUEL-1', check: 'testResults', result: true }
+      })
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.testResults',
+        true
+      )
+      expect(update.$set).toHaveProperty('testResults.smokeEmission', 1.25)
+      expect(update.$set).toHaveProperty('testResults.sulphurContent', 0.5)
+      expect(update.$set).toHaveProperty('technicalReview.status', 'in_review')
+    })
+
+    test('records testResults check with partial data when failed', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Manufacture',
+          technicalReview: { status: 'in_review' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      const data = {
+        testResults: {
+          smokeEmission: 2.5,
+          sulphurContent: null
+        }
+      }
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'testResults',
+        false,
+        mockLogger,
+        data
+      )
+
+      expect(result.success).toBe(true)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.testResults',
+        false
+      )
+      expect(update.$set).toHaveProperty('testResults.smokeEmission', 2.5)
+      expect(update.$set).toHaveProperty('testResults.sulphurContent', null)
+    })
+
+    test('records check without data for non-testResults checks', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Rebrand',
+          technicalReview: { status: 'new' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'manufacturerLetter',
+        true,
+        mockLogger,
+        undefined
+      )
+
+      expect(result.success).toBe(true)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.manufacturerLetter',
+        true
+      )
+      expect(update.$set).not.toHaveProperty('testResults')
+    })
+
+    test('rejects negative smokeEmission', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Manufacture',
+        technicalReview: {}
+      })
+
+      const data = {
+        testResults: {
+          smokeEmission: -1,
+          sulphurContent: 0.5
+        }
+      }
+
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger, data)
+      ).rejects.toThrow('testResults requires smokeEmission and sulphurContent')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('rejects negative sulphurContent', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Manufacture',
+        technicalReview: {}
+      })
+
+      const data = {
+        testResults: {
+          smokeEmission: 1.25,
+          sulphurContent: -0.1
+        }
+      }
+
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger, data)
+      ).rejects.toThrow('testResults requires smokeEmission and sulphurContent')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('rejects non-numeric measurements', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Manufacture',
+        technicalReview: {}
+      })
+
+      const data = {
+        testResults: {
+          smokeEmission: 'not a number',
+          sulphurContent: 0.5
+        }
+      }
+
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger, data)
+      ).rejects.toThrow('testResults requires smokeEmission and sulphurContent')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('requires both measurements when testResults passed', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Manufacture',
+        technicalReview: {}
+      })
+
+      const data = {
+        testResults: {
+          smokeEmission: 1.25
+        }
+      }
+
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger, data)
+      ).rejects.toThrow('testResults requires smokeEmission and sulphurContent')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('allows omitted measurements when testResults failed', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Manufacture',
+          technicalReview: { status: 'in_review' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'testResults',
+        false,
+        mockLogger,
+        { testResults: { smokeEmission: 2.5 } }
+      )
+
+      expect(result.success).toBe(true)
+    })
+
+    test('allows null for measurements when testResults failed', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Manufacture',
+          technicalReview: { status: 'in_review' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      const data = {
+        testResults: {
+          smokeEmission: null,
+          sulphurContent: null
+        }
+      }
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'testResults',
+        false,
+        mockLogger,
+        data
+      )
+
+      expect(result.success).toBe(true)
+    })
+
+    test('returns notFound when the fuel does not exist', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const data = {
+        testResults: {
+          smokeEmission: 1.25,
+          sulphurContent: 0.5
+        }
+      }
+
+      const result = await recordFuelCheck(
+        db,
+        'missing',
+        'testResults',
+        true,
+        mockLogger,
+        data
+      )
+
+      expect(result.notFound).toBe(true)
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('throws when logger is missing', async () => {
+      const data = {
+        testResults: {
+          smokeEmission: 1.25,
+          sulphurContent: 0.5
+        }
+      }
+
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'testResults', true, undefined, data)
       ).rejects.toThrow('logger is required')
     })
   })

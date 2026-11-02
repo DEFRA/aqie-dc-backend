@@ -442,6 +442,20 @@ export const fuelSchema = Joi.object({
     })
     .description('Is a monitored quality control system in place?'),
   //End of manufacturer/reseller
+  // Fields from admin FE input
+  testResults: Joi.object({
+    smokeEmission: Joi.number()
+      .min(0)
+      .allow(null)
+      .optional()
+      .description('Smoke emission (g/h)'),
+    sulphurContent: Joi.number()
+      .min(0)
+      .max(100)
+      .allow(null)
+      .optional()
+      .description('Sulphur content (%)')
+  }).optional(),
   declaration: Joi.boolean().required().description('Declaration'),
   createdAt: Joi.date()
     .optional()
