@@ -148,7 +148,7 @@ describe('fuel checks', () => {
   }
   const manufacturerPassed = {
     documentationChecks: { testResults: true },
-    listingChecks: { fuelDetails: true }
+    listingChecks: { fuelDetails: true, fuelDescription: true }
   }
 
   test('ALL_FUEL_CHECKS lists the four fuel checks', () => {
@@ -175,7 +175,7 @@ describe('fuel checks', () => {
     expect(isFuelCheckRequired('testResults', 'Manufacture')).toBe(true)
     expect(isFuelCheckRequired('fuelDetails', 'Manufacture')).toBe(true)
     expect(isFuelCheckRequired('manufacturerLetter', 'Manufacture')).toBe(false)
-    expect(isFuelCheckRequired('fuelDescription', 'Manufacture')).toBe(false)
+    expect(isFuelCheckRequired('fuelDescription', 'Manufacture')).toBe(true)
   })
 
   test('getFuelOutstandingChecks lists the checks for the supplierType', () => {
@@ -186,7 +186,8 @@ describe('fuel checks', () => {
     ])
     expect(getFuelOutstandingChecks({}, 'Manufacture')).toEqual([
       'testResults',
-      'fuelDetails'
+      'fuelDetails',
+      'fuelDescription'
     ])
   })
 

@@ -109,7 +109,7 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
     const validate = (payload) =>
       recordFuelCheck.options.validate.payload.validate(payload)
 
-    test.each(['manufacturerLetter', 'fuelDetails', 'fuelDescription'])(
+    test.each(['manufacturerLetter', 'fuelDetails'])(
       'accepts the %s check without data',
       (check) => {
         expect(validate({ check, result: true }).error).toBeUndefined()
@@ -305,6 +305,80 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
             result: true,
             data: { anything: 1 }
           }).error
+        ).toBeDefined()
+      })
+    })
+
+    describe('fuelDescription', () => {
+      const description = {
+        appearance: 'Briquettes',
+        weight: '20',
+        composition: 'Wood 100%',
+        sulphurContent: 0.7
+      }
+      const payload = (result, fuelDescription) => ({
+        check: 'fuelDescription',
+        result,
+        data: { fuelDescription, manufacturingProcess: 'Extrusion' }
+      })
+
+      test('accepts a complete description', () => {
+        expect(validate(payload(true, description)).error).toBeUndefined()
+      })
+
+      test.each(['appearance', 'weight', 'composition', 'sulphurContent'])(
+        'requires %s',
+        (field) => {
+          const { [field]: _omitted, ...rest } = description
+          expect(validate(payload(true, rest)).error).toBeDefined()
+        }
+      )
+
+      test('rejects sulphurContent outside 0-100', () => {
+        expect(
+          validate(payload(true, { ...description, sulphurContent: 101 })).error
+        ).toBeDefined()
+        expect(
+          validate(payload(true, { ...description, sulphurContent: -1 })).error
+        ).toBeDefined()
+      })
+
+      test('rejects a numeric weight', () => {
+        expect(
+          validate(payload(true, { ...description, weight: 20 })).error
+        ).toBeDefined()
+      })
+
+      test.each([false, null])('rejects result %s', (result) => {
+        expect(validate(payload(result, description)).error).toBeDefined()
+      })
+
+      test('rejects blank text', () => {
+        expect(
+          validate(payload(true, { ...description, appearance: '  ' })).error
+        ).toBeDefined()
+      })
+
+      test('requires manufacturingProcess', () => {
+        expect(
+          validate({
+            check: 'fuelDescription',
+            result: true,
+            data: { fuelDescription: description }
+          }).error
+        ).toBeDefined()
+        expect(
+          validate({
+            check: 'fuelDescription',
+            result: true,
+            data: { fuelDescription: description, manufacturingProcess: ' ' }
+          }).error
+        ).toBeDefined()
+      })
+
+      test('requires data', () => {
+        expect(
+          validate({ check: 'fuelDescription', result: true }).error
         ).toBeDefined()
       })
     })

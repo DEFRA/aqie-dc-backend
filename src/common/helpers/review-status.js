@@ -82,7 +82,7 @@ const FUEL_CHECKS_BY_SUPPLIER_TYPE = {
   },
   Manufacture: {
     documentation: ['testResults'],
-    listing: ['fuelDetails']
+    listing: ['fuelDetails', 'fuelDescription']
   }
 }
 

@@ -60,8 +60,43 @@ function validateTestResults(result, data) {
   }
 }
 
+const isValidText = (value) =>
+  typeof value === 'string' && value.trim().length > 0
+
+const isValidPercentage = (value) =>
+  typeof value === 'number' &&
+  Number.isFinite(value) &&
+  value >= 0 &&
+  value <= 100
+
+const FUEL_DESCRIPTION_RULES = {
+  appearance: isValidText,
+  weight: isValidText,
+  composition: isValidText,
+  sulphurContent: isValidPercentage
+}
+
+function validateFuelDescription(result, data) {
+  if (result !== true) {
+    throw Boom.badRequest('fuelDescription can only be marked complete')
+  }
+
+  const description = data?.fuelDescription ?? {}
+  const complete =
+    Object.entries(FUEL_DESCRIPTION_RULES).every(([name, isValid]) =>
+      isValid(description[name])
+    ) && isValidText(data?.manufacturingProcess)
+
+  if (!complete) {
+    throw Boom.badRequest(
+      'fuelDescription requires appearance, weight, composition, sulphurContent and manufacturingProcess'
+    )
+  }
+}
+
 const checkValidators = {
-  testResults: validateTestResults
+  testResults: validateTestResults,
+  fuelDescription: validateFuelDescription
 }
 
 function validateFuelCheck(check, result, data) {
@@ -103,10 +138,7 @@ async function getFuelReview(db, fuelId, logger) {
           companyFullAddress: 1,
           supplierType: 1,
           fuelBagging: 1,
-          appearance: 1,
-          weight: 1,
-          composition: 1,
-          sulphurContent: 1,
+          fuelDescription: 1,
           manufacturingProcess: 1,
           hasQualityControlSystem: 1,
           originalFuel: 1,
