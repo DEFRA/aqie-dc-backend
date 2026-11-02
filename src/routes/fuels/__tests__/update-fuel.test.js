@@ -165,6 +165,22 @@ describe('PATCH /fuels/{fuelId}', () => {
   })
 
   describe('options.validate', () => {
+    test.each([
+      ['technicalReview', { status: 'accepted' }],
+      ['englandCertification', { status: 'certified' }],
+      ['scotlandCertification', { status: 'certified' }],
+      ['walesCertification', { status: 'certified' }],
+      ['nIrelandCertification', { status: 'certified' }],
+      ['isVisibleToPublic', false],
+      ['fuelStatus', 'live']
+    ])('rejects %s, which has a dedicated endpoint', (field, value) => {
+      const { error } = updateFuel.options.validate.payload.validate({
+        [field]: value
+      })
+
+      expect(error).toBeDefined()
+    })
+
     test('validates params', () => {
       expect(updateFuel.options.validate).toBeDefined()
       expect(updateFuel.options.validate.params).toBeDefined()

@@ -11,6 +11,7 @@ import {
   mapCertifications
 } from '../common/helpers/certification.js'
 import { calculateItemStatus } from '../common/helpers/item-status.js'
+import { toUserActor } from '../common/helpers/action-history.js'
 import { getItemsCollectionName } from '../common/helpers/application-type.js'
 
 /**
@@ -358,6 +359,7 @@ async function getAdminApplianceById(db, id, logger) {
 /**
  * Set public visibility for an appliance or fuel and recalculate its status
  *
+ * @param {{ name: string, email?: string }} reviewedBy - signed-in user who clicked
  * @param {'appliance'|'fuel'} [type]
  */
 async function updateApplianceVisibility(
@@ -365,6 +367,7 @@ async function updateApplianceVisibility(
   id,
   isVisibleToPublic,
   logger,
+  reviewedBy,
   type = 'appliance'
 ) {
   if (!logger) {
@@ -373,6 +376,9 @@ async function updateApplianceVisibility(
   const collectionName = getItemsCollectionName(type)
   if (!collectionName) {
     throw new Error(`Unsupported item type: ${type}`)
+  }
+  if (!reviewedBy?.name) {
+    throw new Error('reviewedBy is required')
   }
   const label = type === 'fuel' ? 'Fuel' : 'Appliance'
   try {
@@ -412,7 +418,10 @@ async function updateApplianceVisibility(
       { $set: { isVisibleToPublic, updatedAt: new Date() } }
     )
 
-    await calculateItemStatus(db, type, id)
+    await calculateItemStatus(db, type, id, {
+      logger,
+      actor: toUserActor(reviewedBy)
+    })
 
     logger.info(`${label} visibility set to ${isVisibleToPublic}: ${id}`)
 

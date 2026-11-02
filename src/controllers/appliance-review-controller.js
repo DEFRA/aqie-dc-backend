@@ -251,9 +251,11 @@ async function updateApplianceReview(db, id, decision, logger) {
 
     await calculateItemStatus(db, 'appliance', id)
 
-    logger.info(`Appliance review ${status}: ${id}`) // Only the decision is returned - the full record from updateAppliance
-    // carries company contact details this endpoint has no reason to expose.
+    logger.info(`Appliance review ${status}: ${id}`)
 
+    // Only the decision is returned. `updateAppliance` gives back the whole saved
+    // appliance, including the applicant's company contact details, and the caller
+    // only needs the decision.
     return {
       success: true,
       data: { id, status, reviewedAt }

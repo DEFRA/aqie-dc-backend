@@ -165,6 +165,30 @@ describe('PATCH /appliances/{id}', () => {
   })
 
   describe('options.validate', () => {
+    test.each([
+      ['technicalReview', { status: 'accepted' }],
+      ['englandCertification', { status: 'certified' }],
+      ['scotlandCertification', { status: 'certified' }],
+      ['walesCertification', { status: 'certified' }],
+      ['nIrelandCertification', { status: 'certified' }],
+      ['isVisibleToPublic', false],
+      ['applianceStatus', 'live']
+    ])('rejects %s, which has a dedicated endpoint', (field, value) => {
+      const { error } = updateAppliance.options.validate.payload.validate({
+        [field]: value
+      })
+
+      expect(error).toBeDefined()
+    })
+
+    test('still accepts a descriptive field', () => {
+      const { error } = updateAppliance.options.validate.payload.validate({
+        modelName: 'Ecoburn 5F plus'
+      })
+
+      expect(error).toBeUndefined()
+    })
+
     test('validates params', () => {
       expect(updateAppliance.options.validate).toBeDefined()
       expect(updateAppliance.options.validate.params).toBeDefined()
