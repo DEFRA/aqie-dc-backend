@@ -109,12 +109,24 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
     const validate = (payload) =>
       recordFuelCheck.options.validate.payload.validate(payload)
 
-    test.each(['manufacturerLetter', 'fuelDetails'])(
-      'accepts the %s check without data',
-      (check) => {
-        expect(validate({ check, result: true }).error).toBeUndefined()
-      }
-    )
+    test('accepts the manufacturerLetter check without data', () => {
+      expect(
+        validate({ check: 'manufacturerLetter', result: true }).error
+      ).toBeUndefined()
+    })
+
+    test('requires data for fuelDetails', () => {
+      expect(
+        validate({ check: 'fuelDetails', result: true }).error
+      ).toBeDefined()
+    })
+
+    test.each([false, null])('rejects fuelDetails result %s', (result) => {
+      expect(
+        validate({ check: 'fuelDetails', result, data: { brandName: 'B' } })
+          .error
+      ).toBeDefined()
+    })
 
     test('rejects appliance-only checks', () => {
       expect(
@@ -124,7 +136,7 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
 
     test('allows null for a check that can be unreviewed', () => {
       expect(
-        validate({ check: 'fuelDetails', result: null }).error
+        validate({ check: 'manufacturerLetter', result: null }).error
       ).toBeUndefined()
     })
 
@@ -275,13 +287,57 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
         }
         expect(validate(payload).error).toBeDefined()
       })
+    })
 
-      test('allows no data field for testResults check', () => {
-        const payload = {
-          check: 'fuelDetails',
-          result: false
-        }
-        expect(validate(payload).error).toBeUndefined()
+    describe('fuelDetails data', () => {
+      const payload = (data) => ({ check: 'fuelDetails', result: true, data })
+
+      test('accepts brand names and quality control', () => {
+        expect(
+          validate(
+            payload({
+              brandName: 'Kings Starterlog',
+              additionalBrandNames: 'One, Two',
+              hasQualityControlSystem: true
+            })
+          ).error
+        ).toBeUndefined()
+      })
+
+      test('accepts Manufacture fields with the description', () => {
+        expect(
+          validate(
+            payload({
+              brandName: 'Kings Starterlog',
+              hasQualityControlSystem: true,
+              manufacturingProcess: 'Extrusion',
+              fuelDescription: {
+                appearance: 'Firelogs',
+                weight: '600 grams',
+                composition: 'Wax and sawdust',
+                sulphurContent: 0.1
+              }
+            })
+          ).error
+        ).toBeUndefined()
+      })
+
+      test('accepts null additionalBrandNames to clear it', () => {
+        expect(
+          validate(payload({ brandName: 'B', additionalBrandNames: null }))
+            .error
+        ).toBeUndefined()
+      })
+
+      test.each([
+        [{ brandName: '  ' }],
+        [{ additionalBrandNames: 'x' }],
+        [{ brandName: 'B', hasQualityControlSystem: 'yes' }],
+        [{ brandName: 'B', additionalBrandNames: 5 }],
+        [{ brandName: 'B', weight: '20' }],
+        [{}]
+      ])('rejects %j', (data) => {
+        expect(validate(payload(data)).error).toBeDefined()
       })
     })
 
@@ -385,7 +441,11 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
 
     test('rejects unknown keys', () => {
       expect(
-        validate({ check: 'fuelDetails', result: true, unknown: 'key' }).error
+        validate({
+          check: 'manufacturerLetter',
+          result: true,
+          unknown: 'key'
+        }).error
       ).toBeDefined()
     })
   })

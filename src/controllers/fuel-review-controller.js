@@ -94,6 +94,63 @@ function validateFuelDescription(result, data) {
   }
 }
 
+const REBRAND_DETAILS_FIELDS = ['brandName', 'additionalBrandNames']
+const MANUFACTURE_DETAILS_FIELDS = [
+  ...REBRAND_DETAILS_FIELDS,
+  'hasQualityControlSystem',
+  'fuelDescription',
+  'manufacturingProcess'
+]
+
+const isCompleteDescription = (description) =>
+  Object.entries(FUEL_DESCRIPTION_RULES).every(([name, isValid]) =>
+    isValid(description?.[name])
+  )
+
+/**
+ * fuelDetails can only be marked complete. Rebrand fuels capture the brand
+ * details; Manufacture fuels also capture the description and process, because
+ * they have no separate fuelDescription check.
+ */
+function validateFuelDetails(supplierType, result, data) {
+  if (result !== true) {
+    throw Boom.badRequest('fuelDetails can only be marked complete')
+  }
+
+  const isManufacture = supplierType === 'Manufacture'
+  const allowed = isManufacture
+    ? MANUFACTURE_DETAILS_FIELDS
+    : REBRAND_DETAILS_FIELDS
+  const details = data ?? {}
+  const unexpected = Object.keys(details).filter((k) => !allowed.includes(k))
+
+  const complete =
+    isValidText(details.brandName) &&
+    (details.additionalBrandNames == null ||
+      typeof details.additionalBrandNames === 'string') &&
+    (!isManufacture ||
+      (typeof details.hasQualityControlSystem === 'boolean' &&
+        isCompleteDescription(details.fuelDescription) &&
+        isValidText(details.manufacturingProcess)))
+
+  if (unexpected.length > 0 || !complete) {
+    throw Boom.badRequest(
+      isManufacture
+        ? 'fuelDetails requires brandName, hasQualityControlSystem, fuelDescription (appearance, weight, composition, sulphurContent) and manufacturingProcess'
+        : 'fuelDetails requires brandName'
+    )
+  }
+}
+
+// A blank list of brand names clears the stored value.
+function normaliseFuelDetails(data) {
+  const { additionalBrandNames, ...rest } = data
+  return {
+    ...rest,
+    additionalBrandNames: additionalBrandNames?.trim() || null
+  }
+}
+
 const checkValidators = {
   testResults: validateTestResults,
   fuelDescription: validateFuelDescription
@@ -134,6 +191,7 @@ async function getFuelReview(db, fuelId, logger) {
           id: 1,
           applicationId: 1,
           brandName: 1,
+          additionalBrandNames: 1,
           companyAddress: 1,
           companyFullAddress: 1,
           supplierType: 1,
@@ -201,7 +259,13 @@ async function recordFuelCheck(db, fuelId, check, result, logger, data) {
       )
     }
 
-    const updates = buildCheckUpdatePayload(group, check, result, data)
+    let payloadData = data
+    if (check === 'fuelDetails') {
+      validateFuelDetails(item.supplierType, result, data)
+      payloadData = normaliseFuelDetails(data)
+    }
+
+    const updates = buildCheckUpdatePayload(group, check, result, payloadData)
 
     if (item.technicalReview?.status === 'new') {
       updates.technicalReview.status = 'in_review'

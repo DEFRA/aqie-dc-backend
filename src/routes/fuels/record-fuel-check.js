@@ -40,8 +40,30 @@ const FUEL_DESCRIPTION_DATA_SCHEMA = Joi.object({
   .unknown(false)
   .required()
 
+// Which fields are mandatory depends on supplierType, so the controller enforces that.
+const FUEL_DETAILS_DATA_SCHEMA = Joi.object({
+  brandName: Joi.string().trim().min(1).required().description('Brand name'),
+  additionalBrandNames: Joi.string()
+    .trim()
+    .allow(null, '')
+    .description('Comma-separated additional brand names; null/empty clears'),
+  hasQualityControlSystem: Joi.boolean()
+    .strict()
+    .description('Monitored quality control system (Manufacture)'),
+  fuelDescription: fuelDescriptionSchema.description(
+    'Fuel description (Manufacture)'
+  ),
+  manufacturingProcess: Joi.string()
+    .trim()
+    .min(1)
+    .description('Manufacturing process (Manufacture)')
+})
+  .unknown(false)
+  .required()
+
 const CHECK_DATA_SCHEMAS = {
   testResults: TEST_RESULTS_DATA_SCHEMA,
+  fuelDetails: FUEL_DETAILS_DATA_SCHEMA,
   fuelDescription: FUEL_DESCRIPTION_DATA_SCHEMA
 }
 
@@ -63,11 +85,13 @@ export const recordFuelCheck = {
         result: Joi.when('check', {
           switch: [
             {
-              is: 'fuelDescription',
+              is: Joi.valid('fuelDescription', 'fuelDetails'),
               then: Joi.boolean()
                 .valid(true)
                 .required()
-                .description('fuelDescription can only be marked complete')
+                .description(
+                  'fuelDescription and fuelDetails can only be marked complete'
+                )
             },
             {
               is: 'testResults',
