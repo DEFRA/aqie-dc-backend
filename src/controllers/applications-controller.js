@@ -13,7 +13,6 @@ import {
 } from '../common/helpers/review-status.js'
 import {
   getItemsCollectionName,
-  getItemNameField,
   validateApplicationType
 } from '../common/helpers/application-type.js'
 import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'

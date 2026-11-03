@@ -8,7 +8,6 @@ import {
   isApplicationReviewComplete
 } from '../common/helpers/review-status.js'
 import {
-  getItemsCollectionName,
   validateApplicationType
 } from '../common/helpers/application-type.js'
 import { CERTIFICATION_FIELDS } from '../common/helpers/certification.js'

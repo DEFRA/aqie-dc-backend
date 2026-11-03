@@ -1,6 +1,4 @@
 import {
-  getItemNameField,
-  getItemsCollectionName,
   validateApplicationType
 } from '../common/helpers/application-type.js'
 

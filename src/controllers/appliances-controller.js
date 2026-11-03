@@ -13,7 +13,6 @@ import {
 import { calculateItemStatus } from '../common/helpers/item-status.js'
 import { toUserActor } from '../common/helpers/action-history.js'
 import {
-  getItemsCollectionName,
   validateApplicationType
 } from '../common/helpers/application-type.js'
 
