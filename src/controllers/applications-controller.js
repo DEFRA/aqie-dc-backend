@@ -348,11 +348,12 @@ async function getCounts(db, logger) {
     const filter = await getCompleteApplicationRecordsFilter(db)
     const appliancesCollection = db.collection('Appliances')
 
-    const [applianceRecordCount, fuelRecordCount, legacyApplianceRecordCount] = await Promise.all([
-      appliancesCollection.countDocuments(filter),
-      db.collection('Fuels').countDocuments(filter),
-      appliancesCollection.countDocuments({ legacyRecord: true })
-    ])
+    const [applianceRecordCount, fuelRecordCount, legacyApplianceRecordCount] =
+      await Promise.all([
+        appliancesCollection.countDocuments(filter),
+        db.collection('Fuels').countDocuments(filter),
+        appliancesCollection.countDocuments({ legacyRecord: true })
+      ])
 
     applicationCounts.appliance.records =
       applianceRecordCount + legacyApplianceRecordCount
