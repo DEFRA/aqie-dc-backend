@@ -70,6 +70,60 @@ describe('item-schema applianceSchema', () => {
     expect(error.details[0].type).toBe('string.pattern.base')
   })
 
+  test.each([
+    '07405122344',
+    '07582812432',
+    '+445398914260',
+    '+447700988342',
+    '07700 988 342',
+    '+44 808 157 0123',
+    '+44 7405 122 344',
+    '0740 5122 344'
+  ])(
+    'accepts valid phone for appliance: %s',
+    (phone) => {
+      const payload = {
+        ...structuredClone(applianceBasePayload),
+        companyContact: {
+          ...applianceBasePayload.companyContact,
+          phone
+        }
+      }
+
+      const { value, error } = applianceSchema.validate(payload)
+
+      expect(error).toBeUndefined()
+      expect(value.companyContact.phone).toBe(phone)
+    }
+  )
+
+  test.each([
+    '0740512234',
+    '074051223444',
+    '+1234567890',
+    '+12345678901234',
+    '447700988342',
+    '+44-808-157-0123',
+    'abc123',
+    'not-a-number'
+  ])(
+    'rejects invalid phone for appliance: %s',
+    (phone) => {
+      const payload = {
+        ...structuredClone(applianceBasePayload),
+        companyContact: {
+          ...applianceBasePayload.companyContact,
+          phone
+        }
+      }
+
+      const { error } = applianceSchema.validate(payload)
+
+      expect(error).toBeDefined()
+      expect(error.details[0].type).toBe('string.pattern.base')
+    }
+  )
+
   test('defaults country certification status to new', () => {
     const payload = {
       ...structuredClone(applianceExample),
@@ -349,7 +403,16 @@ describe('item-schema fuelSchema', () => {
     expect(error).toBeUndefined()
   })
 
-  test.each(['07576796260', '+17576796260', '+447576796260', '+3537576796260'])(
+  test.each([
+    '07576796260',
+    '+17576796260',
+    '+447576796260',
+    '+3537576796260',
+    '07700 988 342',
+    '+44 808 157 0123',
+    '+44 7576 796 260',
+    '0757 679 6260'
+  ])(
     'accepts valid phone: %s',
     (phone) => {
       const payload = {
@@ -373,8 +436,8 @@ describe('item-schema fuelSchema', () => {
     '+123456789',
     '+1234567890123456',
     '447576796260',
-    '+44 7576796260',
     '+44-7576796260',
+    '+44-808-157-0123',
     'abc123',
     'not-a-number'
   ])('rejects invalid phone: %s', (phone) => {
