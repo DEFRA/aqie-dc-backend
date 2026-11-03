@@ -13,7 +13,8 @@ import {
 } from '../common/helpers/review-status.js'
 import {
   getItemsCollectionName,
-  getItemNameField
+  getItemNameField,
+  validateApplicationType
 } from '../common/helpers/application-type.js'
 import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
 
@@ -473,17 +474,16 @@ async function getApplicationsSummaryByStatus(
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const collectionName = getItemsCollectionName(type)
-    const nameField = getItemNameField(type)
-
-    if (!collectionName || !nameField) {
-      logger.warn(`Unknown application type: ${type}`)
+    const applicationTypeDetails = validateApplicationType(type, logger)
+    if (!applicationTypeDetails) {
       return {
         success: false,
         message: `Unknown application type: ${type}`,
         notFound: true
       }
     }
+
+    const { collectionName, nameField } = applicationTypeDetails
 
     const appCollection = db.collection('Applications')
     const itemsCollection = db.collection(collectionName)
@@ -560,17 +560,16 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const collectionName = getItemsCollectionName(type)
-    const nameField = getItemNameField(type)
-
-    if (!collectionName || !nameField) {
-      logger.warn(`Unknown application type: ${type}`)
+    const applicationTypeDetails = validateApplicationType(type, logger)
+    if (!applicationTypeDetails) {
       return {
         success: false,
         message: `Unknown application type: ${type}`,
         notFound: true
       }
     }
+
+    const { collectionName, nameField } = applicationTypeDetails
 
     const application = await db
       .collection('Applications')

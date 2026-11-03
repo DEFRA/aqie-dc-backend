@@ -26,7 +26,7 @@ describe('action-history-controller getActionHistory', () => {
         name === 'Actions' ? actionsCollection : itemsCollection
       )
     }
-    logger = { info: vi.fn(), error: vi.fn() }
+    logger = { info: vi.fn(), error: vi.fn(), warn: vi.fn() }
   })
 
   test('returns the item name and its actions, newest first', async () => {

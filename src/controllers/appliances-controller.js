@@ -12,7 +12,7 @@ import {
 } from '../common/helpers/certification.js'
 import { calculateItemStatus } from '../common/helpers/item-status.js'
 import { toUserActor } from '../common/helpers/action-history.js'
-import { getItemsCollectionName } from '../common/helpers/application-type.js'
+import { getItemsCollectionName, validateApplicationType } from '../common/helpers/application-type.js'
 
 /**
  * Appliances Controller
@@ -383,10 +383,11 @@ async function updateApplianceVisibility(
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
-  const collectionName = getItemsCollectionName(type)
-  if (!collectionName) {
+  const applicationTypeDetails = validateApplicationType(type, logger)
+  if (!applicationTypeDetails) {
     throw new Error(`Unsupported item type: ${type}`)
   }
+  const { collectionName } = applicationTypeDetails
   if (!reviewedBy?.name) {
     throw new Error('reviewedBy is required')
   }

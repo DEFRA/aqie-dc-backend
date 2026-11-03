@@ -7,7 +7,7 @@ import {
   groupItemsByTechReviewStatus,
   isApplicationReviewComplete
 } from '../common/helpers/review-status.js'
-import { getItemsCollectionName } from '../common/helpers/application-type.js'
+import { getItemsCollectionName, validateApplicationType } from '../common/helpers/application-type.js'
 import { CERTIFICATION_FIELDS } from '../common/helpers/certification.js'
 import {
   SYSTEM_ACTOR,
@@ -152,10 +152,9 @@ const loadCompletableApplication = async (db, id, logger) => {
     }
   }
 
-  const itemsCollectionName = getItemsCollectionName(application.type)
+  const applicationTypeDetails = validateApplicationType(application.type, logger)
 
-  if (!itemsCollectionName) {
-    logger.warn(`Unknown application type: ${application.type}`)
+  if (!applicationTypeDetails) {
     return {
       failure: {
         success: false,
@@ -164,6 +163,8 @@ const loadCompletableApplication = async (db, id, logger) => {
       }
     }
   }
+
+  const { collectionName: itemsCollectionName } = applicationTypeDetails
 
   const linkedItems = await db
     .collection(itemsCollectionName)
