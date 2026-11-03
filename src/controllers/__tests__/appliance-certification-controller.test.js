@@ -226,15 +226,36 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     expect(actions).toHaveLength(1)
     expect(actions[0]).toMatchObject({
       itemId: 'APP-1',
-      type: 'certification',
-      action: 'nIrelandUncertified',
-      description: 'Uncertified in Northern Ireland',
+      itemType: 'appliance',
+      action: 'uncertifiedOnBehalf',
+      description: 'Uncertified on behalf of Northern Ireland',
       country: 'northern-ireland',
       fromStatus: 'certified',
       toStatus: 'uncertified',
-      completedBy: decidedBy
+      completedBy: { ...decidedBy, type: 'user' }
     })
     expect(actions[0].id).toMatch(/^ACT-/)
+  })
+
+  test('words a certification as "on behalf of" the country', async () => {
+    const { db, actions } = makeDb({
+      id: 'APP-1',
+      walesCertification: { status: 'awaiting_decision' }
+    })
+
+    await updateCertificationStatus(
+      db,
+      'APP-1',
+      'wales',
+      'certified',
+      decidedBy,
+      logger
+    )
+
+    expect(actions[0]).toMatchObject({
+      action: 'certifiedOnBehalf',
+      description: 'Certified on behalf of Wales'
+    })
   })
 
   test('recalculates the appliance status before recording the action', async () => {
@@ -252,7 +273,9 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
       logger
     )
 
-    expect(calculateItemStatus).toHaveBeenCalledWith(db, 'appliance', 'APP-1')
+    expect(calculateItemStatus).toHaveBeenCalledWith(db, 'appliance', 'APP-1', {
+      logger
+    })
     expect(calculateItemStatus.mock.invocationCallOrder[0]).toBeLessThan(
       actionsCollection.insertOne.mock.invocationCallOrder[0]
     )

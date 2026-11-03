@@ -3,64 +3,73 @@ import Joi from 'joi'
 // ============================================================================
 // ACTION SCHEMA for audit log
 // ============================================================================
-export const actionDescriptions = {
-  englandCertified: 'Certified in England',
-  englandUncertified: 'Uncertified in England',
-  englandAwaitingDecision: 'Awaiting decision in England',
 
-  scotlandCertified: 'Certified in Scotland',
-  scotlandUncertified: 'Uncertified in Scotland',
-  scotlandAwaitingDecision: 'Awaiting decision in Scotland',
+export const ACTOR_TYPES = ['user', 'system', 'government']
 
-  walesCertified: 'Certified in Wales',
-  walesUncertified: 'Uncertified in Wales',
-  walesAwaitingDecision: 'Awaiting decision in Wales',
+export const ITEM_TYPES = ['appliance', 'fuel']
 
-  nIrelandCertified: 'Certified in Northern Ireland',
-  nIrelandUncertified: 'Uncertified in Northern Ireland',
-  nIrelandAwaitingDecision: 'Awaiting decision in Northern Ireland',
-
-  technicalReviewStarted: 'Technical review started',
-  technicalReviewAccepted: 'Technical review accepted',
-  technicalReviewRejected: 'Technical review rejected',
-
-  applianceCreated: 'Appliance created',
-  applianceUpdated: 'Appliance updated',
-  appliancePublished: 'Appliance published'
+// Wording of each action in an item's history. `place` is the country display
+// name where the action applies, e.g. "Northern Ireland".
+export const actionWording = {
+  acceptedAtApplication: () => 'Accepted at application',
+  rejectedAtApplication: () => 'Rejected at application',
+  // History entry only: the notification email to the governments is not built yet.
+  sentToGovernments: () => 'Sent to governments for approval',
+  certified: (place) => `Certified in ${place}`,
+  uncertified: (place) => `Uncertified in ${place}`,
+  certifiedOnBehalf: (place) => `Certified on behalf of ${place}`,
+  uncertifiedOnBehalf: (place) => `Uncertified on behalf of ${place}`,
+  certificationSuspended: (place) => `Certification suspended for ${place}`,
+  liveOnPublicList: () => 'Live on public list',
+  hiddenFromPublicList: () => 'Hidden from public list',
+  retestPassed: () => 'Retest passed',
+  retestFailed: () => 'Retest failed'
 }
+
+// Actions worded with a country, so they cannot be recorded without one.
+export const COUNTRY_ACTIONS = [
+  'certified',
+  'uncertified',
+  'certifiedOnBehalf',
+  'uncertifiedOnBehalf',
+  'certificationSuspended'
+]
 
 export const actionSchema = Joi.object({
   id: Joi.string().required().description('Primary key'),
-  itemId: Joi.string().required().description('Foreign key to item'),
-  type: Joi.string().required().description('Check type'),
+  itemId: Joi.string().required().description('Foreign key to the item'),
+  itemType: Joi.string()
+    .valid(...ITEM_TYPES)
+    .required()
+    .description('Whether the item is an appliance or a fuel'),
   action: Joi.string()
-    .valid(...Object.keys(actionDescriptions))
+    .valid(...Object.keys(actionWording))
     .required(),
   description: Joi.string()
-    .optional()
-    .description('Human-readable description of the action'),
+    .required()
+    .description('Human-readable description shown in the action history'),
   country: Joi.string()
     .valid('england', 'scotland', 'wales', 'northern-ireland')
-    .optional()
-    .description('Country the certification decision applies to'),
+    .when('action', {
+      is: Joi.valid(...COUNTRY_ACTIONS),
+      then: Joi.required(),
+      otherwise: Joi.optional()
+    })
+    .description('Country the action applies to'),
   fromStatus: Joi.string().optional().description('Status before the change'),
   toStatus: Joi.string().optional().description('Status after the change'),
   completedBy: Joi.object({
     name: Joi.string()
       .required()
-      .description('Name of person completing the check'),
-    email: Joi.string()
-      .email()
-      .required()
-      .description('Email of person completing the check')
-  })
-    .allow(null)
-    .optional(),
+      .description('Who completed it: a person, "System" or a government'),
+    type: Joi.string()
+      .valid(...ACTOR_TYPES)
+      .required(),
+    email: Joi.string().email().optional()
+  }).required(),
   completedAt: Joi.date()
-    .iso()
-    .allow(null)
-    .default(null)
-    .description('Date and time the check was completed')
+    .required()
+    .description('Date and time the action was completed')
 })
   .unknown(false)
   .label('Action')

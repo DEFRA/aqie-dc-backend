@@ -32,19 +32,14 @@ describe('Update Certification Status Route', () => {
         country: 'england'
       },
       payload: {
-        status: 'certified'
+        status: 'certified',
+        decidedBy: { name: 'Test User', email: 'test@example.com' }
       },
       db: mockDb,
       logger: {
         error: vi.fn(),
         warn: vi.fn(),
         info: vi.fn()
-      },
-      auth: {
-        credentials: {
-          name: 'Test User',
-          email: 'test@example.com'
-        }
       }
     }
   })
@@ -106,7 +101,8 @@ describe('Update Certification Status Route', () => {
       mockCollection.findOne.mockResolvedValueOnce(null)
 
       mockRequest.payload = {
-        status: 'certified'
+        status: 'certified',
+        decidedBy: { name: 'Test User', email: 'test@example.com' }
       }
 
       const response = await updateCertificationStatus.handler(
@@ -134,7 +130,7 @@ describe('Update Certification Status Route', () => {
       expect(response.statusCode).toBe(400)
     })
 
-    it('should use request auth credentials as decidedBy', async () => {
+    it('should store the decidedBy from the payload', async () => {
       const appliance = {
         id: 'APP-001',
         englandCertification: { status: 'awaiting_decision' }
@@ -144,11 +140,6 @@ describe('Update Certification Status Route', () => {
       mockCollection.findOneAndUpdate.mockResolvedValueOnce({
         value: appliance
       })
-
-      mockRequest.payload = {
-        status: 'certified'
-        // No decidedBy provided
-      }
 
       await updateCertificationStatus.handler(mockRequest, mockH)
 
@@ -160,32 +151,13 @@ describe('Update Certification Status Route', () => {
       })
     })
 
-    it('should use provided decidedBy if included in payload', async () => {
-      const appliance = {
-        id: 'APP-001',
-        englandCertification: { status: 'awaiting_decision' }
-      }
+    it('should require decidedBy in payload', () => {
+      const { error } =
+        updateCertificationStatus.options.validate.payload.validate({
+          status: 'certified'
+        })
 
-      mockCollection.findOne.mockResolvedValueOnce(appliance)
-      mockCollection.findOneAndUpdate.mockResolvedValueOnce({
-        value: appliance
-      })
-
-      const customDecidedBy = {
-        name: 'Custom User',
-        email: 'custom@example.com'
-      }
-
-      mockRequest.payload = {
-        status: 'certified',
-        decidedBy: customDecidedBy
-      }
-
-      await updateCertificationStatus.handler(mockRequest, mockH)
-
-      const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
-      const updateData = updateCall[1].$set
-      expect(updateData.englandCertification.decidedBy).toEqual(customDecidedBy)
+      expect(error).toBeDefined()
     })
 
     it('should handle all valid countries', async () => {
@@ -250,7 +222,9 @@ describe('Update Certification Status Route', () => {
 
     it('should require status in payload', () => {
       const { error } =
-        updateCertificationStatus.options.validate.payload.validate({})
+        updateCertificationStatus.options.validate.payload.validate({
+          decidedBy: { name: 'Test User', email: 'test@example.com' }
+        })
 
       expect(error).toBeDefined()
     })
@@ -267,27 +241,6 @@ describe('Update Certification Status Route', () => {
       expect(response.statusCode).toBe(500)
       expect(response.data.error.message).toBe('Internal server error')
       expect(mockRequest.logger.error).toHaveBeenCalled()
-    })
-
-    it('should use default user info when no auth credentials', async () => {
-      const appliance = {
-        id: 'APP-001',
-        englandCertification: { status: 'awaiting_decision' }
-      }
-
-      mockCollection.findOne.mockResolvedValueOnce(appliance)
-      mockCollection.findOneAndUpdate.mockResolvedValueOnce({
-        value: appliance
-      })
-
-      mockRequest.auth = null
-
-      await updateCertificationStatus.handler(mockRequest, mockH)
-
-      const updateCall = mockCollection.findOneAndUpdate.mock.calls[0]
-      const updateData = updateCall[1].$set
-      expect(updateData.englandCertification.decidedBy).toBeDefined()
-      expect(updateData.englandCertification.decidedBy.name).toBe('System')
     })
   })
 
