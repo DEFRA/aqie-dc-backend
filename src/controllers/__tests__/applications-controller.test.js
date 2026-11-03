@@ -499,7 +499,7 @@ describe('applications-controller', () => {
         mockLogger
       )
       const applianceId1 = appliance1.data.id
-      const [appPrefix1, appSeq1] = applianceId1.split('-')
+      const [, appSeq1] = applianceId1.split('-')
 
       // Create second appliance application (new prefix, incremented suffix)
       const appliance2 = await createApplication(
@@ -509,17 +509,17 @@ describe('applications-controller', () => {
         mockLogger
       )
       const applianceId2 = appliance2.data.id
-      const [appPrefix2, appSeq2] = applianceId2.split('-')
+      const [, appSeq2] = applianceId2.split('-')
 
       // Create first fuel application
       const fuel1 = await createApplication(client, db, fuelPayload, mockLogger)
       const fuelId1 = fuel1.data.id
-      const [fuelPrefix1, fuelSeq1] = fuelId1.split('-')
+      const [, fuelSeq1] = fuelId1.split('-')
 
       // Create second fuel application (new prefix, incremented suffix)
       const fuel2 = await createApplication(client, db, fuelPayload, mockLogger)
       const fuelId2 = fuel2.data.id
-      const [fuelPrefix2, fuelSeq2] = fuelId2.split('-')
+      const [, fuelSeq2] = fuelId2.split('-')
 
       // Verify all IDs have format PPPP-SSSS
       expect(applianceId1).toMatch(/^\d{4}-\d{4}$/)
