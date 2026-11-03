@@ -23,7 +23,9 @@ const APPLICATION_NOT_FOUND = 'Application not found'
 const ID_PATTERN = /^\d{4}-\d+$/
 
 function ensureLogger(logger) {
-  if (!logger) throw new Error(LOGGER_REQUIRED_ERROR)
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
 }
 
 async function generateApplicationId(collection, applicationType, session) {
