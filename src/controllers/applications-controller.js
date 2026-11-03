@@ -13,6 +13,7 @@ import {
 } from '../common/helpers/review-status.js'
 import {
   getItemsCollectionName,
+  getItemNameField,
   validateApplicationType
 } from '../common/helpers/application-type.js'
 import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
@@ -108,6 +109,68 @@ function buildApplication(applicationData, id) {
 }
 
 /**
+ * Insert linked items (appliances/fuels) and return saved items
+ * @param {Db} db - Database instance
+ * @param {Array} items - Items to insert
+ * @param {string} applicationId - Parent application ID
+ * @param {string} itemsCollectionName - Collection name for items
+ * @param {Object} logger - Logger
+ * @param {ClientSession|null} session - MongoDB session for transactions
+ */
+async function insertLinkedItems(
+  db,
+  items,
+  applicationId,
+  itemsCollectionName,
+  logger,
+  session
+) {
+  const itemsCollection = db.collection(itemsCollectionName)
+  const insertOptions = session ? { session } : {}
+
+  // Sequence continues from the latest stored item, then chains within the batch
+  const lastItem = await itemsCollection.findOne(
+    { id: { $regex: ID_PATTERN } },
+    { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
+  )
+  let lastItemId = lastItem?.id
+  const itemsToInsert = items.map((item) => {
+    const id = item.id || generateNextId(lastItemId)
+    lastItemId = id
+    return { ...item, id, applicationId }
+  })
+
+  const itemsResult = await itemsCollection.insertMany(
+    itemsToInsert,
+    insertOptions
+  )
+
+  logger.info(
+    {
+      acknowledged: itemsResult.acknowledged,
+      insertedIdCount: Object.keys(itemsResult.insertedIds || {}).length
+    },
+    `${itemsCollectionName} insertMany result`
+  )
+
+  if (!itemsResult.acknowledged) {
+    throw new Error(
+      `MongoDB did not acknowledge ${itemsCollectionName} insert`
+    )
+  }
+
+  // Map items with their inserted _ids (if available)
+  return itemsToInsert.map((item, index) => {
+    const result = { ...item }
+    // insertedIds may be undefined if collection was auto-created
+    if (itemsResult.insertedIds?.[index]) {
+      result._id = itemsResult.insertedIds[index]
+    }
+    return result
+  })
+}
+
+/**
  * Perform the application and linked items (appliances/fuels) insert
  * @param {Db} db - Database instance
  * @param {Object} payload - Application payload
@@ -135,50 +198,16 @@ async function performApplicationInsert(db, payload, logger, session) {
     throw new Error('Failed to insert application')
   }
 
-  // Linked items reference their parent via applicationId
   let savedItems = []
   if (Array.isArray(items) && items.length > 0) {
-    const itemsCollection = db.collection(itemsCollectionName)
-    // Sequence continues from the latest stored item, then chains within the batch
-    const lastItem = await itemsCollection.findOne(
-      { id: { $regex: ID_PATTERN } },
-      { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
+    savedItems = await insertLinkedItems(
+      db,
+      items,
+      applicationId,
+      itemsCollectionName,
+      logger,
+      session
     )
-    let lastItemId = lastItem?.id
-    const itemsToInsert = items.map((item) => {
-      const id = item.id || generateNextId(lastItemId)
-      lastItemId = id
-      return { ...item, id, applicationId }
-    })
-
-    const itemsResult = await itemsCollection.insertMany(
-      itemsToInsert,
-      insertOptions
-    )
-
-    logger.info(
-      {
-        acknowledged: itemsResult.acknowledged,
-        insertedIdCount: Object.keys(itemsResult.insertedIds || {}).length
-      },
-      `${itemsCollectionName} insertMany result`
-    )
-
-    if (!itemsResult.acknowledged) {
-      throw new Error(
-        `MongoDB did not acknowledge ${itemsCollectionName} insert`
-      )
-    }
-
-    // Map items with their inserted _ids (if available)
-    savedItems = itemsToInsert.map((item, index) => {
-      const result = { ...item }
-      // insertedIds may be undefined if collection was auto-created
-      if (itemsResult.insertedIds?.[index]) {
-        result._id = itemsResult.insertedIds[index]
-      }
-      return result
-    })
   }
 
   logger.info(
@@ -260,11 +289,12 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
         .find({ applicationId })
         .toArray()
 
-      // Frontend reads fuel brand as `name`
-      if (application.type === 'fuel') {
+      // Add normalized name field for frontend consumption
+      const nameField = getItemNameField(application.type)
+      if (nameField) {
         linkedItems = linkedItems.map((item) => ({
           ...item,
-          name: item.brandName
+          name: item[nameField]
         }))
       }
     } else {
