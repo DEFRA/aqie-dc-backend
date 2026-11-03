@@ -22,6 +22,10 @@ const MONGO_ILLEGAL_OPERATION_CODE = 20
 const APPLICATION_NOT_FOUND = 'Application not found'
 const ID_PATTERN = /^\d{4}-\d+$/
 
+function ensureLogger(logger) {
+  if (!logger) throw new Error(LOGGER_REQUIRED_ERROR)
+}
+
 async function generateApplicationId(collection, applicationType, session) {
   const lastApplication = await collection.findOne(
     { id: { $regex: ID_PATTERN }, type: applicationType },
@@ -31,9 +35,7 @@ async function generateApplicationId(collection, applicationType, session) {
 }
 
 async function createApplication(client, db, payload, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   const session = client.startSession()
 
   try {
@@ -194,9 +196,7 @@ async function applicationExistsByReference(db, referenceNumber) {
 }
 
 async function getAllApplications(db, _options, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const applications = await db
       .collection('Applications')
@@ -215,9 +215,7 @@ async function getAllApplications(db, _options, logger) {
 }
 
 async function getApplicationById(db, applicationId, logger, groupBy) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const application = await db
       .collection('Applications')
@@ -273,11 +271,10 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
 }
 
 async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const skip = (page - 1) * limit
+    const collection = db.collection('Applications')
 
     const searchQuery = {
       $or: [
@@ -300,7 +297,7 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
 
     return {
       success: true,
-      message: 'Applications search completed',
+      message: 'Applications search completed successfully',
       data: applications,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     }
@@ -311,9 +308,7 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
 }
 
 async function getCounts(db, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const applicationCounts = {
       appliance: { new: 0, inProgress: 0, records: 0 },
@@ -351,15 +346,13 @@ async function getCounts(db, logger) {
     }
 
     const filter = await getCompleteApplicationRecordsFilter(db)
+    const appliancesCollection = db.collection('Appliances')
 
-    const [applianceRecordCount, fuelRecordCount] = await Promise.all([
-      db.collection('Appliances').countDocuments(filter),
-      db.collection('Fuels').countDocuments(filter)
+    const [applianceRecordCount, fuelRecordCount, legacyApplianceRecordCount] = await Promise.all([
+      appliancesCollection.countDocuments(filter),
+      db.collection('Fuels').countDocuments(filter),
+      appliancesCollection.countDocuments({ legacyRecord: true })
     ])
-
-    const legacyApplianceRecordCount = await db
-      .collection('Appliances')
-      .countDocuments({ legacyRecord: true })
 
     applicationCounts.appliance.records =
       applianceRecordCount + legacyApplianceRecordCount
@@ -377,9 +370,7 @@ async function getCounts(db, logger) {
 }
 
 async function getAllApplicationsWithAppliances(db, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const [applications, allAppliances] = await Promise.all([
       db.collection('Applications').find({}).toArray(),
@@ -416,9 +407,7 @@ async function getApplicationsSummaryByStatus(
   type,
   statuses = ['new', 'in_progress']
 ) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const applicationTypeDetails = validateApplicationType(type, logger)
     if (!applicationTypeDetails) {
@@ -484,9 +473,7 @@ async function getApplicationsSummaryByStatus(
 }
 
 async function getApplicationSummaryById(db, applicationId, type, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const applicationTypeDetails = validateApplicationType(type, logger)
     if (!applicationTypeDetails) {
@@ -501,10 +488,28 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
 
     const [application, companyDetails, linkedItems] = await Promise.all([
       db.collection('Applications').findOne({ id: applicationId, type }),
-      db.collection(collectionName).findOne({ applicationId }, {
-        projection: { companyName: 1, companyFullAddress: 1, companyAddress: 1, companyContact: 1, responsiblePerson: 1, hasCustomerComplaintsSystem: 1, fuelBagging: 1, supplierType: 1 }
-      }),
-      db.collection(collectionName).find({ applicationId }, { projection: { id: 1, [nameField]: 1, technicalReview: 1 } }).toArray()
+      db.collection(collectionName).findOne(
+        { applicationId },
+        {
+          projection: {
+            companyName: 1,
+            companyFullAddress: 1,
+            companyAddress: 1,
+            companyContact: 1,
+            responsiblePerson: 1,
+            hasCustomerComplaintsSystem: 1,
+            fuelBagging: 1,
+            supplierType: 1
+          }
+        }
+      ),
+      db
+        .collection(collectionName)
+        .find(
+          { applicationId },
+          { projection: { id: 1, [nameField]: 1, technicalReview: 1 } }
+        )
+        .toArray()
     ])
 
     if (!application) {
