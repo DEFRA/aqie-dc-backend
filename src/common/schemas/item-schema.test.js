@@ -79,23 +79,20 @@ describe('item-schema applianceSchema', () => {
     '+44 808 157 0123',
     '+44 7405 122 344',
     '0740 5122 344'
-  ])(
-    'accepts valid phone for appliance: %s',
-    (phone) => {
-      const payload = {
-        ...structuredClone(applianceBasePayload),
-        companyContact: {
-          ...applianceBasePayload.companyContact,
-          phone
-        }
+  ])('accepts valid phone for appliance: %s', (phone) => {
+    const payload = {
+      ...structuredClone(applianceBasePayload),
+      companyContact: {
+        ...applianceBasePayload.companyContact,
+        phone
       }
-
-      const { value, error } = applianceSchema.validate(payload)
-
-      expect(error).toBeUndefined()
-      expect(value.companyContact.phone).toBe(phone)
     }
-  )
+
+    const { value, error } = applianceSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+    expect(value.companyContact.phone).toBe(phone)
+  })
 
   test.each([
     '0740512234',
@@ -106,23 +103,20 @@ describe('item-schema applianceSchema', () => {
     '+44-808-157-0123',
     'abc123',
     'not-a-number'
-  ])(
-    'rejects invalid phone for appliance: %s',
-    (phone) => {
-      const payload = {
-        ...structuredClone(applianceBasePayload),
-        companyContact: {
-          ...applianceBasePayload.companyContact,
-          phone
-        }
+  ])('rejects invalid phone for appliance: %s', (phone) => {
+    const payload = {
+      ...structuredClone(applianceBasePayload),
+      companyContact: {
+        ...applianceBasePayload.companyContact,
+        phone
       }
-
-      const { error } = applianceSchema.validate(payload)
-
-      expect(error).toBeDefined()
-      expect(error.details[0].type).toBe('string.pattern.base')
     }
-  )
+
+    const { error } = applianceSchema.validate(payload)
+
+    expect(error).toBeDefined()
+    expect(error.details[0].type).toBe('string.pattern.base')
+  })
 
   test('defaults country certification status to new', () => {
     const payload = {
@@ -412,22 +406,19 @@ describe('item-schema fuelSchema', () => {
     '+44 808 157 0123',
     '+44 7576 796 260',
     '0757 679 6260'
-  ])(
-    'accepts valid phone: %s',
-    (phone) => {
-      const payload = {
-        ...structuredClone(validFuelPayload),
-        companyContact: {
-          ...validFuelPayload.companyContact,
-          phone
-        }
+  ])('accepts valid phone: %s', (phone) => {
+    const payload = {
+      ...structuredClone(validFuelPayload),
+      companyContact: {
+        ...validFuelPayload.companyContact,
+        phone
       }
-
-      const { error } = fuelSchema.validate(payload)
-
-      expect(error).toBeUndefined()
     }
-  )
+
+    const { error } = fuelSchema.validate(payload)
+
+    expect(error).toBeUndefined()
+  })
 
   test.each([
     '0757679626',

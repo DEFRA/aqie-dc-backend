@@ -7,9 +7,7 @@ import {
   groupItemsByTechReviewStatus,
   isApplicationReviewComplete
 } from '../common/helpers/review-status.js'
-import {
-  validateApplicationType
-} from '../common/helpers/application-type.js'
+import { validateApplicationType } from '../common/helpers/application-type.js'
 import { CERTIFICATION_FIELDS } from '../common/helpers/certification.js'
 import {
   SYSTEM_ACTOR,

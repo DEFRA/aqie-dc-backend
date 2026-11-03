@@ -492,12 +492,22 @@ describe('applications-controller', () => {
       }
 
       // Create first appliance application
-      const appliance1 = await createApplication(client, db, appliancePayload, mockLogger)
+      const appliance1 = await createApplication(
+        client,
+        db,
+        appliancePayload,
+        mockLogger
+      )
       const applianceId1 = appliance1.data.id
       const [appPrefix1, appSeq1] = applianceId1.split('-')
 
       // Create second appliance application (new prefix, incremented suffix)
-      const appliance2 = await createApplication(client, db, appliancePayload, mockLogger)
+      const appliance2 = await createApplication(
+        client,
+        db,
+        appliancePayload,
+        mockLogger
+      )
       const applianceId2 = appliance2.data.id
       const [appPrefix2, appSeq2] = applianceId2.split('-')
 

@@ -1,6 +1,4 @@
-import {
-  validateApplicationType
-} from '../common/helpers/application-type.js'
+import { validateApplicationType } from '../common/helpers/application-type.js'
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 
