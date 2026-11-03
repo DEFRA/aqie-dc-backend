@@ -24,10 +24,10 @@ const MONGO_ILLEGAL_OPERATION_CODE = 20
 // Shared "PPPP-SSSS" id format for applications and their linked appliances/fuels
 const ID_PATTERN = /^\d{4}-\d+$/
 
-// Next id in "PPPP-SSSS" format, sequenced from the most recent application
-async function generateApplicationId(collection, session) {
+// Next id in "PPPP-SSSS" format, sequenced separately per application type
+async function generateApplicationId(collection, applicationType, session) {
   const lastApplication = await collection.findOne(
-    { id: { $regex: ID_PATTERN } },
+    { id: { $regex: ID_PATTERN }, type: applicationType },
     { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
   )
   return generateNextId(lastApplication?.id)
@@ -122,7 +122,11 @@ async function performApplicationInsert(db, payload, logger, session) {
   const appCollection = db.collection('Applications')
   const itemsCollectionName = getItemsCollectionName(applicationData.type)
 
-  const applicationId = await generateApplicationId(appCollection, session)
+  const applicationId = await generateApplicationId(
+    appCollection,
+    applicationData.type,
+    session
+  )
   const application = buildApplication(applicationData, applicationId)
 
   const insertOptions = session ? { session } : {}
