@@ -7,7 +7,10 @@ import {
   groupItemsByTechReviewStatus,
   isApplicationReviewComplete
 } from '../common/helpers/review-status.js'
-import { getItemsCollectionName, validateApplicationType } from '../common/helpers/application-type.js'
+import {
+  getItemsCollectionName,
+  validateApplicationType
+} from '../common/helpers/application-type.js'
 import { CERTIFICATION_FIELDS } from '../common/helpers/certification.js'
 import {
   SYSTEM_ACTOR,
@@ -152,7 +155,10 @@ const loadCompletableApplication = async (db, id, logger) => {
     }
   }
 
-  const applicationTypeDetails = validateApplicationType(application.type, logger)
+  const applicationTypeDetails = validateApplicationType(
+    application.type,
+    logger
+  )
 
   if (!applicationTypeDetails) {
     return {
