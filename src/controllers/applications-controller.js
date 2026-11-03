@@ -1,6 +1,5 @@
 /**
- * Applications Controller
- * Business logic for application-related operations
+ * Applications Controller - Business logic for application operations
  */
 
 import {
@@ -18,14 +17,11 @@ import {
 } from '../common/helpers/application-type.js'
 import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
 
-const APPLICATION_NOT_FOUND = 'Application not found'
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const MONGO_ILLEGAL_OPERATION_CODE = 20
-
-// Shared "PPPP-SSSS" id format for applications and their linked appliances/fuels
+const APPLICATION_NOT_FOUND = 'Application not found'
 const ID_PATTERN = /^\d{4}-\d+$/
 
-// Next id in "PPPP-SSSS" format, sequenced separately per application type
 async function generateApplicationId(collection, applicationType, session) {
   const lastApplication = await collection.findOne(
     { id: { $regex: ID_PATTERN }, type: applicationType },
@@ -34,19 +30,10 @@ async function generateApplicationId(collection, applicationType, session) {
   return generateNextId(lastApplication?.id)
 }
 
-/**
- * Create a new application with appliances using MongoDB transactions (if available)
- * Falls back to direct operations for standalone MongoDB instances
- * @param {MongoClient} client - MongoDB client for transaction support
- * @param {Db} db - MongoDB database instance
- * @param {Object} payload - Application payload with appliances array
- * @param {Object} logger - Logger instance
- */
 async function createApplication(client, db, payload, logger) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
-  // Try to use transactions if client supports it, otherwise fall back to direct operations
   const session = client.startSession()
 
   try {
@@ -64,9 +51,6 @@ async function createApplication(client, db, payload, logger) {
       'Transaction attempt failed'
     )
 
-    // Transactions require a replica set/mongos deployment and pre-existing
-    // collections; fall back to direct operations for any deployment-level
-    // reason transactions can't run (message text varies by MongoDB version/deployment)
     if (isTransactionUnsupportedError(transactionError)) {
       logger.warn(
         'Transactions not supported, falling back to direct operations'
@@ -92,7 +76,6 @@ function isTransactionUnsupportedError(error) {
 
 function buildApplication(applicationData, id) {
   const now = new Date()
-
   return {
     id,
     type: applicationData.type,
@@ -108,15 +91,6 @@ function buildApplication(applicationData, id) {
   }
 }
 
-/**
- * Insert linked items (appliances/fuels) and return saved items
- * @param {Db} db - Database instance
- * @param {Array} items - Items to insert
- * @param {string} applicationId - Parent application ID
- * @param {string} itemsCollectionName - Collection name for items
- * @param {Object} logger - Logger
- * @param {ClientSession|null} session - MongoDB session for transactions
- */
 async function insertLinkedItems(
   db,
   items,
@@ -128,7 +102,6 @@ async function insertLinkedItems(
   const itemsCollection = db.collection(itemsCollectionName)
   const insertOptions = session ? { session } : {}
 
-  // Sequence continues from the latest stored item, then chains within the batch
   const lastItem = await itemsCollection.findOne(
     { id: { $regex: ID_PATTERN } },
     { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
@@ -154,15 +127,11 @@ async function insertLinkedItems(
   )
 
   if (!itemsResult.acknowledged) {
-    throw new Error(
-      `MongoDB did not acknowledge ${itemsCollectionName} insert`
-    )
+    throw new Error(`MongoDB did not acknowledge ${itemsCollectionName} insert`)
   }
 
-  // Map items with their inserted _ids (if available)
   return itemsToInsert.map((item, index) => {
     const result = { ...item }
-    // insertedIds may be undefined if collection was auto-created
     if (itemsResult.insertedIds?.[index]) {
       result._id = itemsResult.insertedIds[index]
     }
@@ -170,13 +139,6 @@ async function insertLinkedItems(
   })
 }
 
-/**
- * Perform the application and linked items (appliances/fuels) insert
- * @param {Db} db - Database instance
- * @param {Object} payload - Application payload
- * @param {Object} logger - Logger
- * @param {ClientSession|null} session - MongoDB session for transactions (null if not available)
- */
 async function performApplicationInsert(db, payload, logger, session) {
   const { appliances, fuels, ...applicationData } = payload
   const itemsKey = applicationData.type === 'fuel' ? 'fuels' : 'appliances'
@@ -214,7 +176,6 @@ async function performApplicationInsert(db, payload, logger, session) {
     `Application created: ${application.id} with ${savedItems.length} ${itemsCollectionName || 'items'}`
   )
 
-  // Return detailed response with success message, keyed by type (appliances or fuels)
   return {
     success: true,
     message: 'Application and linked items created successfully',
@@ -222,9 +183,6 @@ async function performApplicationInsert(db, payload, logger, session) {
   }
 }
 
-/**
- * Check whether an application submitted via forms, has already been created in our system, using form 'reference number'
- */
 async function applicationExistsByReference(db, referenceNumber) {
   if (!referenceNumber) {
     return false
@@ -235,20 +193,16 @@ async function applicationExistsByReference(db, referenceNumber) {
   return Boolean(found)
 }
 
-/**
- * Get all applications (pagination not currently supported)
- */
 async function getAllApplications(db, _options, logger) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const collection = db.collection('Applications')
-    const applications = await collection
+    const applications = await db
+      .collection('Applications')
       .find({})
       .sort({ submittedAt: -1, createdAt: -1 })
       .toArray()
-
     return {
       success: true,
       message: 'Applications retrieved successfully',
@@ -260,17 +214,14 @@ async function getAllApplications(db, _options, logger) {
   }
 }
 
-/**
- * Get application by id, optionally grouped by technical review status
- * @param {string} [groupBy] - 'techReviewStatus' to group linked items by review status
- */
 async function getApplicationById(db, applicationId, logger, groupBy) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const collection = db.collection('Applications')
-    const application = await collection.findOne({ id: applicationId })
+    const application = await db
+      .collection('Applications')
+      .findOne({ id: applicationId })
 
     if (!application) {
       return {
@@ -280,7 +231,6 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
       }
     }
 
-    // Fetch associated appliances/fuels
     let linkedItems = []
     const collectionName = getItemsCollectionName(application.type)
     if (collectionName) {
@@ -289,7 +239,6 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
         .find({ applicationId })
         .toArray()
 
-      // Add normalized name field for frontend consumption
       const nameField = getItemNameField(application.type)
       if (nameField) {
         linkedItems = linkedItems.map((item) => ({
@@ -323,18 +272,13 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
   }
 }
 
-/**
- * Search applications by status or reviewer
- */
 async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const collection = db.collection('Applications')
     const skip = (page - 1) * limit
 
-    // Search in status and reviewer fields
     const searchQuery = {
       $or: [
         { status: { $regex: query, $options: 'i' } },
@@ -356,14 +300,9 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
 
     return {
       success: true,
-      message: 'Applications search completed successfully',
+      message: 'Applications search completed',
       data: applications,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     }
   } catch (error) {
     logger.error(error, 'Failed to search applications')
@@ -371,9 +310,6 @@ async function searchApplications(db, { query, page = 1, limit = 20 }, logger) {
   }
 }
 
-/**
- * Get count of applications with all status and types as required by dashboard
- */
 async function getCounts(db, logger) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
@@ -384,7 +320,6 @@ async function getCounts(db, logger) {
       fuel: { new: 0, inProgress: 0, records: 0 }
     }
 
-    // This sets appliance/fuel counts for applications with new and in_progress statuses.
     const applicationStatusCounts = await db
       .collection('Applications')
       .aggregate([
@@ -415,9 +350,6 @@ async function getCounts(db, logger) {
       }
     }
 
-    // This sets appliance/fuel counts for records of complete applications.
-    // note: its not the count of complete applications, but rather the count of all appliance/fuel records belonging to complete applications
-
     const filter = await getCompleteApplicationRecordsFilter(db)
 
     const [applianceRecordCount, fuelRecordCount] = await Promise.all([
@@ -425,7 +357,6 @@ async function getCounts(db, logger) {
       db.collection('Fuels').countDocuments(filter)
     ])
 
-    // Count all legacy appliance records where legacyRecord is true.
     const legacyApplianceRecordCount = await db
       .collection('Appliances')
       .countDocuments({ legacyRecord: true })
@@ -450,22 +381,11 @@ async function getAllApplicationsWithAppliances(db, logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const appCollection = db.collection('Applications')
-    const itemCollection = db.collection('Appliances')
+    const [applications, allAppliances] = await Promise.all([
+      db.collection('Applications').find({}).toArray(),
+      db.collection('Appliances').find({}).toArray()
+    ])
 
-    // 1. Fetch all applications
-    const applications = await appCollection.find({}).toArray()
-
-    // 2. Fetch all appliances that belong to these applications
-    // We get all application IDs first to limit the appliances query
-    const applicationIds = applications.map((app) => app.id)
-
-    const allAppliances = await itemCollection
-      .find({ applicationId: { $in: applicationIds } })
-      .toArray()
-
-    // 3. Stitch them together
-    // We map through the applications and filter the appliances array for matches
     const combinedData = applications.map((app) => {
       return {
         ...app,
@@ -490,13 +410,6 @@ async function getAllApplicationsWithAppliances(db, logger) {
   }
 }
 
-/**
- * Get (uncomplete) applications grouped by status and with summary (returns only linked item names)
- * @param {Db} db - MongoDB database instance
- * @param {object} logger - Logger instance
- * @param {string} type - Type of applications/linked items to summarise ('appliance' | 'fuel')
- * @param {string[]} statuses - Application statuses to include
- */
 async function getApplicationsSummaryByStatus(
   db,
   logger,
@@ -517,17 +430,13 @@ async function getApplicationsSummaryByStatus(
     }
 
     const { collectionName, nameField } = applicationTypeDetails
-
     const appCollection = db.collection('Applications')
     const itemsCollection = db.collection(collectionName)
-
-    // 1. Fetch applications matching the requested type and statuses
     const applications = await appCollection
       .find({ type, status: { $in: statuses } })
       .sort({ submittedAt: -1, createdAt: -1 })
       .toArray()
 
-    // If no applications found, return early
     if (applications.length === 0) {
       return {
         success: true,
@@ -535,19 +444,12 @@ async function getApplicationsSummaryByStatus(
       }
     }
 
-    // 2. Fetch linked items and project only the id/name fields
     const applicationIds = applications.map((app) => app.id)
     const items = await itemsCollection
       .find({ applicationId: { $in: applicationIds } })
-      .project({
-        _id: 0,
-        id: 1,
-        applicationId: 1,
-        [nameField]: 1
-      })
+      .project({ _id: 0, id: 1, applicationId: 1, [nameField]: 1 })
       .toArray()
 
-    // 3. Build result organized by status
     const statusToKey = { new: 'new', in_progress: 'inProgress' }
     const result = { new: [], inProgress: [] }
 
@@ -581,13 +483,6 @@ async function getApplicationsSummaryByStatus(
   }
 }
 
-/**
- * Get application with linked items (appliances or fuels) summary (technical review status and name only) by application ID
- * @param {Db} db - MongoDB database instance
- * @param {string} applicationId - Application ID to fetch summary for
- * @param {string} type - Type of associated items to fetch summary for ('appliance' | 'fuel')
- * @param {object} logger - Logger instance
- */
 async function getApplicationSummaryById(db, applicationId, type, logger) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
@@ -604,43 +499,17 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
 
     const { collectionName, nameField } = applicationTypeDetails
 
-    const application = await db
-      .collection('Applications')
-      .findOne({ id: applicationId, type })
+    const [application, companyDetails, linkedItems] = await Promise.all([
+      db.collection('Applications').findOne({ id: applicationId, type }),
+      db.collection(collectionName).findOne({ applicationId }, {
+        projection: { companyName: 1, companyFullAddress: 1, companyAddress: 1, companyContact: 1, responsiblePerson: 1, hasCustomerComplaintsSystem: 1, fuelBagging: 1, supplierType: 1 }
+      }),
+      db.collection(collectionName).find({ applicationId }, { projection: { id: 1, [nameField]: 1, technicalReview: 1 } }).toArray()
+    ])
 
     if (!application) {
-      return {
-        success: false,
-        message: APPLICATION_NOT_FOUND,
-        notFound: true
-      }
+      return { success: false, message: APPLICATION_NOT_FOUND, notFound: true }
     }
-
-    // Fetch address from just one linked item - as they all have the same address
-    const companyDetails = await db.collection(collectionName).findOne(
-      { applicationId },
-      {
-        projection: {
-          companyName: 1,
-          companyFullAddress: 1,
-          companyAddress: 1,
-          companyContact: 1,
-          responsiblePerson: 1,
-          hasCustomerComplaintsSystem: 1,
-          fuelBagging: 1,
-          supplierType: 1
-        }
-      }
-    )
-
-    // Fetch summary of linked items (only name and technicalReview)
-    const linkedItems = await db
-      .collection(collectionName)
-      .find(
-        { applicationId },
-        { projection: { id: 1, [nameField]: 1, technicalReview: 1 } }
-      )
-      .toArray()
 
     return {
       success: true,
@@ -657,7 +526,7 @@ async function getApplicationSummaryById(db, applicationId, type, logger) {
           fuelBagging: companyDetails?.fuelBagging,
           supplierType: companyDetails?.supplierType
         }),
-        linkedItems // Contains item name and technicalReview
+        linkedItems
       }
     }
   } catch (error) {
