@@ -26,7 +26,7 @@ export const countryCertificationSchema = Joi.object({
 // ============================================================================
 export const applianceSchema = Joi.object({
   id: Joi.string()
-    .pattern(/^APP-[A-Za-z0-9]+$/)
+    .pattern(/^\d{4}-\d+$/)
     .description('Appliance ID (primary key) system-generated.'),
   // Fields from DXT form input
   applicationId: Joi.string()
@@ -91,9 +91,9 @@ export const applianceSchema = Joi.object({
       .allow(null)
       .empty('')
       .default(null)
-      .pattern(/^(0\d{10}|\+\d{11,13})$/)
+      .pattern(/^(0(?:\d\s?){10}|\+(?:\d\s?){11,13})$/)
       .description(
-        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432) and international numbers with an optional leading + (e.g. +445398914260).'
+        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432 or 07700 988 342) and international numbers with an optional leading + (e.g. +445398914260 or +44 808 157 0123).'
       )
   }),
   modelName: Joi.string().required().description('Model name'),
@@ -295,7 +295,7 @@ export const applianceSchema = Joi.object({
 // ============================================================================
 export const fuelSchema = Joi.object({
   id: Joi.string()
-    .pattern(/^FUEL-[A-Za-z0-9]+$/)
+    .pattern(/^\d{4}-\d+$/)
     .description('Fuel ID (primary key) system-generated.'),
   // Start of fuel application fields
   companyName: Joi.string().required().description('Manufacturer'),
@@ -355,9 +355,9 @@ export const fuelSchema = Joi.object({
       .allow(null)
       .empty('')
       .default(null)
-      .pattern(/^(0\d{10}|\+\d{11,13})$/)
+      .pattern(/^(0(?:\d\s?){10}|\+(?:\d\s?){11,13})$/)
       .description(
-        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432) and international numbers with an optional leading + (e.g. +445398914260).'
+        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432 or 07700 988 342) and international numbers with an optional leading + (e.g. +445398914260 or +44 808 157 0123).'
       )
   }),
   responsiblePerson: Joi.object({

@@ -11,21 +11,21 @@ import {
   updateApplianceVisibility
 } from '#src/controllers/appliances-controller.js'
 
-import { generateSecureId } from '#src/common/helpers/data-transformer.js'
+import { generateNextId } from '#src/common/helpers/data-transformer.js'
 import { calculateItemStatus } from '#src/common/helpers/item-status.js'
 
 vi.mock('#src/common/helpers/item-status.js', () => ({
   calculateItemStatus: vi.fn()
 }))
 
-// Only generateSecureId is non-deterministic (uses crypto), so it's the only
-// helper mocked here. findCertified/getFullAddress run for real so tests
-// exercise the actual mapping logic instead of asserting on fake data.
+// generateNextId is non-deterministic (uses crypto), so it's mocked here.
+// findCertified/getFullAddress run for real so tests exercise the actual
+// mapping logic instead of asserting on fake data.
 vi.mock('#src/common/helpers/data-transformer.js', async (importOriginal) => {
   const actual = await importOriginal()
   return {
     ...actual,
-    generateSecureId: vi.fn()
+    generateNextId: vi.fn()
   }
 })
 
@@ -71,7 +71,7 @@ describe('appliances-controller', () => {
       collection: vi.fn().mockReturnValue(collection)
     }
 
-    generateSecureId.mockReturnValue('12345')
+    generateNextId.mockReturnValue('0650-0001')
   })
 
   describe('createAppliance', () => {
@@ -91,7 +91,7 @@ describe('appliances-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result._id).toBe('mongo-id')
-      expect(result.data.id).toBe('APP-12345')
+      expect(result.data.id).toBe('0650-0001')
       expect(mockLogger.info).toHaveBeenCalled()
     })
 
@@ -110,7 +110,7 @@ describe('appliances-controller', () => {
       )
 
       expect(result.data.id).toBe('APP-001')
-      expect(generateSecureId).not.toHaveBeenCalled()
+      expect(generateNextId).not.toHaveBeenCalled()
     })
 
     test('throws if db missing', async () => {
@@ -163,7 +163,7 @@ describe('appliances-controller', () => {
 
       expect(collection.insertOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: 'APP-12345'
+          id: '0650-0001'
         })
       )
     })

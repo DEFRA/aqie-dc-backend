@@ -1,7 +1,4 @@
-import {
-  getItemNameField,
-  getItemsCollectionName
-} from '../common/helpers/application-type.js'
+import { validateApplicationType } from '../common/helpers/application-type.js'
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 
@@ -34,11 +31,12 @@ async function getActionHistory(
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
 
-  const collectionName = getItemsCollectionName(itemType)
-  const nameField = getItemNameField(itemType)
-  if (!collectionName || !nameField) {
+  const applicationTypeDetails = validateApplicationType(itemType, logger)
+  if (!applicationTypeDetails) {
     throw new Error(`Unsupported item type: ${itemType}`)
   }
+
+  const { collectionName, nameField } = applicationTypeDetails
 
   try {
     const item = await db

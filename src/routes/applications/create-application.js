@@ -8,9 +8,9 @@ import * as applicationsController from '../../controllers/applications-controll
 import { applicationsSchema } from '../schema.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 import Joi from 'joi'
-//import { applianceApplicationExample } from '../../sample-data/application-example.js'
-import { rebrandFuelApplicationExample } from '../../sample-data/application-example.js'
-// import { manufactureFuelApplicationExample } from '../../sample-data/application-example.js'
+import { applianceApplicationExample } from '../../sample-data/application-example.js'
+//import { rebrandFuelApplicationExample } from '../../sample-data/application-example.js'
+//import { manufactureFuelApplicationExample } from '../../sample-data/application-example.js'
 
 //This doesnt have items (appliances/fuels in it)
 export const createApplication = {
@@ -22,7 +22,7 @@ export const createApplication = {
     notes: 'Creates a new appliance or fuel application in the system',
     validate: {
       payload: Joi.object()
-        .example(rebrandFuelApplicationExample) //For fuel- change to rebrandFuelApplicationExample or manufactureFuelApplicationExample when testing locally
+        .example(applianceApplicationExample) //For fuel- change to rebrandFuelApplicationExample or manufactureFuelApplicationExample when testing locally
         .description('Payload for application creation')
     },
     pre: [
