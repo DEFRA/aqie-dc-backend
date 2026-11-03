@@ -12,7 +12,7 @@ import {
 } from '#src/controllers/fuels-controller.js'
 
 import {
-  generateSecureId,
+  generateNextId,
   getFullAddress
 } from '#src/common/helpers/data-transformer.js'
 import {
@@ -20,14 +20,14 @@ import {
   findLastCertifiedDate
 } from '#src/common/helpers/certification.js'
 
-// Only generateSecureId is non-deterministic (uses crypto), so it's the only
-// helper mocked here. findCertified/getFullAddress run for real so tests
-// exercise the actual mapping logic instead of asserting on fake data.
+// generateNextId is non-deterministic (uses crypto), so it's mocked here.
+// findCertified/getFullAddress run for real so tests exercise the actual
+// mapping logic instead of asserting on fake data.
 vi.mock('#src/common/helpers/data-transformer.js', async (importOriginal) => {
   const actual = await importOriginal()
   return {
     ...actual,
-    generateSecureId: vi.fn(),
+    generateNextId: vi.fn(),
     getFullAddress: vi.fn()
   }
 })
@@ -65,7 +65,7 @@ describe('fuels-controller', () => {
       collection: vi.fn().mockReturnValue(collection)
     }
 
-    generateSecureId.mockReturnValue('12345')
+    generateNextId.mockReturnValue('8727-0001')
     findCertified.mockReturnValue('England')
     findLastCertifiedDate.mockReturnValue('2024-01-01')
     getFullAddress.mockReturnValue('1 Test Street')
@@ -86,7 +86,7 @@ describe('fuels-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result._id).toBe('mongo-id')
-      expect(result.data.id).toBe('FUEL-12345')
+      expect(result.data.id).toBe('8727-0001')
       expect(mockLogger.info).toHaveBeenCalled()
     })
 
@@ -99,7 +99,7 @@ describe('fuels-controller', () => {
       const result = await createFuel(db, { id: 'FUEL-001' }, mockLogger)
 
       expect(result.data.id).toBe('FUEL-001')
-      expect(generateSecureId).not.toHaveBeenCalled()
+      expect(generateNextId).not.toHaveBeenCalled()
     })
 
     test('throws when db missing', async () => {
@@ -148,7 +148,7 @@ describe('fuels-controller', () => {
 
       expect(collection.insertOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: 'FUEL-12345'
+          id: '8727-0001'
         })
       )
     })

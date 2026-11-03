@@ -1,5 +1,5 @@
 import {
-  generateSecureId,
+  generateNextId,
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
@@ -32,10 +32,20 @@ async function createFuel(db, item, logger) {
 
     const now = new Date()
 
+    // Generate ID if not provided, using chronological sequence
+    let id = item.id
+    if (!id) {
+      const lastFuel = await collection.findOne(
+        { id: { $regex: /^\d{4}-\d+$/ } },
+        { sort: { _id: -1 }, projection: { id: 1 } }
+      )
+      id = generateNextId(lastFuel?.id)
+    }
+
     // Build fuel document
     const fuel = {
       ...item,
-      id: item.id || `FUEL-${generateSecureId()}`,
+      id,
       createdAt: item.createdAt || now,
       updatedAt: now
     }

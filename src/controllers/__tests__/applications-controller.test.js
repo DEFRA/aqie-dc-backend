@@ -118,9 +118,16 @@ describe('applications-controller', () => {
         }
       }),
       findOne: vi.fn(async (query) => {
-        return docs.find((doc) =>
-          Object.entries(query).every(([key, value]) => doc[key] === value)
-        )
+        return docs.find((doc) => {
+          return Object.entries(query).every(([key, value]) => {
+            // Handle regex queries (for ID pattern matching with type filter)
+            if (value && typeof value === 'object' && value.$regex) {
+              const regex = new RegExp(value.$regex, value.$options || '')
+              return regex.test(doc[key])
+            }
+            return doc[key] === value
+          })
+        })
       }),
       find: vi.fn((query) => {
         const matchesQuery = (doc, queryObject) => {
@@ -471,6 +478,65 @@ describe('applications-controller', () => {
 
       expect(result.success).toBe(true)
       expect(mockLogger.warn).toHaveBeenCalled()
+    })
+
+    test('generates separate ID sequences for different application types', async () => {
+      const appliancePayload = {
+        type: 'appliance',
+        appliances: []
+      }
+
+      const fuelPayload = {
+        type: 'fuel',
+        appliances: []
+      }
+
+      // Create first appliance application
+      const appliance1 = await createApplication(
+        client,
+        db,
+        appliancePayload,
+        mockLogger
+      )
+      const applianceId1 = appliance1.data.id
+      const [, appSeq1] = applianceId1.split('-')
+
+      // Create second appliance application (new prefix, incremented suffix)
+      const appliance2 = await createApplication(
+        client,
+        db,
+        appliancePayload,
+        mockLogger
+      )
+      const applianceId2 = appliance2.data.id
+      const [, appSeq2] = applianceId2.split('-')
+
+      // Create first fuel application
+      const fuel1 = await createApplication(client, db, fuelPayload, mockLogger)
+      const fuelId1 = fuel1.data.id
+      const [, fuelSeq1] = fuelId1.split('-')
+
+      // Create second fuel application (new prefix, incremented suffix)
+      const fuel2 = await createApplication(client, db, fuelPayload, mockLogger)
+      const fuelId2 = fuel2.data.id
+      const [, fuelSeq2] = fuelId2.split('-')
+
+      // Verify all IDs have format PPPP-SSSS
+      expect(applianceId1).toMatch(/^\d{4}-\d{4}$/)
+      expect(applianceId2).toMatch(/^\d{4}-\d{4}$/)
+      expect(fuelId1).toMatch(/^\d{4}-\d{4}$/)
+      expect(fuelId2).toMatch(/^\d{4}-\d{4}$/)
+
+      // Verify appliance suffixes increment (different prefixes each time)
+      expect(parseInt(appSeq2)).toBe(parseInt(appSeq1) + 1)
+
+      // Verify fuel suffixes increment (different prefixes each time)
+      expect(parseInt(fuelSeq2)).toBe(parseInt(fuelSeq1) + 1)
+
+      // Verify suffixes are independent per type
+      // Appliance 2 should have suffix 0002, Fuel 1 should have suffix 0001
+      expect(appSeq2).toBe('0002')
+      expect(fuelSeq1).toBe('0001')
     })
   })
 
