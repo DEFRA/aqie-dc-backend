@@ -5,7 +5,6 @@
 
 import {
   generateNextId,
-  generateSecureId,
   getFullAddress
 } from '../common/helpers/data-transformer.js'
 import {
@@ -22,12 +21,13 @@ const APPLICATION_NOT_FOUND = 'Application not found'
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const MONGO_ILLEGAL_OPERATION_CODE = 20
 
-const APPLICATION_ID_PATTERN = /^\d{4}-\d+$/
+// Shared "PPPP-SSSS" id format for applications and their linked appliances/fuels
+const ID_PATTERN = /^\d{4}-\d+$/
 
 // Next id in "PPPP-SSSS" format, sequenced from the most recent application
 async function generateApplicationId(collection, session) {
   const lastApplication = await collection.findOne(
-    { id: { $regex: APPLICATION_ID_PATTERN } },
+    { id: { $regex: ID_PATTERN } },
     { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
   )
   return generateNextId(lastApplication?.id)
@@ -107,9 +107,6 @@ function buildApplication(applicationData, id) {
   }
 }
 
-// Maps application type to the id prefix used for its linked items
-const ID_PREFIX_BY_TYPE = { appliance: 'APP', fuel: 'FUEL' }
-
 /**
  * Perform the application and linked items (appliances/fuels) insert
  * @param {Db} db - Database instance
@@ -124,7 +121,6 @@ async function performApplicationInsert(db, payload, logger, session) {
 
   const appCollection = db.collection('Applications')
   const itemsCollectionName = getItemsCollectionName(applicationData.type)
-  const idPrefix = ID_PREFIX_BY_TYPE[applicationData.type]
 
   const applicationId = await generateApplicationId(appCollection, session)
   const application = buildApplication(applicationData, applicationId)
@@ -139,11 +135,17 @@ async function performApplicationInsert(db, payload, logger, session) {
   let savedItems = []
   if (Array.isArray(items) && items.length > 0) {
     const itemsCollection = db.collection(itemsCollectionName)
-    const itemsToInsert = items.map((item) => ({
-      ...item,
-      id: item.id || `${idPrefix}-${generateSecureId()}`,
-      applicationId
-    }))
+    // Sequence continues from the latest stored item, then chains within the batch
+    const lastItem = await itemsCollection.findOne(
+      { id: { $regex: ID_PATTERN } },
+      { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
+    )
+    let lastItemId = lastItem?.id
+    const itemsToInsert = items.map((item) => {
+      const id = item.id || generateNextId(lastItemId)
+      lastItemId = id
+      return { ...item, id, applicationId }
+    })
 
     const itemsResult = await itemsCollection.insertMany(
       itemsToInsert,
