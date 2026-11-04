@@ -112,6 +112,23 @@ describe('fuel-review-controller', () => {
       expect(projection).not.toHaveProperty('sulphurContent')
     })
 
+    test('returns testResults as null when none have been saved', async () => {
+      collection.findOne.mockResolvedValue({ id: 'FUEL-1' })
+
+      const result = await getFuelReview(db, 'FUEL-1', mockLogger)
+
+      expect(result.data).toHaveProperty('testResults', null)
+    })
+
+    test('returns saved testResults', async () => {
+      const testResults = { smokeEmission: 1.25, sulphurContent: null }
+      collection.findOne.mockResolvedValue({ id: 'FUEL-1', testResults })
+
+      const result = await getFuelReview(db, 'FUEL-1', mockLogger)
+
+      expect(result.data.testResults).toEqual(testResults)
+    })
+
     test('returns notFound when the fuel does not exist', async () => {
       collection.findOne.mockResolvedValue(null)
 

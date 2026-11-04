@@ -158,6 +158,7 @@ async function getFuelReview(db, fuelId, logger) {
       success: true,
       data: {
         ...rest,
+        testResults: item.testResults ?? null,
         name: brandName,
         fullAddress: getFullAddress({ companyAddress, companyFullAddress }),
         outstandingChecks: getFuelOutstandingChecks(
