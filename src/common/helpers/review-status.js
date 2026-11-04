@@ -67,7 +67,18 @@ export const canAcceptReview = (technicalReview) =>
 
 export const FUEL_DOCUMENTATION_CHECKS = ['manufacturerLetter', 'testResults']
 
-export const FUEL_LISTING_CHECKS = ['fuelDetails', 'fuelDescription']
+export const FUEL_LISTING_CHECKS = [
+  'fuelDetails',
+  'brandName',
+  'additionalBrandNames',
+  'fuelAppearance',
+  'fuelWeight',
+  'fuelComposition',
+  'sulphurContent',
+  'manufacturingProcess',
+  'hasQualityControlSystem',
+  'fuelDescription'
+]
 
 export const ALL_FUEL_CHECKS = [
   ...FUEL_DOCUMENTATION_CHECKS,
@@ -78,11 +89,30 @@ export const ALL_FUEL_CHECKS = [
 const FUEL_CHECKS_BY_SUPPLIER_TYPE = {
   Rebrand: {
     documentation: ['manufacturerLetter'],
-    listing: ['fuelDetails', 'fuelDescription']
+    listing: [
+      'fuelDetails',
+      'brandName',
+      'additionalBrandNames',
+      'fuelAppearance',
+      'fuelWeight',
+      'fuelComposition',
+      'sulphurContent',
+      'fuelDescription'
+    ]
   },
   Manufacture: {
     documentation: ['testResults'],
-    listing: ['fuelDetails']
+    listing: [
+      'fuelDetails',
+      'brandName',
+      'additionalBrandNames',
+      'fuelAppearance',
+      'fuelWeight',
+      'fuelComposition',
+      'sulphurContent',
+      'manufacturingProcess',
+      'hasQualityControlSystem'
+    ]
   }
 }
 

@@ -13,12 +13,31 @@ vi.mock('#src/common/helpers/item-status.js', () => ({
 
 const rebrandPassed = {
   documentationChecks: { manufacturerLetter: true },
-  listingChecks: { fuelDetails: true, fuelDescription: true }
+  listingChecks: {
+    fuelDetails: true,
+    brandName: true,
+    additionalBrandNames: true,
+    fuelAppearance: true,
+    fuelWeight: true,
+    fuelComposition: true,
+    sulphurContent: true,
+    fuelDescription: true
+  }
 }
 
 const manufacturerPassed = {
   documentationChecks: { testResults: true },
-  listingChecks: { fuelDetails: true }
+  listingChecks: {
+    fuelDetails: true,
+    brandName: true,
+    additionalBrandNames: true,
+    fuelAppearance: true,
+    fuelWeight: true,
+    fuelComposition: true,
+    sulphurContent: true,
+    manufacturingProcess: true,
+    hasQualityControlSystem: true
+  }
 }
 
 const validDescription = {
@@ -26,19 +45,6 @@ const validDescription = {
   weight: '20',
   composition: 'Wood 100%',
   sulphurContent: 0.7
-}
-
-const rebrandDetails = {
-  brandName: 'Kings Starterlog',
-  hasAdditionalBrandNames: false
-}
-const manufactureDetails = {
-  brandName: 'Kings Starterlog',
-  hasAdditionalBrandNames: true,
-  additionalBrandNames: 'One, Two',
-  hasQualityControlSystem: true,
-  manufacturingProcess: 'Heat treatment and extrusion',
-  fuelDescription: validDescription
 }
 
 const validDataByCheck = {
@@ -207,7 +213,7 @@ describe('fuel-review-controller', () => {
         'fuelDetails',
         true,
         mockLogger,
-        rebrandDetails
+        undefined
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
@@ -233,7 +239,7 @@ describe('fuel-review-controller', () => {
         'fuelDetails',
         true,
         mockLogger,
-        rebrandDetails
+        undefined
       )
 
       const [, update] = collection.updateOne.mock.calls[0]
@@ -241,7 +247,7 @@ describe('fuel-review-controller', () => {
     })
 
     describe('fuelDetails', () => {
-      const record = (supplierType, result, data) => {
+      const record = (supplierType, result) => {
         collection.findOne
           .mockResolvedValueOnce({
             supplierType,
@@ -255,58 +261,112 @@ describe('fuel-review-controller', () => {
           'fuelDetails',
           result,
           mockLogger,
-          data
+          undefined
         )
       }
 
-      test('Rebrand stores the brand details and clears blank brand names', async () => {
-        await record('Rebrand', true, {
-          brandName: 'Kings Starterlog',
-          hasAdditionalBrandNames: false,
-          additionalBrandNames: ''
-        })
+      test('Rebrand records fuelDetails check as flag', async () => {
+        await record('Rebrand', true)
 
         const [, update] = collection.updateOne.mock.calls[0]
         expect(update.$set).toMatchObject({
-          brandName: 'Kings Starterlog',
-          hasAdditionalBrandNames: false,
-          additionalBrandNames: null,
           'technicalReview.listingChecks.fuelDetails': true
         })
       })
 
-      test('Manufacture stores brand, quality control, description and process', async () => {
-        await record('Manufacture', true, manufactureDetails)
+      test('Manufacture records fuelDetails check as flag', async () => {
+        await record('Manufacture', true)
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toMatchObject({
+          'technicalReview.listingChecks.fuelDetails': true
+        })
+      })
+
+      test('records status change on first check', async () => {
+        await record('Rebrand', true)
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toHaveProperty(
+          'technicalReview.status',
+          'in_review'
+        )
+      })
+    })
+
+    describe('individual fuel attributes', () => {
+      const recordAttribute = (check, data, supplierType = 'Rebrand') => {
+        collection.findOne
+          .mockResolvedValueOnce({
+            supplierType,
+            technicalReview: { status: 'in_review' }
+          })
+          .mockResolvedValueOnce({ id: 'FUEL-1' })
+        collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+        return recordFuelCheck(db, 'FUEL-1', check, true, mockLogger, data)
+      }
+
+      test('records brandName check with data', async () => {
+        await recordAttribute('brandName', {
+          brandName: 'Kings Starterlog'
+        })
 
         const [, update] = collection.updateOne.mock.calls[0]
         expect(update.$set).toMatchObject({
           brandName: 'Kings Starterlog',
+          'technicalReview.listingChecks.brandName': true
+        })
+      })
+
+      test('records additionalBrandNames check with data', async () => {
+        await recordAttribute('additionalBrandNames', {
+          hasAdditionalBrandNames: true,
+          additionalBrandNames: 'One, Two'
+        })
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toMatchObject({
           hasAdditionalBrandNames: true,
           additionalBrandNames: 'One, Two',
-          hasQualityControlSystem: true,
-          manufacturingProcess: 'Heat treatment and extrusion',
-          'fuelDescription.appearance': 'Pillow-shaped briquettes',
-          'fuelDescription.sulphurContent': 0.7,
-          'technicalReview.listingChecks.fuelDetails': true
+          'technicalReview.listingChecks.additionalBrandNames': true
         })
       })
 
-      test.each([
-        ['Rebrand', { ...rebrandDetails, manufacturingProcess: 'x' }],
-        ['Manufacture', rebrandDetails],
-        [
-          'Manufacture',
-          { ...manufactureDetails, manufacturingProcess: undefined }
-        ]
-      ])(
-        'rejects %s fields that do not match %j',
-        async (supplierType, data) => {
-          await expect(record(supplierType, true, data)).rejects.toThrow(
-            'fuelDetails'
-          )
-          expect(collection.updateOne).not.toHaveBeenCalled()
-        }
-      )
+      test('records fuelAppearance check with data', async () => {
+        await recordAttribute('fuelAppearance', {
+          fuelAppearance: 'Pillow-shaped briquettes'
+        })
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toMatchObject({
+          fuelAppearance: 'Pillow-shaped briquettes',
+          'technicalReview.listingChecks.fuelAppearance': true
+        })
+      })
+
+      test('records manufacturingProcess check with data for Manufacture', async () => {
+        await recordAttribute(
+          'manufacturingProcess',
+          { manufacturingProcess: 'Heat treatment and extrusion' },
+          'Manufacture'
+        )
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toMatchObject({
+          manufacturingProcess: 'Heat treatment and extrusion',
+          'technicalReview.listingChecks.manufacturingProcess': true
+        })
+      })
+
+      test('rejects manufacturingProcess for Rebrand fuel', async () => {
+        await expect(
+          recordAttribute('manufacturingProcess', {
+            manufacturingProcess: 'Heat treatment and extrusion'
+          })
+        ).rejects.toThrow(
+          'manufacturingProcess does not apply to a Rebrand fuel'
+        )
+      })
     })
 
     test('rejects an unrecognised check', async () => {
@@ -378,7 +438,7 @@ describe('fuel-review-controller', () => {
         'fuelDetails',
         true,
         mockLogger,
-        rebrandDetails
+        undefined
       )
 
       expect(result.notFound).toBe(true)
@@ -398,7 +458,7 @@ describe('fuel-review-controller', () => {
         'fuelDetails',
         true,
         mockLogger,
-        rebrandDetails
+        undefined
       )
 
       expect(result.notFound).toBe(true)
@@ -761,7 +821,13 @@ describe('fuel-review-controller', () => {
       )
 
       expect(result.incomplete).toBe(true)
-      expect(result.outstandingChecks).toEqual(['testResults'])
+      // Manufacture requires testResults (doc), and manufacturingProcess + hasQualityControlSystem (listing)
+      // rebrandPassed has the shared attributes (brandName, additionalBrandNames, etc.) but not these
+      expect(result.outstandingChecks).toEqual([
+        'testResults',
+        'manufacturingProcess',
+        'hasQualityControlSystem'
+      ])
     })
 
     test('accepts when every check has passed', async () => {
@@ -799,6 +865,12 @@ describe('fuel-review-controller', () => {
       expect(result.outstandingChecks).toEqual([
         'manufacturerLetter',
         'fuelDetails',
+        'brandName',
+        'additionalBrandNames',
+        'fuelAppearance',
+        'fuelWeight',
+        'fuelComposition',
+        'sulphurContent',
         'fuelDescription'
       ])
       expect(collection.updateOne).not.toHaveBeenCalled()

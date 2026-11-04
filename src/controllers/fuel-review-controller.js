@@ -60,34 +60,6 @@ function validateTestResults(result, data) {
   }
 }
 
-// The route's Joi schemas validate types, blanks and ranges; only the
-// supplierType-dependent field set needs checking here.
-const MANUFACTURE_ONLY_DETAILS = [
-  'hasQualityControlSystem',
-  'manufacturingProcess',
-  'fuelDescription'
-]
-
-/**
- * Manufacture fuels capture the description and process in fuelDetails
- * (they have no separate fuelDescription check); Rebrand fuels must not.
- */
-function validateFuelDetails(supplierType, data) {
-  const supplied = MANUFACTURE_ONLY_DETAILS.filter(
-    (field) => data[field] !== undefined
-  )
-  const expected =
-    supplierType === 'Manufacture' ? MANUFACTURE_ONLY_DETAILS.length : 0
-
-  if (supplied.length !== expected) {
-    throw Boom.badRequest(
-      expected
-        ? `fuelDetails requires ${MANUFACTURE_ONLY_DETAILS.join(', ')} for a Manufacture fuel`
-        : `fuelDetails does not accept ${MANUFACTURE_ONLY_DETAILS.join(', ')} for a Rebrand fuel`
-    )
-  }
-}
-
 const checkValidators = {
   testResults: validateTestResults
 }
@@ -105,12 +77,12 @@ function validateFuelCheck(check, result, data) {
 }
 
 function buildCheckUpdatePayload(group, check, result, data) {
+  if (!data) {
+    return { technicalReview: { [group]: { [check]: result } } }
+  }
+
   return {
     ...data,
-    // A blank list of brand names clears the stored value.
-    ...(check === 'fuelDetails' && {
-      additionalBrandNames: data.additionalBrandNames || null
-    }),
     technicalReview: { [group]: { [check]: result } }
   }
 }
@@ -199,10 +171,6 @@ async function recordFuelCheck(db, fuelId, check, result, logger, data) {
       throw Boom.badRequest(
         `${check} does not apply to a ${item.supplierType} fuel`
       )
-    }
-
-    if (check === 'fuelDetails') {
-      validateFuelDetails(item.supplierType, data)
     }
 
     const updates = buildCheckUpdatePayload(group, check, result, data)

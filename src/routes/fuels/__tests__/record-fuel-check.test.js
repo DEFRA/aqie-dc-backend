@@ -115,17 +115,29 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
       ).toBeUndefined()
     })
 
-    test('requires data for fuelDetails', () => {
+    test('accepts fuelDetails without data', () => {
       expect(
         validate({ check: 'fuelDetails', result: true }).error
-      ).toBeDefined()
+      ).toBeUndefined()
     })
 
-    test.each([false, null])('rejects fuelDetails result %s', (result) => {
+    test.each([true, false, null])(
+      'accepts fuelDetails result %s',
+      (result) => {
+        expect(
+          validate({
+            check: 'fuelDetails',
+            result
+          }).error
+        ).toBeUndefined()
+      }
+    )
+
+    test('rejects fuelDetails with data', () => {
       expect(
         validate({
           check: 'fuelDetails',
-          result,
+          result: true,
           data: { brandName: 'B', hasAdditionalBrandNames: false }
         }).error
       ).toBeDefined()
@@ -292,87 +304,14 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
       })
     })
 
-    describe('fuelDetails data', () => {
-      const payload = (data) => ({ check: 'fuelDetails', result: true, data })
-
-      test('accepts brand names and quality control', () => {
-        expect(
-          validate(
-            payload({
-              brandName: 'Kings Starterlog',
-              hasAdditionalBrandNames: true,
-              additionalBrandNames: 'One, Two',
-              hasQualityControlSystem: true
-            })
-          ).error
-        ).toBeUndefined()
-      })
-
-      test('accepts Manufacture fields with the description', () => {
-        expect(
-          validate(
-            payload({
-              brandName: 'Kings Starterlog',
-              hasAdditionalBrandNames: false,
-              hasQualityControlSystem: true,
-              manufacturingProcess: 'Extrusion',
-              fuelDescription: {
-                appearance: 'Firelogs',
-                weight: '600 grams',
-                composition: 'Wax and sawdust',
-                sulphurContent: 0.1
-              }
-            })
-          ).error
-        ).toBeUndefined()
-      })
-
-      test.each([[null], [''], [undefined]])(
-        'accepts additionalBrandNames %j when the answer is No',
-        (additionalBrandNames) => {
-          expect(
-            validate(
-              payload({
-                brandName: 'B',
-                hasAdditionalBrandNames: false,
-                additionalBrandNames
-              })
-            ).error
-          ).toBeUndefined()
-        }
-      )
-
-      test.each([
-        [{ brandName: '  ', hasAdditionalBrandNames: false }],
-        [{ brandName: 'B' }],
-        [{ brandName: 'B', hasAdditionalBrandNames: 'yes' }],
-        [{ brandName: 'B', hasAdditionalBrandNames: true }],
-        [
-          {
-            brandName: 'B',
-            hasAdditionalBrandNames: true,
-            additionalBrandNames: ' '
-          }
-        ],
-        [
-          {
-            brandName: 'B',
-            hasAdditionalBrandNames: false,
-            additionalBrandNames: 'x'
-          }
-        ],
-        [
-          {
-            brandName: 'B',
-            hasAdditionalBrandNames: false,
-            hasQualityControlSystem: 'yes'
-          }
-        ],
-        [{ brandName: 'B', hasAdditionalBrandNames: false, weight: '20' }],
-        [{}]
-      ])('rejects %j', (data) => {
-        expect(validate(payload(data)).error).toBeDefined()
-      })
+    test('forbids data for checks that do not accept it', () => {
+      expect(
+        validate({
+          check: 'manufacturerLetter',
+          result: true,
+          data: { anything: 1 }
+        }).error
+      ).toBeDefined()
     })
 
     describe('manufacturerLetter', () => {

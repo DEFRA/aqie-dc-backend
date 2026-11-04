@@ -34,6 +34,16 @@ import { updateApplianceReview } from '../routes/appliances/update-appliance-rev
 import { getFuelReview } from '../routes/fuels/get-fuel-review.js'
 import { updateFuelReview } from '../routes/fuels/update-fuel-review.js'
 import { recordFuelCheck } from '../routes/fuels/record-fuel-check.js'
+import {
+  recordBrandNameCheck,
+  recordAdditionalBrandNamesCheck,
+  recordFuelAppearanceCheck,
+  recordFuelWeightCheck,
+  recordFuelCompositionCheck,
+  recordSulphurContentCheck,
+  recordManufacturingProcessCheck,
+  recordHasQualityControlSystemCheck
+} from '../routes/fuels/record-fuel-attribute-check.js'
 import { updateApplianceVisibility } from '../routes/appliances/update-appliance-visibility.js'
 import { getApplianceTypes } from '../routes/appliance-types/get-appliance-types.js'
 import Inert from '@hapi/inert'
@@ -149,6 +159,14 @@ const router = {
         getFuelReview,
         updateFuelReview,
         recordFuelCheck,
+        recordBrandNameCheck,
+        recordAdditionalBrandNamesCheck,
+        recordFuelAppearanceCheck,
+        recordFuelWeightCheck,
+        recordFuelCompositionCheck,
+        recordSulphurContentCheck,
+        recordManufacturingProcessCheck,
+        recordHasQualityControlSystemCheck,
         getFuelById
       ])
     }
