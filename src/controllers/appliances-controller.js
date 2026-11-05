@@ -1,5 +1,5 @@
 import {
-  generateSecureId,
+  generateNextId,
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
@@ -11,7 +11,8 @@ import {
   mapCertifications
 } from '../common/helpers/certification.js'
 import { calculateItemStatus } from '../common/helpers/item-status.js'
-import { getItemsCollectionName } from '../common/helpers/application-type.js'
+import { toUserActor } from '../common/helpers/action-history.js'
+import { validateApplicationType } from '../common/helpers/application-type.js'
 
 /**
  * Appliances Controller
@@ -39,10 +40,20 @@ async function createAppliance(db, item, logger) {
 
     const now = new Date()
 
+    // Generate ID if not provided, using chronological sequence
+    let id = item.id
+    if (!id) {
+      const lastAppliance = await collection.findOne(
+        { id: { $regex: /^\d{4}-\d+$/ } },
+        { sort: { _id: -1 }, projection: { id: 1 } }
+      )
+      id = generateNextId(lastAppliance?.id)
+    }
+
     // Build appliance document
     const appliance = {
       ...item,
-      id: item.id || `APP-${generateSecureId()}`,
+      id,
       applicationId: item.applicationId || null,
       createdAt: item.createdAt || now,
       updatedAt: now
@@ -358,6 +369,7 @@ async function getAdminApplianceById(db, id, logger) {
 /**
  * Set public visibility for an appliance or fuel and recalculate its status
  *
+ * @param {{ name: string, email?: string }} reviewedBy - signed-in user who clicked
  * @param {'appliance'|'fuel'} [type]
  */
 async function updateApplianceVisibility(
@@ -365,14 +377,19 @@ async function updateApplianceVisibility(
   id,
   isVisibleToPublic,
   logger,
+  reviewedBy,
   type = 'appliance'
 ) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
-  const collectionName = getItemsCollectionName(type)
-  if (!collectionName) {
+  const applicationTypeDetails = validateApplicationType(type, logger)
+  if (!applicationTypeDetails) {
     throw new Error(`Unsupported item type: ${type}`)
+  }
+  const { collectionName } = applicationTypeDetails
+  if (!reviewedBy?.name) {
+    throw new Error('reviewedBy is required')
   }
   const label = type === 'fuel' ? 'Fuel' : 'Appliance'
   try {
@@ -412,7 +429,10 @@ async function updateApplianceVisibility(
       { $set: { isVisibleToPublic, updatedAt: new Date() } }
     )
 
-    await calculateItemStatus(db, type, id)
+    await calculateItemStatus(db, type, id, {
+      logger,
+      actor: toUserActor(reviewedBy)
+    })
 
     logger.info(`${label} visibility set to ${isVisibleToPublic}: ${id}`)
 

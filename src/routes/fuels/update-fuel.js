@@ -5,10 +5,15 @@
 import Joi from 'joi'
 import * as fuelController from '../../controllers/fuels-controller.js'
 import { fuelSchema } from '../schema.js'
+import { STATUS_DRIVING_FIELDS } from '../../common/helpers/item-status.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
+// (Item) Status-driving fields are forbidden: they have dedicated endpoints.
 const updateFuelSchema = fuelSchema
   .fork(Object.keys(fuelSchema.describe().keys), (schema) => schema.optional())
+  .fork([...STATUS_DRIVING_FIELDS, 'fuelStatus'], (schema) =>
+    schema.forbidden()
+  )
   .prefs({ noDefaults: true })
   .min(1)
   .unknown(false)

@@ -118,9 +118,16 @@ describe('applications-controller', () => {
         }
       }),
       findOne: vi.fn(async (query) => {
-        return docs.find((doc) =>
-          Object.entries(query).every(([key, value]) => doc[key] === value)
-        )
+        return docs.find((doc) => {
+          return Object.entries(query).every(([key, value]) => {
+            // Handle regex queries (for ID pattern matching with type filter)
+            if (value && typeof value === 'object' && value.$regex) {
+              const regex = new RegExp(value.$regex, value.$options || '')
+              return regex.test(doc[key])
+            }
+            return doc[key] === value
+          })
+        })
       }),
       find: vi.fn((query) => {
         const matchesQuery = (doc, queryObject) => {
@@ -472,6 +479,65 @@ describe('applications-controller', () => {
       expect(result.success).toBe(true)
       expect(mockLogger.warn).toHaveBeenCalled()
     })
+
+    test('generates separate ID sequences for different application types', async () => {
+      const appliancePayload = {
+        type: 'appliance',
+        appliances: []
+      }
+
+      const fuelPayload = {
+        type: 'fuel',
+        appliances: []
+      }
+
+      // Create first appliance application
+      const appliance1 = await createApplication(
+        client,
+        db,
+        appliancePayload,
+        mockLogger
+      )
+      const applianceId1 = appliance1.data.id
+      const [, appSeq1] = applianceId1.split('-')
+
+      // Create second appliance application (new prefix, incremented suffix)
+      const appliance2 = await createApplication(
+        client,
+        db,
+        appliancePayload,
+        mockLogger
+      )
+      const applianceId2 = appliance2.data.id
+      const [, appSeq2] = applianceId2.split('-')
+
+      // Create first fuel application
+      const fuel1 = await createApplication(client, db, fuelPayload, mockLogger)
+      const fuelId1 = fuel1.data.id
+      const [, fuelSeq1] = fuelId1.split('-')
+
+      // Create second fuel application (new prefix, incremented suffix)
+      const fuel2 = await createApplication(client, db, fuelPayload, mockLogger)
+      const fuelId2 = fuel2.data.id
+      const [, fuelSeq2] = fuelId2.split('-')
+
+      // Verify all IDs have format PPPP-SSSS
+      expect(applianceId1).toMatch(/^\d{4}-\d{4}$/)
+      expect(applianceId2).toMatch(/^\d{4}-\d{4}$/)
+      expect(fuelId1).toMatch(/^\d{4}-\d{4}$/)
+      expect(fuelId2).toMatch(/^\d{4}-\d{4}$/)
+
+      // Verify appliance suffixes increment (different prefixes each time)
+      expect(parseInt(appSeq2)).toBe(parseInt(appSeq1) + 1)
+
+      // Verify fuel suffixes increment (different prefixes each time)
+      expect(parseInt(fuelSeq2)).toBe(parseInt(fuelSeq1) + 1)
+
+      // Verify suffixes are independent per type
+      // Appliance 2 should have suffix 0002, Fuel 1 should have suffix 0001
+      expect(appSeq2).toBe('0002')
+      expect(fuelSeq1).toBe('0001')
+    })
   })
 
   describe('getAllApplications', () => {
@@ -575,6 +641,27 @@ describe('applications-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.data.linkedItems).toBeDefined()
+    })
+
+    test('returns fullAddress from the first linked item', async () => {
+      collection.findOne.mockResolvedValueOnce({
+        id: 'app-123',
+        type: 'appliance',
+        status: 'new'
+      })
+      applianceDocs.push({
+        id: 'app-001',
+        applicationId: 'app-123',
+        companyAddress: {
+          line1: '1 High St',
+          city: 'Leeds',
+          postcode: 'LS1 1AA'
+        }
+      })
+
+      const result = await getApplicationById(db, 'app-123', mockLogger)
+
+      expect(result.data.fullAddress).toEqual(['1 High St', 'Leeds', 'LS1 1AA'])
     })
 
     test('fetches linked fuel records when type is fuel', async () => {
@@ -1053,12 +1140,12 @@ describe('applications-controller', () => {
       )
       applianceDocs.push(
         {
-          _id: 'appl-1',
+          id: 'APPL-1',
           applicationId: 'app-1',
           modelName: 'Model A'
         },
         {
-          _id: 'appl-2',
+          id: 'APPL-2',
           applicationId: 'app-2',
           modelName: 'Model B'
         }
@@ -1075,6 +1162,7 @@ describe('applications-controller', () => {
       expect(result.data.inProgress).toHaveLength(1)
       expect(result.data.new[0].items[0].name).toBe('Model A')
       expect(result.data.inProgress[0].items[0].name).toBe('Model B')
+      expect(result.data.new[0].items[0].id).toBe('APPL-1')
     })
 
     test('returns applications grouped by status with fuel brand names', async () => {
@@ -1086,9 +1174,9 @@ describe('applications-controller', () => {
         createdAt: new Date('2026-01-06')
       })
       fuelDocs.push({
-        _id: 'fuel-1',
+        id: 'FUEL-1',
         applicationId: 'app-3',
-        brandNames: 'Brand A'
+        brandName: 'Brand A'
       })
 
       const result = await getApplicationsSummaryByStatus(
@@ -1204,8 +1292,7 @@ describe('applications-controller', () => {
       expect(result.message).toBe('Application summary retrieved successfully')
       expect(result.data.id).toBe('app-1')
       expect(result.data.companyName).toBe('ACME')
-      expect(result.data.companyFullAddress).toBe('123 Street')
-      expect(result.data.companyAddress).toEqual({ city: 'London' })
+      expect(result.data.fullAddress).toEqual(['123 Street'])
       expect(result.data.companyContact).toEqual({
         name: 'Jane',
         email: 'jane@acme.com'
@@ -1251,8 +1338,7 @@ describe('applications-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result.data.companyName).toBeUndefined()
-      expect(result.data.companyFullAddress).toBeNull()
-      expect(result.data.companyAddress).toBeNull()
+      expect(result.data.fullAddress).toEqual([])
       expect(result.data.linkedItems).toEqual([])
     })
 

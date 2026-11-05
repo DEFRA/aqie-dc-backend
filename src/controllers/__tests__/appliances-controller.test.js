@@ -11,21 +11,21 @@ import {
   updateApplianceVisibility
 } from '#src/controllers/appliances-controller.js'
 
-import { generateSecureId } from '#src/common/helpers/data-transformer.js'
+import { generateNextId } from '#src/common/helpers/data-transformer.js'
 import { calculateItemStatus } from '#src/common/helpers/item-status.js'
 
 vi.mock('#src/common/helpers/item-status.js', () => ({
   calculateItemStatus: vi.fn()
 }))
 
-// Only generateSecureId is non-deterministic (uses crypto), so it's the only
-// helper mocked here. findCertified/getFullAddress run for real so tests
-// exercise the actual mapping logic instead of asserting on fake data.
+// generateNextId is non-deterministic (uses crypto), so it's mocked here.
+// findCertified/getFullAddress run for real so tests exercise the actual
+// mapping logic instead of asserting on fake data.
 vi.mock('#src/common/helpers/data-transformer.js', async (importOriginal) => {
   const actual = await importOriginal()
   return {
     ...actual,
-    generateSecureId: vi.fn()
+    generateNextId: vi.fn()
   }
 })
 
@@ -71,7 +71,7 @@ describe('appliances-controller', () => {
       collection: vi.fn().mockReturnValue(collection)
     }
 
-    generateSecureId.mockReturnValue('12345')
+    generateNextId.mockReturnValue('0650-0001')
   })
 
   describe('createAppliance', () => {
@@ -91,7 +91,7 @@ describe('appliances-controller', () => {
 
       expect(result.success).toBe(true)
       expect(result._id).toBe('mongo-id')
-      expect(result.data.id).toBe('APP-12345')
+      expect(result.data.id).toBe('0650-0001')
       expect(mockLogger.info).toHaveBeenCalled()
     })
 
@@ -110,7 +110,7 @@ describe('appliances-controller', () => {
       )
 
       expect(result.data.id).toBe('APP-001')
-      expect(generateSecureId).not.toHaveBeenCalled()
+      expect(generateNextId).not.toHaveBeenCalled()
     })
 
     test('throws if db missing', async () => {
@@ -163,7 +163,7 @@ describe('appliances-controller', () => {
 
       expect(collection.insertOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: 'APP-12345'
+          id: '0650-0001'
         })
       )
     })
@@ -702,6 +702,8 @@ describe('appliances-controller', () => {
       ...certifiedInEngland
     }
 
+    const reviewedBy = { name: 'Jane Doe', email: 'jane.doe@example.com' }
+
     beforeEach(() => {
       calculateItemStatus.mockReset()
     })
@@ -715,15 +717,52 @@ describe('appliances-controller', () => {
         db,
         'APP-1',
         false,
-        mockLogger
+        mockLogger,
+        reviewedBy,
+        'appliance'
       )
 
       expect(collection.updateOne).toHaveBeenCalledWith(
         { id: 'APP-1' },
         { $set: { isVisibleToPublic: false, updatedAt: expect.any(Date) } }
       )
-      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'appliance', 'APP-1')
       expect(result).toEqual({ success: true })
+    })
+
+    test('requires reviewedBy', async () => {
+      await expect(
+        updateApplianceVisibility(db, 'APP-1', false, mockLogger)
+      ).rejects.toThrow('reviewedBy is required')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('attributes the recalculation to the signed-in user', async () => {
+      collection.findOne.mockResolvedValue(acceptedAndCertified)
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+      calculateItemStatus.mockResolvedValue('hidden')
+
+      await updateApplianceVisibility(
+        db,
+        'APP-1',
+        false,
+        mockLogger,
+        reviewedBy,
+        'appliance'
+      )
+
+      expect(calculateItemStatus).toHaveBeenCalledWith(
+        db,
+        'appliance',
+        'APP-1',
+        {
+          logger: mockLogger,
+          actor: {
+            name: 'Jane Doe',
+            email: 'jane.doe@example.com',
+            type: 'user'
+          }
+        }
+      )
     })
 
     test('uses the Fuels collection and fuel status for type fuel', async () => {
@@ -736,17 +775,30 @@ describe('appliances-controller', () => {
         'FUEL-1',
         false,
         mockLogger,
+        reviewedBy,
         'fuel'
       )
 
       expect(db.collection).toHaveBeenCalledWith('Fuels')
-      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'fuel', 'FUEL-1')
+      expect(calculateItemStatus).toHaveBeenCalledWith(
+        db,
+        'fuel',
+        'FUEL-1',
+        expect.objectContaining({ logger: mockLogger })
+      )
       expect(result).toEqual({ success: true })
     })
 
     test('rejects an unsupported type', async () => {
       await expect(
-        updateApplianceVisibility(db, 'X-1', true, mockLogger, 'widget')
+        updateApplianceVisibility(
+          db,
+          'X-1',
+          true,
+          mockLogger,
+          reviewedBy,
+          'widget'
+        )
       ).rejects.toThrow('Unsupported item type: widget')
     })
 
@@ -757,7 +809,9 @@ describe('appliances-controller', () => {
         db,
         'missing',
         true,
-        mockLogger
+        mockLogger,
+        reviewedBy,
+        'appliance'
       )
 
       expect(result.notFound).toBe(true)
@@ -779,7 +833,9 @@ describe('appliances-controller', () => {
         db,
         'APP-1',
         false,
-        mockLogger
+        mockLogger,
+        reviewedBy,
+        'appliance'
       )
 
       expect(result.incomplete).toBe(true)
@@ -793,7 +849,14 @@ describe('appliances-controller', () => {
       calculateItemStatus.mockRejectedValue(new Error('calc failed'))
 
       await expect(
-        updateApplianceVisibility(db, 'APP-1', true, mockLogger)
+        updateApplianceVisibility(
+          db,
+          'APP-1',
+          true,
+          mockLogger,
+          reviewedBy,
+          'appliance'
+        )
       ).rejects.toThrow('calc failed')
       expect(mockLogger.error).toHaveBeenCalled()
     })

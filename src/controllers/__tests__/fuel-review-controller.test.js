@@ -1,0 +1,1032 @@
+import { describe, test, expect, beforeEach, vi } from 'vitest'
+
+import { calculateItemStatus } from '#src/common/helpers/item-status.js'
+import {
+  getFuelReview,
+  recordFuelCheck,
+  updateFuelReview
+} from '#src/controllers/fuel-review-controller.js'
+
+vi.mock('#src/common/helpers/item-status.js', () => ({
+  calculateItemStatus: vi.fn()
+}))
+
+const rebrandPassed = {
+  documentationChecks: { manufacturerLetter: true },
+  listingChecks: {
+    fuelDetails: true,
+    brandName: true,
+    additionalBrandNames: true,
+    fuelAppearance: true,
+    fuelWeight: true,
+    fuelComposition: true,
+    sulphurContent: true,
+    fuelDescription: true
+  }
+}
+
+const manufacturerPassed = {
+  documentationChecks: { testResults: true },
+  listingChecks: {
+    fuelDetails: true,
+    brandName: true,
+    additionalBrandNames: true,
+    fuelAppearance: true,
+    fuelWeight: true,
+    fuelComposition: true,
+    sulphurContent: true,
+    manufacturingProcess: true,
+    hasQualityControlSystem: true
+  }
+}
+
+const validDescription = {
+  appearance: 'Pillow-shaped briquettes',
+  weight: '20',
+  composition: 'Wood 100%',
+  sulphurContent: 0.7
+}
+
+const validDataByCheck = {
+  testResults: { testResults: { smokeEmission: 1.25, sulphurContent: 0.5 } },
+  fuelDescription: {
+    fuelDescription: validDescription,
+    manufacturingProcess: 'Heat treatment and extrusion'
+  }
+}
+
+describe('fuel-review-controller', () => {
+  let db
+  let collection
+  let mockLogger
+
+  beforeEach(() => {
+    mockLogger = { info: vi.fn(), error: vi.fn() }
+    collection = { findOne: vi.fn(), updateOne: vi.fn() }
+    db = { collection: vi.fn().mockReturnValue(collection) }
+  })
+
+  describe('getFuelReview', () => {
+    test('returns the review with outstanding checks', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'FUEL-1',
+        supplierType: 'Rebrand',
+        technicalReview: { status: 'new' }
+      })
+
+      const result = await getFuelReview(db, 'FUEL-1', mockLogger)
+
+      expect(result.success).toBe(true)
+      expect(result.data.id).toBe('FUEL-1')
+      expect(result.data.outstandingChecks.length).toBeGreaterThan(0)
+      expect(db.collection).toHaveBeenCalledWith('Fuels')
+    })
+
+    test('maps brandName to name and returns fullAddress only', async () => {
+      collection.findOne.mockResolvedValue({
+        id: 'FUEL-1',
+        brandName: 'PelletBrand',
+        companyAddress: { line1: '1 High St', city: 'Leeds', postcode: 'LS1' }
+      })
+
+      const result = await getFuelReview(db, 'FUEL-1', mockLogger)
+
+      expect(result.data.name).toBe('PelletBrand')
+      expect(result.data.fullAddress).toEqual(['1 High St', 'Leeds', 'LS1'])
+      expect(result.data).not.toHaveProperty('brandName')
+      expect(result.data).not.toHaveProperty('companyAddress')
+    })
+
+    test('excludes company contact fields from the projection', async () => {
+      collection.findOne.mockResolvedValue({ id: 'FUEL-1' })
+
+      await getFuelReview(db, 'FUEL-1', mockLogger)
+
+      const [filter, options] = collection.findOne.mock.calls[0]
+      expect(filter).toEqual({ id: 'FUEL-1' })
+      expect(options.projection).not.toHaveProperty('companyContact')
+    })
+
+    test('projects the nested fuelDescription and testResults', async () => {
+      collection.findOne.mockResolvedValue({ id: 'FUEL-1' })
+
+      await getFuelReview(db, 'FUEL-1', mockLogger)
+
+      const { projection } = collection.findOne.mock.calls[0][1]
+      expect(projection).toMatchObject({ fuelDescription: 1, testResults: 1 })
+      expect(projection).not.toHaveProperty('appearance')
+      expect(projection).not.toHaveProperty('sulphurContent')
+    })
+
+    test('returns testResults as null when none have been saved', async () => {
+      collection.findOne.mockResolvedValue({ id: 'FUEL-1' })
+
+      const result = await getFuelReview(db, 'FUEL-1', mockLogger)
+
+      expect(result.data).toHaveProperty('testResults', null)
+    })
+
+    test('returns saved testResults', async () => {
+      const testResults = { smokeEmission: 1.25, sulphurContent: null }
+      collection.findOne.mockResolvedValue({ id: 'FUEL-1', testResults })
+
+      const result = await getFuelReview(db, 'FUEL-1', mockLogger)
+
+      expect(result.data.testResults).toEqual(testResults)
+    })
+
+    test('returns notFound when the fuel does not exist', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const result = await getFuelReview(db, 'missing', mockLogger)
+
+      expect(result).toEqual({
+        success: false,
+        message: 'Fuel not found',
+        notFound: true
+      })
+    })
+
+    test('logs and rethrows database errors', async () => {
+      const error = new Error('db down')
+      collection.findOne.mockRejectedValue(error)
+
+      await expect(getFuelReview(db, 'FUEL-1', mockLogger)).rejects.toThrow(
+        'db down'
+      )
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to fetch fuel review'
+      )
+    })
+
+    test('requires a logger', async () => {
+      await expect(getFuelReview(db, 'FUEL-1')).rejects.toThrow(
+        'logger is required'
+      )
+    })
+  })
+
+  describe('recordFuelCheck', () => {
+    test('records a check and moves a new review to in_review', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Rebrand',
+          technicalReview: { status: 'new' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'manufacturerLetter',
+        true,
+        mockLogger
+      )
+
+      expect(result).toEqual({
+        success: true,
+        data: { fuelId: 'FUEL-1', check: 'manufacturerLetter', result: true }
+      })
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.manufacturerLetter',
+        true
+      )
+      expect(update.$set).toHaveProperty('technicalReview.status', 'in_review')
+    })
+
+    test('writes listing checks under listingChecks', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Rebrand',
+          technicalReview: { status: 'in_review' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'fuelDetails',
+        true,
+        mockLogger,
+        undefined
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.listingChecks.fuelDetails',
+        true
+      )
+      expect(update.$set).not.toHaveProperty('technicalReview.status')
+    })
+
+    test('does not change a decided review status', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Rebrand',
+          technicalReview: { status: 'accepted' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'fuelDetails',
+        true,
+        mockLogger,
+        undefined
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).not.toHaveProperty('technicalReview.status')
+    })
+
+    describe('fuelDetails', () => {
+      const record = (supplierType, result) => {
+        collection.findOne
+          .mockResolvedValueOnce({
+            supplierType,
+            technicalReview: { status: 'new' }
+          })
+          .mockResolvedValueOnce({ id: 'FUEL-1' })
+        collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+        return recordFuelCheck(
+          db,
+          'FUEL-1',
+          'fuelDetails',
+          result,
+          mockLogger,
+          undefined
+        )
+      }
+
+      test('Rebrand records fuelDetails check as flag', async () => {
+        await record('Rebrand', true)
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toMatchObject({
+          'technicalReview.listingChecks.fuelDetails': true
+        })
+      })
+
+      test('Manufacture records fuelDetails check as flag', async () => {
+        await record('Manufacture', true)
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toMatchObject({
+          'technicalReview.listingChecks.fuelDetails': true
+        })
+      })
+
+      test('records status change on first check', async () => {
+        await record('Rebrand', true)
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toHaveProperty(
+          'technicalReview.status',
+          'in_review'
+        )
+      })
+    })
+
+    describe('individual fuel attributes', () => {
+      const recordAttribute = (check, data, supplierType = 'Rebrand') => {
+        collection.findOne
+          .mockResolvedValueOnce({
+            supplierType,
+            technicalReview: { status: 'in_review' }
+          })
+          .mockResolvedValueOnce({ id: 'FUEL-1' })
+        collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+        return recordFuelCheck(db, 'FUEL-1', check, true, mockLogger, data)
+      }
+
+      test('records brandName check with data', async () => {
+        await recordAttribute('brandName', {
+          brandName: 'Kings Starterlog'
+        })
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toMatchObject({
+          brandName: 'Kings Starterlog',
+          'technicalReview.listingChecks.brandName': true
+        })
+      })
+
+      test('records additionalBrandNames check with data', async () => {
+        await recordAttribute('additionalBrandNames', {
+          hasAdditionalBrandNames: true,
+          additionalBrandNames: 'One, Two'
+        })
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toMatchObject({
+          hasAdditionalBrandNames: true,
+          additionalBrandNames: 'One, Two',
+          'technicalReview.listingChecks.additionalBrandNames': true
+        })
+      })
+
+      test('records fuelAppearance check with data', async () => {
+        await recordAttribute('fuelAppearance', {
+          fuelAppearance: 'Pillow-shaped briquettes'
+        })
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toMatchObject({
+          fuelAppearance: 'Pillow-shaped briquettes',
+          'technicalReview.listingChecks.fuelAppearance': true
+        })
+      })
+
+      test('records manufacturingProcess check with data for Manufacture', async () => {
+        await recordAttribute(
+          'manufacturingProcess',
+          { manufacturingProcess: 'Heat treatment and extrusion' },
+          'Manufacture'
+        )
+
+        const [, update] = collection.updateOne.mock.calls[0]
+        expect(update.$set).toMatchObject({
+          manufacturingProcess: 'Heat treatment and extrusion',
+          'technicalReview.listingChecks.manufacturingProcess': true
+        })
+      })
+
+      test('rejects manufacturingProcess for Rebrand fuel', async () => {
+        await expect(
+          recordAttribute('manufacturingProcess', {
+            manufacturingProcess: 'Heat treatment and extrusion'
+          })
+        ).rejects.toThrow(
+          'manufacturingProcess does not apply to a Rebrand fuel'
+        )
+      })
+    })
+
+    test('rejects an unrecognised check', async () => {
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'technicalDrawings', true, mockLogger)
+      ).rejects.toThrow('Unrecognised check: technicalDrawings')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('requires a boolean testResults result', async () => {
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'testResults', null, mockLogger)
+      ).rejects.toThrow('testResults result must be true')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('records testResults for a Manufacturer fuel', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Manufacture',
+          technicalReview: { status: 'in_review' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      await recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger, {
+        testResults: { smokeEmission: 1.25, sulphurContent: 0.5 }
+      })
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.testResults',
+        true
+      )
+    })
+
+    test.each([
+      ['Rebrand', 'testResults'],
+      ['Manufacture', 'manufacturerLetter'],
+      ['Manufacture', 'fuelDescription']
+    ])(
+      'rejects a check that does not apply to a %s fuel: %s',
+      async (supplierType, check) => {
+        collection.findOne.mockResolvedValue({
+          supplierType,
+          technicalReview: { status: 'new' }
+        })
+
+        await expect(
+          recordFuelCheck(
+            db,
+            'FUEL-1',
+            check,
+            true,
+            mockLogger,
+            validDataByCheck[check]
+          )
+        ).rejects.toThrow(`${check} does not apply to a ${supplierType} fuel`)
+        expect(collection.updateOne).not.toHaveBeenCalled()
+      }
+    )
+
+    test('returns notFound when the fuel does not exist', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const result = await recordFuelCheck(
+        db,
+        'missing',
+        'fuelDetails',
+        true,
+        mockLogger,
+        undefined
+      )
+
+      expect(result.notFound).toBe(true)
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('returns notFound when the update matches nothing', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Rebrand',
+        technicalReview: {}
+      })
+      collection.updateOne.mockResolvedValue({ matchedCount: 0 })
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'fuelDetails',
+        true,
+        mockLogger,
+        undefined
+      )
+
+      expect(result.notFound).toBe(true)
+    })
+
+    test('throws when logger is missing', async () => {
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'fuelDetails', true)
+      ).rejects.toThrow('logger is required')
+    })
+  })
+
+  describe('recordFuelCheck', () => {
+    test('records testResults check with measurement data when passed', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Manufacture',
+          technicalReview: { status: 'new' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      const data = {
+        testResults: {
+          smokeEmission: 1.25,
+          sulphurContent: 0.5
+        }
+      }
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'testResults',
+        true,
+        mockLogger,
+        data
+      )
+
+      expect(result).toEqual({
+        success: true,
+        data: { fuelId: 'FUEL-1', check: 'testResults', result: true }
+      })
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.testResults',
+        true
+      )
+      expect(update.$set).toHaveProperty('testResults.smokeEmission', 1.25)
+      expect(update.$set).toHaveProperty('testResults.sulphurContent', 0.5)
+      expect(update.$set).toHaveProperty('technicalReview.status', 'in_review')
+    })
+
+    test('records testResults check with partial data when failed', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Manufacture',
+          technicalReview: { status: 'in_review' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      const data = {
+        testResults: {
+          smokeEmission: 2.5,
+          sulphurContent: null
+        }
+      }
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'testResults',
+        false,
+        mockLogger,
+        data
+      )
+
+      expect(result.success).toBe(true)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.testResults',
+        false
+      )
+      expect(update.$set).toHaveProperty('testResults.smokeEmission', 2.5)
+      expect(update.$set).toHaveProperty('testResults.sulphurContent', null)
+    })
+
+    test('records check without data for non-testResults checks', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Rebrand',
+          technicalReview: { status: 'new' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'manufacturerLetter',
+        true,
+        mockLogger,
+        undefined
+      )
+
+      expect(result.success).toBe(true)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toHaveProperty(
+        'technicalReview.documentationChecks.manufacturerLetter',
+        true
+      )
+      expect(update.$set).not.toHaveProperty('testResults')
+    })
+
+    test('rejects negative smokeEmission', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Manufacture',
+        technicalReview: {}
+      })
+
+      const data = {
+        testResults: {
+          smokeEmission: -1,
+          sulphurContent: 0.5
+        }
+      }
+
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger, data)
+      ).rejects.toThrow('testResults requires smokeEmission and sulphurContent')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('rejects negative sulphurContent', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Manufacture',
+        technicalReview: {}
+      })
+
+      const data = {
+        testResults: {
+          smokeEmission: 1.25,
+          sulphurContent: -0.1
+        }
+      }
+
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger, data)
+      ).rejects.toThrow('testResults requires smokeEmission and sulphurContent')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('rejects non-numeric measurements', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Manufacture',
+        technicalReview: {}
+      })
+
+      const data = {
+        testResults: {
+          smokeEmission: 'not a number',
+          sulphurContent: 0.5
+        }
+      }
+
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger, data)
+      ).rejects.toThrow('testResults requires smokeEmission and sulphurContent')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('requires both measurements when testResults passed', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Manufacture',
+        technicalReview: {}
+      })
+
+      const data = {
+        testResults: {
+          smokeEmission: 1.25
+        }
+      }
+
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'testResults', true, mockLogger, data)
+      ).rejects.toThrow('testResults requires smokeEmission and sulphurContent')
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('allows omitted measurements when testResults failed', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Manufacture',
+          technicalReview: { status: 'in_review' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'testResults',
+        false,
+        mockLogger,
+        { testResults: { smokeEmission: 2.5 } }
+      )
+
+      expect(result.success).toBe(true)
+    })
+
+    test('allows null for measurements when testResults failed', async () => {
+      collection.findOne
+        .mockResolvedValueOnce({
+          supplierType: 'Manufacture',
+          technicalReview: { status: 'in_review' }
+        })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+
+      const data = {
+        testResults: {
+          smokeEmission: null,
+          sulphurContent: null
+        }
+      }
+
+      const result = await recordFuelCheck(
+        db,
+        'FUEL-1',
+        'testResults',
+        false,
+        mockLogger,
+        data
+      )
+
+      expect(result.success).toBe(true)
+    })
+
+    test('returns notFound when the fuel does not exist', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const data = {
+        testResults: {
+          smokeEmission: 1.25,
+          sulphurContent: 0.5
+        }
+      }
+
+      const result = await recordFuelCheck(
+        db,
+        'missing',
+        'testResults',
+        true,
+        mockLogger,
+        data
+      )
+
+      expect(result.notFound).toBe(true)
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('throws when logger is missing', async () => {
+      const data = {
+        testResults: {
+          smokeEmission: 1.25,
+          sulphurContent: 0.5
+        }
+      }
+
+      await expect(
+        recordFuelCheck(db, 'FUEL-1', 'testResults', true, undefined, data)
+      ).rejects.toThrow('logger is required')
+    })
+  })
+
+  describe('recordFuelCheck - fuelDescription', () => {
+    const rebrand = {
+      supplierType: 'Rebrand',
+      technicalReview: { status: 'new' }
+    }
+
+    const record = (
+      result,
+      fuelDescription,
+      manufacturingProcess = 'Heat treatment and extrusion'
+    ) =>
+      recordFuelCheck(
+        db,
+        'FUEL-1',
+        'fuelDescription',
+        result,
+        mockLogger,
+        fuelDescription === undefined
+          ? undefined
+          : { fuelDescription, manufacturingProcess }
+      )
+
+    beforeEach(() => {
+      collection.findOne
+        .mockResolvedValueOnce(rebrand)
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+    })
+
+    test('stores the description and passed status', async () => {
+      const result = await record(true, validDescription)
+
+      expect(result.success).toBe(true)
+      const [, update] = collection.updateOne.mock.calls[0]
+      expect(update.$set).toMatchObject({
+        'fuelDescription.appearance': 'Pillow-shaped briquettes',
+        'fuelDescription.weight': '20',
+        'fuelDescription.composition': 'Wood 100%',
+        'fuelDescription.sulphurContent': 0.7,
+        manufacturingProcess: 'Heat treatment and extrusion',
+        'technicalReview.listingChecks.fuelDescription': true,
+        'technicalReview.status': 'in_review'
+      })
+    })
+  })
+
+  describe('updateFuelReview', () => {
+    const mockSuccessfulUpdate = (
+      technicalReview = rebrandPassed,
+      supplierType = 'Rebrand'
+    ) => {
+      collection.findOne
+        .mockResolvedValueOnce({ supplierType, technicalReview })
+        .mockResolvedValueOnce({ id: 'FUEL-1' })
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+    }
+
+    test('accepts a Manufacturer fuel once its checks have passed', async () => {
+      mockSuccessfulUpdate(manufacturerPassed, 'Manufacture')
+
+      const result = await updateFuelReview(
+        db,
+        'FUEL-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+    })
+
+    test('does not accept a Manufacturer fuel with Rebrand checks only', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Manufacture',
+        technicalReview: rebrandPassed
+      })
+
+      const result = await updateFuelReview(
+        db,
+        'FUEL-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(result.incomplete).toBe(true)
+      // Manufacture requires testResults (doc), and manufacturingProcess + hasQualityControlSystem (listing)
+      // rebrandPassed has the shared attributes (brandName, additionalBrandNames, etc.) but not these
+      expect(result.outstandingChecks).toEqual([
+        'testResults',
+        'manufacturingProcess',
+        'hasQualityControlSystem'
+      ])
+    })
+
+    test('accepts when every check has passed', async () => {
+      mockSuccessfulUpdate()
+
+      const result = await updateFuelReview(
+        db,
+        'FUEL-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data.fuelId).toBe('FUEL-1')
+      expect(result.data.status).toBe('accepted')
+      expect(result.data.reviewedAt).toBeInstanceOf(Date)
+      expect(db.collection).toHaveBeenCalledWith('Fuels')
+    })
+
+    test('refuses to accept while checks are outstanding', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Rebrand',
+        technicalReview: {}
+      })
+
+      const result = await updateFuelReview(
+        db,
+        'FUEL-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(result.success).toBe(false)
+      expect(result.incomplete).toBe(true)
+      expect(result.outstandingChecks).toEqual([
+        'manufacturerLetter',
+        'fuelDetails',
+        'brandName',
+        'additionalBrandNames',
+        'fuelAppearance',
+        'fuelWeight',
+        'fuelComposition',
+        'sulphurContent',
+        'fuelDescription'
+      ])
+      expect(collection.updateOne).not.toHaveBeenCalled()
+    })
+
+    test('refuses to accept when a check has failed', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Rebrand',
+        technicalReview: {
+          ...rebrandPassed,
+          listingChecks: { ...rebrandPassed.listingChecks, fuelDetails: false }
+        }
+      })
+
+      const result = await updateFuelReview(
+        db,
+        'FUEL-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(result.incomplete).toBe(true)
+      expect(result.outstandingChecks).toEqual(['fuelDetails'])
+    })
+
+    test('allows rejecting even when checks are outstanding', async () => {
+      mockSuccessfulUpdate({})
+
+      const result = await updateFuelReview(
+        db,
+        'FUEL-1',
+        { status: 'rejected' },
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data.status).toBe('rejected')
+    })
+
+    test('writes dot-notation paths so the check results survive', async () => {
+      mockSuccessfulUpdate()
+
+      await updateFuelReview(db, 'FUEL-1', { status: 'accepted' }, mockLogger)
+
+      const [filter, update] = collection.updateOne.mock.calls[0]
+
+      expect(filter).toEqual({ id: 'FUEL-1' })
+      expect(update.$set).toHaveProperty('technicalReview.status', 'accepted')
+      expect(update.$set).toHaveProperty('technicalReview.reviewedAt')
+      expect(update.$set).not.toHaveProperty('technicalReview')
+      expect(update.$set).not.toHaveProperty(
+        'technicalReview.documentationChecks'
+      )
+    })
+
+    test('records the reviewer when one is supplied', async () => {
+      mockSuccessfulUpdate()
+
+      await updateFuelReview(
+        db,
+        'FUEL-1',
+        {
+          status: 'accepted',
+          reviewedBy: { name: 'A Reviewer', email: 'a@defra.gov.uk' }
+        },
+        mockLogger
+      )
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set['technicalReview.reviewedBy.name']).toBe('A Reviewer')
+      expect(update.$set['technicalReview.reviewedBy.email']).toBe(
+        'a@defra.gov.uk'
+      )
+      expect(calculateItemStatus).toHaveBeenCalledWith(db, 'fuel', 'FUEL-1')
+    })
+
+    test('records a null reviewer when nobody is signed in', async () => {
+      mockSuccessfulUpdate()
+
+      await updateFuelReview(db, 'FUEL-1', { status: 'accepted' }, mockLogger)
+
+      const [, update] = collection.updateOne.mock.calls[0]
+
+      expect(update.$set['technicalReview.reviewedBy']).toBeNull()
+    })
+
+    test('does not return the full fuel record', async () => {
+      mockSuccessfulUpdate()
+
+      const result = await updateFuelReview(
+        db,
+        'FUEL-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(Object.keys(result.data).sort()).toEqual([
+        'fuelId',
+        'reviewedAt',
+        'status'
+      ])
+    })
+
+    test('returns notFound when the fuel does not exist', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const result = await updateFuelReview(
+        db,
+        'missing',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(result).toEqual({
+        success: false,
+        message: 'Fuel not found',
+        notFound: true
+      })
+    })
+
+    test('returns notFound when the update matches nothing', async () => {
+      collection.findOne.mockResolvedValue({
+        supplierType: 'Rebrand',
+        technicalReview: rebrandPassed
+      })
+      collection.updateOne.mockResolvedValue({ matchedCount: 0 })
+
+      const result = await updateFuelReview(
+        db,
+        'FUEL-1',
+        { status: 'accepted' },
+        mockLogger
+      )
+
+      expect(result.notFound).toBe(true)
+    })
+
+    test('logs and rethrows database errors', async () => {
+      const error = new Error('Database error')
+      collection.findOne.mockRejectedValue(error)
+
+      await expect(
+        updateFuelReview(db, 'FUEL-1', { status: 'accepted' }, mockLogger)
+      ).rejects.toThrow('Database error')
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        error,
+        'Failed to update fuel review'
+      )
+    })
+
+    test('throws when logger is missing', async () => {
+      await expect(
+        updateFuelReview(db, 'FUEL-1', { status: 'accepted' })
+      ).rejects.toThrow('logger is required')
+    })
+  })
+})

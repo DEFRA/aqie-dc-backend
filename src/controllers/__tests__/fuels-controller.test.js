@@ -12,7 +12,7 @@ import {
 } from '#src/controllers/fuels-controller.js'
 
 import {
-  generateSecureId,
+  generateNextId,
   getFullAddress
 } from '#src/common/helpers/data-transformer.js'
 import {
@@ -20,14 +20,14 @@ import {
   findLastCertifiedDate
 } from '#src/common/helpers/certification.js'
 
-// Only generateSecureId is non-deterministic (uses crypto), so it's the only
-// helper mocked here. findCertified/getFullAddress run for real so tests
-// exercise the actual mapping logic instead of asserting on fake data.
+// generateNextId is non-deterministic (uses crypto), so it's mocked here.
+// findCertified/getFullAddress run for real so tests exercise the actual
+// mapping logic instead of asserting on fake data.
 vi.mock('#src/common/helpers/data-transformer.js', async (importOriginal) => {
   const actual = await importOriginal()
   return {
     ...actual,
-    generateSecureId: vi.fn(),
+    generateNextId: vi.fn(),
     getFullAddress: vi.fn()
   }
 })
@@ -65,7 +65,7 @@ describe('fuels-controller', () => {
       collection: vi.fn().mockReturnValue(collection)
     }
 
-    generateSecureId.mockReturnValue('12345')
+    generateNextId.mockReturnValue('8727-0001')
     findCertified.mockReturnValue('England')
     findLastCertifiedDate.mockReturnValue('2024-01-01')
     getFullAddress.mockReturnValue('1 Test Street')
@@ -80,13 +80,13 @@ describe('fuels-controller', () => {
 
       const result = await createFuel(
         db,
-        { brandNames: 'Premium Fuel' },
+        { brandName: 'Premium Fuel' },
         mockLogger
       )
 
       expect(result.success).toBe(true)
       expect(result._id).toBe('mongo-id')
-      expect(result.data.fuelId).toBe('FUEL-12345')
+      expect(result.data.id).toBe('8727-0001')
       expect(mockLogger.info).toHaveBeenCalled()
     })
 
@@ -96,10 +96,10 @@ describe('fuels-controller', () => {
         insertedId: 'mongo-id'
       })
 
-      const result = await createFuel(db, { fuelId: 'FUEL-001' }, mockLogger)
+      const result = await createFuel(db, { id: 'FUEL-001' }, mockLogger)
 
-      expect(result.data.fuelId).toBe('FUEL-001')
-      expect(generateSecureId).not.toHaveBeenCalled()
+      expect(result.data.id).toBe('FUEL-001')
+      expect(generateNextId).not.toHaveBeenCalled()
     })
 
     test('throws when db missing', async () => {
@@ -144,11 +144,11 @@ describe('fuels-controller', () => {
         insertedId: 'mongo-id'
       })
 
-      await createFuel(db, { brandNames: 'Premium Fuel' }, mockLogger)
+      await createFuel(db, { brandName: 'Premium Fuel' }, mockLogger)
 
       expect(collection.insertOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          fuelId: 'FUEL-12345'
+          id: '8727-0001'
         })
       )
     })
@@ -159,8 +159,8 @@ describe('fuels-controller', () => {
       const cursor = {
         toArray: vi.fn().mockResolvedValue([
           {
-            fuelId: 'FUEL-001',
-            brandNames: 'Premium Fuel',
+            id: 'FUEL-001',
+            brandName: 'Premium Fuel',
             companyName: 'Fuel Company',
             englandCertification: {},
             scotlandCertification: {},
@@ -210,8 +210,8 @@ describe('fuels-controller', () => {
   describe('getFuelById', () => {
     test('returns mapped fuel detail', async () => {
       collection.findOne.mockResolvedValue({
-        fuelId: 'FUEL-001',
-        brandNames: 'Premium Fuel',
+        id: 'FUEL-001',
+        brandName: 'Premium Fuel',
         companyName: 'Fuel Company',
         englandCertification: {
           lastCertifiedAt: '2024-01-01'
@@ -259,18 +259,18 @@ describe('fuels-controller', () => {
       })
 
       collection.findOne.mockResolvedValue({
-        fuelId: 'FUEL-001',
-        brandNames: 'Updated Fuel'
+        id: 'FUEL-001',
+        brandName: 'Updated Fuel'
       })
 
       const result = await updateFuel(
         db,
         'FUEL-001',
-        { brandNames: 'Updated Fuel' },
+        { brandName: 'Updated Fuel' },
         mockLogger
       )
 
-      expect(result.updated.brandNames).toBe('Updated Fuel')
+      expect(result.updated.brandName).toBe('Updated Fuel')
     })
 
     test('returns notFound when no match', async () => {
@@ -330,8 +330,8 @@ describe('fuels-controller', () => {
         limit: vi.fn().mockReturnThis(),
         toArray: vi.fn().mockResolvedValue([
           {
-            fuelId: 'FUEL-001',
-            brandNames: 'Fuel A',
+            id: 'FUEL-001',
+            brandName: 'Fuel A',
             englandCertification: {
               lastCertifiedAt: '2024-01-01'
             },
@@ -370,8 +370,8 @@ describe('fuels-controller', () => {
         limit: vi.fn().mockReturnThis(),
         toArray: vi.fn().mockResolvedValue([
           {
-            fuelId: 'FUEL-001',
-            brandNames: 'Search Fuel',
+            id: 'FUEL-001',
+            brandName: 'Search Fuel',
             englandCertification: {
               lastCertifiedAt: '2024-01-01'
             },
@@ -411,8 +411,8 @@ describe('fuels-controller', () => {
   describe('getFuelWithRelatedItems', () => {
     test('returns fuel detail', async () => {
       collection.findOne.mockResolvedValue({
-        fuelId: 'FUEL-001',
-        brandNames: 'Related Fuel',
+        id: 'FUEL-001',
+        brandName: 'Related Fuel',
         englandCertification: {
           lastCertifiedAt: '2024-01-01'
         },

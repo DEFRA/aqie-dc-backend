@@ -26,7 +26,7 @@ export const countryCertificationSchema = Joi.object({
 // ============================================================================
 export const applianceSchema = Joi.object({
   id: Joi.string()
-    .pattern(/^APP-[A-Za-z0-9]+$/)
+    .pattern(/^\d{4}-\d+$/)
     .description('Appliance ID (primary key) system-generated.'),
   // Fields from DXT form input
   applicationId: Joi.string()
@@ -41,19 +41,34 @@ export const applianceSchema = Joi.object({
     .when('isUkBased', {
       is: false,
       then: Joi.string().required(),
-      otherwise: Joi.string().optional()
+      otherwise: Joi.string().optional().allow(null).empty('').default(null)
     })
-    .description('Company address for overseas/non-UK-based companies'),
+    .description(
+      'Company address for overseas/non-UK-based companies. String with \n if user put enter in the DXT form.'
+    ),
   companyAddress: Joi.object({
     uprn: Joi.string()
       .optional()
+      .allow(null)
+      .empty('')
+      .default(null)
       .description(
         'Company address UPRN (Unique Property Reference Number, when address comes for address finder on DEFRA form)'
       ),
     line1: Joi.string().required().description('Company address line 1'),
-    line2: Joi.string().optional().description('Company address line 2'),
+    line2: Joi.string()
+      .optional()
+      .allow(null)
+      .empty('')
+      .default(null)
+      .description('Company address line 2'),
     city: Joi.string().required().description('Company city'),
-    county: Joi.string().optional().description('Company county'),
+    county: Joi.string()
+      .optional()
+      .allow(null)
+      .empty('')
+      .default(null)
+      .description('Company county'),
     postcode: Joi.string().required().description('Company postcode')
   }).when('isUkBased', {
     is: true,
@@ -67,26 +82,35 @@ export const applianceSchema = Joi.object({
       .email()
       .optional()
       .allow(null)
-      .empty(null) // allow null to be treated as missing i.e optional
+      .empty('')
+      .default(null)
       .description('Company alternative contact email'),
     phone: Joi.string()
       .trim()
       .optional()
       .allow(null)
-      .empty(null)
-      .pattern(/^(0\d{10}|\+\d{11,13})$/)
+      .empty('')
+      .default(null)
+      .pattern(/^(0(?:\d\s?){10}|\+(?:\d\s?){11,13})$/)
       .description(
-        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432) and international numbers with an optional leading + (e.g. +445398914260).'
+        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432 or 07700 988 342) and international numbers with an optional leading + (e.g. +445398914260 or +44 808 157 0123).'
       )
   }),
   modelName: Joi.string().required().description('Model name'),
-  modelNumber: Joi.string().optional().description('Model number'),
+  modelNumber: Joi.string()
+    .optional()
+    .allow(null)
+    .empty('')
+    .default(null)
+    .description('Model number'),
   applianceType: Joi.string()
     .required()
     .description('Appliance type e.g. "heat"'),
   otherApplianceType: Joi.string()
     .optional()
     .allow(null)
+    .empty('')
+    .default(null)
     .description(
       'Secondary appliance type when applianceType is "other". Values are sourced from the ApplianceTypes collection and may change without code changes.'
     ),
@@ -94,6 +118,8 @@ export const applianceSchema = Joi.object({
   existingAuthorisedAppliance: Joi.string()
     .optional()
     .allow(null)
+    .empty('')
+    .default(null)
     .description('If it is a variant, details'),
   nominalOutput: Joi.number().required().description('Thermal output (kW)'),
   multifuelAppliance: Joi.boolean()
@@ -149,7 +175,9 @@ export const applianceSchema = Joi.object({
     ),
   instructionManual: Joi.object({
     title: Joi.string()
-      .allow('', null)
+      .allow(null)
+      .empty('')
+      .default(null)
       .optional()
       .description('Instruction manual title'),
     publicationDate: Joi.date()
@@ -158,11 +186,15 @@ export const applianceSchema = Joi.object({
       .optional()
       .description('Instruction manual publication date'),
     version: Joi.string()
-      .allow('', null)
+      .allow(null)
+      .empty('')
+      .default(null)
       .optional()
       .description('Instruction manual version'),
     additionalInfo: Joi.string()
-      .allow('', null)
+      .allow(null)
+      .empty('')
+      .default(null)
       .optional()
       .description('Instruction manual additional information')
   }).optional(),
@@ -263,7 +295,7 @@ export const applianceSchema = Joi.object({
 // ============================================================================
 export const fuelSchema = Joi.object({
   id: Joi.string()
-    .pattern(/^FUEL-[A-Za-z0-9]+$/)
+    .pattern(/^\d{4}-\d+$/)
     .description('Fuel ID (primary key) system-generated.'),
   // Start of fuel application fields
   companyName: Joi.string().required().description('Manufacturer'),
@@ -272,19 +304,32 @@ export const fuelSchema = Joi.object({
     .when('isUkBased', {
       is: false,
       then: Joi.string().required(),
-      otherwise: Joi.string().optional()
+      otherwise: Joi.string().optional().allow(null).empty('').default(null)
     })
     .description('Company address for overseas/non-UK-based companies'),
   companyAddress: Joi.object({
     uprn: Joi.string()
       .optional()
+      .allow(null)
+      .empty('')
+      .default(null)
       .description(
         'Company address UPRN (Unique Property Reference Number, when address comes for address finder on DEFRA form)'
       ),
     line1: Joi.string().required().description('Company address line 1'),
-    line2: Joi.string().optional().description('Company address line 2'),
+    line2: Joi.string()
+      .optional()
+      .allow(null)
+      .empty('')
+      .default(null)
+      .description('Company address line 2'),
     city: Joi.string().required().description('Company city'),
-    county: Joi.string().optional().description('Company county'),
+    county: Joi.string()
+      .optional()
+      .allow(null)
+      .empty('')
+      .default(null)
+      .description('Company county'),
     postcode: Joi.string().required().description('Company postcode')
   }).when('isUkBased', {
     is: true,
@@ -301,16 +346,18 @@ export const fuelSchema = Joi.object({
       .email()
       .optional()
       .allow(null)
-      .empty(null) // allow null to be treated as missing i.e optional
+      .empty('')
+      .default(null)
       .description('Manufacturer alternative contact email'),
     phone: Joi.string()
       .trim()
       .optional()
       .allow(null)
-      .empty(null)
-      .pattern(/^(0\d{10}|\+\d{11,13})$/)
+      .empty('')
+      .default(null)
+      .pattern(/^(0(?:\d\s?){10}|\+(?:\d\s?){11,13})$/)
       .description(
-        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432) and international numbers with an optional leading + (e.g. +445398914260).'
+        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432 or 07700 988 342) and international numbers with an optional leading + (e.g. +445398914260 or +44 808 157 0123).'
       )
   }),
   responsiblePerson: Joi.object({
@@ -319,96 +366,104 @@ export const fuelSchema = Joi.object({
       .email()
       .optional()
       .allow(null)
-      .empty(null) // allow null to be treated as missing i.e optional
+      .empty('')
+      .default(null)
       .description('Responsible email address')
   }),
-  customerComplaints: Joi.boolean()
+  hasCustomerComplaintsSystem: Joi.boolean()
     .required()
-    .description('System for customer complaints in place'),
+    .description('Is a system for handling customer complaints in place?'),
   fuelBagging: Joi.string()
     .required()
     .description('How do you sell this fuel, options provided'),
-  manufacturerOrReseller: Joi.string()
-    .valid('Manufacturer', 'Reseller')
+  supplierType: Joi.string()
+    .valid('Manufacture', 'Rebrand')
     .required()
-    .description('Manufacturer or rebranded/reseller'),
-  fuelDescription: Joi.string().required().description('Fuel description'),
-  //If a reseller, these fields become required:
-  originalFuelManufacturer: Joi.string()
-    .when('manufacturerOrReseller', {
-      is: 'Reseller',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
+    .description('Manufacture or Rebrand (used to be Reseller)'),
+  brandName: Joi.string().required().description('Brand name'),
+  additionalBrandNames: Joi.string()
+    .allow(null)
+    .empty('')
+    .default(null)
+    .optional()
+    .description('Additional brand names, entered as a comma-separated list'),
+  // Not sent by the DXT form: Yes when additionalBrandNames has a value, otherwise No
+  hasAdditionalBrandNames: Joi.boolean()
+    .when('additionalBrandNames', {
+      is: Joi.string().min(1).required(),
+      then: Joi.boolean().default(true),
+      otherwise: Joi.boolean().default(false)
     })
-    .description('Original fuel manufacturer'),
-  originalFuelNameOrBrand: Joi.string()
-    .when('manufacturerOrReseller', {
-      is: 'Reseller',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
+    .description('Will the fuel be sold under any additional brand names?'),
+  //If a rebrand, these fields become required:
+  originalFuel: Joi.object({
+    manufacturer: Joi.string()
+      .required()
+      .description('Original fuel manufacturer'),
+    name: Joi.string().required().description('Original fuel name or brand'),
+    isChangedOrMixed: Joi.boolean()
+      .required()
+      .description(
+        'Has the original fuel been changed or mixed with another fuel: yes or no'
+      ),
+    changes: Joi.string()
+      .when('isChangedOrMixed', {
+        is: true,
+        then: Joi.string().required(),
+        otherwise: Joi.string().allow(null).empty('').default(null).optional()
+      })
+      .description('Explain changes made to the original fuel')
+  })
+    .when('supplierType', {
+      is: 'Rebrand',
+      then: Joi.required(),
+      otherwise: Joi.optional()
     })
-    .description('Original fuel name or brand'),
-  changedFromOriginalFuel: Joi.boolean()
-    .when('manufacturerOrReseller', {
-      is: 'Reseller',
+    .description('Original fuel details (required for rebranders)'),
+  //If a manufacturer, these fields become required:
+  fuelDescription: Joi.object({
+    appearance: Joi.string().required().description('Fuel description'),
+    weight: Joi.string()
+      .required()
+      .description('Fuel weight comes as string from DXGT form'),
+    composition: Joi.string().required().description('Fuel composition'),
+    sulphurContent: Joi.number().required().description('Sulphur content (%)')
+  })
+    .when('supplierType', {
+      is: 'Manufacture',
+      then: Joi.required(),
+      otherwise: Joi.optional()
+    })
+    .description('Fuel description details (required for manufacturers)'),
+  manufacturingProcess: Joi.string()
+    .when('supplierType', {
+      is: 'Manufacture',
+      then: Joi.string().required(),
+      otherwise: Joi.string().optional().allow(null).empty('').default(null)
+    })
+    .description('Manufacturing process'),
+  hasQualityControlSystem: Joi.boolean()
+    .when('supplierType', {
+      is: 'Manufacture',
       then: Joi.boolean().required(),
       otherwise: Joi.boolean().optional()
     })
-    .description('Changes to original fuel: yes or no'),
-  changesMade: Joi.string()
-    .optional()
-    .description('Explain changes made to the original fuel'),
-  resellBrandName: Joi.string()
-    .when('manufacturerOrReseller', {
-      is: 'Reseller',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('What brand name will you be reselling'), //NEEDTO: new so needs to be added to cilent DB or mapped here
-  //If a manufacturer, these fields become required:
-  fuelWeight: Joi.number()
-    .when('manufacturerOrReseller', {
-      is: 'Manufacturer',
-      then: Joi.number().required(),
-      otherwise: Joi.number().optional()
-    })
-    .description('Fuel weight'),
-  fuelComposition: Joi.string()
-    .when('manufacturerOrReseller', {
-      is: 'Manufacturer',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Fuel composition'),
-  sulphurContent: Joi.number()
-    .when('manufacturerOrReseller', {
-      is: 'Manufacturer',
-      then: Joi.number().required(),
-      otherwise: Joi.number().optional()
-    })
-    .description('Sulphur content (%)'),
-  manufacturingProcess: Joi.string()
-    .when('manufacturerOrReseller', {
-      is: 'Manufacturer',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Manufacturing process'),
-  qualityControlSystem: Joi.string()
-    .when('manufacturerOrReseller', {
-      is: 'Manufacturer',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Quality manufactured system in place'),
-  brandNames: Joi.string()
-    .when('manufacturerOrReseller', {
-      is: 'Manufacturer',
-      then: Joi.string().required(),
-      otherwise: Joi.string().optional()
-    })
-    .description('Brand name(s)'),
+    .description('Is a monitored quality control system in place?'),
   //End of manufacturer/reseller
+  // Fields from admin FE input
+  testResults: Joi.object({
+    smokeEmission: Joi.number()
+      .min(0)
+      .allow(null)
+      .optional()
+      .description('Smoke emission (g/h)'),
+    sulphurContent: Joi.number()
+      .min(0)
+      .max(100)
+      .allow(null)
+      .optional()
+      .description('Sulphur content (%)')
+  }).optional(),
   declaration: Joi.boolean().required().description('Declaration'),
   createdAt: Joi.date()
     .optional()
@@ -427,11 +482,17 @@ export const fuelSchema = Joi.object({
       .default(null)
       .description('Date technical review status changed'),
     reviewedBy: Joi.object({
-      name: Joi.string().optional(),
-      email: Joi.string().email().optional()
-    })
-      .allow(null)
-      .default(null)
+      name: Joi.string().optional().default(null),
+      email: Joi.string().email().optional().default(null)
+    }).default(),
+    documentationChecks: Joi.object({
+      manufacturerLetter: Joi.boolean().allow(null).default(null),
+      testResults: Joi.boolean().allow(null).default(null)
+    }).default(),
+    listingChecks: Joi.object({
+      fuelDetails: Joi.boolean().allow(null).default(null),
+      fuelDescription: Joi.boolean().allow(null).default(null)
+    }).default()
   })
     .default()
     .description('This technical review happens during the application stage'),
@@ -458,5 +519,27 @@ export const fuelSchema = Joi.object({
     .description(
       'Records that have been migrated to the DB are deemed as legacy records'
     ),
+  isVisibleToPublic: Joi.boolean()
+    .default(true)
+    .description('Should this fuel be visible to the public?'),
+  fuelStatus: Joi.string()
+    .valid('pending', 'live', 'hidden', 'rejected')
+    .description(
+      'Takes in account the technical review and country certifications, and isVisibleToPublic to determine the overall status of the fuel'
+    )
+    .default('pending'),
   publishedDate: Joi.date().optional().description('Published date')
 }).label('Fuel')
+
+// ============================================================================
+// NULL / EMPTY STRING BEHAVIOUR
+// Validation never blocks the save (see create-application.js): the Joi `value`
+// is what gets stored, and any `error` only becomes a validationWarning.
+//
+// Optional strings use .allow(null).empty('').default(null), so:
+//   null    -> stored as null
+//   ''      -> stored as null
+//   absent  -> stored as null
+// Required fields are unchanged: absent, null or '' gives a warning and the
+// value is stored as received.
+// ============================================================================

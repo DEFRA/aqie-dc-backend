@@ -35,9 +35,8 @@ export const createFuel = {
               }))
             : []
 
-          // Fall back to the raw payload if Joi couldn't produce a usable value, so the record still saves
           return {
-            payload: value ?? request.payload,
+            payload: value,
             validationWarnings
           }
         }
@@ -69,7 +68,7 @@ export const createFuel = {
         .response({
           success: true,
           message,
-          data: { fuelId: data.fuelId }
+          data: { fuelId: data.id }
         })
         .code(statusCodes.created)
     } catch (err) {

@@ -20,6 +20,7 @@ import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { recordApplianceCheck } from '../routes/appliances/record-appliance-check.js'
 import { searchAdminAppliances } from '../routes/appliances/search-admin-appliances.js'
 import { getAdminApplianceById } from '../routes/appliances/get-admin-appliance-by-id.js'
+import { getApplianceActionHistory } from '../routes/appliances/get-appliance-action-history.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
 import { updateCertificationStatus } from '../routes/appliances/update-certification-status.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
@@ -31,6 +32,19 @@ import { updateFuel } from '../routes/fuels/update-fuel.js'
 import { deleteFuel } from '../routes/fuels/delete-fuel.js'
 import { getApplianceReview } from '../routes/appliances/get-appliance-review.js'
 import { updateApplianceReview } from '../routes/appliances/update-appliance-review.js'
+import { getFuelReview } from '../routes/fuels/get-fuel-review.js'
+import { updateFuelReview } from '../routes/fuels/update-fuel-review.js'
+import { recordFuelCheck } from '../routes/fuels/record-fuel-check.js'
+import {
+  recordBrandNameCheck,
+  recordAdditionalBrandNamesCheck,
+  recordFuelAppearanceCheck,
+  recordFuelWeightCheck,
+  recordFuelCompositionCheck,
+  recordSulphurContentCheck,
+  recordManufacturingProcessCheck,
+  recordHasQualityControlSystemCheck
+} from '../routes/fuels/record-fuel-attribute-check.js'
 import { updateApplianceVisibility } from '../routes/appliances/update-appliance-visibility.js'
 import { getApplianceTypes } from '../routes/appliance-types/get-appliance-types.js'
 import Inert from '@hapi/inert'
@@ -116,6 +130,7 @@ const router = {
         getAllAppliances,
         searchAdminAppliances, // Must come before getApplianceById to avoid route conflict
         getAdminApplianceById,
+        getApplianceActionHistory,
         getApplianceReview,
         getApplianceById,
         recordApplianceCheck,
@@ -134,6 +149,17 @@ const router = {
         updateFuel,
         deleteFuel,
         searchFuels, // Must come before getFuelById to avoid route conflict
+        getFuelReview,
+        updateFuelReview,
+        recordFuelCheck,
+        recordBrandNameCheck,
+        recordAdditionalBrandNamesCheck,
+        recordFuelAppearanceCheck,
+        recordFuelWeightCheck,
+        recordFuelCompositionCheck,
+        recordSulphurContentCheck,
+        recordManufacturingProcessCheck,
+        recordHasQualityControlSystemCheck,
         getFuelById
       ])
     }
