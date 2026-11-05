@@ -57,6 +57,9 @@ const DATE_PATTERNS = [
   { regex: /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/, order: [3, 2, 1] }
 ]
 
+const JS_DATE_STRING =
+  /^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} \d{4} \d{2}:\d{2}:\d{2} GMT[+-]\d{4}/
+
 // Returns an ISO 8601 UTC string (e.g. 2015-10-21T00:00:00.000Z), or null if unparseable
 function parseDateToIso(value) {
   if (value instanceof Date) {
@@ -64,6 +67,12 @@ function parseDateToIso(value) {
   }
 
   const text = String(value ?? '').trim()
+
+  // JS Date.toString() text, e.g. "Sun Jun 01 2025 01:00:00 GMT+0100 (British Summer Time)"
+  if (JS_DATE_STRING.test(text)) {
+    const parsed = new Date(text)
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
+  }
 
   for (const { regex, order } of DATE_PATTERNS) {
     const match = regex.exec(text)
@@ -143,7 +152,7 @@ function transformToAppliance(row) {
       linkedApplicationIds: splitIds(row['Linked Applications'])
     },
     modelName,
-    modelNumber: 'Not available',
+    modelNumber: null,
     companyName: row['Manufacturer Name'],
     companyFullAddress: row['Manufacturer Address'],
     //Need to come back to after collidate the SQS and appliance application chages
