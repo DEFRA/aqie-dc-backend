@@ -78,6 +78,7 @@ async function importEntity(db, filePath, entityConfig, sheetName, verbose) {
     inserted: 0,
     updated: 0,
     skipped: 0,
+    actionsCreated: 0,
     errors: []
   }
 
@@ -136,6 +137,12 @@ async function importEntity(db, filePath, entityConfig, sheetName, verbose) {
       } else {
         await collection.insertOne(document)
         results.inserted++
+
+        const actions = entityConfig.buildActions?.(row, document) ?? []
+        if (actions.length > 0) {
+          await db.collection('Actions').insertMany(actions)
+          results.actionsCreated += actions.length
+        }
       }
 
       if (newId) {

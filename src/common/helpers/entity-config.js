@@ -3,7 +3,8 @@
  * Defines all importable entities and their schemas
  */
 
-import { generateNextId } from './data-transformer.js'
+import { generateNextId, generateSecureId } from './data-transformer.js'
+import { actionWording } from '../schemas/action-schema.js'
 
 export const ENTITY_TYPES = {
   APPLIANCES: 'appliances',
@@ -20,6 +21,7 @@ export const ENTITY_CONFIG = {
     idPattern: /^\d{4}-\d+$/,
     compareRows: compareByApplianceId,
     transform: transformToAppliance,
+    buildActions: buildApplianceActions,
     sampleData: getSampleAppliance
   },
   [ENTITY_TYPES.FUELS]: {
@@ -58,7 +60,7 @@ function parseBoolean(value) {
 const DATE_PATTERNS = [
   { regex: /^(\d{4})(\d{2})(\d{2})$/, order: [1, 2, 3] },
   { regex: /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s].*)?$/, order: [1, 2, 3] },
-  { regex: /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/, order: [3, 2, 1] }
+  { regex: /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:[T\s].*)?$/, order: [3, 2, 1] }
 ]
 
 const JS_DATE_STRING =
@@ -162,6 +164,7 @@ function transformToAppliance(row) {
   const servicingPublicationDate = parseDateColumn(row, 'Servicing Manual Date')
 
   const appliance = {
+    isLegacyRecord: true,
     legacy: {
       applianceId: row['Appliance ID'],
       applicationId: row['Application Number'],
@@ -249,6 +252,78 @@ function transformToAppliance(row) {
   // }
 
   return appliance
+}
+
+const hasValue = (value) => String(value ?? '').trim() !== ''
+
+// Day-level date (time dropped) as a Date at midnight UTC; null if absent or unreadable
+function parseActionDate(row, column) {
+  const iso = parseDateColumn(row, column)
+  return iso ? new Date(iso.slice(0, 10)) : null
+}
+
+// Reviewer, else the submitter; null when neither is given
+function legacyActor(row) {
+  const name = [row['Reviewed By (User)'], row['Submitted By (User)']]
+    .map((value) => String(value ?? '').trim())
+    .find(Boolean)
+
+  return name ? { name, type: 'user' } : null
+}
+
+function actionEntry(itemId, action, completedBy, completedAt) {
+  return {
+    id: `ACT-${generateSecureId()}`,
+    itemId,
+    itemType: 'appliance',
+    action,
+    description: actionWording[action](),
+    completedBy,
+    completedAt
+  }
+}
+
+// Action history entries for a migrated appliance, in the order they should be inserted.
+// Unreadable dates are kept as null so the appliance and its history still import.
+function buildApplianceActions(row, appliance) {
+  const completedBy = legacyActor(row)
+  const actions = []
+
+  // TODO double check: the spec only asks for 'Rejected at application' when an approve date
+  // also exists; it is created for a reject date on its own too.
+  // Inserted before 'Accepted at application' so it sits earlier in the history.
+  if (hasValue(row['Reviewer Reject Date'])) {
+    actions.push(
+      actionEntry(
+        appliance.id,
+        'rejectedAtApplication',
+        completedBy,
+        parseActionDate(row, 'Reviewer Reject Date')
+      )
+    )
+  }
+
+  if (hasValue(row['Reviewer Approve Date'])) {
+    actions.push(
+      actionEntry(
+        appliance.id,
+        'acceptedAtApplication',
+        completedBy,
+        parseActionDate(row, 'Reviewer Approve Date')
+      )
+    )
+  } else if (String(row['England Status'] ?? '').trim() === 'Published (600)') {
+    actions.push(
+      actionEntry(
+        appliance.id,
+        'acceptedAtApplication',
+        completedBy,
+        parseActionDate(row, 'England Assigned Date')
+      )
+    )
+  }
+
+  return actions
 }
 
 function transformToFuel(row) {
