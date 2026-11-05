@@ -6,6 +6,7 @@ import {
   isFuelCheckRequired
 } from '../common/helpers/review-status.js'
 import { calculateItemStatus } from '../common/helpers/item-status.js'
+import { getFullAddress } from '../common/helpers/data-transformer.js'
 import { updateFuel } from './fuels-controller.js'
 
 /**
@@ -22,32 +23,138 @@ const notFoundResult = () => ({
   notFound: true
 })
 
-function validateFuelCheck(check, result) {
+function requireBoolean(check, result) {
+  if (typeof result !== 'boolean') {
+    throw Boom.badRequest(
+      `${check} result must be true (passed) or false (failed)`
+    )
+  }
+}
+
+const isValidMeasurement = (value) =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0
+
+function validateTestResults(result, data) {
+  requireBoolean('testResults', result)
+
+  const { smokeEmission, sulphurContent } = data?.testResults ?? {}
+
+  if (result === true) {
+    if (
+      !isValidMeasurement(smokeEmission) ||
+      !isValidMeasurement(sulphurContent)
+    ) {
+      throw Boom.badRequest(
+        'testResults requires smokeEmission and sulphurContent, when marked as passed'
+      )
+    }
+    return
+  }
+
+  // Failed: values are optional, but any that are present must be valid
+  const present = [smokeEmission, sulphurContent].filter((v) => v != null)
+  if (!present.every(isValidMeasurement)) {
+    throw Boom.badRequest(
+      'smokeEmission and sulphurContent must be non-negative numbers or null'
+    )
+  }
+}
+
+const checkValidators = {
+  testResults: validateTestResults
+}
+
+function validateFuelCheck(check, result, data) {
   const group = getFuelCheckGroup(check)
 
   if (!group) {
     throw new Error(`Unrecognised check: ${check}`)
   }
 
-  if (check === 'testResults' && typeof result !== 'boolean') {
-    throw Boom.badRequest(
-      'testResults result must be true (passed) or false (failed)'
-    )
-  }
+  checkValidators[check]?.(result, data)
 
   return group
+}
+
+function buildCheckUpdatePayload(group, check, result, data) {
+  if (!data) {
+    return { technicalReview: { [group]: { [check]: result } } }
+  }
+
+  return {
+    ...data,
+    technicalReview: { [group]: { [check]: result } }
+  }
+}
+
+/**
+ * Get the technical review state for one fuel.
+ * Returns only the fields the review screen needs; company contact details are excluded.
+ */
+async function getFuelReview(db, fuelId, logger) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+  try {
+    const item = await db.collection('Fuels').findOne(
+      { id: fuelId },
+      {
+        projection: {
+          id: 1,
+          applicationId: 1,
+          brandName: 1,
+          additionalBrandNames: 1,
+          hasAdditionalBrandNames: 1,
+          companyAddress: 1,
+          companyFullAddress: 1,
+          supplierType: 1,
+          fuelBagging: 1,
+          fuelDescription: 1,
+          manufacturingProcess: 1,
+          hasQualityControlSystem: 1,
+          originalFuel: 1,
+          testResults: 1,
+          technicalReview: 1,
+          _id: 0
+        }
+      }
+    )
+
+    if (!item) {
+      return notFoundResult()
+    }
+
+    const { brandName, companyAddress, companyFullAddress, ...rest } = item
+
+    return {
+      success: true,
+      data: {
+        ...rest,
+        testResults: item.testResults ?? null,
+        name: brandName,
+        fullAddress: getFullAddress({ companyAddress, companyFullAddress }),
+        outstandingChecks: getFuelOutstandingChecks(
+          item.technicalReview,
+          item.supplierType
+        )
+      }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to fetch fuel review')
+    throw error
+  }
 }
 
 /**
  * Record the result of one documentation or listing check.
  * Recording the first result also moves the fuel from 'new' to 'in_review'.
  */
-async function recordFuelCheck(db, fuelId, check, result, logger) {
+async function recordFuelCheck(db, fuelId, check, result, logger, data) {
   if (!logger) {
     throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
-    const group = validateFuelCheck(check, result)
+    const group = validateFuelCheck(check, result, data)
 
     const item = await db
       .collection('Fuels')
@@ -66,13 +173,13 @@ async function recordFuelCheck(db, fuelId, check, result, logger) {
       )
     }
 
-    const technicalReview = { [group]: { [check]: result } }
+    const updates = buildCheckUpdatePayload(group, check, result, data)
 
     if (item.technicalReview?.status === 'new') {
-      technicalReview.status = 'in_review'
+      updates.technicalReview.status = 'in_review'
     }
 
-    const updated = await updateFuel(db, fuelId, { technicalReview }, logger)
+    const updated = await updateFuel(db, fuelId, updates, logger)
 
     if (updated.notFound) {
       return notFoundResult()
@@ -152,4 +259,4 @@ async function updateFuelReview(db, fuelId, decision, logger) {
   }
 }
 
-export { recordFuelCheck, updateFuelReview }
+export { getFuelReview, recordFuelCheck, updateFuelReview }

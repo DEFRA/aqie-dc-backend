@@ -387,6 +387,14 @@ export const fuelSchema = Joi.object({
     .default(null)
     .optional()
     .description('Additional brand names, entered as a comma-separated list'),
+  // Not sent by the DXT form: Yes when additionalBrandNames has a value, otherwise No
+  hasAdditionalBrandNames: Joi.boolean()
+    .when('additionalBrandNames', {
+      is: Joi.string().min(1).required(),
+      then: Joi.boolean().default(true),
+      otherwise: Joi.boolean().default(false)
+    })
+    .description('Will the fuel be sold under any additional brand names?'),
   //If a rebrand, these fields become required:
   originalFuel: Joi.object({
     manufacturer: Joi.string()
@@ -442,6 +450,20 @@ export const fuelSchema = Joi.object({
     })
     .description('Is a monitored quality control system in place?'),
   //End of manufacturer/reseller
+  // Fields from admin FE input
+  testResults: Joi.object({
+    smokeEmission: Joi.number()
+      .min(0)
+      .allow(null)
+      .optional()
+      .description('Smoke emission (g/h)'),
+    sulphurContent: Joi.number()
+      .min(0)
+      .max(100)
+      .allow(null)
+      .optional()
+      .description('Sulphur content (%)')
+  }).optional(),
   declaration: Joi.boolean().required().description('Declaration'),
   createdAt: Joi.date()
     .optional()
