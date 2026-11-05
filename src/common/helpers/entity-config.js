@@ -50,26 +50,72 @@ function parseBoolean(value) {
   return false
 }
 
-function parseDate(dateString) {
-  if (!dateString) return null
-  if (dateString instanceof Date) return dateString
+// Day-first (UK) formats; each entry lists the capture-group order [year, month, day]
+const DATE_PATTERNS = [
+  { regex: /^(\d{4})(\d{2})(\d{2})$/, order: [1, 2, 3] },
+  { regex: /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s].*)?$/, order: [1, 2, 3] },
+  { regex: /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/, order: [3, 2, 1] }
+]
 
-  // Try parsing DD/MM/YYYY format
-  const parts = dateString.split('/')
-  if (parts.length === 3) {
-    const [day, month, year] = parts
-    const date = new Date(year, month - 1, day)
-    if (!isNaN(date.getTime())) return date
+// Returns an ISO 8601 UTC string (e.g. 2015-10-21T00:00:00.000Z), or null if unparseable
+function parseDateToIso(value) {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString()
   }
 
-  // Fallback to standard parsing
-  const date = new Date(dateString)
-  return isNaN(date.getTime()) ? null : date
+  const text = String(value ?? '').trim()
+
+  for (const { regex, order } of DATE_PATTERNS) {
+    const match = regex.exec(text)
+    if (!match) {
+      continue
+    }
+
+    const [year, month, day] = order.map((index) => Number(match[index]))
+    const date = new Date(Date.UTC(year, month - 1, day))
+
+    // Reject overflowed dates such as 31/02/2015
+    const isRealDate =
+      date.getUTCFullYear() === year &&
+      date.getUTCMonth() === month - 1 &&
+      date.getUTCDate() === day
+
+    return isRealDate ? date.toISOString() : null
+  }
+
+  return null
+}
+
+function parseDateColumn(row, column) {
+  const raw = row[column]
+  const iso = parseDateToIso(raw)
+  if (raw && !iso) {
+    console.warn(`Unrecognised ${column}: "${raw}"`)
+  }
+  return iso
+}
+
+// Each comment starts with a bracketed date/time stamp, e.g. [21/10/2015 14:32]
+const COMMENT_START = /(?=\[\s*\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}[^\]\n]*\])/
+
+function splitComments(value) {
+  return String(value ?? '')
+    .split(COMMENT_START)
+    .map((comment) => comment.trim())
+    .filter(Boolean)
 }
 
 /**
  * Transform functions for each entity type
  */
+// Splits a cell of IDs separated by commas, semicolons or line breaks
+function splitIds(value) {
+  return String(value ?? '')
+    .split(/[,;\n]/)
+    .map((id) => id.trim())
+    .filter(Boolean)
+}
+
 function transformToAppliance(row) {
   const modelName = row['Appliance Name (Title)']
 
@@ -78,11 +124,23 @@ function transformToAppliance(row) {
     return null
   }
 
+  const manualPublicationDate = parseDateColumn(
+    row,
+    'Instructions Manual Date'
+  )
+  const servicingPublicationDate = parseDateColumn(row, 'Servicing Manual Date')
+
   const appliance = {
     //need to correct this when correcting the appliance ID
     id: `APP-${generateSecureId()}`,
     legacy: {
-      applianceId: row['Appliance ID']
+      applianceId: row['Appliance ID'],
+      applicationId: row['Application Number'],
+      comments: [
+        ...splitComments(row['Comments']),
+        row['Additional Comments']?.trim()
+      ].filter(Boolean),
+      linkedApplicationIds: splitIds(row['Linked Applications'])
     },
     modelName,
     modelNumber: 'Not available',
@@ -103,30 +161,15 @@ function transformToAppliance(row) {
     instructionManual: {
       title: row['Instructions Manual Title'],
       version: row['Instructions Manual Reference'],
-      //date 
+      publicationDate: manualPublicationDate,
       additionalInfo: row['Additional Comments']
     },
+    servicingManual: {
+      title: row['Servicing Manual Title'],
+      version: row['Servicing Manual Reference'],
+      publicationDate: servicingPublicationDate
+    },
   
-    // manufacturerContactName: getValueOrDefault(
-    //   row.manufacturerContactName,
-    //   row['Contact Name'],
-    //   'Not Provided'
-    // ),
-    // manufacturerContactEmail: getValueOrDefault(
-    //   row.manufacturerContactEmail,
-    //   row['Contact Email'],
-    //   'noemail@example.com'
-    // ),
-    // manufacturerPhone: getValueOrDefault(
-    //   row.manufacturerPhone,
-    //   row['Contact Phone'],
-    //   'Not Provided'
-    // ),
-    // modelName: getValueOrDefault(
-    //   row.modelName,
-    //   row['Model Name'],
-    //   'Unknown Model'
-    // ),
     // isVariant: parseBoolean(
     //   getValueOrDefault(row.isVariant, row['Is Variant'])
     // ),
