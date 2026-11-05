@@ -68,6 +68,7 @@ describe('action-schema actionWording', () => {
         'acceptedAtApplication',
         'rejectedAtApplication',
         'sentToGovernments',
+        'sentForCertification',
         'certified',
         'uncertified',
         'certifiedOnBehalf',
@@ -85,6 +86,7 @@ describe('action-schema actionWording', () => {
     ['acceptedAtApplication', undefined, 'Accepted at application'],
     ['rejectedAtApplication', undefined, 'Rejected at application'],
     ['sentToGovernments', undefined, 'Sent to governments for approval'],
+    ['sentForCertification', 'England', 'Sent to England for certification'],
     ['certified', 'Wales', 'Certified in Wales'],
     ['uncertified', 'Scotland', 'Uncertified in Scotland'],
     [

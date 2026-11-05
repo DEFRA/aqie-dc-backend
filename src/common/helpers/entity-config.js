@@ -59,8 +59,14 @@ function parseBoolean(value) {
 // Day-first (UK) formats; each entry lists the capture-group order [year, month, day]
 const DATE_PATTERNS = [
   { regex: /^(\d{4})(\d{2})(\d{2})$/, order: [1, 2, 3] },
-  { regex: /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s].*)?$/, order: [1, 2, 3] },
-  { regex: /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:[T\s].*)?$/, order: [3, 2, 1] }
+  {
+    regex: /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s].*)?$/,
+    order: [1, 2, 3]
+  },
+  {
+    regex: /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:[T\s].*)?$/,
+    order: [3, 2, 1]
+  }
 ]
 
 const JS_DATE_STRING =
@@ -157,10 +163,7 @@ function transformToAppliance(row) {
     return null
   }
 
-  const manualPublicationDate = parseDateColumn(
-    row,
-    'Instructions Manual Date'
-  )
+  const manualPublicationDate = parseDateColumn(row, 'Instructions Manual Date')
   const servicingPublicationDate = parseDateColumn(row, 'Servicing Manual Date')
 
   const appliance = {
@@ -201,7 +204,7 @@ function transformToAppliance(row) {
       version: row['Servicing Manual Reference'],
       publicationDate: servicingPublicationDate
     },
-  
+
     // isVariant: parseBoolean(
     //   getValueOrDefault(row.isVariant, row['Is Variant'])
     // ),
@@ -230,6 +233,7 @@ function transformToAppliance(row) {
     // publishedDate:
     //   parseDate(getValueOrDefault(row.publishedDate, row['Published Date'])) ||
     //   new Date(),
+    ...buildCertifications(row),
     updatedAt: new Date(),
     createdAt: new Date()
   }
@@ -262,25 +266,175 @@ function parseActionDate(row, column) {
   return iso ? new Date(iso.slice(0, 10)) : null
 }
 
-// Reviewer, else the submitter; null when neither is given
-function legacyActor(row) {
-  const name = [row['Reviewed By (User)'], row['Submitted By (User)']]
-    .map((value) => String(value ?? '').trim())
-    .find(Boolean)
+// Legacy user cell such as "Name <name@example.com>" as { name, email }; null when empty
+function parseLegacyUser(value) {
+  const text = String(value ?? '').trim()
+  if (!text) {
+    return null
+  }
 
-  return name ? { name, type: 'user' } : null
+  const match = /^(.*?)\s*<([^<>\s]+@[^<>\s]+)>$/.exec(text)
+  if (!match) {
+    return { name: text }
+  }
+  return { name: match[1].trim() || match[2], email: match[2] }
 }
 
-function actionEntry(itemId, action, completedBy, completedAt) {
+// Reviewer, else the submitter; null when neither is given
+function legacyActor(row) {
+  const user =
+    parseLegacyUser(row['Reviewed By (User)']) ??
+    parseLegacyUser(row['Submitted By (User)'])
+
+  return user ? { ...user, type: 'user' } : null
+}
+
+const COUNTRIES = [
+  {
+    field: 'englandCertification',
+    prefix: 'England',
+    slug: 'england',
+    label: 'England'
+  },
+  {
+    field: 'scotlandCertification',
+    prefix: 'Scotland',
+    slug: 'scotland',
+    label: 'Scotland'
+  },
+  {
+    field: 'walesCertification',
+    prefix: 'Wales',
+    slug: 'wales',
+    label: 'Wales'
+  },
+  {
+    field: 'nIrelandCertification',
+    prefix: 'N Ireland',
+    slug: 'northern-ireland',
+    label: 'Northern Ireland'
+  }
+]
+
+// TODO come back to this: 'Draft (10)', empty and any other status are all saved as 'new'
+const COUNTRY_STATUSES = {
+  'Published (600)': 'certified',
+  'Rejected by DA (80)': 'uncertified',
+  'Awaiting Review (20)': 'awaiting_decision'
+}
+
+function countryStatus(row, country) {
+  return (
+    COUNTRY_STATUSES[String(row[`${country.prefix} Status`] ?? '').trim()] ??
+    'new'
+  )
+}
+
+// Certification object for one country, built from its Status/User/Publish/Approve columns
+function buildCertification(row, country) {
+  const status = countryStatus(row, country)
+  const publishDate = parseActionDate(row, `${country.prefix} Publish Date`)
+  const approveDate = parseActionDate(row, `${country.prefix} Approve Date`)
+  const certifiedDate = publishDate ?? approveDate
+  const isDecided = status === 'certified' || status === 'uncertified'
+
+  return {
+    status,
+    // Uncertified rows only use the publish date; the action builder logs when it is missing
+    decidedAt:
+      status === 'certified'
+        ? certifiedDate
+        : status === 'uncertified'
+          ? publishDate
+          : null,
+    decidedBy: isDecided
+      ? parseLegacyUser(row[`${country.prefix} User`])
+      : null,
+    firstCertifiedAt: certifiedDate,
+    lastCertifiedAt: certifiedDate
+  }
+}
+
+function buildCertifications(row) {
+  return Object.fromEntries(
+    COUNTRIES.map((country) => [
+      country.field,
+      buildCertification(row, country)
+    ])
+  )
+}
+
+function actionEntry(itemId, action, completedBy, completedAt, country) {
   return {
     id: `ACT-${generateSecureId()}`,
     itemId,
     itemType: 'appliance',
     action,
-    description: actionWording[action](),
+    description: actionWording[action](country?.label),
+    ...(country && { country: country.slug }),
     completedBy,
     completedAt
   }
+}
+
+// Country actions: sent for certification, then certified or uncertified
+function buildCountryActions(row, appliance) {
+  const reviewer = legacyActor(row)
+  const actions = []
+
+  for (const country of COUNTRIES) {
+    const certification = appliance[country.field]
+
+    if (hasValue(row[`${country.prefix} Assigned Date`])) {
+      actions.push(
+        actionEntry(
+          appliance.id,
+          'sentForCertification',
+          reviewer,
+          parseActionDate(row, `${country.prefix} Assigned Date`),
+          country
+        )
+      )
+    }
+
+    const decidedBy = certification.decidedBy && {
+      ...certification.decidedBy,
+      type: 'user'
+    }
+
+    if (certification.status === 'certified') {
+      actions.push(
+        actionEntry(
+          appliance.id,
+          'certified',
+          decidedBy,
+          certification.firstCertifiedAt,
+          country
+        )
+      )
+    }
+
+    if (certification.status === 'uncertified') {
+      if (!certification.decidedAt) {
+        console.log(
+          `${country.label} reject date doesn't exist for legacy appliance ${row['Appliance ID']}: do you mean the approve or assigned date? ` +
+            `Approve Date: ${row[`${country.prefix} Approve Date`] ?? 'none'}, ` +
+            `Assigned Date: ${row[`${country.prefix} Assigned Date`] ?? 'none'}`
+        )
+      }
+      actions.push(
+        actionEntry(
+          appliance.id,
+          'uncertified',
+          decidedBy,
+          certification.decidedAt,
+          country
+        )
+      )
+    }
+  }
+
+  return actions
 }
 
 // Action history entries for a migrated appliance, in the order they should be inserted.
@@ -323,7 +477,7 @@ function buildApplianceActions(row, appliance) {
     )
   }
 
-  return actions
+  return [...actions, ...buildCountryActions(row, appliance)]
 }
 
 function transformToFuel(row) {

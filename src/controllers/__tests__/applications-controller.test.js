@@ -1027,7 +1027,7 @@ describe('applications-controller', () => {
         {
           id: 'appl-2',
           applicationId: 'app-3',
-          legacyRecord: true
+          isLegacyRecord: true
         }
       )
 

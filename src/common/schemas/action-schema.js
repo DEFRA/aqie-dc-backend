@@ -15,6 +15,7 @@ export const actionWording = {
   rejectedAtApplication: () => 'Rejected at application',
   // History entry only: the notification email to the governments is not built yet.
   sentToGovernments: () => 'Sent to governments for approval',
+  sentForCertification: (place) => `Sent to ${place} for certification`,
   certified: (place) => `Certified in ${place}`,
   uncertified: (place) => `Uncertified in ${place}`,
   certifiedOnBehalf: (place) => `Certified on behalf of ${place}`,
@@ -28,6 +29,7 @@ export const actionWording = {
 
 // Actions worded with a country, so they cannot be recorded without one.
 export const COUNTRY_ACTIONS = [
+  'sentForCertification',
   'certified',
   'uncertified',
   'certifiedOnBehalf',

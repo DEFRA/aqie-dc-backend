@@ -3,7 +3,6 @@ import {
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
-import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 import {
   CERTIFICATION_FIELDS,
   findCertified,
@@ -235,31 +234,36 @@ async function searchAdminAppliances(
       .map((status) => (status || '').toLowerCase().trim())
       .filter(Boolean)
 
-    // Only return appliances whose technical review has reached a final status
-    const searchQuery = {
-      'technicalReview.status': { $in: REVIEWED_STATUSES }
-    }
-
-    // Appliances stay out of the list until their application is submitted.
-    // Records with no application (legacy imports) are not affected.
-    const unfinishedApplications = await db
+    // Get complete application IDs
+    const completeApplicationIds = await db
       .collection('Applications')
-      .find({ status: { $ne: 'complete' } }, { projection: { id: 1, _id: 0 } })
+      .find({ status: 'complete' })
+      .project({ id: 1, _id: 0 })
       .toArray()
 
-    if (unfinishedApplications.length > 0) {
-      searchQuery.applicationId = {
-        $nin: unfinishedApplications.map(({ id }) => id)
-      }
+    const completeAppIds = completeApplicationIds
+      .map((app) => app.id)
+      .filter(Boolean)
+
+    // Return appliances from complete applications or legacy records
+    const searchQuery = {
+      $or: [
+        { applicationId: { $in: completeAppIds } },
+        { isLegacyRecord: true }
+      ]
     }
 
     if (query?.trim()) {
       const trimmedQuery = query.trim()
-      searchQuery.$or = [
-        { modelName: { $regex: trimmedQuery, $options: 'i' } },
-        { companyName: { $regex: trimmedQuery, $options: 'i' } },
-        { modelNumber: { $regex: trimmedQuery, $options: 'i' } },
-        { applianceType: { $regex: trimmedQuery, $options: 'i' } }
+      searchQuery.$and = [
+        {
+          $or: [
+            { modelName: { $regex: trimmedQuery, $options: 'i' } },
+            { companyName: { $regex: trimmedQuery, $options: 'i' } },
+            { modelNumber: { $regex: trimmedQuery, $options: 'i' } },
+            { applianceType: { $regex: trimmedQuery, $options: 'i' } }
+          ]
+        }
       ]
     }
 

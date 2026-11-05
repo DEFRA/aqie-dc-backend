@@ -15,7 +15,6 @@ import {
   getItemNameField,
   validateApplicationType
 } from '../common/helpers/application-type.js'
-import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 const MONGO_ILLEGAL_OPERATION_CODE = 20
@@ -347,14 +346,25 @@ async function getCounts(db, logger) {
       }
     }
 
-    const filter = await getCompleteApplicationRecordsFilter(db)
+    // Get complete application IDs for filtering records
+    const completeApplicationIds = await db
+      .collection('Applications')
+      .find({ status: 'complete' })
+      .project({ id: 1, _id: 0 })
+      .toArray()
+
+    const completeAppIds = completeApplicationIds
+      .map((app) => app.id)
+      .filter(Boolean)
+
+    const filter = { applicationId: { $in: completeAppIds } }
     const appliancesCollection = db.collection('Appliances')
 
     const [applianceRecordCount, fuelRecordCount, legacyApplianceRecordCount] =
       await Promise.all([
         appliancesCollection.countDocuments(filter),
         db.collection('Fuels').countDocuments(filter),
-        appliancesCollection.countDocuments({ legacyRecord: true })
+        appliancesCollection.countDocuments({ isLegacyRecord: true })
       ])
 
     applicationCounts.appliance.records =

@@ -87,7 +87,9 @@ async function importEntity(db, filePath, entityConfig, sheetName, verbose) {
     rows.sort((a, b) => entityConfig.compareRows(a.row, b.row))
   }
   if (verbose) {
-    console.log(`\n${collectionName}: ${rows.length} rows in "${actualSheetName}"`)
+    console.log(
+      `\n${collectionName}: ${rows.length} rows in "${actualSheetName}"`
+    )
   }
 
   const collection = db.collection(collectionName)
