@@ -8,7 +8,7 @@
 
 import { MongoClient } from 'mongodb'
 import { config } from '../config.js'
-import { importFromExcel } from './import-from-excel-dynamic.js'
+import { importFromExcel } from './excel-importer.js'
 import { ENTITY_TYPES } from '../common/helpers/entity-config.js'
 
 const args = process.argv.slice(2)

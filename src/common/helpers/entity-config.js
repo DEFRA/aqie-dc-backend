@@ -3,7 +3,7 @@
  * Defines all importable entities and their schemas
  */
 
-import { generateSecureId } from './data-transformer.js'
+import { generateNextId } from './data-transformer.js'
 
 export const ENTITY_TYPES = {
   APPLIANCES: 'appliances',
@@ -15,6 +15,10 @@ export const ENTITY_CONFIG = {
     collectionName: 'Appliances',
     defaultSheetName: 'Appliances',
     uniqueKey: 'id',
+    // The importer assigns id in sheet order, continuing the sequence from the last existing id
+    generateId: generateNextId,
+    idPattern: /^\d{4}-\d+$/,
+    compareRows: compareByApplianceId,
     transform: transformToAppliance,
     sampleData: getSampleAppliance
   },
@@ -104,6 +108,24 @@ function parseDateColumn(row, column) {
   return iso
 }
 
+// Ascending by Appliance ID; numeric IDs first, then any non-numeric ones as text
+function compareByApplianceId(rowA, rowB) {
+  const idA = String(rowA['Appliance ID'] ?? '').trim()
+  const idB = String(rowB['Appliance ID'] ?? '').trim()
+  const numA = Number(idA)
+  const numB = Number(idB)
+  const isNumA = idA !== '' && !Number.isNaN(numA)
+  const isNumB = idB !== '' && !Number.isNaN(numB)
+
+  if (isNumA && isNumB) {
+    return numA - numB
+  }
+  if (isNumA !== isNumB) {
+    return isNumA ? -1 : 1
+  }
+  return idA.localeCompare(idB)
+}
+
 // Each comment starts with a bracketed date/time stamp, e.g. [21/10/2015 14:32]
 const COMMENT_START = /(?=\[\s*\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}[^\]\n]*\])/
 
@@ -140,8 +162,6 @@ function transformToAppliance(row) {
   const servicingPublicationDate = parseDateColumn(row, 'Servicing Manual Date')
 
   const appliance = {
-    //need to correct this when correcting the appliance ID
-    id: `APP-${generateSecureId()}`,
     legacy: {
       applianceId: row['Appliance ID'],
       applicationId: row['Application Number'],
