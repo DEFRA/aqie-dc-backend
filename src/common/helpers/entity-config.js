@@ -5,6 +5,7 @@
 
 import { generateNextId, generateSecureId } from './data-transformer.js'
 import { actionWording } from '../schemas/action-schema.js'
+import { resolveStatusUpdate } from './item-status.js'
 
 export const ENTITY_TYPES = {
   APPLIANCES: 'appliances',
@@ -238,22 +239,36 @@ function transformToAppliance(row) {
     createdAt: new Date()
   }
 
-  // Optional fields
-  // const altEmail = getValueOrDefault(
-  //   row.manufacturerAlternateEmail,
-  //   row['Alternate Email']
-  // )
-  // if (altEmail) {
-  //   appliance.manufacturerAlternateEmail = altEmail
-  // }
+  // Calculate applianceStatus from certifications for legacy records
+  // Determine technical review status from row data (same dates used in action history)
+  let reviewStatus = 'accepted' // default
+  let reviewedAt = null
 
-  // const existingAppliance = getValueOrDefault(
-  //   row.existingAuthorisedAppliance,
-  //   row['Existing Appliance']
-  // )
-  // if (existingAppliance) {
-  //   appliance.existingAuthorisedAppliance = existingAppliance
-  // }
+  if (hasValue(row['Reviewer Reject Date'])) {
+    reviewStatus = 'rejected'
+    reviewedAt = parseActionDate(row, 'Reviewer Reject Date')
+  } else if (hasValue(row['Reviewer Approve Date'])) {
+    reviewStatus = 'accepted'
+    reviewedAt = parseActionDate(row, 'Reviewer Approve Date')
+  }
+
+  // Set technicalReview with status and date if review data exists
+  if (reviewedAt) {
+    appliance.technicalReview = {
+      status: reviewStatus,
+      reviewedAt
+    }
+  }
+
+  const statusUpdate = resolveStatusUpdate(
+    appliance,
+    'applianceStatus',
+    reviewStatus
+  )
+  appliance.applianceStatus = statusUpdate.applianceStatus
+  if (statusUpdate.isVisibleToPublic !== undefined) {
+    appliance.isVisibleToPublic = statusUpdate.isVisibleToPublic
+  }
 
   return appliance
 }
