@@ -20,7 +20,7 @@ export const STATUS_DRIVING_FIELDS = [
 
 // Works out the $set update for an item once its technical review has reached
 // a final status (accepted/rejected) - items still mid-review are not expected here.
-function resolveStatusUpdate(item, itemStatus, reviewStatus) {
+export function resolveStatusUpdate(item, itemStatus, reviewStatus) {
   // isVisibleToPublic is left untouched for rejected items: a rejected item
   // can't be re-certified without going through review again.
   if (reviewStatus === 'rejected') {

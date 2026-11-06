@@ -3,7 +3,6 @@ import {
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
-import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 import {
   CERTIFICATION_FIELDS,
   findCertified,
@@ -13,14 +12,16 @@ import {
 import { calculateItemStatus } from '../common/helpers/item-status.js'
 import { toUserActor } from '../common/helpers/action-history.js'
 import { validateApplicationType } from '../common/helpers/application-type.js'
+import {
+  ensureLogger,
+  getCompleteApplicationIds,
+  APPLIANCE_NOT_FOUND
+} from '../common/helpers/controller-utils.js'
 
 /**
  * Appliances Controller
  * Business logic for appliance-related operations
  */
-
-const LOGGER_REQUIRED_ERROR = 'logger is required'
-const APPLIANCE_NOT_FOUND = 'Appliance not found'
 
 /**
  * Create a new appliance
@@ -32,9 +33,7 @@ async function createAppliance(db, item, logger) {
   if (!item) {
     throw new Error('item is required')
   }
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
 
@@ -111,16 +110,14 @@ function mapApplianceSummary(item) {
  * Returns only certified appliances per business requirements
  */
 async function getAllAppliances(db, _options, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
 
-    // Visibility is derived from review and certification outcomes when an
-    // appliance's status is calculated, so it is the only condition needed here.
+    // The overall status already reflects review, certification and visibility, so
+    // 'live' is the only condition needed here.
     const appliances = await collection
-      .find({ isVisibleToPublic: true })
+      .find({ applianceStatus: 'live' })
       .sort({ createdAt: -1 })
       .toArray()
 
@@ -138,9 +135,7 @@ async function getAllAppliances(db, _options, logger) {
  * Get a single appliance by ID
  */
 async function getApplianceById(db, id, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
     const item = await collection.findOne({ id })
@@ -167,9 +162,7 @@ async function getApplianceById(db, id, logger) {
  * Update an appliance
  */
 async function updateAppliance(db, id, updates, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
     const now = new Date()
@@ -197,9 +190,7 @@ async function updateAppliance(db, id, updates, logger) {
  * Delete an appliance
  */
 async function deleteAppliance(db, id, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
     const result = await collection.deleteOne({ id })
@@ -225,9 +216,7 @@ async function searchAdminAppliances(
   { query = '', page = 1, limit = 20, statuses = [] } = {},
   logger
 ) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
     const skip = (page - 1) * limit
@@ -235,31 +224,27 @@ async function searchAdminAppliances(
       .map((status) => (status || '').toLowerCase().trim())
       .filter(Boolean)
 
-    // Only return appliances whose technical review has reached a final status
+    const completeAppIds = await getCompleteApplicationIds(db)
+
+    // Return appliances from complete applications or legacy records
     const searchQuery = {
-      'technicalReview.status': { $in: REVIEWED_STATUSES }
-    }
-
-    // Appliances stay out of the list until their application is submitted.
-    // Records with no application (legacy imports) are not affected.
-    const unfinishedApplications = await db
-      .collection('Applications')
-      .find({ status: { $ne: 'complete' } }, { projection: { id: 1, _id: 0 } })
-      .toArray()
-
-    if (unfinishedApplications.length > 0) {
-      searchQuery.applicationId = {
-        $nin: unfinishedApplications.map(({ id }) => id)
-      }
+      $or: [
+        { applicationId: { $in: completeAppIds } },
+        { isLegacyRecord: true }
+      ]
     }
 
     if (query?.trim()) {
       const trimmedQuery = query.trim()
-      searchQuery.$or = [
-        { modelName: { $regex: trimmedQuery, $options: 'i' } },
-        { companyName: { $regex: trimmedQuery, $options: 'i' } },
-        { modelNumber: { $regex: trimmedQuery, $options: 'i' } },
-        { applianceType: { $regex: trimmedQuery, $options: 'i' } }
+      searchQuery.$and = [
+        {
+          $or: [
+            { modelName: { $regex: trimmedQuery, $options: 'i' } },
+            { companyName: { $regex: trimmedQuery, $options: 'i' } },
+            { modelNumber: { $regex: trimmedQuery, $options: 'i' } },
+            { applianceType: { $regex: trimmedQuery, $options: 'i' } }
+          ]
+        }
       ]
     }
 
@@ -302,9 +287,7 @@ async function searchAdminAppliances(
  * Admin: get a single appliance record for the admin frontend
  */
 async function getAdminApplianceById(db, id, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const item = await db.collection('Appliances').findOne(
       { id },
@@ -380,9 +363,7 @@ async function updateApplianceVisibility(
   reviewedBy,
   type = 'appliance'
 ) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   const applicationTypeDetails = validateApplicationType(type, logger)
   if (!applicationTypeDetails) {
     throw new Error(`Unsupported item type: ${type}`)

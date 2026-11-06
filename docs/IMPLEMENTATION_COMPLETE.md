@@ -67,7 +67,7 @@ src/
 ├── plugins/
 │   └── router.js                      # Route registration
 ├── migrations/
-│   ├── import-from-excel.js           # Excel import engine (existing)
+│   ├── import-from-excel-dynamic.js   # Excel import engine
 │   └── setup-appliances-fuels.js      # Schema setup (existing)
 └── templates/
     ├── appliances-import-template.xlsx
@@ -214,7 +214,7 @@ See `TESTING_GUIDE.md` for detailed testing instructions.
 - **Implementation Guide**: `CDP_UPLOADER_IMPLEMENTATION.md`
 - **Testing Guide**: `TESTING_GUIDE.md`
 - **CDP Uploader Docs**: https://github.com/DEFRA/cdp-uploader
-- **Excel Import Logic**: `src/migrations/import-from-excel.js`
+- **Excel Import Logic**: `src/migrations/import-from-excel-dynamic.js`
 
 ## Known Limitations
 

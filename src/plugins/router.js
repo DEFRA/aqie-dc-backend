@@ -65,17 +65,6 @@ const router = {
           method: 'GET',
           path: '/admin/import/status',
           ...checkUploadStatusController
-        },
-        {
-          method: 'GET',
-          path: '/templates/{file*}',
-          handler: {
-            directory: {
-              path: 'templates',
-              redirectToSlash: true,
-              index: false
-            }
-          }
         }
       ])
 
