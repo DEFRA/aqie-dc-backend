@@ -8,14 +8,15 @@ import {
 import { calculateItemStatus } from '../common/helpers/item-status.js'
 import { getFullAddress } from '../common/helpers/data-transformer.js'
 import { updateFuel } from './fuels-controller.js'
+import {
+  ensureLogger,
+  FUEL_NOT_FOUND
+} from '../common/helpers/controller-utils.js'
 
 /**
  * Fuel Review Controller
  * Business logic for the technical review of a fuel
  */
-
-const LOGGER_REQUIRED_ERROR = 'logger is required'
-const FUEL_NOT_FOUND = 'Fuel not found'
 
 const notFoundResult = () => ({
   success: false,
@@ -92,9 +93,7 @@ function buildCheckUpdatePayload(group, check, result, data) {
  * Returns only the fields the review screen needs; company contact details are excluded.
  */
 async function getFuelReview(db, fuelId, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const item = await db.collection('Fuels').findOne(
       { id: fuelId },
@@ -150,9 +149,7 @@ async function getFuelReview(db, fuelId, logger) {
  * Recording the first result also moves the fuel from 'new' to 'in_review'.
  */
 async function recordFuelCheck(db, fuelId, check, result, logger, data) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const group = validateFuelCheck(check, result, data)
 
@@ -199,9 +196,7 @@ async function recordFuelCheck(db, fuelId, check, result, logger, data) {
  * Accepting is refused until every documentation and listing check has passed.
  */
 async function updateFuelReview(db, fuelId, decision, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const item = await db
       .collection('Fuels')

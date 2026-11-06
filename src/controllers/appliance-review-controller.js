@@ -6,14 +6,15 @@ import {
 } from '../common/helpers/review-status.js'
 import { calculateItemStatus } from '../common/helpers/item-status.js'
 import { updateAppliance } from './appliances-controller.js'
+import {
+  ensureLogger,
+  APPLIANCE_NOT_FOUND
+} from '../common/helpers/controller-utils.js'
 
 /**
  * Appliance Review Controller
  * Business logic for the technical review of an appliance
  */
-
-const LOGGER_REQUIRED_ERROR = 'logger is required'
-const APPLIANCE_NOT_FOUND = 'Appliance not found'
 
 function requireBoolean(check, result) {
   if (typeof result !== 'boolean') {
@@ -96,9 +97,7 @@ function buildCheckUpdatePayload(group, check, result, data) {
  * Returns only the fields the review screen needs, not the whole record.
  */
 async function getApplianceReview(db, id, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const item = await db.collection('Appliances').findOne(
       { id },
@@ -152,9 +151,7 @@ async function getApplianceReview(db, id, logger) {
  * 'in_review', so the applications list can show "Continue review".
  */
 async function recordApplianceCheck(db, id, check, result, logger, data) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const group = validateTechnicalReviewCheck(check, result, data)
 
@@ -203,9 +200,7 @@ async function recordApplianceCheck(db, id, check, result, logger, data) {
  * Accepting is refused until every documentation and listing check has passed.
  */
 async function updateApplianceReview(db, id, decision, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const item = await db
       .collection('Appliances')

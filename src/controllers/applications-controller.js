@@ -15,17 +15,13 @@ import {
   getItemNameField,
   validateApplicationType
 } from '../common/helpers/application-type.js'
+import {
+  ensureLogger,
+  APPLICATION_NOT_FOUND
+} from '../common/helpers/controller-utils.js'
 
-const LOGGER_REQUIRED_ERROR = 'logger is required'
 const MONGO_ILLEGAL_OPERATION_CODE = 20
-const APPLICATION_NOT_FOUND = 'Application not found'
 const ID_PATTERN = /^\d{4}-\d+$/
-
-function ensureLogger(logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
-}
 
 async function generateApplicationId(collection, applicationType, session) {
   const lastApplication = await collection.findOne(

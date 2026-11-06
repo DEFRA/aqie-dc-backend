@@ -7,12 +7,12 @@ import {
   findCertified,
   findLastCertifiedDate
 } from '../common/helpers/certification.js'
+import { ensureLogger } from '../common/helpers/controller-utils.js'
+
 /**
  * Fuels Controller
  * Business logic for fuel-related operations
  */
-
-const LOGGER_REQUIRED_ERROR = 'logger is required'
 
 /**
  * Create a new fuel
@@ -24,9 +24,7 @@ async function createFuel(db, item, logger) {
   if (!item) {
     throw new Error('item is required')
   }
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
 
@@ -98,9 +96,7 @@ function mapFuelSummary(item) {
 
 //async function getAllFuel(db, type) {
 async function getAllFuels(db, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
 
@@ -125,9 +121,7 @@ async function getAllFuels(db, logger) {
  * Find a single fuel by ID
  */
 async function getFuelById(db, fuelId, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
     const item = await collection.findOne({ id: fuelId })
@@ -154,9 +148,7 @@ async function getFuelById(db, fuelId, logger) {
  * Update a fuel
  */
 async function updateFuel(db, fuelId, updates, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
     const now = new Date()
@@ -179,9 +171,7 @@ async function updateFuel(db, fuelId, updates, logger) {
  * Delete a fuel
  */
 async function deleteFuel(db, fuelId, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
     const result = await collection.deleteOne({ id: fuelId })
@@ -204,9 +194,7 @@ async function getAllFuelsWithPagination(
   { page = 1, limit = 20 } = {},
   logger
 ) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
     const skip = (page - 1) * limit
@@ -240,9 +228,7 @@ async function getAllFuelsWithPagination(
  * Search fuels by name or type with pagination
  */
 async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
     const skip = (page - 1) * limit
@@ -285,9 +271,7 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
  * @deprecated Relationship queries may need review for current schema
  */
 async function getFuelWithRelatedItems(db, fuelId, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     // Get fuel
     const fuel = await db.collection('Fuels').findOne({ id: fuelId })
