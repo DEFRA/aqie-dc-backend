@@ -851,11 +851,7 @@ describe('applications-controller', () => {
       }
       applianceCollection.findOne.mockResolvedValueOnce(mockLegacyAppliance)
 
-      const result = await getApplicationById(
-        db,
-        'CAA-EA-00001719',
-        mockLogger
-      )
+      const result = await getApplicationById(db, 'CAA-EA-00001719', mockLogger)
 
       expect(result.success).toBe(true)
       expect(result.message).toBe('Legacy application retrieved successfully')

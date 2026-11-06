@@ -215,21 +215,21 @@ function transformToAppliance(row) {
       publicationDate: servicingPublicationDate
     },
 
-  // const altEmail = getValueOrDefault(
-  //   row.manufacturerAlternateEmail,
-  //   row['Alternate Email']
-  // )
-  // if (altEmail) {
-  //   appliance.manufacturerAlternateEmail = altEmail
-  // }
+    // const altEmail = getValueOrDefault(
+    //   row.manufacturerAlternateEmail,
+    //   row['Alternate Email']
+    // )
+    // if (altEmail) {
+    //   appliance.manufacturerAlternateEmail = altEmail
+    // }
 
-  // const existingAppliance = getValueOrDefault(
-  //   row.existingAuthorisedAppliance,
-  //   row['Existing Appliance']
-  // )
-  // if (existingAppliance) {
-  //   appliance.existingAuthorisedAppliance = existingAppliance
-  // }
+    // const existingAppliance = getValueOrDefault(
+    //   row.existingAuthorisedAppliance,
+    //   row['Existing Appliance']
+    // )
+    // if (existingAppliance) {
+    //   appliance.existingAuthorisedAppliance = existingAppliance
+    // }
 
     ...certifications,
     technicalReview: buildTechnicalReview(row, certifications),
