@@ -17,6 +17,7 @@ import {
 } from '../common/helpers/application-type.js'
 import {
   ensureLogger,
+  getCompleteApplicationIds,
   APPLICATION_NOT_FOUND
 } from '../common/helpers/controller-utils.js'
 
@@ -361,17 +362,7 @@ async function getCounts(db, logger) {
       }
     }
 
-    // Get complete application IDs for filtering records
-    const completeApplicationIds = await db
-      .collection('Applications')
-      .find({ status: 'complete' })
-      .project({ id: 1, _id: 0 })
-      .toArray()
-
-    const completeAppIds = completeApplicationIds
-      .map((app) => app.id)
-      .filter(Boolean)
-
+    const completeAppIds = await getCompleteApplicationIds(db)
     const filter = { applicationId: { $in: completeAppIds } }
     const appliancesCollection = db.collection('Appliances')
 

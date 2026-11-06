@@ -14,6 +14,7 @@ import { toUserActor } from '../common/helpers/action-history.js'
 import { validateApplicationType } from '../common/helpers/application-type.js'
 import {
   ensureLogger,
+  getCompleteApplicationIds,
   APPLIANCE_NOT_FOUND
 } from '../common/helpers/controller-utils.js'
 
@@ -223,16 +224,7 @@ async function searchAdminAppliances(
       .map((status) => (status || '').toLowerCase().trim())
       .filter(Boolean)
 
-    // Get complete application IDs
-    const completeApplicationIds = await db
-      .collection('Applications')
-      .find({ status: 'complete' })
-      .project({ id: 1, _id: 0 })
-      .toArray()
-
-    const completeAppIds = completeApplicationIds
-      .map((app) => app.id)
-      .filter(Boolean)
+    const completeAppIds = await getCompleteApplicationIds(db)
 
     // Return appliances from complete applications or legacy records
     const searchQuery = {
