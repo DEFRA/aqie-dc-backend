@@ -104,10 +104,10 @@ async function getAllFuels(db, logger) {
   try {
     const collection = db.collection('Fuels')
 
-    // Visibility is derived from review and certification outcomes when a
-    // fuel's status is calculated, so it is the only condition needed here.
+    // The overall status already reflects review, certification and visibility, so
+    // 'live' is the only condition needed here.
     const fuels = await collection
-      .find({ isVisibleToPublic: true })
+      .find({ fuelStatus: 'live' })
       // .sort({ createdAt: -1 }) //what is the sort order for fuels? maybe by name?
       .toArray()
 
@@ -212,13 +212,13 @@ async function getAllFuelsWithPagination(
     const skip = (page - 1) * limit
 
     const fuels = await collection
-      .find({ isVisibleToPublic: true })
+      .find({ fuelStatus: 'live' })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .toArray()
 
-    const total = await collection.countDocuments({ isVisibleToPublic: true })
+    const total = await collection.countDocuments({ fuelStatus: 'live' })
 
     return {
       success: true,

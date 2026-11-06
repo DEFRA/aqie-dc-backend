@@ -116,10 +116,10 @@ async function getAllAppliances(db, _options, logger) {
   try {
     const collection = db.collection('Appliances')
 
-    // Visibility is derived from review and certification outcomes when an
-    // appliance's status is calculated, so it is the only condition needed here.
+    // The overall status already reflects review, certification and visibility, so
+    // 'live' is the only condition needed here.
     const appliances = await collection
-      .find({ isVisibleToPublic: true })
+      .find({ applianceStatus: 'live' })
       .sort({ createdAt: -1 })
       .toArray()
 

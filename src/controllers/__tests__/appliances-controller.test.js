@@ -197,7 +197,7 @@ describe('appliances-controller', () => {
       expect(result.data[0].authorisedIn).toEqual(['England'])
     })
 
-    test('queries certified appliances only', async () => {
+    test('queries live appliances only', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
         toArray: vi.fn().mockResolvedValue([])
@@ -208,7 +208,7 @@ describe('appliances-controller', () => {
       await getAllAppliances(db, {}, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({
-        isVisibleToPublic: true
+        applianceStatus: 'live'
       })
     })
 
