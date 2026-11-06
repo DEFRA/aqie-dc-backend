@@ -5,7 +5,6 @@
 
 import { generateNextId, generateSecureId } from './data-transformer.js'
 import { actionWording } from '../schemas/action-schema.js'
-import { resolveStatusUpdate } from './item-status.js'
 
 export const ENTITY_TYPES = {
   APPLIANCES: 'appliances',
@@ -166,6 +165,7 @@ function transformToAppliance(row) {
 
   const manualPublicationDate = parseDateColumn(row, 'Instructions Manual Date')
   const servicingPublicationDate = parseDateColumn(row, 'Servicing Manual Date')
+  const certifications = buildCertifications(row)
 
   const appliance = {
     isLegacyRecord: true,
@@ -234,41 +234,32 @@ function transformToAppliance(row) {
     // publishedDate:
     //   parseDate(getValueOrDefault(row.publishedDate, row['Published Date'])) ||
     //   new Date(),
-    ...buildCertifications(row),
+    ...certifications,
+    technicalReview: buildTechnicalReview(row, certifications),
+    // Earliest certification date across the countries; omitted when none is certified
+    ...(earliestCertifiedDate(certifications) && {
+      publishedDate: earliestCertifiedDate(certifications)
+    }),
     updatedAt: new Date(),
     createdAt: new Date()
   }
 
-  // Calculate applianceStatus from certifications for legacy records
-  // Determine technical review status from row data (same dates used in action history)
-  let reviewStatus = 'accepted' // default
-  let reviewedAt = null
+  // Optional fields
+  // const altEmail = getValueOrDefault(
+  //   row.manufacturerAlternateEmail,
+  //   row['Alternate Email']
+  // )
+  // if (altEmail) {
+  //   appliance.manufacturerAlternateEmail = altEmail
+  // }
 
-  if (hasValue(row['Reviewer Reject Date'])) {
-    reviewStatus = 'rejected'
-    reviewedAt = parseActionDate(row, 'Reviewer Reject Date')
-  } else if (hasValue(row['Reviewer Approve Date'])) {
-    reviewStatus = 'accepted'
-    reviewedAt = parseActionDate(row, 'Reviewer Approve Date')
-  }
-
-  // Set technicalReview with status and date if review data exists
-  if (reviewedAt) {
-    appliance.technicalReview = {
-      status: reviewStatus,
-      reviewedAt
-    }
-  }
-
-  const statusUpdate = resolveStatusUpdate(
-    appliance,
-    'applianceStatus',
-    reviewStatus
-  )
-  appliance.applianceStatus = statusUpdate.applianceStatus
-  if (statusUpdate.isVisibleToPublic !== undefined) {
-    appliance.isVisibleToPublic = statusUpdate.isVisibleToPublic
-  }
+  // const existingAppliance = getValueOrDefault(
+  //   row.existingAuthorisedAppliance,
+  //   row['Existing Appliance']
+  // )
+  // if (existingAppliance) {
+  //   appliance.existingAuthorisedAppliance = existingAppliance
+  // }
 
   return appliance
 }
@@ -355,7 +346,10 @@ function buildCertification(row, country) {
 
   return {
     status,
-    // Uncertified rows only use the publish date; the action builder logs when it is missing
+    // Uncertified ('Rejected by DA (80)') has no reject-date column, so decidedAt and the
+    // 'Uncertified in X' action date use the country's Publish Date only. No fallback to
+    // Approve/Assigned Date; when Publish Date is empty it stays null and
+    // buildCountryActions logs the row with those dates so you can choose.
     decidedAt:
       status === 'certified'
         ? certifiedDate
@@ -368,6 +362,16 @@ function buildCertification(row, country) {
     firstCertifiedAt: certifiedDate,
     lastCertifiedAt: certifiedDate
   }
+}
+
+// Earliest firstCertifiedAt among the countries that are certified; null when there is none
+function earliestCertifiedDate(certifications) {
+  const dates = Object.values(certifications)
+    .filter((certification) => certification.status === 'certified')
+    .map((certification) => certification.firstCertifiedAt)
+    .filter(Boolean)
+
+  return dates.length > 0 ? new Date(Math.min(...dates)) : null
 }
 
 function buildCertifications(row) {
@@ -392,13 +396,38 @@ function actionEntry(itemId, action, completedBy, completedAt, country) {
   }
 }
 
-// Country actions: sent for certification, then certified or uncertified
+// Raw cell for a console message: dates as YYYY-MM-DD, empty as 'none'
+function showCell(value) {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime())
+      ? 'invalid'
+      : value.toISOString().slice(0, 10)
+  }
+  return hasValue(value) ? String(value).trim() : 'none'
+}
+
+function countryDatesText(row, country) {
+  return (
+    `Assigned Date: ${showCell(row[`${country.prefix} Assigned Date`])}, ` +
+    `Approve Date: ${showCell(row[`${country.prefix} Approve Date`])}, ` +
+    `Publish Date: ${showCell(row[`${country.prefix} Publish Date`])}`
+  )
+}
+
+// Country actions: sent for certification, then certified or uncertified.
+// Draft ('Draft (10)') rows get no certified/uncertified entry; they are saved as 'new' and logged.
 function buildCountryActions(row, appliance) {
   const reviewer = legacyActor(row)
   const actions = []
 
   for (const country of COUNTRIES) {
     const certification = appliance[country.field]
+
+    if (String(row[`${country.prefix} Status`] ?? '').trim() === 'Draft (10)') {
+      console.log(
+        `${country.label} is a draft for legacy appliance ${row['Appliance ID']}. ${countryDatesText(row, country)}`
+      )
+    }
 
     if (hasValue(row[`${country.prefix} Assigned Date`])) {
       actions.push(
@@ -430,11 +459,12 @@ function buildCountryActions(row, appliance) {
     }
 
     if (certification.status === 'uncertified') {
+      // Date is the country Publish Date only (see buildCertification); the question below
+      // is for you to answer when it is missing. Approve/Assigned Date are shown for reference.
       if (!certification.decidedAt) {
         console.log(
           `${country.label} reject date doesn't exist for legacy appliance ${row['Appliance ID']}: do you mean the approve or assigned date? ` +
-            `Approve Date: ${row[`${country.prefix} Approve Date`] ?? 'none'}, ` +
-            `Assigned Date: ${row[`${country.prefix} Assigned Date`] ?? 'none'}`
+            countryDatesText(row, country)
         )
       }
       actions.push(
@@ -455,44 +485,157 @@ function buildCountryActions(row, appliance) {
 // Action history entries for a migrated appliance, in the order they should be inserted.
 // Unreadable dates are kept as null so the appliance and its history still import.
 function buildApplianceActions(row, appliance) {
-  const completedBy = legacyActor(row)
+  const { rejected, accepted } = reviewEntries(row)
   const actions = []
 
   // TODO double check: the spec only asks for 'Rejected at application' when an approve date
   // also exists; it is created for a reject date on its own too.
-  // Inserted before 'Accepted at application' so it sits earlier in the history.
-  if (hasValue(row['Reviewer Reject Date'])) {
+  if (rejected) {
     actions.push(
       actionEntry(
         appliance.id,
         'rejectedAtApplication',
-        completedBy,
-        parseActionDate(row, 'Reviewer Reject Date')
+        rejected.completedBy,
+        rejected.completedAt
       )
     )
+  }
+
+  if (accepted) {
+    actions.push(
+      actionEntry(
+        appliance.id,
+        'acceptedAtApplication',
+        accepted.completedBy,
+        accepted.completedAt
+      )
+    )
+  }
+
+  return sortActionsByDate([...actions, ...buildCountryActions(row, appliance)])
+}
+
+// Rejected/Accepted at application from the Reviewer columns; parsed once per row so the
+// actions and technicalReview agree and date warnings are not repeated.
+const reviewCache = new WeakMap()
+
+function reviewEntries(row) {
+  if (reviewCache.has(row)) {
+    return reviewCache.get(row)
+  }
+
+  const completedBy = legacyActor(row)
+  let rejected = null
+  let accepted = null
+
+  if (hasValue(row['Reviewer Reject Date'])) {
+    rejected = {
+      completedBy,
+      completedAt: parseActionDate(row, 'Reviewer Reject Date')
+    }
   }
 
   if (hasValue(row['Reviewer Approve Date'])) {
-    actions.push(
-      actionEntry(
-        appliance.id,
-        'acceptedAtApplication',
-        completedBy,
-        parseActionDate(row, 'Reviewer Approve Date')
-      )
-    )
+    accepted = {
+      completedBy,
+      completedAt: parseActionDate(row, 'Reviewer Approve Date')
+    }
   } else if (String(row['England Status'] ?? '').trim() === 'Published (600)') {
-    actions.push(
-      actionEntry(
-        appliance.id,
-        'acceptedAtApplication',
-        completedBy,
-        parseActionDate(row, 'England Assigned Date')
-      )
-    )
+    accepted = {
+      completedBy,
+      completedAt: parseActionDate(row, 'England Assigned Date')
+    }
   }
 
-  return [...actions, ...buildCountryActions(row, appliance)]
+  const entries = { rejected, accepted }
+  reviewCache.set(row, entries)
+  return entries
+}
+
+const toReviewedBy = (actor) =>
+  actor
+    ? { name: actor.name, ...(actor.email && { email: actor.email }) }
+    : null
+
+// technicalReview is the latest of the Rejected/Accepted entries, by date.
+// Rejected and Accepted on the same day (or with an unreadable date) cannot be told apart:
+// 'rejected' is used and the row is logged.
+// No review entry: 'accepted' if certified in any country (earliest certification date),
+// else 'in_review' when a Reviewer Assign Date exists, else 'new'.
+function buildTechnicalReview(row, certifications) {
+  const { rejected, accepted } = reviewEntries(row)
+  const review = (status, entry) => ({
+    status,
+    reviewedAt: entry?.completedAt ?? null,
+    reviewedBy: toReviewedBy(entry?.completedBy)
+  })
+
+  if (rejected && accepted) {
+    const isClear =
+      rejected.completedAt &&
+      accepted.completedAt &&
+      +rejected.completedAt !== +accepted.completedAt
+
+    if (!isClear) {
+      console.log(
+        `Confusion about whether the review is accepted or rejected for legacy appliance ${row['Appliance ID']}: ` +
+          `Reviewer Reject Date ${showCell(row['Reviewer Reject Date'])}, ` +
+          `Reviewer Approve Date ${showCell(row['Reviewer Approve Date'])}; using rejected`
+      )
+      return review('rejected', rejected)
+    }
+
+    return rejected.completedAt > accepted.completedAt
+      ? review('rejected', rejected)
+      : review('accepted', accepted)
+  }
+
+  if (rejected) {
+    return review('rejected', rejected)
+  }
+  if (accepted) {
+    return review('accepted', accepted)
+  }
+
+  const hasCertified = Object.values(certifications).some(
+    (certification) => certification.status === 'certified'
+  )
+
+  if (hasCertified) {
+    return {
+      status: 'accepted',
+      reviewedAt: earliestCertifiedDate(certifications),
+      reviewedBy: null
+    }
+  }
+
+  return {
+    status: hasValue(row['Reviewer Assign Date']) ? 'in_review' : 'new',
+    reviewedAt: null,
+    reviewedBy: null
+  }
+}
+
+// Same-day entries keep the natural order of the process
+const ACTION_ORDER = [
+  'rejectedAtApplication',
+  'acceptedAtApplication',
+  'sentForCertification',
+  'certified',
+  'uncertified'
+]
+
+// Oldest first so insertion order follows the dates; undated entries go last
+function sortActionsByDate(actions) {
+  return [...actions].sort((a, b) => {
+    if (a.completedAt === null || b.completedAt === null) {
+      return (a.completedAt === null) - (b.completedAt === null)
+    }
+    return (
+      a.completedAt - b.completedAt ||
+      ACTION_ORDER.indexOf(a.action) - ACTION_ORDER.indexOf(b.action)
+    )
+  })
 }
 
 function transformToFuel(row) {

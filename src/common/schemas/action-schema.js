@@ -8,19 +8,19 @@ export const ACTOR_TYPES = ['user', 'system', 'government']
 
 export const ITEM_TYPES = ['appliance', 'fuel']
 
-// Wording of each action in an item's history. `country` is the country display
+// Wording of each action in an item's history. `place` is the country display
 // name where the action applies, e.g. "Northern Ireland".
 export const actionWording = {
   acceptedAtApplication: () => 'Accepted at application',
   rejectedAtApplication: () => 'Rejected at application',
   // History entry only: the notification email to the governments is not built yet.
   sentToGovernments: () => 'Sent to governments for approval',
-  sentForCertification: (country) => `Sent to ${country} for certification`,
-  certified: (country) => `Certified in ${country}`,
-  uncertified: (country) => `Uncertified in ${country}`,
-  certifiedOnBehalf: (country) => `Certified on behalf of ${country}`,
-  uncertifiedOnBehalf: (country) => `Uncertified on behalf of ${country}`,
-  certificationSuspended: (country) => `Certification suspended for ${country}`,
+  sentForCertification: (place) => `Sent to ${place} for certification`,
+  certified: (place) => `Certified in ${place}`,
+  uncertified: (place) => `Uncertified in ${place}`,
+  certifiedOnBehalf: (place) => `Certified on behalf of ${place}`,
+  uncertifiedOnBehalf: (place) => `Uncertified on behalf of ${place}`,
+  certificationSuspended: (place) => `Certification suspended for ${place}`,
   liveOnPublicList: () => 'Live on public list',
   hiddenFromPublicList: () => 'Hidden from public list',
   retestPassed: () => 'Retest passed',
