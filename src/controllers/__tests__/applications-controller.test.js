@@ -838,6 +838,50 @@ describe('applications-controller', () => {
         'logger is required'
       )
     })
+
+    test('returns legacy appliance record when application not found but legacy.applicationId matches', async () => {
+      collection.findOne.mockResolvedValueOnce(null)
+      const mockLegacyAppliance = {
+        id: 'app-001',
+        legacy: {
+          applicationId: 'CAA-EA-00001719',
+          applianceId: 'legacy-001',
+          comments: ['old comment']
+        }
+      }
+      applianceCollection.findOne.mockResolvedValueOnce(mockLegacyAppliance)
+
+      const result = await getApplicationById(
+        db,
+        'CAA-EA-00001719',
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.message).toBe('Legacy application retrieved successfully')
+      expect(result.data.id).toBe('CAA-EA-00001719')
+      expect(result.data.legacy).toEqual({
+        applicationId: 'CAA-EA-00001719',
+        applianceId: 'legacy-001',
+        comments: ['old comment']
+      })
+      expect(result.data.isLegacyReference).toBe(true)
+      expect(result.data.linkedItems).toEqual([])
+      expect(applianceCollection.findOne).toHaveBeenCalledWith({
+        'legacy.applicationId': 'CAA-EA-00001719'
+      })
+    })
+
+    test('returns notFound when neither application nor legacy record exists', async () => {
+      collection.findOne.mockResolvedValueOnce(null)
+      applianceCollection.findOne.mockResolvedValueOnce(null)
+
+      const result = await getApplicationById(db, 'UNKNOWN-ID', mockLogger)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Application not found')
+      expect(result.notFound).toBe(true)
+    })
   })
 
   describe('searchApplications', () => {

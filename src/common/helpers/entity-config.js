@@ -157,7 +157,7 @@ function splitIds(value) {
 }
 
 function transformToAppliance(row) {
-  const modelName = row['Appliance Name (Title)']
+  let modelName = row['Appliance Name (Title)']
 
   // Returning null tells the importer to skip this record
   if (modelName?.trim().toUpperCase() === 'TEST') {
@@ -167,6 +167,15 @@ function transformToAppliance(row) {
   const manualPublicationDate = parseDateColumn(row, 'Instructions Manual Date')
   const servicingPublicationDate = parseDateColumn(row, 'Servicing Manual Date')
   const certifications = buildCertifications(row)
+
+  // Add "(Draft)" suffix if any country has draft status
+  const hasDraft = COUNTRIES.some(
+    (country) =>
+      String(row[`${country.prefix} Status`] ?? '').trim() === 'Draft (10)'
+  )
+  if (hasDraft) {
+    modelName = `${modelName} (Draft)`
+  }
 
   const appliance = {
     isLegacyRecord: true,

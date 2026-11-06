@@ -223,10 +223,29 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
       .findOne({ id: applicationId })
 
     if (!application) {
+      // Fallback to legacy lookup: search Appliances for legacy.applicationId match
+      const legacyAppliance = await db
+        .collection('Appliances')
+        .findOne({ 'legacy.applicationId': applicationId })
+
+      if (!legacyAppliance) {
+        return {
+          success: false,
+          message: APPLICATION_NOT_FOUND,
+          notFound: true
+        }
+      }
+
+      // Return legacy appliance as a reference record (no linked items)
       return {
-        success: false,
-        message: APPLICATION_NOT_FOUND,
-        notFound: true
+        success: true,
+        message: 'Legacy application retrieved successfully',
+        data: {
+          id: applicationId,
+          legacy: legacyAppliance.legacy,
+          isLegacyReference: true,
+          linkedItems: []
+        }
       }
     }
 
