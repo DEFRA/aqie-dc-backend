@@ -144,45 +144,18 @@ describe('getCheckGroup', () => {
 describe('fuel checks', () => {
   const rebrandPassed = {
     documentationChecks: { manufacturerLetter: true },
-    listingChecks: {
-      fuelDetails: true,
-      brandName: true,
-      additionalBrandNames: true,
-      fuelAppearance: true,
-      fuelWeight: true,
-      fuelComposition: true,
-      sulphurContent: true,
-      fuelDescription: true
-    }
+    listingChecks: { fuelDetails: true, fuelDescription: true }
   }
   const manufacturerPassed = {
     documentationChecks: { testResults: true },
-    listingChecks: {
-      fuelDetails: true,
-      brandName: true,
-      additionalBrandNames: true,
-      fuelAppearance: true,
-      fuelWeight: true,
-      fuelComposition: true,
-      sulphurContent: true,
-      manufacturingProcess: true,
-      hasQualityControlSystem: true
-    }
+    listingChecks: { fuelDetails: true }
   }
 
-  test('ALL_FUEL_CHECKS lists all fuel checks', () => {
+  test('ALL_FUEL_CHECKS lists the four fuel checks', () => {
     expect(ALL_FUEL_CHECKS).toEqual([
       'manufacturerLetter',
       'testResults',
       'fuelDetails',
-      'brandName',
-      'additionalBrandNames',
-      'fuelAppearance',
-      'fuelWeight',
-      'fuelComposition',
-      'sulphurContent',
-      'manufacturingProcess',
-      'hasQualityControlSystem',
       'fuelDescription'
     ])
   })
@@ -190,26 +163,17 @@ describe('fuel checks', () => {
   test('getFuelCheckGroup resolves fuel checks', () => {
     expect(getFuelCheckGroup('manufacturerLetter')).toBe('documentationChecks')
     expect(getFuelCheckGroup('fuelDetails')).toBe('listingChecks')
-    expect(getFuelCheckGroup('brandName')).toBe('listingChecks')
     expect(getFuelCheckGroup('technicalDrawings')).toBeNull()
   })
 
   test('isFuelCheckRequired depends on supplierType', () => {
     expect(isFuelCheckRequired('manufacturerLetter', 'Rebrand')).toBe(true)
     expect(isFuelCheckRequired('fuelDetails', 'Rebrand')).toBe(true)
-    expect(isFuelCheckRequired('brandName', 'Rebrand')).toBe(true)
     expect(isFuelCheckRequired('fuelDescription', 'Rebrand')).toBe(true)
     expect(isFuelCheckRequired('testResults', 'Rebrand')).toBe(false)
-    expect(isFuelCheckRequired('manufacturingProcess', 'Rebrand')).toBe(false)
 
     expect(isFuelCheckRequired('testResults', 'Manufacture')).toBe(true)
     expect(isFuelCheckRequired('fuelDetails', 'Manufacture')).toBe(true)
-    expect(isFuelCheckRequired('manufacturingProcess', 'Manufacture')).toBe(
-      true
-    )
-    expect(isFuelCheckRequired('hasQualityControlSystem', 'Manufacture')).toBe(
-      true
-    )
     expect(isFuelCheckRequired('manufacturerLetter', 'Manufacture')).toBe(false)
     expect(isFuelCheckRequired('fuelDescription', 'Manufacture')).toBe(false)
   })
@@ -218,25 +182,11 @@ describe('fuel checks', () => {
     expect(getFuelOutstandingChecks({}, 'Rebrand')).toEqual([
       'manufacturerLetter',
       'fuelDetails',
-      'brandName',
-      'additionalBrandNames',
-      'fuelAppearance',
-      'fuelWeight',
-      'fuelComposition',
-      'sulphurContent',
       'fuelDescription'
     ])
     expect(getFuelOutstandingChecks({}, 'Manufacture')).toEqual([
       'testResults',
-      'fuelDetails',
-      'brandName',
-      'additionalBrandNames',
-      'fuelAppearance',
-      'fuelWeight',
-      'fuelComposition',
-      'sulphurContent',
-      'manufacturingProcess',
-      'hasQualityControlSystem'
+      'fuelDetails'
     ])
   })
 
@@ -245,7 +195,7 @@ describe('fuel checks', () => {
       getFuelOutstandingChecks(
         {
           ...rebrandPassed,
-          listingChecks: { ...rebrandPassed.listingChecks, fuelDetails: false }
+          listingChecks: { fuelDetails: false, fuelDescription: true }
         },
         'Rebrand'
       )
