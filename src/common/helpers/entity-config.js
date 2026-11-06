@@ -5,6 +5,7 @@
 
 import { generateNextId, generateSecureId } from './data-transformer.js'
 import { actionWording } from '../schemas/action-schema.js'
+import { resolveStatusUpdate } from './item-status.js'
 
 export const ENTITY_TYPES = {
   APPLIANCES: 'appliances',
@@ -192,7 +193,6 @@ function transformToAppliance(row) {
       /[\u00B2\u00B3\u00B9\u2070\u2074-\u2079]/g,
       ''
     ),
-    //to be continued
     additionalConditions: row['Additional Condition Comments'],
     instructionManual: {
       title: row['Instructions Manual Title'],
@@ -206,45 +206,6 @@ function transformToAppliance(row) {
       publicationDate: servicingPublicationDate
     },
 
-    // isVariant: parseBoolean(
-    //   getValueOrDefault(row.isVariant, row['Is Variant'])
-    // ),
-    // nominalOutput: parseFloat(
-    //   getValueOrDefault(row.nominalOutput, row['Nominal Output (kW)'], 0)
-    // ),
-    // allowedFuels: getValueOrDefault(
-    //   row.allowedFuels,
-    //   row['Allowed Fuels'],
-    //   'Not Specified'
-    // ),
-    // instructionManualDate:
-    //   parseDate(
-    //     getValueOrDefault(row.instructionManualDate, row['Manual Date'])
-    //   ) || new Date(),
-    // submittedBy: getValueOrDefault(
-    //   row.submittedBy,
-    //   row['Submitted By'],
-    //   'Unknown'
-    // ),
-    // approvedBy: getValueOrDefault(
-    //   row.approvedBy,
-    //   row['Approved By'],
-    //   'Unknown'
-    // ),
-    // publishedDate:
-    //   parseDate(getValueOrDefault(row.publishedDate, row['Published Date'])) ||
-    //   new Date(),
-    ...certifications,
-    technicalReview: buildTechnicalReview(row, certifications),
-    // Earliest certification date across the countries; omitted when none is certified
-    ...(earliestCertifiedDate(certifications) && {
-      publishedDate: earliestCertifiedDate(certifications)
-    }),
-    updatedAt: new Date(),
-    createdAt: new Date()
-  }
-
-  // Optional fields
   // const altEmail = getValueOrDefault(
   //   row.manufacturerAlternateEmail,
   //   row['Alternate Email']
@@ -260,6 +221,26 @@ function transformToAppliance(row) {
   // if (existingAppliance) {
   //   appliance.existingAuthorisedAppliance = existingAppliance
   // }
+
+    ...certifications,
+    technicalReview: buildTechnicalReview(row, certifications),
+    // Earliest certification date across the countries; omitted when none is certified
+    ...(earliestCertifiedDate(certifications) && {
+      publishedDate: earliestCertifiedDate(certifications)
+    }),
+    updatedAt: new Date(),
+    createdAt: new Date()
+  }
+
+  // Same rule the app uses after a review or certification change
+  Object.assign(
+    appliance,
+    resolveStatusUpdate(
+      appliance,
+      'applianceStatus',
+      appliance.technicalReview.status
+    )
+  )
 
   return appliance
 }

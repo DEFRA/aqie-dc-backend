@@ -5,6 +5,8 @@
 
 import ExcelJS from 'exceljs'
 import { ENTITY_CONFIG } from '../common/helpers/entity-config.js'
+// TEMPORARY (mapping report): remove with the block at the end of this file
+import { applianceSchema } from '../common/schemas/item-schema.js'
 
 const HEADER_ROW = 1
 
@@ -207,5 +209,127 @@ export async function importFromExcel(db, filePath, entities, options = {}) {
     }
   }
 
+  // TEMPORARY (mapping report): delete this line with the block at the end of the file
+  if (entities.some(({ type }) => type === 'appliances')) {
+    await printMappingReport(filePath)
+  }
+
   return allResults
+}
+
+// ============================================================================
+// TEMPORARY - MAPPING REPORT. Delete everything from this line to the end of the
+// file, plus the applianceSchema import at the top and the printMappingReport
+// call in importFromExcel, once the migration mapping is finished.
+//
+// After an appliances import it prints, without touching the database:
+//  1. Appliance schema fields the mapping never produces
+//  2. Appliance schema fields the mapping only ever sets to null/empty
+//  3. Excel columns the mapping never reads
+// ============================================================================
+
+// Dotted paths of every leaf in the Joi schema (objects are walked, arrays are leaves)
+function schemaPaths(description, prefix = '') {
+  return Object.entries(description.keys ?? {}).flatMap(([key, node]) => {
+    const path = prefix ? `${prefix}.${key}` : key
+    return node.type === 'object' && node.keys
+      ? schemaPaths(node, path)
+      : [path]
+  })
+}
+
+// path -> true when the value was ever non-empty
+function collectPaths(value, path, found) {
+  const isPlainObject =
+    value !== null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    !(value instanceof Date)
+
+  if (isPlainObject && Object.keys(value).length > 0) {
+    for (const [key, child] of Object.entries(value)) {
+      collectPaths(child, path ? `${path}.${key}` : key, found)
+    }
+    return
+  }
+
+  const hasValue =
+    value !== null &&
+    value !== undefined &&
+    !(Array.isArray(value) && value.length === 0) &&
+    !isPlainObject
+  found.set(path, found.get(path) || hasValue)
+}
+
+async function printMappingReport(filePath) {
+  const { transform, buildActions, defaultSheetName } = ENTITY_CONFIG.appliances
+  const rows = await readSheetRows(filePath, defaultSheetName)
+  const headers = Object.keys(rows[0]?.row ?? {})
+
+  const readColumns = new Set()
+  const produced = new Map()
+  const nonEmptyByColumn = Object.fromEntries(headers.map((h) => [h, 0]))
+  let mapped = 0
+
+  // The mapping logs per-row messages; keep the report readable
+  const { log, warn } = console
+  console.log = () => {}
+  console.warn = () => {}
+
+  try {
+    for (const { row } of rows) {
+      for (const header of headers) {
+        if (row[header] !== null && String(row[header]).trim() !== '') {
+          nonEmptyByColumn[header]++
+        }
+      }
+
+      // Records every column the mapping reads
+      const spy = new Proxy(row, {
+        get(target, property) {
+          if (typeof property === 'string') {
+            readColumns.add(property)
+          }
+          return target[property]
+        }
+      })
+
+      const document = transform(spy)
+      if (document === null) {
+        continue
+      }
+
+      mapped++
+      // The importer assigns id, so add one here to avoid reporting it as missing
+      const withId = { ...document, id: 'assigned-by-importer' }
+      buildActions?.(spy, withId)
+      collectPaths(withId, '', produced)
+    }
+  } finally {
+    console.log = log
+    console.warn = warn
+  }
+
+  const allPaths = schemaPaths(applianceSchema.describe())
+  const notProduced = allPaths.filter((path) => !produced.has(path))
+  const alwaysEmpty = allPaths.filter(
+    (path) => produced.has(path) && !produced.get(path)
+  )
+  const unmapped = headers.filter((header) => !readColumns.has(header))
+  const print = (line = '') => process.stdout.write(`${line}\n`)
+
+  print(`\n=== Mapping report (${mapped} appliances mapped) ===`)
+  print(
+    `\n1. Schema fields never produced by the mapping (${notProduced.length}):`
+  )
+  notProduced.forEach((path) => print(`   ${path}`))
+  print(
+    `\n2. Schema fields only ever set to null/empty (${alwaysEmpty.length}):`
+  )
+  alwaysEmpty.forEach((path) => print(`   ${path}`))
+  print(`\n3. Excel columns never read by the mapping (${unmapped.length}):`)
+  unmapped.forEach((header) =>
+    print(`   ${header}  (${nonEmptyByColumn[header]} rows have a value)`)
+  )
+  print()
 }
