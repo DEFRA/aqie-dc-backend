@@ -21,9 +21,7 @@ async function getCompleteApplicationIds(db) {
     .project({ id: 1, _id: 0 })
     .toArray()
 
-  return completeApplications
-    .map((app) => app.id)
-    .filter(Boolean)
+  return completeApplications.map((app) => app.id).filter(Boolean)
 }
 
 export {
