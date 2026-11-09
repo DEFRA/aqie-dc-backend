@@ -160,9 +160,20 @@ async function updateFuel(db, fuelId, updates, logger) {
   try {
     const collection = db.collection('Fuels')
     const now = new Date()
+    // PATCH validation skips schema defaults, so derive the flag here.
+    const changes =
+      'additionalBrandNames' in updates &&
+      !('hasAdditionalBrandNames' in updates)
+        ? {
+            ...updates,
+            hasAdditionalBrandNames: Boolean(
+              updates.additionalBrandNames?.trim()
+            )
+          }
+        : updates
     const result = await collection.updateOne(
       { id: fuelId },
-      { $set: { ...toDotted(updates), updatedAt: now } }
+      { $set: { ...toDotted(changes), updatedAt: now } }
     )
     if (result.matchedCount === 0) {
       return { notFound: true }
