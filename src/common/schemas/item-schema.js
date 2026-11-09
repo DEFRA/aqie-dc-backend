@@ -414,6 +414,8 @@ export const fuelSchema = Joi.object({
       })
       .description('Explain changes made to the original fuel')
   })
+    .allow(null)
+    .default(null)
     .when('supplierType', {
       is: 'Rebrand',
       then: Joi.required(),
@@ -429,10 +431,11 @@ export const fuelSchema = Joi.object({
     composition: Joi.string().required().description('Fuel composition'),
     sulphurContent: Joi.number().required().description('Sulphur content (%)')
   })
+    .allow(null)
+    .default(null)
     .when('supplierType', {
       is: 'Manufacture',
-      then: Joi.required(),
-      otherwise: Joi.optional()
+      then: Joi.required()
     })
     .description('Fuel description details (required for manufacturers)'),
   manufacturingProcess: Joi.string()
