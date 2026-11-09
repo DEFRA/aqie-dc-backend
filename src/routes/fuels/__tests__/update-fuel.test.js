@@ -181,6 +181,42 @@ describe('PATCH /fuels/{fuelId}', () => {
       expect(error).toBeDefined()
     })
 
+    test('accepts a partial originalFuel with only manufacturer', () => {
+      const { error } = updateFuel.options.validate.payload.validate({
+        originalFuel: { manufacturer: 'New Manufacturer' }
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    test.each([
+      ['name', 'Fuel'],
+      ['isChangedOrMixed', false],
+      ['changes', 'Changed bagging']
+    ])('accepts originalFuel with only %s', (field, value) => {
+      const { error } = updateFuel.options.validate.payload.validate({
+        originalFuel: { [field]: value }
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    test('rejects empty originalFuel', () => {
+      const { error } = updateFuel.options.validate.payload.validate({
+        originalFuel: {}
+      })
+
+      expect(error).toBeDefined()
+    })
+
+    test('rejects isChangedOrMixed true without changes', () => {
+      const { error } = updateFuel.options.validate.payload.validate({
+        originalFuel: { manufacturer: 'M', isChangedOrMixed: true }
+      })
+
+      expect(error).toBeDefined()
+    })
+
     test('validates params', () => {
       expect(updateFuel.options.validate).toBeDefined()
       expect(updateFuel.options.validate.params).toBeDefined()
