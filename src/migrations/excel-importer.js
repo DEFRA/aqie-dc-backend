@@ -107,7 +107,13 @@ async function importEntity(db, filePath, entityConfig, sheetName, verbose) {
     lastId = last?.[uniqueKey] ?? null
   }
 
+  // TEMPORARY: stop appliances import after 150 inserted records; remove with this block
+  const TEMP_INSERT_LIMIT = collectionName === 'Appliances' ? 150 : Infinity
+
   for (const { row, rowNumber } of rows) {
+    if (results.inserted >= TEMP_INSERT_LIMIT) {
+      break
+    }
     try {
       const document = transform(row)
 
