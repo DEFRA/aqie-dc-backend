@@ -346,7 +346,9 @@ describe('PATCH /fuels/{fuelId}/technical-review/checks', () => {
       })
 
       test.each([false, null])('rejects result %s', (result) => {
-        expect(validate({ check: 'fuelDescription', result }).error).toBeDefined()
+        expect(
+          validate({ check: 'fuelDescription', result }).error
+        ).toBeDefined()
       })
 
       test('forbids data', () => {
