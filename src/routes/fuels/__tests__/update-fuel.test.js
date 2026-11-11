@@ -209,6 +209,27 @@ describe('PATCH /fuels/{fuelId}', () => {
       expect(error).toBeDefined()
     })
 
+    test.each([
+      ['appearance', 'Black lumps'],
+      ['weight', '25kg'],
+      ['composition', 'Coal'],
+      ['sulphurContent', 0.5]
+    ])('accepts fuelDescription with only %s', (field, value) => {
+      const { error } = updateFuel.options.validate.payload.validate({
+        fuelDescription: { [field]: value }
+      })
+
+      expect(error).toBeUndefined()
+    })
+
+    test('rejects empty fuelDescription', () => {
+      const { error } = updateFuel.options.validate.payload.validate({
+        fuelDescription: {}
+      })
+
+      expect(error).toBeDefined()
+    })
+
     test('rejects isChangedOrMixed true without changes', () => {
       const { error } = updateFuel.options.validate.payload.validate({
         originalFuel: { manufacturer: 'M', isChangedOrMixed: true }
