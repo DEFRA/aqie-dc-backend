@@ -9,7 +9,6 @@ import {
   passedFuelTestResultsSchema,
   failedFuelTestResultsSchema
 } from '../../common/schemas/fuel-test-results-payload-schema.js'
-import { fuelDescriptionSchema } from '../../common/schemas/fuel-description-payload-schema.js'
 
 /**
  * Passing the check requires both measurements; failing it saves whatever
@@ -29,20 +28,8 @@ const TEST_RESULTS_DATA_SCHEMA = Joi.when('result', {
     .required()
 })
 
-const FUEL_DESCRIPTION_DATA_SCHEMA = Joi.object({
-  fuelDescription: fuelDescriptionSchema.required(),
-  manufacturingProcess: Joi.string()
-    .trim()
-    .min(1)
-    .required()
-    .description('Manufacturing process')
-})
-  .unknown(false)
-  .required()
-
 const CHECK_DATA_SCHEMAS = {
-  testResults: TEST_RESULTS_DATA_SCHEMA,
-  fuelDescription: FUEL_DESCRIPTION_DATA_SCHEMA
+  testResults: TEST_RESULTS_DATA_SCHEMA
 }
 
 export const recordFuelCheck = {
