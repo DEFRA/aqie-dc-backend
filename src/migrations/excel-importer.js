@@ -229,6 +229,7 @@ export async function importFromExcel(db, filePath, entities, options = {}) {
 // call in importFromExcel, once the migration mapping is finished.
 //
 // After an appliances import it prints, without touching the database:
+//  0. Excel column -> DB field mapping, with the processing applied
 //  1. Appliance schema fields the mapping never produces
 //  2. Appliance schema fields the mapping only ever sets to null/empty
 //  3. Excel columns the mapping never reads
@@ -265,6 +266,98 @@ function collectPaths(value, path, found) {
     !(Array.isArray(value) && value.length === 0) &&
     !isPlainObject
   found.set(path, found.get(path) || hasValue)
+}
+
+// Excel column(s) -> Appliances field, plus any processing applied. Keep in sync with
+// transformToAppliance / buildApplianceActions in entity-config.js
+const COUNTRY_COLUMNS =
+  '<Country> Status/User/Assigned Date/Approve Date/Publish Date'
+const APPLIANCE_FIELD_MAPPING = [
+  [
+    'Appliance ID',
+    'legacy.applianceId',
+    'copied; the new `id` is generated (YYYY-n sequence) in Appliance ID order'
+  ],
+  ['Application Number', 'legacy.applicationId', 'copied'],
+  [
+    'Comments, Additional Comments',
+    'legacy.comments',
+    'Comments split on "[dd/mm/yyyy ...]" stamps into separate entries; Additional Comments appended (trimmed); empties dropped'
+  ],
+  [
+    'Linked Applications',
+    'legacy.linkedApplicationIds',
+    'split on comma, semicolon or line break; trimmed; empties dropped'
+  ],
+  [
+    'Appliance Name (Title)',
+    'modelName',
+    'rows named "TEST" are skipped; "(Draft)" appended if any country status is "Draft (10)"'
+  ],
+  ['(none)', 'modelNumber', 'always null'],
+  ['Manufacturer Name', 'companyName', 'copied'],
+  ['Manufacturer Address', 'companyFullAddress', 'copied'],
+  ['Appliance Types', 'applianceType', 'copied'],
+  ['Output Value', 'nominalOutput', 'null when the value is 0'],
+  [
+    'Permitted Fuels',
+    'permittedFuels',
+    'superscript digits (e.g. \u00B2) removed'
+  ],
+  ['Additional Condition Comments', 'additionalConditions', 'copied'],
+  ['Instructions Manual Title', 'instructionManual.title', 'copied'],
+  ['Instructions Manual Reference', 'instructionManual.version', 'copied'],
+  [
+    'Instructions Manual Date',
+    'instructionManual.publicationDate',
+    'date parsed (day-first UK formats) and stored as ISO 8601 UTC; null + warning if unreadable'
+  ],
+  ['Additional Comments', 'instructionManual.additionalInfo', 'copied'],
+  ['Servicing Manual Title', 'servicingManual.title', 'copied'],
+  ['Servicing Manual Reference', 'servicingManual.version', 'copied'],
+  [
+    'Servicing Manual Date',
+    'servicingManual.publicationDate',
+    'date parsed (day-first UK formats) and stored as ISO 8601 UTC; null + warning if unreadable'
+  ],
+  [
+    COUNTRY_COLUMNS + ' (England, Scotland, Wales, N Ireland)',
+    '<country>Certification.{status, decidedAt, decidedBy, firstCertifiedAt, lastCertifiedAt}',
+    'Status mapped: Published (600)=certified, Rejected by DA (80)=uncertified, Awaiting Review (20)=awaiting_decision, anything else=new; dates are day-level; Publish Date preferred, Approve Date as fallback for certified; "Name <email>" user split into name/email'
+  ],
+  [
+    'Reviewer Reject/Approve/Assign Date, Reviewed By (User), Submitted By (User)',
+    'technicalReview.{status, reviewedAt, reviewedBy}',
+    'latest of reject/approve date wins (tie or unreadable = rejected, logged); no review = accepted if certified anywhere, else in_review if assigned, else new'
+  ],
+  [
+    '(derived)',
+    'publishedDate',
+    'earliest certified date across countries; omitted if none certified'
+  ],
+  [
+    '(derived)',
+    'applianceStatus (+ related status fields)',
+    'resolved from technicalReview and country certifications using the same rule as the app'
+  ],
+  [
+    '(derived)',
+    'isLegacyRecord, createdAt, updatedAt',
+    'true / import time / import time'
+  ],
+  [
+    'Reviewer and country columns above',
+    'Actions collection',
+    'history entries created: rejectedAtApplication, acceptedAtApplication, sentForCertification, certified, uncertified; sorted oldest first'
+  ]
+]
+
+function printFieldMapping(print) {
+  print('\n0. Excel column -> DB field mapping (Appliances):')
+  for (const [column, field, note] of APPLIANCE_FIELD_MAPPING) {
+    print(`   ${column}  ->  ${field}`)
+    print(`      ${note}`)
+  }
 }
 
 async function printMappingReport(filePath) {
@@ -325,6 +418,7 @@ async function printMappingReport(filePath) {
   const print = (line = '') => process.stdout.write(`${line}\n`)
 
   print(`\n=== Mapping report (${mapped} appliances mapped) ===`)
+  printFieldMapping(print)
   print(
     `\n1. Schema fields never produced by the mapping (${notProduced.length}):`
   )
