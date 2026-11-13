@@ -219,7 +219,7 @@ export async function cleanupTempFile(filePath) {
 ```javascript
 import Joi from 'joi'
 import Boom from '@hapi/boom'
-import { importFromExcel } from '../migrations/import-from-excel.js'
+import { importFromExcel } from '../migrations/import-from-excel-dynamic.js'
 import {
   downloadFromS3,
   cleanupTempFile

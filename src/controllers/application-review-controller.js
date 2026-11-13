@@ -15,9 +15,10 @@ import {
   toUserActor
 } from '../common/helpers/action-history.js'
 import { calculateItemStatus } from '../common/helpers/item-status.js'
-
-const LOGGER_REQUIRED_ERROR = 'logger is required'
-const APPLICATION_NOT_FOUND = 'Application not found'
+import {
+  ensureLogger,
+  APPLICATION_NOT_FOUND
+} from '../common/helpers/controller-utils.js'
 
 const REVIEW_OUTCOME_ACTIONS = {
   accepted: 'acceptedAtApplication',
@@ -196,9 +197,7 @@ const loadCompletableApplication = async (db, id, logger) => {
  * Records who completed it (reviewedBy) and when (reviewedAt).
  */
 async function completeApplication(db, id, payload, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const { failure, application, itemsCollectionName, linkedItems } =
       await loadCompletableApplication(db, id, logger)
@@ -264,9 +263,7 @@ async function completeApplication(db, id, payload, logger) {
  * Records who is reviewing it (reviewedBy).
  */
 async function startApplication(db, id, payload, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Applications')
     const application = await collection.findOne({ id })

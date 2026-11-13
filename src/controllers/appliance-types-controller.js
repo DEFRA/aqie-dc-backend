@@ -1,5 +1,4 @@
-const LOGGER_REQUIRED_ERROR =
-  'Appliance types controller requires a logger instance'
+import { ensureLogger } from '../common/helpers/controller-utils.js'
 
 /**
  * Get all appliance types with optional filtering
@@ -10,9 +9,7 @@ const LOGGER_REQUIRED_ERROR =
  * @returns {Promise<Object>} Success response with appliance types array
  */
 export async function getApplianceTypes(db, { isPrimary = null } = {}, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
 
   try {
     const query = isPrimary !== null ? { isPrimary } : {}

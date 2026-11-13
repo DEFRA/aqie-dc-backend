@@ -197,7 +197,7 @@ describe('appliances-controller', () => {
       expect(result.data[0].authorisedIn).toEqual(['England'])
     })
 
-    test('queries certified appliances only', async () => {
+    test('queries live appliances only', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
         toArray: vi.fn().mockResolvedValue([])
@@ -208,7 +208,7 @@ describe('appliances-controller', () => {
       await getAllAppliances(db, {}, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({
-        isVisibleToPublic: true
+        applianceStatus: 'live'
       })
     })
 
@@ -499,6 +499,11 @@ describe('appliances-controller', () => {
 
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(41)
+      applicationsCollection.find.mockReturnValue({
+        project: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([{ id: 'app-1' }])
+        })
+      })
 
       const result = await searchAdminAppliances(
         db,
@@ -530,6 +535,11 @@ describe('appliances-controller', () => {
 
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(1)
+      applicationsCollection.find.mockReturnValue({
+        project: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([{ id: 'app-1' }])
+        })
+      })
 
       await searchAdminAppliances(
         db,
@@ -543,7 +553,13 @@ describe('appliances-controller', () => {
       )
 
       const searchQuery = collection.find.mock.calls[0][0]
-      expect(searchQuery.$or).toEqual([
+      expect(searchQuery.$or).toBeDefined()
+      expect(searchQuery.$or[0]).toEqual({
+        applicationId: { $in: ['app-1'] }
+      })
+      expect(searchQuery.$or[1]).toEqual({ isLegacyRecord: true })
+      expect(searchQuery.$and).toBeDefined()
+      expect(searchQuery.$and[0].$or).toEqual([
         { modelName: { $regex: 'boiler', $options: 'i' } },
         { companyName: { $regex: 'boiler', $options: 'i' } },
         { modelNumber: { $regex: 'boiler', $options: 'i' } },
@@ -570,6 +586,11 @@ describe('appliances-controller', () => {
 
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(1)
+      applicationsCollection.find.mockReturnValue({
+        project: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([])
+        })
+      })
 
       const result = await searchAdminAppliances(
         db,
@@ -614,6 +635,11 @@ describe('appliances-controller', () => {
 
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(0)
+      applicationsCollection.find.mockReturnValue({
+        project: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([])
+        })
+      })
 
       const result = await searchAdminAppliances(
         db,
@@ -627,7 +653,7 @@ describe('appliances-controller', () => {
       expect(result.pagination.totalPages).toBe(0)
     })
 
-    test('searches by technical review status even when query is blank', async () => {
+    test('filters by complete applications and legacy records', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
@@ -637,6 +663,11 @@ describe('appliances-controller', () => {
 
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(0)
+      applicationsCollection.find.mockReturnValue({
+        project: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([{ id: 'app-complete-1' }])
+        })
+      })
 
       await searchAdminAppliances(
         db,
@@ -645,10 +676,10 @@ describe('appliances-controller', () => {
       )
 
       const searchQuery = collection.find.mock.calls[0][0]
-      expect(searchQuery['technicalReview.status']).toEqual({
-        $in: ['accepted', 'rejected']
-      })
-      expect(searchQuery.$or).toBeUndefined()
+      expect(searchQuery.$or).toEqual([
+        { applicationId: { $in: ['app-complete-1'] } },
+        { isLegacyRecord: true }
+      ])
       expect(searchQuery.applianceStatus).toBeUndefined()
     })
 
@@ -662,22 +693,21 @@ describe('appliances-controller', () => {
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(0)
       applicationsCollection.find.mockReturnValue({
-        toArray: vi
-          .fn()
-          .mockResolvedValue([{ id: 'app-new' }, { id: 'app-in-progress' }])
+        project: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([])
+        })
       })
 
       await searchAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
 
-      expect(applicationsCollection.find).toHaveBeenCalledWith(
-        { status: { $ne: 'complete' } },
-        { projection: { id: 1, _id: 0 } }
-      )
-      const expected = { $nin: ['app-new', 'app-in-progress'] }
-      expect(collection.find.mock.calls[0][0].applicationId).toEqual(expected)
-      expect(collection.countDocuments.mock.calls[0][0].applicationId).toEqual(
-        expected
-      )
+      expect(applicationsCollection.find).toHaveBeenCalledWith({
+        status: 'complete'
+      })
+      const searchQuery = collection.find.mock.calls[0][0]
+      expect(searchQuery.$or).toEqual([
+        { applicationId: { $in: [] } },
+        { isLegacyRecord: true }
+      ])
     })
 
     test('does not restrict by application when every application is complete', async () => {
@@ -689,10 +719,19 @@ describe('appliances-controller', () => {
       }
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(0)
+      applicationsCollection.find.mockReturnValue({
+        project: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([{ id: 'app-complete-1' }])
+        })
+      })
 
       await searchAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
 
-      expect(collection.find.mock.calls[0][0].applicationId).toBeUndefined()
+      const searchQuery = collection.find.mock.calls[0][0]
+      expect(searchQuery.$or).toEqual([
+        { applicationId: { $in: ['app-complete-1'] } },
+        { isLegacyRecord: true }
+      ])
     })
   })
 
