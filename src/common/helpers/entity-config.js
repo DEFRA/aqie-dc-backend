@@ -241,9 +241,9 @@ function transformToAppliance(row) {
     createdAt: new Date()
   }
 
-  // If dates were identical (tie), mark as not visible to public
-  if (identicalDateTieCache.has(row) && identicalDateTieCache.get(row)) {
-    appliance.isVisibleToPublic = false
+  // If dates were identical (tie), set visibility based on scenario
+  if (identicalDateTieCache.has(row)) {
+    appliance.isVisibleToPublic = identicalDateTieCache.get(row)
   }
 
   // Same rule the app uses after a review or certification change
@@ -573,14 +573,82 @@ function buildTechnicalReview(row, certifications) {
       +rejected.completedAt !== +accepted.completedAt
 
     if (!isClear) {
+      // Check for country-level publish dates
+      const publishDates = {
+        england: showCell(row['England Publish Date']),
+        scotland: showCell(row['Scotland Publish Date']),
+        wales: showCell(row['Wales Publish Date']),
+        nireland: showCell(row['N Ireland Publish Date'])
+      }
+      const publishDateList = Object.entries(publishDates).map(
+        ([country, val]) =>
+          `${country}: ${val && val !== 'null' ? val : 'none'}`
+      )
+
+      const publishInfo = `Country Publish Dates: ${publishDateList.join(', ')}`
+
+      // Count how many countries have publish dates
+      const countriesWithDates = Object.values(publishDates).filter(
+        (val) => val && val !== 'null'
+      ).length
+      const totalCountries = Object.keys(publishDates).length
+
+      // Determine scenario and set visibility/status accordingly
+      let scenario
+      let isVisibleToPublic = false
+      let finalStatus = 'accepted'
+
+      if (countriesWithDates === 0) {
+        // Scenario 3: All countries have NO publish dates
+        scenario = 'Scenario 3 - no publish dates'
+        finalStatus = 'rejected'
+      } else if (countriesWithDates === totalCountries) {
+        // Scenario 2: All countries HAVE publish dates
+        scenario = 'Scenario 2 - all publish dates present'
+        isVisibleToPublic = true
+        finalStatus = 'accepted'
+      } else {
+        // Scenario 1: Some countries missing publish dates
+        scenario = 'Scenario 1 - some publish dates missing'
+        isVisibleToPublic = false
+        finalStatus = 'accepted'
+      }
+
+      // Build the Approve Date display string with correct source
+      let approveDateDisplay
+      if (hasValue(row['Reviewer Approve Date'])) {
+        approveDateDisplay = `Reviewer Approve Date: ${showCell(row['Reviewer Approve Date'])}`
+      } else {
+        approveDateDisplay = `England Assigned Date: ${showCell(row['England Assigned Date'])}`
+      }
+
+      // Build status message based on scenario
+      let statusMessage
+      if (finalStatus === 'rejected') {
+        statusMessage = 'using rejected'
+      } else if (isVisibleToPublic) {
+        statusMessage = 'using accepted with isVisibleToPublic: true'
+      } else {
+        statusMessage = 'using accepted with isVisibleToPublic: false'
+      }
+
       console.log(
         `Dates are IDENTICAL for legacy appliance ${row['Appliance ID']}: ` +
           `Reject Date: ${showCell(row['Reviewer Reject Date'])} (${rejected.completedAt?.toISOString() ?? 'null'}, ${+rejected.completedAt}ms), ` +
-          `Approve Date: ${showCell(row['Reviewer Approve Date'])} (${accepted.completedAt?.toISOString() ?? 'null'}, ${+accepted.completedAt}ms); ` +
-          `no time component to differentiate - using accepted`
+          `${approveDateDisplay} (${accepted.completedAt?.toISOString() ?? 'null'}, ${+accepted.completedAt}ms); ` +
+          `no time component to differentiate - ${publishInfo} - ${statusMessage}`
       )
-      identicalDateTieCache.set(row, true)
-      return review('accepted', accepted)
+
+      // Mark scenarios that need review (Scenario 1 and 3)
+      if (countriesWithDates === 0 || countriesWithDates < totalCountries) {
+        identicalDateTieCache.set(row, isVisibleToPublic)
+      }
+
+      if (finalStatus === 'rejected') {
+        return review('rejected', rejected)
+      } else {
+        return review('accepted', accepted)
+      }
     }
 
     return rejected.completedAt > accepted.completedAt
