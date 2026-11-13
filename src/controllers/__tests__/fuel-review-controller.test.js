@@ -171,7 +171,7 @@ describe('fuel-review-controller', () => {
         data: { fuelId: 'FUEL-1', check: 'manufacturerLetter', result: true }
       })
 
-      const [, update] = collection.updateOne.mock.calls[0]
+      const [, update] = collection.updateOne.mock.calls.at(-1)
       expect(update.$set).toHaveProperty(
         'technicalReview.documentationChecks.manufacturerLetter',
         true
@@ -197,7 +197,7 @@ describe('fuel-review-controller', () => {
         undefined
       )
 
-      const [, update] = collection.updateOne.mock.calls[0]
+      const [, update] = collection.updateOne.mock.calls.at(-1)
       expect(update.$set).toHaveProperty(
         'technicalReview.listingChecks.fuelDetails',
         true
@@ -223,7 +223,7 @@ describe('fuel-review-controller', () => {
         undefined
       )
 
-      const [, update] = collection.updateOne.mock.calls[0]
+      const [, update] = collection.updateOne.mock.calls.at(-1)
       expect(update.$set).not.toHaveProperty('technicalReview.status')
     })
 
@@ -249,7 +249,7 @@ describe('fuel-review-controller', () => {
       test('Rebrand records fuelDetails check as flag', async () => {
         await record('Rebrand', true)
 
-        const [, update] = collection.updateOne.mock.calls[0]
+        const [, update] = collection.updateOne.mock.calls.at(-1)
         expect(update.$set).toMatchObject({
           'technicalReview.listingChecks.fuelDetails': true
         })
@@ -258,7 +258,7 @@ describe('fuel-review-controller', () => {
       test('Manufacture records fuelDetails check as flag', async () => {
         await record('Manufacture', true)
 
-        const [, update] = collection.updateOne.mock.calls[0]
+        const [, update] = collection.updateOne.mock.calls.at(-1)
         expect(update.$set).toMatchObject({
           'technicalReview.listingChecks.fuelDetails': true
         })
@@ -267,7 +267,7 @@ describe('fuel-review-controller', () => {
       test('records status change on first check', async () => {
         await record('Rebrand', true)
 
-        const [, update] = collection.updateOne.mock.calls[0]
+        const [, update] = collection.updateOne.mock.calls.at(-1)
         expect(update.$set).toHaveProperty(
           'technicalReview.status',
           'in_review'
@@ -302,7 +302,7 @@ describe('fuel-review-controller', () => {
         testResults: { smokeEmission: 1.25, sulphurContent: 0.5 }
       })
 
-      const [, update] = collection.updateOne.mock.calls[0]
+      const [, update] = collection.updateOne.mock.calls.at(-1)
       expect(update.$set).toHaveProperty(
         'technicalReview.documentationChecks.testResults',
         true
@@ -408,7 +408,7 @@ describe('fuel-review-controller', () => {
         data: { fuelId: 'FUEL-1', check: 'testResults', result: true }
       })
 
-      const [, update] = collection.updateOne.mock.calls[0]
+      const [, update] = collection.updateOne.mock.calls.at(-1)
       expect(update.$set).toHaveProperty(
         'technicalReview.documentationChecks.testResults',
         true
@@ -445,7 +445,7 @@ describe('fuel-review-controller', () => {
 
       expect(result.success).toBe(true)
 
-      const [, update] = collection.updateOne.mock.calls[0]
+      const [, update] = collection.updateOne.mock.calls.at(-1)
       expect(update.$set).toHaveProperty(
         'technicalReview.documentationChecks.testResults',
         false
@@ -474,7 +474,7 @@ describe('fuel-review-controller', () => {
 
       expect(result.success).toBe(true)
 
-      const [, update] = collection.updateOne.mock.calls[0]
+      const [, update] = collection.updateOne.mock.calls.at(-1)
       expect(update.$set).toHaveProperty(
         'technicalReview.documentationChecks.manufacturerLetter',
         true
@@ -649,21 +649,8 @@ describe('fuel-review-controller', () => {
       technicalReview: { status: 'new' }
     }
 
-    const record = (
-      result,
-      fuelDescription,
-      manufacturingProcess = 'Heat treatment and extrusion'
-    ) =>
-      recordFuelCheck(
-        db,
-        'FUEL-1',
-        'fuelDescription',
-        result,
-        mockLogger,
-        fuelDescription === undefined
-          ? undefined
-          : { fuelDescription, manufacturingProcess }
-      )
+    const record = (result) =>
+      recordFuelCheck(db, 'FUEL-1', 'fuelDescription', result, mockLogger)
 
     beforeEach(() => {
       collection.findOne
@@ -672,20 +659,18 @@ describe('fuel-review-controller', () => {
       collection.updateOne.mockResolvedValue({ matchedCount: 1 })
     })
 
-    test('stores the description and passed status', async () => {
-      const result = await record(true, validDescription)
+    test('stores the passed status only', async () => {
+      const result = await record(true)
 
       expect(result.success).toBe(true)
-      const [, update] = collection.updateOne.mock.calls[0]
-      expect(update.$set).toMatchObject({
-        'fuelDescription.appearance': 'Pillow-shaped briquettes',
-        'fuelDescription.weight': '20',
-        'fuelDescription.composition': 'Wood 100%',
-        'fuelDescription.sulphurContent': 0.7,
-        manufacturingProcess: 'Heat treatment and extrusion',
-        'technicalReview.listingChecks.fuelDescription': true,
-        'technicalReview.status': 'in_review'
-      })
+      const [, update] = collection.updateOne.mock.calls.at(-1)
+      expect(update.$set).toEqual(
+        expect.objectContaining({
+          'technicalReview.listingChecks.fuelDescription': true,
+          'technicalReview.status': 'in_review'
+        })
+      )
+      expect(update.$set).not.toHaveProperty('manufacturingProcess')
     })
   })
 
@@ -809,7 +794,7 @@ describe('fuel-review-controller', () => {
 
       await updateFuelReview(db, 'FUEL-1', { status: 'accepted' }, mockLogger)
 
-      const [filter, update] = collection.updateOne.mock.calls[0]
+      const [filter, update] = collection.updateOne.mock.calls.at(-1)
 
       expect(filter).toEqual({ id: 'FUEL-1' })
       expect(update.$set).toHaveProperty('technicalReview.status', 'accepted')
@@ -833,7 +818,7 @@ describe('fuel-review-controller', () => {
         mockLogger
       )
 
-      const [, update] = collection.updateOne.mock.calls[0]
+      const [, update] = collection.updateOne.mock.calls.at(-1)
 
       expect(update.$set['technicalReview.reviewedBy.name']).toBe('A Reviewer')
       expect(update.$set['technicalReview.reviewedBy.email']).toBe(
@@ -847,7 +832,7 @@ describe('fuel-review-controller', () => {
 
       await updateFuelReview(db, 'FUEL-1', { status: 'accepted' }, mockLogger)
 
-      const [, update] = collection.updateOne.mock.calls[0]
+      const [, update] = collection.updateOne.mock.calls.at(-1)
 
       expect(update.$set['technicalReview.reviewedBy']).toBeNull()
     })

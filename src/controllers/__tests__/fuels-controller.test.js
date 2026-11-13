@@ -273,6 +273,45 @@ describe('fuels-controller', () => {
       expect(result.updated.brandName).toBe('Updated Fuel')
     })
 
+    test.each([
+      ['Brand Two', true],
+      ['   ', false],
+      [null, false]
+    ])(
+      'derives hasAdditionalBrandNames from additionalBrandNames %j',
+      async (value, expected) => {
+        collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+        collection.findOne.mockResolvedValue({ id: 'FUEL-001' })
+
+        await updateFuel(
+          db,
+          'FUEL-001',
+          { additionalBrandNames: value },
+          mockLogger
+        )
+
+        expect(collection.updateOne).toHaveBeenCalledWith(
+          { id: 'FUEL-001' },
+          {
+            $set: expect.objectContaining({
+              additionalBrandNames: value,
+              hasAdditionalBrandNames: expected
+            })
+          }
+        )
+      }
+    )
+
+    test('does not set hasAdditionalBrandNames when additionalBrandNames is absent', async () => {
+      collection.updateOne.mockResolvedValue({ matchedCount: 1 })
+      collection.findOne.mockResolvedValue({ id: 'FUEL-001' })
+
+      await updateFuel(db, 'FUEL-001', { brandName: 'X' }, mockLogger)
+
+      const { $set } = collection.updateOne.mock.calls[0][1]
+      expect($set).not.toHaveProperty('hasAdditionalBrandNames')
+    })
+
     test('returns notFound when no match', async () => {
       collection.updateOne.mockResolvedValue({
         matchedCount: 0

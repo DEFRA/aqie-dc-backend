@@ -152,9 +152,29 @@ async function updateFuel(db, fuelId, updates, logger) {
   try {
     const collection = db.collection('Fuels')
     const now = new Date()
+    // PATCH validation skips schema defaults, so derive the flag here.
+    const changes =
+      'additionalBrandNames' in updates &&
+      !('hasAdditionalBrandNames' in updates)
+        ? {
+            ...updates,
+            hasAdditionalBrandNames: Boolean(
+              updates.additionalBrandNames?.trim()
+            )
+          }
+        : updates
+    // Dotted $set cannot create sub-fields inside a stored null (e.g. fuelDescription on a rebrand).
+    for (const [key, value] of Object.entries(changes)) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        await collection.updateOne(
+          { id: fuelId, [key]: null },
+          { $set: { [key]: {} } }
+        )
+      }
+    }
     const result = await collection.updateOne(
       { id: fuelId },
-      { $set: { ...toDotted(updates), updatedAt: now } }
+      { $set: { ...toDotted(changes), updatedAt: now } }
     )
     if (result.matchedCount === 0) {
       return { notFound: true }

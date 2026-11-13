@@ -9,8 +9,23 @@ import { STATUS_DRIVING_FIELDS } from '../../common/helpers/item-status.js'
 import { statusCodes } from '../../common/constants/status-codes.js'
 
 // (Item) Status-driving fields are forbidden: they have dedicated endpoints.
+// originalFuel and fuelDescription sub-fields are each editable individually on the FE: all optional, but at least one required.
+// isChangedOrMixed: true without changes in the same PATCH still fails validation.
 const updateFuelSchema = fuelSchema
   .fork(Object.keys(fuelSchema.describe().keys), (schema) => schema.optional())
+  .fork(
+    [
+      'originalFuel.manufacturer',
+      'originalFuel.name',
+      'originalFuel.isChangedOrMixed',
+      'fuelDescription.appearance',
+      'fuelDescription.weight',
+      'fuelDescription.composition',
+      'fuelDescription.sulphurContent'
+    ],
+    (schema) => schema.optional()
+  )
+  .fork(['originalFuel', 'fuelDescription'], (schema) => schema.min(1))
   .fork([...STATUS_DRIVING_FIELDS, 'fuelStatus'], (schema) =>
     schema.forbidden()
   )
