@@ -241,6 +241,11 @@ function transformToAppliance(row) {
     createdAt: new Date()
   }
 
+  // If dates were identical (tie), mark as not visible to public
+  if (identicalDateTieCache.has(row) && identicalDateTieCache.get(row)) {
+    appliance.isVisibleToPublic = false
+  }
+
   // Same rule the app uses after a review or certification change
   Object.assign(
     appliance,
@@ -508,6 +513,7 @@ function buildApplianceActions(row, appliance) {
 // Rejected/Accepted at application from the Reviewer columns; parsed once per row so the
 // actions and technicalReview agree and date warnings are not repeated.
 const reviewCache = new WeakMap()
+const identicalDateTieCache = new WeakMap()
 
 function reviewEntries(row) {
   if (reviewCache.has(row)) {
@@ -568,11 +574,13 @@ function buildTechnicalReview(row, certifications) {
 
     if (!isClear) {
       console.log(
-        `Confusion about whether the review is accepted or rejected for legacy appliance ${row['Appliance ID']}: ` +
-          `Reviewer Reject Date ${showCell(row['Reviewer Reject Date'])}, ` +
-          `Reviewer Approve Date ${showCell(row['Reviewer Approve Date'])}; using rejected`
+        `Dates are IDENTICAL for legacy appliance ${row['Appliance ID']}: ` +
+          `Reject Date: ${showCell(row['Reviewer Reject Date'])} (${rejected.completedAt?.toISOString() ?? 'null'}, ${+rejected.completedAt}ms), ` +
+          `Approve Date: ${showCell(row['Reviewer Approve Date'])} (${accepted.completedAt?.toISOString() ?? 'null'}, ${+accepted.completedAt}ms); ` +
+          `no time component to differentiate - using accepted`
       )
-      return review('rejected', rejected)
+      identicalDateTieCache.set(row, true)
+      return review('accepted', accepted)
     }
 
     return rejected.completedAt > accepted.completedAt
