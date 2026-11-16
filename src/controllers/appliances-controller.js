@@ -332,15 +332,15 @@ async function getAdminApplianceById(db, id, logger) {
       success: true,
       data: {
         id: item.id ?? id,
-        modelName: item.modelName || '',
+        modelName: item.modelName,
         modelNumber: item.modelNumber || '',
         applicationId: item.applicationId || null,
         certifications,
-        status: item.applianceStatus || 'pending',
+        status: item.applianceStatus,
         canTogglePublicVisibility: findCertified(item).length > 0,
         isVisibleToPublic: item.isVisibleToPublic,
         isLegacyRecord: item.isLegacyRecord,
-        technicalReview: item.technicalReview ?? null
+        technicalReview: item.technicalReview
       }
     }
   } catch (error) {
