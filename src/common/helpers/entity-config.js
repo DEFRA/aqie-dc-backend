@@ -156,6 +156,24 @@ function splitIds(value) {
     .filter(Boolean)
 }
 
+// Determine multifuel appliance status based on fuel types
+function isMultifuelAppliance(fuelTypes) {
+  const normalizedFuel = String(fuelTypes ?? '').trim().toLowerCase()
+  const result = normalizedFuel === 'multifuel'
+  console.log(`  → Fuel: "${fuelTypes}" → normalized: "${normalizedFuel}" → isMultifuelAppliance: ${result}`)
+  return result
+}
+
+// Determine if appliance is permitted to burn wood
+function isPermittedToBurnWood(fuelTypes) {
+  const normalizedFuel = String(fuelTypes ?? '').trim().toLowerCase()
+  const result = normalizedFuel === 'wood based' || 
+                 normalizedFuel === 'wood pellets' ||
+                 normalizedFuel === 'multifuel'
+  console.log(`  → Fuel: "${fuelTypes}" → normalized: "${normalizedFuel}" → isPermittedToBurnWood: ${result}`)
+  return result
+}
+
 function transformToAppliance(row) {
   let modelName = row['Appliance Name (Title)']
 
@@ -167,6 +185,15 @@ function transformToAppliance(row) {
   const manualPublicationDate = parseDateColumn(row, 'Instructions Manual Date')
   const servicingPublicationDate = parseDateColumn(row, 'Servicing Manual Date')
   const certifications = buildCertifications(row)
+
+  // Determine fuel-related flags
+  const fuelTypeValue = row['Fuel Types']
+  console.log(`Appliance ${row['Appliance ID']} - Fuel Type Processing:`)
+  if (fuelTypeValue === undefined) {
+    console.log(`  ⚠️  WARNING: 'Fuel Types' column is undefined. Available keys: ${Object.keys(row).slice(0, 10).join(', ')}...`)
+  }
+  const isMultifuelFlag = isMultifuelAppliance(fuelTypeValue)
+  const isPermittedToBurnWoodFlag = isPermittedToBurnWood(fuelTypeValue)
 
   // Add "(Draft)" suffix if any country has draft status
   const hasDraft = COUNTRIES.some(
@@ -202,6 +229,8 @@ function transformToAppliance(row) {
       /[\u00B2\u00B3\u00B9\u2070\u2074-\u2079]/g,
       ''
     ),
+    isMultifuelAppliance: isMultifuelFlag,
+    isPermittedToBurnWood: isPermittedToBurnWoodFlag,
     additionalConditions: row['Additional Condition Comments'],
     instructionManual: {
       title: row['Instructions Manual Title'],
@@ -589,7 +618,7 @@ function buildTechnicalReview(row, certifications) {
 
       // Count how many countries have publish dates
       const countriesWithDates = Object.values(publishDates).filter(
-        (val) => val && val !== 'null'
+        (val) => val && val !== 'null' && val !== 'none'
       ).length
       const totalCountries = Object.keys(publishDates).length
 

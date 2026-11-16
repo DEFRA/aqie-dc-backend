@@ -304,6 +304,7 @@ const APPLIANCE_FIELD_MAPPING = [
     'permittedFuels',
     'superscript digits (e.g. \u00B2) removed'
   ],
+  ['Fuel Types', '(not stored)', 'read to calculate isMultifuelAppliance and isPermittedToBurnWood'],
   ['Additional Condition Comments', 'additionalConditions', 'copied'],
   ['Instructions Manual Title', 'instructionManual.title', 'copied'],
   ['Instructions Manual Reference', 'instructionManual.version', 'copied'],

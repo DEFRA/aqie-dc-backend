@@ -28,7 +28,7 @@
   isVariant: false,
   existingAuthorisedAppliance: 'Old Model',
   nominalOutput: 10,
-  multifuelAppliance: true,
+  isMultifuelAppliance: true,
   permittedFuels: 'Wood Pellets',
   declaration: true,
   // Admin Flow fields
@@ -155,7 +155,8 @@ export default {
   isVariant: false,
   existingAuthorisedAppliance: 'Old Model',
   nominalOutput: 10,
-  multifuelAppliance: true,
+  isMultifuelAppliance: true,
   permittedFuels: 'Wood Pellets',
+  isPermittedToBurnWood: true,
   declaration: true
 }

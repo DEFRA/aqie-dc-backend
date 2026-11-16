@@ -44,8 +44,9 @@ export const applianceApplicationExample = {
       isVariant: false,
       existingAuthorisedAppliance: 'Old Model',
       nominalOutput: 10,
-      multifuelAppliance: true,
+      isMultifuelAppliance: true,
       permittedFuels: 'Wood Pellets',
+      isPermittedToBurnWood: true,
       instructionManual: {
         title: 'Manual X',
         publicationDate: new Date('2026-02-03'),
@@ -97,8 +98,9 @@ export const applianceApplicationExample = {
       isVariant: true,
       existingAuthorisedAppliance: 'Beta 1000',
       nominalOutput: 12,
-      multifuelAppliance: false,
+      isMultifuelAppliance: false,
       permittedFuels: 'Wood Pellets',
+      isPermittedToBurnWood: false,
       instructionManual: {
         title: 'Beta Manual',
         publicationDate: new Date('2026-03-10')

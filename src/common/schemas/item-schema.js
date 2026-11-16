@@ -122,9 +122,9 @@ export const applianceSchema = Joi.object({
     .default(null)
     .description('If it is a variant, details'),
   nominalOutput: Joi.number().required().description('Thermal output (kW)'),
-  multifuelAppliance: Joi.boolean()
+  isMultifuelAppliance: Joi.boolean()
     .required()
-    .description('Multifuel capability'),
+    .description('Is a multifuel appliance'),
   permittedFuels: Joi.string()
     .trim()
     .min(1)
@@ -220,8 +220,7 @@ export const applianceSchema = Joi.object({
   }).optional(),
   //Reviews/Certifications
   isPermittedToBurnWood: Joi.boolean()
-    .allow(null)
-    .optional()
+    .required()
     .description('Whether the appliance is permitted to burn wood'),
   technicalReview: Joi.object({
     status: Joi.string()

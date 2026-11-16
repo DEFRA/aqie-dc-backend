@@ -107,7 +107,7 @@ describe('appliance-review-controller', () => {
         isVariant: 1,
         existingAuthorisedAppliance: 1,
         nominalOutput: 1,
-        multifuelAppliance: 1,
+        isMultifuelAppliance: 1,
         permittedFuels: 1,
         additionalConditions: 1,
         isPermittedToBurnWood: 1,
