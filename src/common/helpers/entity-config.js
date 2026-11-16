@@ -656,22 +656,18 @@ function buildTechnicalReview(row, certifications) {
       const totalCountries = Object.keys(publishDates).length
 
       // Determine scenario and set visibility/status accordingly
-      let scenario
       let isVisibleToPublic = false
       let finalStatus = 'accepted'
 
       if (countriesWithDates === 0) {
         // Scenario 3: All countries have NO publish dates
-        scenario = 'Scenario 3 - no publish dates'
         finalStatus = 'rejected'
       } else if (countriesWithDates === totalCountries) {
         // Scenario 2: All countries HAVE publish dates
-        scenario = 'Scenario 2 - all publish dates present'
         isVisibleToPublic = true
         finalStatus = 'accepted'
       } else {
         // Scenario 1: Some countries missing publish dates
-        scenario = 'Scenario 1 - some publish dates missing'
         isVisibleToPublic = false
         finalStatus = 'accepted'
       }
