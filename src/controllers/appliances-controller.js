@@ -19,11 +19,6 @@ import {
 } from '../common/helpers/controller-utils.js'
 
 /**
- * Appliances Controller
- * Business logic for appliance-related operations
- */
-
-/**
  * Create a new appliance
  */
 async function createAppliance(db, item, logger) {
