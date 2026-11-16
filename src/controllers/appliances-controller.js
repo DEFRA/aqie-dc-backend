@@ -322,7 +322,10 @@ async function getAdminApplianceById(db, id, logger) {
           walesCertification: 1,
           nIrelandCertification: 1,
           applianceStatus: 1,
-          technicalReview: 1
+          technicalReview: 1,
+          instructionManual: 1,
+          servicingManual: 1,
+          legacy: 1
         }
       }
     )
@@ -357,7 +360,10 @@ async function getAdminApplianceById(db, id, logger) {
         canTogglePublicVisibility: findCertified(item).length > 0,
         isVisibleToPublic: item.isVisibleToPublic,
         isLegacyRecord: item.isLegacyRecord,
-        technicalReview: item.technicalReview ?? null
+        technicalReview: item.technicalReview ?? null,
+        instructionManual: item.instructionManual ?? null,
+        servicingManual: item.servicingManual ?? null,
+        legacy: item.legacy ?? null
       }
     }
   } catch (error) {

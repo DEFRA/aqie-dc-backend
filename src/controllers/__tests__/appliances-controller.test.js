@@ -312,11 +312,19 @@ describe('appliances-controller', () => {
         id: 'APP-001',
         modelName: 'Admin Model',
         modelNumber: 'AM-001',
+        companyAddress: {
+          line1: '1 High St',
+          city: 'Leeds',
+          postcode: 'LS1 1AA'
+        },
         applicationId: 'APPL-001',
         isLegacyRecord: true,
         isVisibleToPublic: false,
         ...certifiedInEngland,
-        applianceStatus: 'live'
+        applianceStatus: 'live',
+        instructionManual: { title: 'Manual', version: 'v1' },
+        servicingManual: { title: 'Servicing' },
+        legacy: { applicationId: 'CAA-EA-00000788' }
       })
 
       const result = await getAdminApplianceById(db, 'APP-001', mockLogger)
@@ -327,6 +335,7 @@ describe('appliances-controller', () => {
           id: 'APP-001',
           modelName: 'Admin Model',
           modelNumber: 'AM-001',
+          fullAddress: ['1 High St', 'Leeds', 'LS1 1AA'],
           applicationId: 'APPL-001',
           certifications: {
             england: {
@@ -354,7 +363,10 @@ describe('appliances-controller', () => {
           canTogglePublicVisibility: true,
           isVisibleToPublic: false,
           isLegacyRecord: true,
-          technicalReview: null
+          technicalReview: null,
+          instructionManual: { title: 'Manual', version: 'v1' },
+          servicingManual: { title: 'Servicing' },
+          legacy: { applicationId: 'CAA-EA-00000788' }
         }
       })
     })
@@ -377,6 +389,10 @@ describe('appliances-controller', () => {
       expect(result.data.canTogglePublicVisibility).toBe(false)
       expect(result.data.isVisibleToPublic).toBeUndefined()
       expect(result.data.isLegacyRecord).toBeUndefined()
+      expect(result.data.instructionManual).toBeNull()
+      expect(result.data.servicingManual).toBeNull()
+      expect(result.data.legacy).toBeNull()
+      expect(result.data.fullAddress).toEqual([])
     })
 
     test('returns not found', async () => {
