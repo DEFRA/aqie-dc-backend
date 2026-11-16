@@ -204,10 +204,7 @@ export const applianceSchema = Joi.object({
     publicationDate: Joi.date()
       .optional()
       .description('Servicing manual publication date'),
-    version: Joi.string().optional().description('Servicing manual version'),
-    additionalInfo: Joi.string()
-      .optional()
-      .description('Servicing manual additional information')
+    version: Joi.string().optional().description('Servicing manual version')
   }).optional(),
   legacy: Joi.object({
     comments: Joi.array().optional().description('Legacy comments'),

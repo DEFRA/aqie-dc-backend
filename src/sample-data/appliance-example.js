@@ -54,8 +54,7 @@
   servicingManual: {
     title: 'Service Manual X',
     date: '2026-02-01',
-    version: 'Version 2',
-    additionalInfo: 'Servicing instructions'
+    version: 'Version 2'
   },
   legacyRecord: true,
   legacy: {

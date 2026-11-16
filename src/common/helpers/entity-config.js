@@ -159,19 +159,17 @@ function splitIds(value) {
 // Determine multifuel appliance status based on fuel types
 function isMultifuelAppliance(fuelTypes) {
   const normalizedFuel = String(fuelTypes ?? '').trim().toLowerCase()
-  const result = normalizedFuel === 'multifuel'
-  console.log(`  → Fuel: "${fuelTypes}" → normalized: "${normalizedFuel}" → isMultifuelAppliance: ${result}`)
-  return result
+  return normalizedFuel === 'multifuel'
 }
 
 // Determine if appliance is permitted to burn wood
 function isPermittedToBurnWood(fuelTypes) {
   const normalizedFuel = String(fuelTypes ?? '').trim().toLowerCase()
-  const result = normalizedFuel === 'wood based' || 
-                 normalizedFuel === 'wood pellets' ||
-                 normalizedFuel === 'multifuel'
-  console.log(`  → Fuel: "${fuelTypes}" → normalized: "${normalizedFuel}" → isPermittedToBurnWood: ${result}`)
-  return result
+  return (
+    normalizedFuel === 'wood based' ||
+    normalizedFuel === 'wood pellets' ||
+    normalizedFuel === 'multifuel'
+  )
 }
 
 function transformToAppliance(row) {
@@ -188,10 +186,6 @@ function transformToAppliance(row) {
 
   // Determine fuel-related flags
   const fuelTypeValue = row['Fuel Types']
-  console.log(`Appliance ${row['Appliance ID']} - Fuel Type Processing:`)
-  if (fuelTypeValue === undefined) {
-    console.log(`  ⚠️  WARNING: 'Fuel Types' column is undefined. Available keys: ${Object.keys(row).slice(0, 10).join(', ')}...`)
-  }
   const isMultifuelFlag = isMultifuelAppliance(fuelTypeValue)
   const isPermittedToBurnWoodFlag = isPermittedToBurnWood(fuelTypeValue)
 
