@@ -1,7 +1,3 @@
-/**
- * Applications Controller - Business logic for application operations
- */
-
 import {
   generateNextId,
   getFullAddress
