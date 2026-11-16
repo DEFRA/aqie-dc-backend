@@ -312,11 +312,6 @@ describe('appliances-controller', () => {
         id: 'APP-001',
         modelName: 'Admin Model',
         modelNumber: 'AM-001',
-        companyAddress: {
-          line1: '1 High St',
-          city: 'Leeds',
-          postcode: 'LS1 1AA'
-        },
         applicationId: 'APPL-001',
         isLegacyRecord: true,
         isVisibleToPublic: false,
@@ -335,7 +330,6 @@ describe('appliances-controller', () => {
           id: 'APP-001',
           modelName: 'Admin Model',
           modelNumber: 'AM-001',
-          fullAddress: ['1 High St', 'Leeds', 'LS1 1AA'],
           applicationId: 'APPL-001',
           certifications: {
             england: {
@@ -392,7 +386,6 @@ describe('appliances-controller', () => {
       expect(result.data.instructionManual).toBeNull()
       expect(result.data.servicingManual).toBeNull()
       expect(result.data.legacy).toBeNull()
-      expect(result.data.fullAddress).toEqual([])
     })
 
     test('returns not found', async () => {
