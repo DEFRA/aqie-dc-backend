@@ -354,7 +354,7 @@ describe('appliances-controller', () => {
           canTogglePublicVisibility: true,
           isVisibleToPublic: false,
           isLegacyRecord: true,
-          technicalReview: null
+          technicalReview: undefined
         }
       })
     })
@@ -364,7 +364,7 @@ describe('appliances-controller', () => {
 
       const result = await getAdminApplianceById(db, 'APP-002', mockLogger)
 
-      expect(result.data.status).toBe('pending')
+      expect(result.data.status).toBeUndefined()
       expect(result.data.certifications.england).toEqual({
         status: 'awaiting_decision',
         firstCertifiedAt: null,
