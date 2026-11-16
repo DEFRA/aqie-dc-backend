@@ -333,7 +333,7 @@ const APPLIANCE_FIELD_MAPPING = [
   [
     'Reviewer Reject/Approve/Assign Date, Reviewed By (User), Submitted By (User)',
     'technicalReview.{status, reviewedAt, reviewedBy}',
-    'latest of reject/approve date wins (same-day tie or unreadable: decided by country publish dates, logged; see docs/appliance-migration-actions-mapping.md); no review = accepted if certified anywhere, else accepted by System, hidden, note added to legacy.comments (logged)'
+    'latest of reject/approve date wins (same-day tie or unreadable: decided by country publish dates, logged; see docs/appliance-migration-actions-mapping.md); no review = accepted if certified anywhere, else rejected by System if no reviewer assigned and no country Publish Date, otherwise accepted by System; both hidden with a legacy.comments note (logged)'
   ],
   [
     '(derived)',

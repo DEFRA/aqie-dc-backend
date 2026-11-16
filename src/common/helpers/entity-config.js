@@ -233,7 +233,7 @@ function transformToAppliance(row) {
       comments: [
         ...splitComments(row['Comments']),
         row['Additional Comments']?.trim(),
-        needsSystemReview ? SYSTEM_REVIEW_COMMENT : null,
+        systemReviewCache.get(row)?.comment ?? null,
         partialPublishTieRows.has(row) ? PARTIAL_PUBLISH_TIE_COMMENT : null
       ].filter(Boolean),
       linkedApplicationIds: splitIds(row['Linked Applications'])
@@ -285,7 +285,8 @@ function transformToAppliance(row) {
   )
 
   // The shared rule resets visibility to true when nothing is certified, so apply this last
-  if (needsSystemReview) {
+  // (not for rejected: rejection already keeps it off the public list)
+  if (needsSystemReview && appliance.technicalReview.status === 'accepted') {
     appliance.isVisibleToPublic = false
   }
 
@@ -551,7 +552,9 @@ function buildApplianceActions(row, appliance) {
     actions.push(
       actionEntry(
         appliance.id,
-        'acceptedAtApplication',
+        systemReview.status === 'rejected'
+          ? 'rejectedAtApplication'
+          : 'acceptedAtApplication',
         systemReview.completedBy,
         systemReview.completedAt
       )
@@ -569,6 +572,8 @@ const PARTIAL_PUBLISH_TIE_COMMENT =
   'This record has been hidden as the technical review approve and reject dates are the same day and only some countries have a publish date, the system has defaulted it to Accepted but hidden from the public to be checked by HETAS'
 const systemReviewCache = new WeakMap()
 const SYSTEM_ACTOR = { name: 'System', type: 'system' }
+const SYSTEM_REJECTED_COMMENT =
+  'This record has been set to Rejected by the system as there are no review dates, no reviewer assigned and no country has a publish date'
 const SYSTEM_REVIEW_COMMENT =
   'This record has been hidden as there is confusion on the technical review, the system has defaulted it to Accepted but hidden from the public to be checked by HETAS'
 
@@ -735,22 +740,32 @@ function buildTechnicalReview(row, certifications) {
     }
   }
 
-  // No review dates and not certified anywhere ('in_review' or 'new'): accepted by 'System',
-  // flagged in the title and hidden from the public until someone checks the record
-  const reason = hasValue(row['Reviewer Assign Date'])
+  // No review dates and not certified anywhere ('in_review' or 'new'): decided by 'System' and
+  // hidden from the public until HETAS checks the record. Rejected when there is no reviewer
+  // assigned and no country has a publish date (same check as the same-day clash), else accepted.
+  const hasReviewer = hasValue(row['Reviewer Assign Date'])
+  const hasPublishDate = COUNTRIES.some((country) =>
+    hasValue(row[`${country.prefix} Publish Date`])
+  )
+  const status = hasReviewer || hasPublishDate ? 'accepted' : 'rejected'
+  const reason = hasReviewer
     ? 'no review dates but a reviewer is assigned (was in_review)'
     : 'no review dates and no reviewer assigned (was new)'
   const systemEntry = {
     completedBy: SYSTEM_ACTOR,
-    completedAt: new Date()
+    completedAt: new Date(),
+    status,
+    comment:
+      status === 'accepted' ? SYSTEM_REVIEW_COMMENT : SYSTEM_REJECTED_COMMENT
   }
   systemReviewCache.set(row, systemEntry)
   console.log(
-    `Technical review needed for legacy appliance ${row['Appliance ID']}: ${reason} - ` +
-      `using accepted by System, isVisibleToPublic: false, note added to legacy.comments`
+    `Technical review needed for legacy appliance ${row['Appliance ID']}: ${reason}` +
+      `${hasPublishDate ? '' : ', no country has a publish date'} - ` +
+      `using ${status} by System${status === 'accepted' ? ', isVisibleToPublic: false' : ''}, note added to legacy.comments`
   )
 
-  return review('accepted', systemEntry)
+  return review(status, systemEntry)
 }
 
 // Same-day entries keep the natural order of the process

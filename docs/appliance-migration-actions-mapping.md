@@ -62,8 +62,9 @@ For `englandCertification`, `scotlandCertification`, `walesCertification` and `n
 | Both, with different dates                      | the later one                                                                                                                                                         | the later one's date and person                  |
 | Both on the same day, or a date unreadable      | scenario-dependent (see Identical Date Tie Handling section); console prints detailed diagnostic info (dates with millisecond timestamps + all country publish dates) | the relevant entry's date and person             |
 | Neither, but certified in any country           | `accepted`                                                                                                                                                            | earliest certification date, `reviewedBy` `null` |
-| Neither, and `Reviewer Assign Date` has a value | `accepted` by `System` (was `in_review`); logged; a note is added to `legacy.comments`; `isVisibleToPublic` `false`                                                   | import time, `System`                            |
-| Neither of the above                            | `accepted` by `System` (was `new`); logged; a note is added to `legacy.comments`; `isVisibleToPublic` `false`                                                         | import time, `System`                            |
+| Neither, and `Reviewer Assign Date` has a value | `accepted` by `System` (was `in_review`); logged; note added to `legacy.comments`; `isVisibleToPublic` `false` | import time, `System` |
+| Neither, no `Reviewer Assign Date`, but a country has a Publish Date | `accepted` by `System` (was `new`); logged; note added to `legacy.comments`; `isVisibleToPublic` `false` | import time, `System` |
+| Neither, no `Reviewer Assign Date` and no country Publish Date | `rejected` by `System` (action: Rejected at application); logged; note added to `legacy.comments` saying why; `isVisibleToPublic` not changed (rejected already keeps it off the public list) | import time, `System` |
 
 ## Other fields set by the mapping
 

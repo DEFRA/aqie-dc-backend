@@ -14,7 +14,10 @@ describe('legacy appliances with no review dates and no certification', () => {
 
   test.each([
     ['a reviewer is assigned', { 'Reviewer Assign Date': '2020-01-05' }],
-    ['no reviewer is assigned', {}]
+    [
+      'no reviewer but a country has a publish date',
+      { 'Wales Publish Date': '2020-01-05' }
+    ]
   ])('%s: accepted by System, hidden and flagged', (_label, extra) => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     const row = { ...baseRow(), ...extra }
@@ -41,6 +44,26 @@ describe('legacy appliances with no review dates and no certification', () => {
         )
       )
     ).toBe(true)
+  })
+
+  test('rejected by System when no reviewer is assigned and no country has a publish date', () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    const row = baseRow()
+
+    const appliance = transform(row)
+    const actions = buildActions(row, { ...appliance, id: '2026-0001' })
+
+    expect(appliance.technicalReview.status).toBe('rejected')
+    expect(appliance.technicalReview.reviewedBy).toEqual({ name: 'System' })
+    expect(appliance.isVisibleToPublic).not.toBe(false)
+    expect(appliance.legacy.comments).toEqual([
+      expect.stringContaining('no country has a publish date')
+    ])
+    expect(actions).toHaveLength(1)
+    expect(actions[0]).toMatchObject({
+      action: 'rejectedAtApplication',
+      completedBy: { name: 'System', type: 'system' }
+    })
   })
 
   test('an appliance with a reviewer approve date is left alone', () => {
