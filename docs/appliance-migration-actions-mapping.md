@@ -70,6 +70,9 @@ For `englandCertification`, `scotlandCertification`, `walesCertification` and `n
 - `id`: `PPPP-SSSS` with the sequence starting at `0001`, assigned in ascending `Appliance ID` order and continuing from the last stored ID.
 - `isLegacyRecord`: `true`.
 - `TEST` rows (`Appliance Name (Title)` equals `TEST`) are skipped and logged with their Excel row number.
+- `isMultifuelAppliance`: from the `Fuel Types` column (trimmed, case-insensitive). `true` only for `Multifuel`; any other value (e.g. `Mineral`, `Other`) or an empty cell is `false`.
+- `isPermittedToBurnWood`: from the `Fuel Types` column (trimmed, case-insensitive). `true` for `Wood based`, `Wood pellets` or `Multifuel`; any other value or an empty cell is `false`. The `Fuel Types` value itself is not stored. `permittedFuels` still comes from the separate `Permitted Fuels` column.
+- `Reviewer Assign Date`: only its presence is used, for `technicalReview.status` `in_review` (see the table above). The date is not stored.
 - `isVisibleToPublic`: Set based on country-level publish date availability (see Identical Date Tie Handling section). These records may require manual review depending on scenario.
 
 ## Identical Date Tie Handling

@@ -329,7 +329,7 @@ const APPLIANCE_FIELD_MAPPING = [
   [
     'Reviewer Reject/Approve/Assign Date, Reviewed By (User), Submitted By (User)',
     'technicalReview.{status, reviewedAt, reviewedBy}',
-    'latest of reject/approve date wins (tie or unreadable = rejected, logged); no review = accepted if certified anywhere, else in_review if assigned, else new'
+    'latest of reject/approve date wins (same-day tie or unreadable: decided by country publish dates, logged; see docs/appliance-migration-actions-mapping.md); no review = accepted if certified anywhere, else in_review if assigned, else new'
   ],
   [
     '(derived)',
@@ -416,6 +416,10 @@ async function printMappingReport(filePath) {
     (path) => produced.has(path) && !produced.get(path)
   )
   const unmapped = headers.filter((header) => !readColumns.has(header))
+  // Columns the code asks for that are not in the sheet (typo or renamed header)
+  const missingFromSheet = [...readColumns].filter(
+    (column) => !headers.includes(column)
+  )
   const print = (line = '') => process.stdout.write(`${line}\n`)
 
   print(`\n=== Mapping report (${mapped} appliances mapped) ===`)
@@ -432,5 +436,9 @@ async function printMappingReport(filePath) {
   unmapped.forEach((header) =>
     print(`   ${header}  (${nonEmptyByColumn[header]} rows have a value)`)
   )
+  print(
+    `\n4. Columns the mapping reads that do NOT exist in the sheet (${missingFromSheet.length}):`
+  )
+  missingFromSheet.forEach((column) => print(`   ${column}`))
   print()
 }
