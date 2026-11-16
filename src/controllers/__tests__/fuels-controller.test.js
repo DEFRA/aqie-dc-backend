@@ -180,7 +180,7 @@ describe('fuels-controller', () => {
       expect(result.data[0].id).toBe('FUEL-001')
     })
 
-    test('only returns fuels visible to the public', async () => {
+    test('only returns live fuels', async () => {
       collection.find.mockReturnValue({
         toArray: vi.fn().mockResolvedValue([])
       })
@@ -188,7 +188,7 @@ describe('fuels-controller', () => {
       await getAllFuels(db, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({
-        isVisibleToPublic: true
+        fuelStatus: 'live'
       })
     })
 

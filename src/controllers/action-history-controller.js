@@ -1,6 +1,5 @@
 import { validateApplicationType } from '../common/helpers/application-type.js'
-
-const LOGGER_REQUIRED_ERROR = 'logger is required'
+import { ensureLogger } from '../common/helpers/controller-utils.js'
 
 const ITEM_LABELS = { appliance: 'Appliance', fuel: 'Fuel' }
 
@@ -27,9 +26,7 @@ async function getActionHistory(
   logger,
   { page = 1 } = {}
 ) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
 
   const applicationTypeDetails = validateApplicationType(itemType, logger)
   if (!applicationTypeDetails) {

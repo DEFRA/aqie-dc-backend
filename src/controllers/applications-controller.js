@@ -15,18 +15,14 @@ import {
   getItemNameField,
   validateApplicationType
 } from '../common/helpers/application-type.js'
-import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
+import {
+  ensureLogger,
+  getCompleteApplicationIds,
+  APPLICATION_NOT_FOUND
+} from '../common/helpers/controller-utils.js'
 
-const LOGGER_REQUIRED_ERROR = 'logger is required'
 const MONGO_ILLEGAL_OPERATION_CODE = 20
-const APPLICATION_NOT_FOUND = 'Application not found'
 const ID_PATTERN = /^\d{4}-\d+$/
-
-function ensureLogger(logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
-}
 
 async function generateApplicationId(collection, applicationType, session) {
   const lastApplication = await collection.findOne(
@@ -224,10 +220,29 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
       .findOne({ id: applicationId })
 
     if (!application) {
+      // Fallback to legacy lookup: search Appliances for legacy.applicationId match
+      const legacyAppliance = await db
+        .collection('Appliances')
+        .findOne({ 'legacy.applicationId': applicationId })
+
+      if (!legacyAppliance) {
+        return {
+          success: false,
+          message: APPLICATION_NOT_FOUND,
+          notFound: true
+        }
+      }
+
+      // Return legacy appliance as a reference record (no linked items)
       return {
-        success: false,
-        message: APPLICATION_NOT_FOUND,
-        notFound: true
+        success: true,
+        message: 'Legacy application retrieved successfully',
+        data: {
+          id: applicationId,
+          legacy: legacyAppliance.legacy,
+          isLegacyReference: true,
+          linkedItems: []
+        }
       }
     }
 
@@ -347,14 +362,15 @@ async function getCounts(db, logger) {
       }
     }
 
-    const filter = await getCompleteApplicationRecordsFilter(db)
+    const completeAppIds = await getCompleteApplicationIds(db)
+    const filter = { applicationId: { $in: completeAppIds } }
     const appliancesCollection = db.collection('Appliances')
 
     const [applianceRecordCount, fuelRecordCount, legacyApplianceRecordCount] =
       await Promise.all([
         appliancesCollection.countDocuments(filter),
         db.collection('Fuels').countDocuments(filter),
-        appliancesCollection.countDocuments({ legacyRecord: true })
+        appliancesCollection.countDocuments({ isLegacyRecord: true })
       ])
 
     applicationCounts.appliance.records =
