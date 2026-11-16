@@ -20,14 +20,6 @@ import {
 const MONGO_ILLEGAL_OPERATION_CODE = 20
 const ID_PATTERN = /^\d{4}-\d+$/
 
-async function generateApplicationId(collection, applicationType, session) {
-  const lastApplication = await collection.findOne(
-    { id: { $regex: ID_PATTERN }, type: applicationType },
-    { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
-  )
-  return generateNextId(lastApplication?.id)
-}
-
 async function createApplication(client, db, payload, logger) {
   ensureLogger(logger)
   const session = client.startSession()
@@ -47,7 +39,13 @@ async function createApplication(client, db, payload, logger) {
       'Transaction attempt failed'
     )
 
-    if (isTransactionUnsupportedError(transactionError)) {
+    if (
+      (transactionError.message || '').toLowerCase().includes('transaction') ||
+      (transactionError.message || '').toLowerCase().includes('replica set') ||
+      (transactionError.message || '').toLowerCase().includes('mongos') ||
+      transactionError.code === MONGO_ILLEGAL_OPERATION_CODE ||
+      transactionError.codeName === 'IllegalOperation'
+    ) {
       logger.warn(
         'Transactions not supported, falling back to direct operations'
       )
@@ -57,17 +55,6 @@ async function createApplication(client, db, payload, logger) {
   } finally {
     await session.endSession()
   }
-}
-
-function isTransactionUnsupportedError(error) {
-  const message = (error.message || '').toLowerCase()
-  return (
-    message.includes('transaction') ||
-    message.includes('replica set') ||
-    message.includes('mongos') ||
-    error.code === MONGO_ILLEGAL_OPERATION_CODE ||
-    error.codeName === 'IllegalOperation'
-  )
 }
 
 function buildApplication(applicationData, id) {
@@ -143,11 +130,11 @@ async function performApplicationInsert(db, payload, logger, session) {
   const appCollection = db.collection('Applications')
   const itemsCollectionName = getItemsCollectionName(applicationData.type)
 
-  const applicationId = await generateApplicationId(
-    appCollection,
-    applicationData.type,
-    session
+  const lastApplication = await appCollection.findOne(
+    { id: { $regex: ID_PATTERN }, type: applicationData.type },
+    { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
   )
+  const applicationId = generateNextId(lastApplication?.id)
   const application = buildApplication(applicationData, applicationId)
 
   const insertOptions = session ? { session } : {}
