@@ -43,27 +43,27 @@ Notes:
 
 For `englandCertification`, `scotlandCertification`, `walesCertification` and `nIrelandCertification`:
 
-| Field              | Source                                                                                                                                                                                                  |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `status`           | `Published (600)` is `certified`; `Rejected by DA (80)` is `uncertified`; `Awaiting Review (20)` is `awaiting_decision`; anything else (`Draft (10)`, empty) is `new` (marked `TODO come back to this`) |
-| `firstCertifiedAt` | `<Country> Publish Date`, then `<Country> Approve Date`, then `null` (applied to every status)                                                                                                          |
-| `lastCertifiedAt`  | same value as `firstCertifiedAt`                                                                                                                                                                        |
-| `decidedAt`        | certified: the same date as `firstCertifiedAt`; uncertified: `<Country> Publish Date` only; other statuses `null`                                                                                       |
-| `decidedBy`        | `<Country> User` (certified and uncertified rows only), otherwise `null`                                                                                                                                |
+| Field              | Source                                                                                                                                                                                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `status`           | `Published (600)` is `certified`; `Rejected by DA (80)` is `uncertified`; `Awaiting Review (20)` is `awaiting_decision`; anything else (`Draft (10)`, empty) is `awaiting_decision` when `technicalReview.status` is `accepted`, or `new` when it is `rejected` |
+| `firstCertifiedAt` | `<Country> Publish Date`, then `<Country> Approve Date`, then `null` (applied to every status)                                                                                                                                                                  |
+| `lastCertifiedAt`  | same value as `firstCertifiedAt`                                                                                                                                                                                                                                |
+| `decidedAt`        | certified: the same date as `firstCertifiedAt`; uncertified: `<Country> Publish Date` only; other statuses `null`                                                                                                                                               |
+| `decidedBy`        | `<Country> User` (certified and uncertified rows only), otherwise `null`                                                                                                                                                                                        |
 
 ## technicalReview on the appliance
 
 `status`, `reviewedAt` and `reviewedBy` come from the latest of the Rejected/Accepted at application entries, by date. `documentationChecks` and `listingChecks` are not set.
 
-| Situation                                       | status                                                                                                                                                               | reviewedAt / reviewedBy                          |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Only a Rejected entry                           | `rejected`                                                                                                                                                           | its date and person                              |
-| Only an Accepted entry                          | `accepted`                                                                                                                                                           | its date and person                              |
-| Both, with different dates                      | the later one                                                                                                                                                        | the later one's date and person                  |
+| Situation                                       | status                                                                                                                                                                | reviewedAt / reviewedBy                          |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Only a Rejected entry                           | `rejected`                                                                                                                                                            | its date and person                              |
+| Only an Accepted entry                          | `accepted`                                                                                                                                                            | its date and person                              |
+| Both, with different dates                      | the later one                                                                                                                                                         | the later one's date and person                  |
 | Both on the same day, or a date unreadable      | scenario-dependent (see Identical Date Tie Handling section); console prints detailed diagnostic info (dates with millisecond timestamps + all country publish dates) | the relevant entry's date and person             |
-| Neither, but certified in any country           | `accepted`                                                                                                                                                           | earliest certification date, `reviewedBy` `null` |
-| Neither, and `Reviewer Assign Date` has a value | `in_review`                                                                                                                                                          | `null`                                           |
-| Neither of the above                            | `new`                                                                                                                                                                | `null`                                           |
+| Neither, but certified in any country           | `accepted`                                                                                                                                                            | earliest certification date, `reviewedBy` `null` |
+| Neither, and `Reviewer Assign Date` has a value | `accepted` by `System` (was `in_review`); logged; a note is added to `legacy.comments`; `isVisibleToPublic` `false`                                                   | import time, `System`                            |
+| Neither of the above                            | `accepted` by `System` (was `new`); logged; a note is added to `legacy.comments`; `isVisibleToPublic` `false`                                                         | import time, `System`                            |
 
 ## Other fields set by the mapping
 
@@ -72,7 +72,7 @@ For `englandCertification`, `scotlandCertification`, `walesCertification` and `n
 - `TEST` rows (`Appliance Name (Title)` equals `TEST`) are skipped and logged with their Excel row number.
 - `isMultifuelAppliance`: from the `Fuel Types` column (trimmed, case-insensitive). `true` only for `Multifuel`; any other value (e.g. `Mineral`, `Other`) or an empty cell is `false`.
 - `isPermittedToBurnWood`: from the `Fuel Types` column (trimmed, case-insensitive). `true` for `Wood based`, `Wood pellets` or `Multifuel`; any other value or an empty cell is `false`. The `Fuel Types` value itself is not stored. `permittedFuels` still comes from the separate `Permitted Fuels` column.
-- `Reviewer Assign Date`: only its presence is used, for `technicalReview.status` `in_review` (see the table above). The date is not stored.
+- `Reviewer Assign Date`: only its presence is used, to word the log line for System-accepted records (see the table above). The date is not stored.
 - `isVisibleToPublic`: Set based on country-level publish date availability (see Identical Date Tie Handling section). These records may require manual review depending on scenario.
 
 ## Identical Date Tie Handling
@@ -80,37 +80,45 @@ For `englandCertification`, `scotlandCertification`, `walesCertification` and `n
 When `Reviewer Reject Date` and `Reviewer Approve Date` are on the same calendar date with no time component to differentiate them, the system applies scenario-based logic based on country-level publish date availability:
 
 ### Scenario 1: Some Countries Missing Publish Dates (12+ cases found)
+
 - **Status**: `accepted` (optimistic, since some certification exists)
 - **isVisibleToPublic**: `false` (flag for manual review due to incomplete country certifications)
 - **When**: 1–3 countries have publish dates; one or more countries are missing
 
 Example log output:
+
 ```
 Dates are IDENTICAL for legacy appliance 57993: Reject Date: 3/24/2021 (2021-03-24T00:00:00.000Z, 1616544000000ms), Reviewer Approve Date: 3/24/2021 (2021-03-24T00:00:00.000Z, 1616544000000ms); no time component to differentiate - Country Publish Dates: england: 3/29/2021, scotland: 3/25/2021, wales: none, nireland: 3/31/2021 - using accepted with isVisibleToPublic: false
 ```
 
 ### Scenario 2: All Countries Have Publish Dates (88+ cases found - MOST COMMON)
+
 - **Status**: `accepted` (highest confidence; all countries certified)
 - **isVisibleToPublic**: `true` (approved and ready for public visibility)
 - **When**: All 4 countries (England, Scotland, Wales, N Ireland) have publish dates
 
 Example log output:
+
 ```
 Dates are IDENTICAL for legacy appliance 12345: Reject Date: 10/25/2016 (2016-10-25T00:00:00.000Z, 1477353600000ms), Reviewer Approve Date: 10/25/2016 (2016-10-25T00:00:00.000Z, 1477353600000ms); no time component to differentiate - Country Publish Dates: england: 10/25/2016, scotland: 10/24/2016, wales: 4/13/2017, nireland: 10/27/2016 - using accepted with isVisibleToPublic: true
 ```
 
 ### Scenario 3: All Countries Missing Publish Dates (NOT FOUND in dataset)
+
 - **Status**: `rejected` (insufficient certification evidence; conservative fallback)
 - **isVisibleToPublic**: `false` (not visible, not approved)
 - **When**: No country has a publish date (data quality issue indicator)
 
 Example log output:
+
 ```
 Dates are IDENTICAL for legacy appliance 99999: Reject Date: 6/15/2020 (2020-06-15T00:00:00.000Z, 1592179200000ms), England Assigned Date: 6/15/2020 (2020-06-15T00:00:00.000Z, 1592179200000ms); no time component to differentiate - Country Publish Dates: england: none, scotland: none, wales: none, nireland: none - using rejected
 ```
 
 ### Console Output Details
+
 All identical date scenarios print:
+
 - **Appliance ID**: Legacy identifier from the Excel sheet
 - **Reject Date**: From `Reviewer Reject Date` column with ISO timestamp and milliseconds
 - **Approve Date**: From `Reviewer Approve Date` (if present) or `England Assigned Date` (fallback), with ISO timestamp and milliseconds

@@ -156,15 +156,21 @@ function splitIds(value) {
     .filter(Boolean)
 }
 
+const SUPERSCRIPT_DIGITS = /[\u00B2\u00B3\u00B9\u2070\u2074-\u2079]/g
+
 // Determine multifuel appliance status based on fuel types
 function isMultifuelAppliance(fuelTypes) {
-  const normalizedFuel = String(fuelTypes ?? '').trim().toLowerCase()
+  const normalizedFuel = String(fuelTypes ?? '')
+    .trim()
+    .toLowerCase()
   return normalizedFuel === 'multifuel'
 }
 
 // Determine if appliance is permitted to burn wood
 function isPermittedToBurnWood(fuelTypes) {
-  const normalizedFuel = String(fuelTypes ?? '').trim().toLowerCase()
+  const normalizedFuel = String(fuelTypes ?? '')
+    .trim()
+    .toLowerCase()
   return (
     normalizedFuel === 'wood based' ||
     normalizedFuel === 'wood pellets' ||
@@ -189,6 +195,15 @@ function transformToAppliance(row) {
   const isMultifuelFlag = isMultifuelAppliance(fuelTypeValue)
   const isPermittedToBurnWoodFlag = isPermittedToBurnWood(fuelTypeValue)
 
+  const permittedFuelsRaw = row['Permitted Fuels']
+  const permittedFuelsClean = permittedFuelsRaw?.replace(SUPERSCRIPT_DIGITS, '')
+  if (permittedFuelsRaw !== permittedFuelsClean) {
+    console.log(
+      `Appliance ${row['Appliance ID']} - Permitted Fuels: ` +
+        `before ${JSON.stringify(permittedFuelsRaw)} -> after ${JSON.stringify(permittedFuelsClean)}`
+    )
+  }
+
   // Add "(Draft)" suffix if any country has draft status
   const hasDraft = COUNTRIES.some(
     (country) =>
@@ -198,6 +213,18 @@ function transformToAppliance(row) {
     modelName = `${modelName} (Draft)`
   }
 
+  const technicalReview = buildTechnicalReview(row, certifications)
+
+  // Countries with no decision (Draft, empty, other): 'awaiting_decision' once the
+  // technical review is accepted, otherwise they stay 'new'
+  for (const certification of Object.values(certifications)) {
+    if (certification.status === null) {
+      certification.status =
+        technicalReview.status === 'accepted' ? 'awaiting_decision' : 'new'
+    }
+  }
+  const needsSystemReview = systemReviewCache.has(row)
+
   const appliance = {
     isLegacyRecord: true,
     legacy: {
@@ -205,7 +232,9 @@ function transformToAppliance(row) {
       applicationId: row['Application Number'],
       comments: [
         ...splitComments(row['Comments']),
-        row['Additional Comments']?.trim()
+        row['Additional Comments']?.trim(),
+        needsSystemReview ? SYSTEM_REVIEW_COMMENT : null,
+        partialPublishTieRows.has(row) ? PARTIAL_PUBLISH_TIE_COMMENT : null
       ].filter(Boolean),
       linkedApplicationIds: splitIds(row['Linked Applications'])
     },
@@ -219,10 +248,7 @@ function transformToAppliance(row) {
       parseFloat(row['Output Value']) === 0 ? null : row['Output Value'],
     //'Fuel types in excel can be ignored'
     // TODO: check how the superscript numbers appear in the Excel source (Unicode characters vs rich-text formatting)
-    permittedFuels: row['Permitted Fuels']?.replace(
-      /[\u00B2\u00B3\u00B9\u2070\u2074-\u2079]/g,
-      ''
-    ),
+    permittedFuels: permittedFuelsClean,
     isMultifuelAppliance: isMultifuelFlag,
     isPermittedToBurnWood: isPermittedToBurnWoodFlag,
     additionalConditions: row['Additional Condition Comments'],
@@ -238,35 +264,14 @@ function transformToAppliance(row) {
       publicationDate: servicingPublicationDate
     },
 
-    // const altEmail = getValueOrDefault(
-    //   row.manufacturerAlternateEmail,
-    //   row['Alternate Email']
-    // )
-    // if (altEmail) {
-    //   appliance.manufacturerAlternateEmail = altEmail
-    // }
-
-    // const existingAppliance = getValueOrDefault(
-    //   row.existingAuthorisedAppliance,
-    //   row['Existing Appliance']
-    // )
-    // if (existingAppliance) {
-    //   appliance.existingAuthorisedAppliance = existingAppliance
-    // }
-
     ...certifications,
-    technicalReview: buildTechnicalReview(row, certifications),
+    technicalReview,
     // Earliest certification date across the countries; omitted when none is certified
     ...(earliestCertifiedDate(certifications) && {
       publishedDate: earliestCertifiedDate(certifications)
     }),
     updatedAt: new Date(),
     createdAt: new Date()
-  }
-
-  // If dates were identical (tie), set visibility based on scenario
-  if (identicalDateTieCache.has(row)) {
-    appliance.isVisibleToPublic = identicalDateTieCache.get(row)
   }
 
   // Same rule the app uses after a review or certification change
@@ -278,6 +283,16 @@ function transformToAppliance(row) {
       appliance.technicalReview.status
     )
   )
+
+  // The shared rule resets visibility to true when nothing is certified, so apply this last
+  if (needsSystemReview) {
+    appliance.isVisibleToPublic = false
+  }
+
+  // Same-day approve/reject clash: visibility follows the publish-date scenario
+  if (identicalDateTieCache.has(row)) {
+    appliance.isVisibleToPublic = identicalDateTieCache.get(row)
+  }
 
   return appliance
 }
@@ -340,7 +355,8 @@ const COUNTRIES = [
   }
 ]
 
-// TODO come back to this: 'Draft (10)', empty and any other status are all saved as 'new'
+// 'Draft (10)', empty and any other status have no mapping (null); transformToAppliance sets
+// them once the technical review is known: 'awaiting_decision' if accepted, otherwise 'new'
 const COUNTRY_STATUSES = {
   'Published (600)': 'certified',
   'Rejected by DA (80)': 'uncertified',
@@ -350,7 +366,7 @@ const COUNTRY_STATUSES = {
 function countryStatus(row, country) {
   return (
     COUNTRY_STATUSES[String(row[`${country.prefix} Status`] ?? '').trim()] ??
-    'new'
+    null
   )
 }
 
@@ -530,6 +546,17 @@ function buildApplianceActions(row, appliance) {
     )
   }
 
+  const systemReview = systemReviewCache.get(row)
+  if (systemReview) {
+    actions.push(
+      actionEntry(
+        appliance.id,
+        'acceptedAtApplication',
+        systemReview.completedBy,
+        systemReview.completedAt
+      )
+    )
+  }
   return sortActionsByDate([...actions, ...buildCountryActions(row, appliance)])
 }
 
@@ -537,6 +564,13 @@ function buildApplianceActions(row, appliance) {
 // actions and technicalReview agree and date warnings are not repeated.
 const reviewCache = new WeakMap()
 const identicalDateTieCache = new WeakMap()
+const partialPublishTieRows = new WeakSet()
+const PARTIAL_PUBLISH_TIE_COMMENT =
+  'This record has been hidden as the technical review approve and reject dates are the same day and only some countries have a publish date, the system has defaulted it to Accepted but hidden from the public to be checked by HETAS'
+const systemReviewCache = new WeakMap()
+const SYSTEM_ACTOR = { name: 'System', type: 'system' }
+const SYSTEM_REVIEW_COMMENT =
+  'This record has been hidden as there is confusion on the technical review, the system has defaulted it to Accepted but hidden from the public to be checked by HETAS'
 
 function reviewEntries(row) {
   if (reviewCache.has(row)) {
@@ -665,6 +699,9 @@ function buildTechnicalReview(row, certifications) {
       // Mark scenarios that need review (Scenario 1 and 3)
       if (countriesWithDates === 0 || countriesWithDates < totalCountries) {
         identicalDateTieCache.set(row, isVisibleToPublic)
+        if (countriesWithDates > 0) {
+          partialPublishTieRows.add(row)
+        }
       }
 
       if (finalStatus === 'rejected') {
@@ -698,11 +735,22 @@ function buildTechnicalReview(row, certifications) {
     }
   }
 
-  return {
-    status: hasValue(row['Reviewer Assign Date']) ? 'in_review' : 'new',
-    reviewedAt: null,
-    reviewedBy: null
+  // No review dates and not certified anywhere ('in_review' or 'new'): accepted by 'System',
+  // flagged in the title and hidden from the public until someone checks the record
+  const reason = hasValue(row['Reviewer Assign Date'])
+    ? 'no review dates but a reviewer is assigned (was in_review)'
+    : 'no review dates and no reviewer assigned (was new)'
+  const systemEntry = {
+    completedBy: SYSTEM_ACTOR,
+    completedAt: new Date()
   }
+  systemReviewCache.set(row, systemEntry)
+  console.log(
+    `Technical review needed for legacy appliance ${row['Appliance ID']}: ${reason} - ` +
+      `using accepted by System, isVisibleToPublic: false, note added to legacy.comments`
+  )
+
+  return review('accepted', systemEntry)
 }
 
 // Same-day entries keep the natural order of the process

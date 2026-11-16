@@ -304,7 +304,11 @@ const APPLIANCE_FIELD_MAPPING = [
     'permittedFuels',
     'superscript digits (e.g. \u00B2) removed'
   ],
-  ['Fuel Types', '(not stored)', 'read to calculate isMultifuelAppliance and isPermittedToBurnWood'],
+  [
+    'Fuel Types',
+    '(not stored)',
+    'read to calculate isMultifuelAppliance and isPermittedToBurnWood'
+  ],
   ['Additional Condition Comments', 'additionalConditions', 'copied'],
   ['Instructions Manual Title', 'instructionManual.title', 'copied'],
   ['Instructions Manual Reference', 'instructionManual.version', 'copied'],
@@ -324,12 +328,12 @@ const APPLIANCE_FIELD_MAPPING = [
   [
     COUNTRY_COLUMNS + ' (England, Scotland, Wales, N Ireland)',
     '<country>Certification.{status, decidedAt, decidedBy, firstCertifiedAt, lastCertifiedAt}',
-    'Status mapped: Published (600)=certified, Rejected by DA (80)=uncertified, Awaiting Review (20)=awaiting_decision, anything else=new; dates are day-level; Publish Date preferred, Approve Date as fallback for certified; "Name <email>" user split into name/email'
+    'Status mapped: Published (600)=certified, Rejected by DA (80)=uncertified, Awaiting Review (20)=awaiting_decision, anything else=awaiting_decision if technicalReview is accepted, new if rejected; dates are day-level; Publish Date preferred, Approve Date as fallback for certified; "Name <email>" user split into name/email'
   ],
   [
     'Reviewer Reject/Approve/Assign Date, Reviewed By (User), Submitted By (User)',
     'technicalReview.{status, reviewedAt, reviewedBy}',
-    'latest of reject/approve date wins (same-day tie or unreadable: decided by country publish dates, logged; see docs/appliance-migration-actions-mapping.md); no review = accepted if certified anywhere, else in_review if assigned, else new'
+    'latest of reject/approve date wins (same-day tie or unreadable: decided by country publish dates, logged; see docs/appliance-migration-actions-mapping.md); no review = accepted if certified anywhere, else accepted by System, hidden, note added to legacy.comments (logged)'
   ],
   [
     '(derived)',
