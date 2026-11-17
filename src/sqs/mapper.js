@@ -30,7 +30,7 @@ const keyMapAppliance = {
 
   GFREno: 'existingAuthorisedAppliance',
   jxCIYY: 'nominalOutput',
-  Ltjqls: 'multifuelAppliance',
+  Ltjqls: 'isMultifuelAppliance',
   NGfXVf: 'permittedFuels',
 
   tiRhSf: 'declaration',
