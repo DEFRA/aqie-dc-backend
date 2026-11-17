@@ -19,11 +19,6 @@ import {
 } from '../common/helpers/controller-utils.js'
 
 /**
- * Appliances Controller
- * Business logic for appliance-related operations
- */
-
-/**
  * Create a new appliance
  */
 async function createAppliance(db, item, logger) {
@@ -305,7 +300,10 @@ async function getAdminApplianceById(db, id, logger) {
           walesCertification: 1,
           nIrelandCertification: 1,
           applianceStatus: 1,
-          technicalReview: 1
+          technicalReview: 1,
+          instructionManual: 1,
+          servicingManual: 1,
+          legacy: 1
         }
       }
     )
@@ -340,7 +338,10 @@ async function getAdminApplianceById(db, id, logger) {
         canTogglePublicVisibility: findCertified(item).length > 0,
         isVisibleToPublic: item.isVisibleToPublic,
         isLegacyRecord: item.isLegacyRecord,
-        technicalReview: item.technicalReview
+        technicalReview: item.technicalReview,
+        instructionManual: item.instructionManual ?? null,
+        servicingManual: item.servicingManual ?? null,
+        legacy: item.legacy ?? null
       }
     }
   } catch (error) {

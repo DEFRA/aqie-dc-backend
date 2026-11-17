@@ -1,7 +1,3 @@
-/**
- * Applications Controller - Business logic for application operations
- */
-
 import {
   generateNextId,
   getFullAddress
@@ -22,14 +18,6 @@ import {
   MONGO_ILLEGAL_OPERATION_CODE,
   ID_PATTERN
 } from '../common/helpers/controller-utils.js'
-
-async function generateApplicationId(collection, applicationType, session) {
-  const lastApplication = await collection.findOne(
-    { id: { $regex: ID_PATTERN }, type: applicationType },
-    { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
-  )
-  return generateNextId(lastApplication?.id)
-}
 
 async function createApplication(client, db, payload, logger) {
   ensureLogger(logger)
@@ -141,11 +129,11 @@ async function performApplicationInsert(db, payload, logger, session) {
   const appCollection = db.collection('Applications')
   const itemsCollectionName = getItemsCollectionName(applicationData.type)
 
-  const applicationId = await generateApplicationId(
-    appCollection,
-    applicationData.type,
-    session
+  const lastApplication = await appCollection.findOne(
+    { id: { $regex: ID_PATTERN }, type: applicationData.type },
+    { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
   )
+  const applicationId = generateNextId(lastApplication?.id)
   const application = buildApplication(applicationData, applicationId)
 
   const insertOptions = session ? { session } : {}

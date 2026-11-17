@@ -316,7 +316,10 @@ describe('appliances-controller', () => {
         isLegacyRecord: true,
         isVisibleToPublic: false,
         ...certifiedInEngland,
-        applianceStatus: 'live'
+        applianceStatus: 'live',
+        instructionManual: { title: 'Manual', version: 'v1' },
+        servicingManual: { title: 'Servicing' },
+        legacy: { applicationId: 'CAA-EA-00000788' }
       })
 
       const result = await getAdminApplianceById(db, 'APP-001', mockLogger)
@@ -354,7 +357,10 @@ describe('appliances-controller', () => {
           canTogglePublicVisibility: true,
           isVisibleToPublic: false,
           isLegacyRecord: true,
-          technicalReview: undefined
+          technicalReview: undefined,
+          instructionManual: { title: 'Manual', version: 'v1' },
+          servicingManual: { title: 'Servicing' },
+          legacy: { applicationId: 'CAA-EA-00000788' }
         }
       })
     })
@@ -377,6 +383,9 @@ describe('appliances-controller', () => {
       expect(result.data.canTogglePublicVisibility).toBe(false)
       expect(result.data.isVisibleToPublic).toBeUndefined()
       expect(result.data.isLegacyRecord).toBeUndefined()
+      expect(result.data.instructionManual).toBeNull()
+      expect(result.data.servicingManual).toBeNull()
+      expect(result.data.legacy).toBeNull()
     })
 
     test('returns not found', async () => {
