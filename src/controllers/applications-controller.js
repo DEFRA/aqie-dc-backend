@@ -1,7 +1,3 @@
-/**
- * Applications Controller - Business logic for application operations
- */
-
 import {
   generateNextId,
   getFullAddress
@@ -15,26 +11,13 @@ import {
   getItemNameField,
   validateApplicationType
 } from '../common/helpers/application-type.js'
-import { getCompleteApplicationRecordsFilter } from './complete-application-records-filter.js'
-
-const LOGGER_REQUIRED_ERROR = 'logger is required'
-const MONGO_ILLEGAL_OPERATION_CODE = 20
-const APPLICATION_NOT_FOUND = 'Application not found'
-const ID_PATTERN = /^\d{4}-\d+$/
-
-function ensureLogger(logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
-}
-
-async function generateApplicationId(collection, applicationType, session) {
-  const lastApplication = await collection.findOne(
-    { id: { $regex: ID_PATTERN }, type: applicationType },
-    { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
-  )
-  return generateNextId(lastApplication?.id)
-}
+import {
+  ensureLogger,
+  getCompleteApplicationIds,
+  APPLICATION_NOT_FOUND,
+  MONGO_ILLEGAL_OPERATION_CODE,
+  ID_PATTERN
+} from '../common/helpers/controller-utils.js'
 
 async function createApplication(client, db, payload, logger) {
   ensureLogger(logger)
@@ -55,7 +38,13 @@ async function createApplication(client, db, payload, logger) {
       'Transaction attempt failed'
     )
 
-    if (isTransactionUnsupportedError(transactionError)) {
+    if (
+      (transactionError.message || '').toLowerCase().includes('transaction') ||
+      (transactionError.message || '').toLowerCase().includes('replica set') ||
+      (transactionError.message || '').toLowerCase().includes('mongos') ||
+      transactionError.code === MONGO_ILLEGAL_OPERATION_CODE ||
+      transactionError.codeName === 'IllegalOperation'
+    ) {
       logger.warn(
         'Transactions not supported, falling back to direct operations'
       )
@@ -65,17 +54,6 @@ async function createApplication(client, db, payload, logger) {
   } finally {
     await session.endSession()
   }
-}
-
-function isTransactionUnsupportedError(error) {
-  const message = (error.message || '').toLowerCase()
-  return (
-    message.includes('transaction') ||
-    message.includes('replica set') ||
-    message.includes('mongos') ||
-    error.code === MONGO_ILLEGAL_OPERATION_CODE ||
-    error.codeName === 'IllegalOperation'
-  )
 }
 
 function buildApplication(applicationData, id) {
@@ -151,11 +129,11 @@ async function performApplicationInsert(db, payload, logger, session) {
   const appCollection = db.collection('Applications')
   const itemsCollectionName = getItemsCollectionName(applicationData.type)
 
-  const applicationId = await generateApplicationId(
-    appCollection,
-    applicationData.type,
-    session
+  const lastApplication = await appCollection.findOne(
+    { id: { $regex: ID_PATTERN }, type: applicationData.type },
+    { sort: { _id: -1 }, projection: { id: 1 }, ...(session && { session }) }
   )
+  const applicationId = generateNextId(lastApplication?.id)
   const application = buildApplication(applicationData, applicationId)
 
   const insertOptions = session ? { session } : {}
@@ -224,10 +202,29 @@ async function getApplicationById(db, applicationId, logger, groupBy) {
       .findOne({ id: applicationId })
 
     if (!application) {
+      // Fallback to legacy lookup: search Appliances for legacy.applicationId match
+      const legacyAppliance = await db
+        .collection('Appliances')
+        .findOne({ 'legacy.applicationId': applicationId })
+
+      if (!legacyAppliance) {
+        return {
+          success: false,
+          message: APPLICATION_NOT_FOUND,
+          notFound: true
+        }
+      }
+
+      // Return legacy appliance as a reference record (no linked items)
       return {
-        success: false,
-        message: APPLICATION_NOT_FOUND,
-        notFound: true
+        success: true,
+        message: 'Legacy application retrieved successfully',
+        data: {
+          id: applicationId,
+          legacy: legacyAppliance.legacy,
+          isLegacyReference: true,
+          linkedItems: []
+        }
       }
     }
 
@@ -347,14 +344,15 @@ async function getCounts(db, logger) {
       }
     }
 
-    const filter = await getCompleteApplicationRecordsFilter(db)
+    const completeAppIds = await getCompleteApplicationIds(db)
+    const filter = { applicationId: { $in: completeAppIds } }
     const appliancesCollection = db.collection('Appliances')
 
     const [applianceRecordCount, fuelRecordCount, legacyApplianceRecordCount] =
       await Promise.all([
         appliancesCollection.countDocuments(filter),
         db.collection('Fuels').countDocuments(filter),
-        appliancesCollection.countDocuments({ legacyRecord: true })
+        appliancesCollection.countDocuments({ isLegacyRecord: true })
       ])
 
     applicationCounts.appliance.records =

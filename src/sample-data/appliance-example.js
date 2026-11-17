@@ -28,7 +28,7 @@
   isVariant: false,
   existingAuthorisedAppliance: 'Old Model',
   nominalOutput: 10,
-  multifuelAppliance: true,
+  isMultifuelAppliance: true,
   permittedFuels: 'Wood Pellets',
   declaration: true,
   // Admin Flow fields
@@ -54,8 +54,7 @@
   servicingManual: {
     title: 'Service Manual X',
     date: '2026-02-01',
-    version: 'Version 2',
-    additionalInfo: 'Servicing instructions'
+    version: 'Version 2'
   },
   legacyRecord: true,
   legacy: {
@@ -155,7 +154,8 @@ export default {
   isVariant: false,
   existingAuthorisedAppliance: 'Old Model',
   nominalOutput: 10,
-  multifuelAppliance: true,
+  isMultifuelAppliance: true,
   permittedFuels: 'Wood Pellets',
+  isPermittedToBurnWood: true,
   declaration: true
 }
