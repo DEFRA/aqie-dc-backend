@@ -18,11 +18,10 @@ import {
 import {
   ensureLogger,
   getCompleteApplicationIds,
-  APPLICATION_NOT_FOUND
+  APPLICATION_NOT_FOUND,
+  MONGO_ILLEGAL_OPERATION_CODE,
+  ID_PATTERN
 } from '../common/helpers/controller-utils.js'
-
-const MONGO_ILLEGAL_OPERATION_CODE = 20
-const ID_PATTERN = /^\d{4}-\d+$/
 
 async function generateApplicationId(collection, applicationType, session) {
   const lastApplication = await collection.findOne(
@@ -51,7 +50,13 @@ async function createApplication(client, db, payload, logger) {
       'Transaction attempt failed'
     )
 
-    if (isTransactionUnsupportedError(transactionError)) {
+     if (
+      (transactionError.message || '').toLowerCase().includes('transaction') ||
+      (transactionError.message || '').toLowerCase().includes('replica set') ||
+      (transactionError.message || '').toLowerCase().includes('mongos') ||
+      transactionError.code === MONGO_ILLEGAL_OPERATION_CODE ||
+      transactionError.codeName === 'IllegalOperation'
+    ) {
       logger.warn(
         'Transactions not supported, falling back to direct operations'
       )
@@ -61,17 +66,6 @@ async function createApplication(client, db, payload, logger) {
   } finally {
     await session.endSession()
   }
-}
-
-function isTransactionUnsupportedError(error) {
-  const message = (error.message || '').toLowerCase()
-  return (
-    message.includes('transaction') ||
-    message.includes('replica set') ||
-    message.includes('mongos') ||
-    error.code === MONGO_ILLEGAL_OPERATION_CODE ||
-    error.codeName === 'IllegalOperation'
-  )
 }
 
 function buildApplication(applicationData, id) {

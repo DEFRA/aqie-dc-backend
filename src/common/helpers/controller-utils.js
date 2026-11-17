@@ -7,6 +7,8 @@ const LOGGER_REQUIRED_ERROR = 'logger is required'
 const APPLICATION_NOT_FOUND = 'Application not found'
 const APPLIANCE_NOT_FOUND = 'Appliance not found'
 const FUEL_NOT_FOUND = 'Fuel not found'
+const MONGO_ILLEGAL_OPERATION_CODE = 20
+const ID_PATTERN = /^\d{4}-\d+$/
 
 function ensureLogger(logger) {
   if (!logger) {
@@ -30,5 +32,7 @@ export {
   LOGGER_REQUIRED_ERROR,
   APPLICATION_NOT_FOUND,
   APPLIANCE_NOT_FOUND,
-  FUEL_NOT_FOUND
+  FUEL_NOT_FOUND,
+  MONGO_ILLEGAL_OPERATION_CODE,
+  ID_PATTERN
 }
