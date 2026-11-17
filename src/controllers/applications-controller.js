@@ -14,11 +14,10 @@ import {
 import {
   ensureLogger,
   getCompleteApplicationIds,
-  APPLICATION_NOT_FOUND
+  APPLICATION_NOT_FOUND,
+  MONGO_ILLEGAL_OPERATION_CODE,
+  ID_PATTERN
 } from '../common/helpers/controller-utils.js'
-
-const MONGO_ILLEGAL_OPERATION_CODE = 20
-const ID_PATTERN = /^\d{4}-\d+$/
 
 async function createApplication(client, db, payload, logger) {
   ensureLogger(logger)
