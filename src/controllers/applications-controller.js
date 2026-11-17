@@ -50,7 +50,7 @@ async function createApplication(client, db, payload, logger) {
       'Transaction attempt failed'
     )
 
-     if (
+    if (
       (transactionError.message || '').toLowerCase().includes('transaction') ||
       (transactionError.message || '').toLowerCase().includes('replica set') ||
       (transactionError.message || '').toLowerCase().includes('mongos') ||
