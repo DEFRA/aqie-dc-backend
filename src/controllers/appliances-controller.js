@@ -79,10 +79,8 @@ async function createAppliance(db, item, logger) {
 function mapApplianceDetail(item) {
   return {
     ...item,
-    authorisedIn: findCertified(item),
+    certifiedCountries: findCertified(item),
     name: item.modelName || '',
-    id: item.id || '',
-    manufacturer: item.companyName || '',
     fullAddress: getFullAddress(item)
   }
 }
@@ -90,13 +88,13 @@ function mapApplianceDetail(item) {
 // Returns summary object for list views
 function mapApplianceSummary(item) {
   return {
-    name: item.modelName || '',
     id: item.id || '',
-    manufacturer: item.companyName || '',
+    name: item.modelName || '',
+    companyName: item.companyName || '',
     permittedFuels: item.permittedFuels || '',
     type: item.applianceType,
     modelNumber: item.modelNumber,
-    authorisedIn: findCertified(item)
+    certifiedCountries: findCertified(item)
   }
 }
 
