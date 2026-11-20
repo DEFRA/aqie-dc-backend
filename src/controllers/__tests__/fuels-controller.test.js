@@ -7,8 +7,7 @@ import {
   updateFuel,
   deleteFuel,
   getAllFuelsWithPagination,
-  searchFuels,
-  getFuelWithRelatedItems
+  searchFuels
 } from '#src/controllers/fuels-controller.js'
 
 import {
@@ -447,55 +446,13 @@ describe('fuels-controller', () => {
     })
   })
 
-  describe('getFuelWithRelatedItems', () => {
-    test('returns fuel detail', async () => {
-      collection.findOne.mockResolvedValue({
-        id: 'FUEL-001',
-        brandName: 'Related Fuel',
-        englandCertification: {
-          lastCertifiedAt: '2024-01-01'
-        },
-        scotlandCertification: {
-          lastCertifiedAt: '2024-01-01'
-        },
-        walesCertification: {
-          lastCertifiedAt: '2024-01-01'
-        },
-        nIrelandCertification: {
-          lastCertifiedAt: '2024-01-01'
-        }
-      })
-
-      const result = await getFuelWithRelatedItems(db, 'FUEL-001', mockLogger)
-
-      expect(result.success).toBe(true)
-    })
-
-    test('returns not found', async () => {
-      collection.findOne.mockResolvedValue(null)
-
-      const result = await getFuelWithRelatedItems(db, 'missing', mockLogger)
-
-      expect(result.notFound).toBe(true)
-    })
-
-    test('handles errors', async () => {
-      collection.findOne.mockRejectedValue(new Error('fetch failed'))
-
-      await expect(
-        getFuelWithRelatedItems(db, 'FUEL-001', mockLogger)
-      ).rejects.toThrow('fetch failed')
-    })
-  })
-
   describe('logger validation', () => {
     test.each([
       () => getFuelById(db, '1'),
       () => updateFuel(db, '1', {}),
       () => deleteFuel(db, '1'),
       () => getAllFuelsWithPagination(db),
-      () => searchFuels(db, { query: 'a' }),
-      () => getFuelWithRelatedItems(db, '1')
+      () => searchFuels(db, { query: 'a' })
     ])('throws when logger missing', async (fn) => {
       await expect(fn()).rejects.toThrow('logger is required')
     })
