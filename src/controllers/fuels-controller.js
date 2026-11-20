@@ -283,34 +283,6 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
     throw error
   }
 }
-//not sure this is needed - maybe for future admin
-/**
- * Get fuel with all users/applications that use it
- * @deprecated Relationship queries may need review for current schema
- */
-async function getFuelWithRelatedItems(db, fuelId, logger) {
-  ensureLogger(logger)
-  try {
-    // Get fuel
-    const fuel = await db.collection('Fuels').findOne({ id: fuelId })
-
-    if (!fuel) {
-      return {
-        success: false,
-        message: 'Fuel not found',
-        notFound: true
-      }
-    }
-
-    return {
-      success: true,
-      data: mapFuelDetail(fuel)
-    }
-  } catch (error) {
-    logger.error(error, 'Failed to fetch fuel with related items')
-    throw error
-  }
-}
 
 export {
   createFuel,
@@ -319,6 +291,5 @@ export {
   updateFuel,
   deleteFuel,
   getAllFuelsWithPagination,
-  searchFuels,
-  getFuelWithRelatedItems
+  searchFuels
 }
