@@ -194,7 +194,7 @@ describe('appliances-controller', () => {
       expect(result.data).toHaveLength(1)
       expect(result.data[0].name).toBe('Certified Model')
       expect(result.data[0].id).toBe('APP-001')
-      expect(result.data[0].authorisedIn).toEqual(['England'])
+      expect(result.data[0].certifiedCountries).toEqual(['England'])
     })
 
     test('queries live appliances only', async () => {
@@ -235,10 +235,10 @@ describe('appliances-controller', () => {
       const summary = result.data[0]
 
       expect(summary.name).toBe('Test Model')
-      expect(summary.manufacturer).toBe('Test Corp')
+      expect(summary.companyName).toBe('Test Corp')
       expect(summary.type).toBe('boiler')
       expect(summary.modelNumber).toBe('M123')
-      expect(summary.authorisedIn).toEqual(['England'])
+      expect(summary.certifiedCountries).toEqual(['England'])
     })
 
     test('handles fuels array correctly', async () => {
@@ -294,7 +294,7 @@ describe('appliances-controller', () => {
         'Testville',
         'AB1 2CD'
       ])
-      expect(result.data.authorisedIn).toEqual(['England'])
+      expect(result.data.certifiedCountries).toEqual(['England'])
     })
 
     test('returns not found', async () => {
