@@ -1,7 +1,7 @@
 /**
  * Get all appliances
  * TODO: DECISION REQUIRED - Should pagination be enabled for this endpoint?
- * Currently returns all certified appliances. Pagination can be enabled by:
+ * Currently returns all live appliances. Pagination can be enabled by:
  * 1. Uncomment the validate block with page/limit query params
  * 2. Uncomment page/limit destructuring in handler
  * 3. Pass { page, limit } to controller instead of hard-coded values
@@ -17,8 +17,8 @@ export const getAllAppliances = {
   path: '/appliances',
   options: {
     tags: ['api', 'appliances'],
-    description: 'Get all appliances',
-    notes: 'Returns all certified appliances'
+    description: 'Get all live appliances',
+    notes: 'Returns all appliances that are live to the public'
     // TODO: PAGINATION - Uncomment validation below if pagination is re-enabled
     // validate: {
     //   query: Joi.object({
