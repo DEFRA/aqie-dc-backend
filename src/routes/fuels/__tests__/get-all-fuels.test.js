@@ -38,12 +38,12 @@ describe('GET /fuels', () => {
         {
           name: 'Premium Pellets',
           id: 'FUEL-001',
-          manufacturer: 'FuelCorp'
+          company: 'FuelCorp'
         },
         {
           name: 'Standard Logs',
           id: 'FUEL-002',
-          manufacturer: 'LogCorp'
+          company: 'LogCorp'
         }
       ]
 

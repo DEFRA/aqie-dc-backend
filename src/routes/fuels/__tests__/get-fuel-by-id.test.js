@@ -39,7 +39,7 @@ describe('GET /fuels/{fuelId}', () => {
       const mockFuel = {
         id: 'FUEL-123',
         name: 'Premium Pellets',
-        manufacturer: 'FuelCorp',
+        company: 'FuelCorp',
         authorisedIn: ['England', 'Scotland'],
         fullAddress: ['789 Industrial Est', 'Manchester']
       }

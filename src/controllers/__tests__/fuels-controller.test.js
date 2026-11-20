@@ -230,7 +230,7 @@ describe('fuels-controller', () => {
       const result = await getFuelById(db, 'FUEL-001', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.authorisedIn).toBe('England')
+      expect(result.data.certifiedCountries).toBe('England')
       expect(result.data.lastUpdatedDate).toBe('2024-01-01')
       expect(result.data.fullAddress).toBe('1 Test Street')
     })

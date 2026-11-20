@@ -74,11 +74,9 @@ async function createFuel(db, item, logger) {
 function mapFuelDetail(item) {
   return {
     ...item,
-    authorisedIn: findCertified(item),
+    certifiedCountries: findCertified(item),
     lastUpdatedDate: findLastCertifiedDate(item),
     name: item.brandName,
-    id: item.id,
-    manufacturer: item.companyName,
     fullAddress: getFullAddress(item)
   }
 }
@@ -86,10 +84,10 @@ function mapFuelDetail(item) {
 // Returns summary object for list views
 function mapFuelSummary(item) {
   return {
-    name: item.brandName,
     id: item.id,
-    manufacturer: item.companyName,
-    authorisedIn: findCertified(item),
+    name: item.brandName,
+    companyName: item.companyName,
+    certifiedCountries: findCertified(item),
     lastUpdatedDate: findLastCertifiedDate(item)
   }
 }

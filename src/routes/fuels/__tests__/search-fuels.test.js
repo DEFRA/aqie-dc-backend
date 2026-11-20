@@ -42,7 +42,7 @@ describe('GET /api/fuels/search', () => {
         {
           name: 'Premium Pellets',
           id: 'FUEL-001',
-          manufacturer: 'FuelCorp'
+          company: 'FuelCorp'
         }
       ]
 

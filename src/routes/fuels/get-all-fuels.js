@@ -1,7 +1,7 @@
 /**
  * Get all fuels
  * TODO: DECISION REQUIRED - Should pagination be enabled for this endpoint?
- * Currently returns all certified fuels. Pagination can be enabled by:
+ * Currently returns all live fuels. Pagination can be enabled by:
  * 1. Uncomment the validate block with page/limit query params
  * 2. Uncomment page/limit destructuring in handler
  * 3. Change getAllFuels to getAllFuelsWithPagination
@@ -16,8 +16,8 @@ export const getAllFuels = {
   path: '/fuels',
   options: {
     tags: ['api', 'fuels'],
-    description: 'Get all fuels',
-    notes: 'Returns all certified fuels'
+    description: 'Get all live fuels',
+    notes: 'Returns all fuels that are live to the public'
     // TODO: PAGINATION - Uncomment validation below if pagination is re-enabled
     // validate: {
     //   query: Joi.object({
