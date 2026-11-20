@@ -75,16 +75,6 @@ async function createAppliance(db, item, logger) {
 }
 
 // --- Mapping helpers ---
-// Returns full detail object for single item views
-function mapApplianceDetail(item) {
-  return {
-    ...item,
-    certifiedCountries: findCertified(item),
-    name: item.modelName || '',
-    fullAddress: getFullAddress(item)
-  }
-}
-
 // Returns summary object for list views
 function mapApplianceSummary(item) {
   return {
@@ -143,7 +133,12 @@ async function getApplianceById(db, id, logger) {
 
     return {
       success: true,
-      data: mapApplianceDetail(item)
+      data: {
+        ...item,
+        certifiedCountries: findCertified(item),
+        name: item.modelName,
+        fullAddress: getFullAddress(item)
+      }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch appliance')

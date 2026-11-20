@@ -70,17 +70,6 @@ async function createFuel(db, item, logger) {
 }
 
 // --- Mapping helpers ---
-// Returns full detail object for single item views
-function mapFuelDetail(item) {
-  return {
-    ...item,
-    certifiedCountries: findCertified(item),
-    lastUpdatedDate: findLastCertifiedDate(item),
-    name: item.brandName,
-    fullAddress: getFullAddress(item)
-  }
-}
-
 // Returns summary object for list views
 function mapFuelSummary(item) {
   return {
@@ -134,7 +123,13 @@ async function getFuelById(db, fuelId, logger) {
 
     return {
       success: true,
-      data: mapFuelDetail(item)
+      data: {
+        ...item,
+        certifiedCountries: findCertified(item),
+        lastUpdatedDate: findLastCertifiedDate(item),
+        name: item.brandName,
+        fullAddress: getFullAddress(item)
+      }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch fuel')
