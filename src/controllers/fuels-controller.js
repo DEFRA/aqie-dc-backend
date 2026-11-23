@@ -7,7 +7,10 @@ import {
   findCertified,
   findLastCertifiedDate
 } from '../common/helpers/certification.js'
-import { ensureLogger } from '../common/helpers/controller-utils.js'
+import {
+  ensureLogger,
+  escapeRegex
+} from '../common/helpers/controller-utils.js'
 
 /**
  * Fuels Controller
@@ -238,26 +241,35 @@ async function getAllFuelsWithPagination(
 }
 
 /**
- * Search fuels by name or type with pagination
+ * Public: search and paginate live fuels by search query
  */
-async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
+async function searchFuels(
+  db,
+  { query = '', page = 1, limit = 10 } = {},
+  logger
+) {
   ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
-    const skip = (page - 1) * limit
 
+    const escapedQuery = escapeRegex(query)
     const searchQuery = {
-      $or: [
-        { brandName: { $regex: query, $options: 'i' } },
-        { additionalBrandNames: { $regex: query, $options: 'i' } },
-        { companyName: { $regex: query, $options: 'i' } }
+      $and: [
+        { fuelStatus: 'live' },
+        {
+          $or: [
+            { brandName: { $regex: escapedQuery, $options: 'i' } },
+            { additionalBrandNames: { $regex: escapedQuery, $options: 'i' } },
+            { companyName: { $regex: escapedQuery, $options: 'i' } }
+          ]
+        }
       ]
     }
 
     const fuels = await collection
       .find(searchQuery)
       .sort({ createdAt: -1 })
-      .skip(skip)
+      .skip((page - 1) * limit)
       .limit(limit)
       .toArray()
 
@@ -270,7 +282,7 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.max(Math.ceil(total / limit), 0)
       }
     }
   } catch (error) {

@@ -401,7 +401,7 @@ describe('fuels-controller', () => {
   })
 
   describe('searchFuels', () => {
-    test('returns search results', async () => {
+    test('returns search results with pagination', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
@@ -409,7 +409,9 @@ describe('fuels-controller', () => {
         toArray: vi.fn().mockResolvedValue([
           {
             id: 'FUEL-001',
-            brandName: 'Search Fuel',
+            brandName: 'Test Fuel',
+            companyName: 'Test Company',
+            fuelStatus: 'live',
             englandCertification: {
               lastCertifiedAt: '2024-01-01'
             },
@@ -427,12 +429,85 @@ describe('fuels-controller', () => {
       }
 
       collection.find.mockReturnValue(cursor)
-      collection.countDocuments.mockResolvedValue(10)
+      collection.countDocuments.mockResolvedValue(25)
 
-      const result = await searchFuels(db, { query: 'fuel' }, mockLogger)
+      const result = await searchFuels(
+        db,
+        { query: 'test', page: 1, limit: 10 },
+        mockLogger
+      )
 
       expect(result.success).toBe(true)
-      expect(result.pagination.total).toBe(10)
+      expect(result.data).toHaveLength(1)
+      expect(result.pagination).toEqual({
+        page: 1,
+        limit: 10,
+        total: 25,
+        totalPages: 3
+      })
+
+      // Verify the query was constructed correctly
+      expect(collection.find).toHaveBeenCalled()
+      const findCall = collection.find.mock.calls[0][0]
+      expect(findCall.$and[0]).toEqual({ fuelStatus: 'live' })
+      expect(findCall.$and[1].$or).toBeDefined()
+    })
+
+    test('handles empty search query', async () => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([])
+      }
+
+      collection.find.mockReturnValue(cursor)
+      collection.countDocuments.mockResolvedValue(0)
+
+      const result = await searchFuels(
+        db,
+        { query: '', page: 1, limit: 10 },
+        mockLogger
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.data).toHaveLength(0)
+      expect(result.pagination.total).toBe(0)
+    })
+
+    test('respects pagination parameters', async () => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([])
+      }
+
+      collection.find.mockReturnValue(cursor)
+      collection.countDocuments.mockResolvedValue(100)
+
+      await searchFuels(db, { query: 'test', page: 3, limit: 20 }, mockLogger)
+
+      // Verify skip and limit were called correctly
+      expect(cursor.skip).toHaveBeenCalledWith(40) // (3-1) * 20
+      expect(cursor.limit).toHaveBeenCalledWith(20)
+    })
+
+    test('filters by live status only', async () => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([])
+      }
+
+      collection.find.mockReturnValue(cursor)
+      collection.countDocuments.mockResolvedValue(0)
+
+      await searchFuels(db, { query: 'test', page: 1, limit: 10 }, mockLogger)
+
+      const findCall = collection.find.mock.calls[0][0]
+      expect(findCall.$and[0]).toEqual({ fuelStatus: 'live' })
     })
 
     test('handles search errors', async () => {
@@ -441,7 +516,7 @@ describe('fuels-controller', () => {
       })
 
       await expect(
-        searchFuels(db, { query: 'fuel' }, mockLogger)
+        searchFuels(db, { query: 'fuel', page: 1, limit: 10 }, mockLogger)
       ).rejects.toThrow('search failed')
     })
   })

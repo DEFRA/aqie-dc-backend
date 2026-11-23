@@ -26,6 +26,7 @@ import { updateCertificationStatus } from '../routes/appliances/update-certifica
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
 import { getFuelById } from '../routes/fuels/get-fuel-by-id.js'
 import { searchFuels } from '../routes/fuels/search-fuels.js'
+import { searchPublicFuels } from '../routes/fuels/search-public-fuels.js'
 import { createFuel } from '../routes/fuels/create-fuel.js'
 import { getAllFuels } from '../routes/fuels/get-all-fuels.js'
 import { updateFuel } from '../routes/fuels/update-fuel.js'
@@ -136,6 +137,7 @@ const router = {
         getAllFuels,
         updateFuel,
         deleteFuel,
+        searchPublicFuels, // Must come before getFuelById to avoid route conflict
         searchFuels, // Must come before getFuelById to avoid route conflict
         getFuelReview,
         updateFuelReview,
