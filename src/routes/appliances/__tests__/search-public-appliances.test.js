@@ -23,7 +23,13 @@ describe('GET /appliances/search', () => {
       }))
     }
     mockRequest = {
-      query: { q: 'boiler', page: 1, limit: 10, fuelsAllowed: [] },
+      query: {
+        q: 'boiler',
+        page: 1,
+        limit: 10,
+        includeFilterOptions: true,
+        fuelsAllowed: []
+      },
       db: {},
       logger: { info: vi.fn(), error: vi.fn() }
     }
@@ -43,7 +49,13 @@ describe('GET /appliances/search', () => {
     expect(result.pagination).toEqual(pagination)
     expect(applianceController.searchPublicAppliances).toHaveBeenCalledWith(
       mockRequest.db,
-      { query: 'boiler', page: 1, limit: 10, fuelsAllowed: [] },
+      {
+        query: 'boiler',
+        includeFilterOptions: true,
+        page: 1,
+        limit: 10,
+        fuelsAllowed: []
+      },
       mockRequest.logger
     )
   })
@@ -55,6 +67,7 @@ describe('GET /appliances/search', () => {
     expect(value).toMatchObject({
       page: 1,
       limit: 10,
+      includeFilterOptions: false,
       certifiedIn: ['england'],
       fuelsAllowed: [],
       applianceType: []

@@ -122,14 +122,17 @@ const containsAny = (field, terms) =>
     [field]: { $regex: escapeRegex(term), $options: 'i' }
   }))
 
+const COUNTRY_FILTER_OPTIONS = Object.entries(COUNTRY_CERTIFICATION_FIELDS).map(
+  ([code, field]) => ({ value: code.replaceAll('-', ' '), field })
+)
+
 // Builds the public finder filter: live appliances matching search terms (OR across
-// fields/terms) AND every selected filter group (OR within a group).
-function buildPublicSearchQuery({
-  query = '',
-  certifiedIn = [],
-  fuelsAllowed = [],
-  applianceType = []
-}) {
+// fields/terms) AND every selected filter group (OR within a group). A group can be
+// excluded so its own option counts are not narrowed by its own selection.
+function buildPublicSearchQuery(
+  { query = '', certifiedIn = [], fuelsAllowed = [], applianceType = [] },
+  excludeGroup
+) {
   const conditions = [{ applianceStatus: 'live' }]
 
   const terms = query
@@ -144,20 +147,20 @@ function buildPublicSearchQuery({
     })
   }
 
-  const certificationFilters = certifiedIn
-    .map(
-      (country) => COUNTRY_CERTIFICATION_FIELDS[country.replaceAll(' ', '-')]
-    )
-    .filter(Boolean)
-    .map((field) => ({ [`${field}.status`]: CERTIFIED_STATUS }))
-  if (certifiedIn.length > 0) {
+  if (certifiedIn.length > 0 && excludeGroup !== 'certifiedIn') {
+    const certificationFilters = certifiedIn
+      .map(
+        (country) => COUNTRY_CERTIFICATION_FIELDS[country.replaceAll(' ', '-')]
+      )
+      .filter(Boolean)
+      .map((field) => ({ [`${field}.status`]: CERTIFIED_STATUS }))
     // An unrecognised country must match nothing rather than be ignored
     conditions.push({
       $or: certificationFilters.length ? certificationFilters : [{ _id: null }]
     })
   }
 
-  if (fuelsAllowed.length > 0) {
+  if (fuelsAllowed.length > 0 && excludeGroup !== 'fuelsAllowed') {
     conditions.push({
       $or: fuelsAllowed.map((fuel) => ({
         permittedFuels: {
@@ -168,7 +171,7 @@ function buildPublicSearchQuery({
     })
   }
 
-  if (applianceType.length > 0) {
+  if (applianceType.length > 0 && excludeGroup !== 'applianceType') {
     conditions.push({
       $or: applianceType.map((type) => ({
         applianceType: { $regex: `^${escapeRegex(type)}$`, $options: 'i' }
@@ -179,12 +182,97 @@ function buildPublicSearchQuery({
   return { $and: conditions }
 }
 
+const toFilterOptionValues = (rows) =>
+  rows
+    .filter((row) => row._id)
+    .map((row) => ({ value: row._id, count: row.count }))
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
+
+// Counts per filter option, scoped to the current search and the other filter groups
+async function getPublicApplianceFilterOptions(collection, filters) {
+  const [certifiedIn, fuelsAllowed, applianceType] = await Promise.all([
+    collection
+      .aggregate([
+        { $match: buildPublicSearchQuery(filters, 'certifiedIn') },
+        {
+          $group: {
+            _id: null,
+            ...Object.fromEntries(
+              COUNTRY_FILTER_OPTIONS.map(({ value, field }) => [
+                value,
+                {
+                  $sum: {
+                    $cond: [
+                      { $eq: [`$${field}.status`, CERTIFIED_STATUS] },
+                      1,
+                      0
+                    ]
+                  }
+                }
+              ])
+            )
+          }
+        }
+      ])
+      .toArray(),
+    collection
+      .aggregate([
+        { $match: buildPublicSearchQuery(filters, 'fuelsAllowed') },
+        {
+          $project: {
+            fuels: {
+              $setUnion: [
+                {
+                  $map: {
+                    input: {
+                      $split: [
+                        { $toLower: { $ifNull: ['$permittedFuels', ''] } },
+                        ','
+                      ]
+                    },
+                    as: 'fuel',
+                    in: { $trim: { input: '$$fuel' } }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        { $unwind: '$fuels' },
+        { $group: { _id: '$fuels', count: { $sum: 1 } } }
+      ])
+      .toArray(),
+    collection
+      .aggregate([
+        { $match: buildPublicSearchQuery(filters, 'applianceType') },
+        {
+          $group: {
+            _id: { $toLower: { $ifNull: ['$applianceType', ''] } },
+            count: { $sum: 1 }
+          }
+        }
+      ])
+      .toArray()
+  ])
+
+  const countryTotals = certifiedIn[0] ?? {}
+  return {
+    certifiedIn: toFilterOptionValues(
+      COUNTRY_FILTER_OPTIONS.filter(
+        ({ value }) => countryTotals[value] > 0
+      ).map(({ value }) => ({ _id: value, count: countryTotals[value] }))
+    ),
+    fuelsAllowed: toFilterOptionValues(fuelsAllowed),
+    applianceType: toFilterOptionValues(applianceType)
+  }
+}
+
 /**
- * Public: search/filter live appliances with pagination
+ * Public: search/filter live appliances with pagination, optionally with filter option counts
  */
 async function searchPublicAppliances(
   db,
-  { page = 1, limit = 10, ...filters } = {},
+  { page = 1, limit = 10, includeFilterOptions = false, ...filters } = {},
   logger
 ) {
   ensureLogger(logger)
@@ -192,14 +280,18 @@ async function searchPublicAppliances(
     const collection = db.collection('Appliances')
     const searchQuery = buildPublicSearchQuery(filters)
 
-    const appliances = await collection
-      .find(searchQuery)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .toArray()
-
-    const total = await collection.countDocuments(searchQuery)
+    const [appliances, total, filterOptions] = await Promise.all([
+      collection
+        .find(searchQuery)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(searchQuery),
+      includeFilterOptions
+        ? getPublicApplianceFilterOptions(collection, filters)
+        : null
+    ])
 
     return {
       success: true,
@@ -209,7 +301,8 @@ async function searchPublicAppliances(
         limit,
         total,
         totalPages: Math.max(Math.ceil(total / limit), 0)
-      }
+      },
+      ...(filterOptions && { filterOptions })
     }
   } catch (error) {
     logger.error(error, 'Failed to search public appliances')
