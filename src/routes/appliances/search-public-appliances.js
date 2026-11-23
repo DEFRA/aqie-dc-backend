@@ -36,11 +36,6 @@ export const searchPublicAppliances = {
         certifiedIn: filterList('Countries the appliance is certified in'),
         fuelsAllowed: filterList('Permitted fuels'),
         applianceType: filterList('Appliance types'),
-        includeFilterOptions: Joi.boolean()
-          .default(false)
-          .description(
-            'Include per-option counts for the filters, scoped to the current search and other selected filters'
-          ),
         page: Joi.number().integer().min(1).default(1),
         limit: Joi.number()
           .integer()

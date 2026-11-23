@@ -27,7 +27,6 @@ describe('GET /appliances/search', () => {
         q: 'boiler',
         page: 1,
         limit: 10,
-        includeFilterOptions: true,
         fuelsAllowed: []
       },
       db: {},
@@ -51,7 +50,6 @@ describe('GET /appliances/search', () => {
       mockRequest.db,
       {
         query: 'boiler',
-        includeFilterOptions: true,
         page: 1,
         limit: 10,
         fuelsAllowed: []
@@ -67,7 +65,6 @@ describe('GET /appliances/search', () => {
     expect(value).toMatchObject({
       page: 1,
       limit: 10,
-      includeFilterOptions: false,
       certifiedIn: ['england'],
       fuelsAllowed: [],
       applianceType: []
