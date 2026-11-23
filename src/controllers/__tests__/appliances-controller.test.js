@@ -7,6 +7,7 @@ import {
   updateAppliance,
   deleteAppliance,
   searchAdminAppliances,
+  searchPublicAppliances,
   getAdminApplianceById,
   updateApplianceVisibility
 } from '#src/controllers/appliances-controller.js'
@@ -476,6 +477,104 @@ describe('appliances-controller', () => {
       const result = await deleteAppliance(db, 'APP-001', mockLogger)
 
       expect(result.notFound).toBe(true)
+    })
+  })
+
+  describe('searchPublicAppliances', () => {
+    const mockCursor = (rows = []) => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue(rows)
+      }
+      collection.find.mockReturnValue(cursor)
+      return cursor
+    }
+
+    test('returns paginated summaries for live appliances', async () => {
+      const cursor = mockCursor([
+        {
+          id: 'APP-001',
+          modelName: 'Model',
+          companyName: 'Co',
+          permittedFuels: 'wood logs',
+          applianceType: 'boiler',
+          ...certifiedInEngland
+        }
+      ])
+      collection.countDocuments.mockResolvedValue(21)
+
+      const result = await searchPublicAppliances(
+        db,
+        { page: 3, limit: 10 },
+        mockLogger
+      )
+
+      expect(cursor.skip).toHaveBeenCalledWith(20)
+      expect(cursor.limit).toHaveBeenCalledWith(10)
+      expect(result.data[0]).toMatchObject({
+        id: 'APP-001',
+        name: 'Model',
+        certifiedCountries: ['England']
+      })
+      expect(result.pagination).toEqual({
+        page: 3,
+        limit: 10,
+        total: 21,
+        totalPages: 3
+      })
+      expect(collection.find.mock.calls[0][0]).toEqual({
+        $and: [{ applianceStatus: 'live' }]
+      })
+    })
+
+    test('builds escaped search and filter conditions', async () => {
+      mockCursor()
+      collection.countDocuments.mockResolvedValue(0)
+
+      await searchPublicAppliances(
+        db,
+        {
+          query: 'a.b, boiler',
+          certifiedIn: ['northern ireland'],
+          fuelsAllowed: ['wood logs'],
+          applianceType: ['boiler']
+        },
+        mockLogger
+      )
+
+      const { $and } = collection.find.mock.calls[0][0]
+      expect($and).toHaveLength(5)
+      expect($and[1].$or).toHaveLength(8)
+      expect($and[1].$or[0].modelName.$regex).toBe(String.raw`a\.b`)
+      expect($and[2].$or).toEqual([
+        { 'nIrelandCertification.status': 'certified' }
+      ])
+      expect($and[3].$or[0].permittedFuels.$regex).toContain('wood logs')
+      expect($and[4].$or[0].applianceType.$regex).toBe('^boiler$')
+    })
+
+    test('unrecognised country matches nothing', async () => {
+      mockCursor()
+      collection.countDocuments.mockResolvedValue(0)
+
+      await searchPublicAppliances(db, { certifiedIn: ['mars'] }, mockLogger)
+
+      expect(collection.find.mock.calls[0][0].$and[1]).toEqual({
+        $or: [{ _id: null }]
+      })
+    })
+
+    test('logs and rethrows database errors', async () => {
+      collection.find.mockImplementation(() => {
+        throw new Error('db down')
+      })
+
+      await expect(searchPublicAppliances(db, {}, mockLogger)).rejects.toThrow(
+        'db down'
+      )
+      expect(mockLogger.error).toHaveBeenCalled()
     })
   })
 

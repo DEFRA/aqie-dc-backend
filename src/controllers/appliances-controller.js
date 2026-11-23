@@ -5,6 +5,8 @@ import {
 } from '../common/helpers/data-transformer.js'
 import {
   CERTIFICATION_FIELDS,
+  COUNTRY_CERTIFICATION_FIELDS,
+  CERTIFIED_STATUS,
   findCertified,
   findNotYetNotifiedCountries,
   mapCertifications
@@ -14,6 +16,7 @@ import { toUserActor } from '../common/helpers/action-history.js'
 import { validateApplicationType } from '../common/helpers/application-type.js'
 import {
   ensureLogger,
+  escapeRegex,
   getCompleteApplicationIds,
   APPLIANCE_NOT_FOUND
 } from '../common/helpers/controller-utils.js'
@@ -110,6 +113,106 @@ async function getAllAppliances(db, _options, logger) {
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch appliances')
+    throw error
+  }
+}
+
+const containsAny = (field, terms) =>
+  terms.map((term) => ({
+    [field]: { $regex: escapeRegex(term), $options: 'i' }
+  }))
+
+// Builds the public finder filter: live appliances matching search terms (OR across
+// fields/terms) AND every selected filter group (OR within a group).
+function buildPublicSearchQuery({
+  query = '',
+  certifiedIn = [],
+  fuelsAllowed = [],
+  applianceType = []
+}) {
+  const conditions = [{ applianceStatus: 'live' }]
+
+  const terms = query
+    .split(',')
+    .map((term) => term.trim())
+    .filter(Boolean)
+  if (terms.length > 0) {
+    conditions.push({
+      $or: ['modelName', 'companyName', 'modelNumber', 'applianceType'].flatMap(
+        (field) => containsAny(field, terms)
+      )
+    })
+  }
+
+  const certificationFilters = certifiedIn
+    .map(
+      (country) => COUNTRY_CERTIFICATION_FIELDS[country.replaceAll(' ', '-')]
+    )
+    .filter(Boolean)
+    .map((field) => ({ [`${field}.status`]: CERTIFIED_STATUS }))
+  if (certifiedIn.length > 0) {
+    // An unrecognised country must match nothing rather than be ignored
+    conditions.push({
+      $or: certificationFilters.length ? certificationFilters : [{ _id: null }]
+    })
+  }
+
+  if (fuelsAllowed.length > 0) {
+    conditions.push({
+      $or: fuelsAllowed.map((fuel) => ({
+        permittedFuels: {
+          $regex: `(^|,)\\s*${escapeRegex(fuel)}\\s*(,|$)`,
+          $options: 'i'
+        }
+      }))
+    })
+  }
+
+  if (applianceType.length > 0) {
+    conditions.push({
+      $or: applianceType.map((type) => ({
+        applianceType: { $regex: `^${escapeRegex(type)}$`, $options: 'i' }
+      }))
+    })
+  }
+
+  return { $and: conditions }
+}
+
+/**
+ * Public: search/filter live appliances with pagination
+ */
+async function searchPublicAppliances(
+  db,
+  { page = 1, limit = 10, ...filters } = {},
+  logger
+) {
+  ensureLogger(logger)
+  try {
+    const collection = db.collection('Appliances')
+    const searchQuery = buildPublicSearchQuery(filters)
+
+    const appliances = await collection
+      .find(searchQuery)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .toArray()
+
+    const total = await collection.countDocuments(searchQuery)
+
+    return {
+      success: true,
+      data: appliances.map((item) => mapApplianceSummary(item)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 0)
+      }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to search public appliances')
     throw error
   }
 }
@@ -425,6 +528,7 @@ export {
   updateAppliance,
   deleteAppliance,
   searchAdminAppliances,
+  searchPublicAppliances,
   getAdminApplianceById,
   updateApplianceVisibility
 }
