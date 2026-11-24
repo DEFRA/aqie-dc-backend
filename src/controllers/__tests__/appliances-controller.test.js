@@ -6,7 +6,7 @@ import {
   getApplianceById,
   updateAppliance,
   deleteAppliance,
-  searchAdminAppliances,
+  getAllAdminAppliances,
   getAdminApplianceById,
   updateApplianceVisibility
 } from '#src/controllers/appliances-controller.js'
@@ -588,7 +588,7 @@ describe('appliances-controller', () => {
     })
   })
 
-  describe('searchAdminAppliances', () => {
+  describe('getAllAdminAppliances', () => {
     let applicationsCollection
 
     beforeEach(() => {
@@ -623,7 +623,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      const result = await searchAdminAppliances(
+      const result = await getAllAdminAppliances(
         db,
         {
           query: 'search',
@@ -659,7 +659,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      await searchAdminAppliances(
+      await getAllAdminAppliances(
         db,
         {
           query: '  boiler  ',
@@ -710,7 +710,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      const result = await searchAdminAppliances(
+      const result = await getAllAdminAppliances(
         db,
         {
           query: '',
@@ -739,7 +739,7 @@ describe('appliances-controller', () => {
 
     test('throws if logger is missing', async () => {
       await expect(
-        searchAdminAppliances(db, { query: 'boiler' }, undefined)
+        getAllAdminAppliances(db, { query: 'boiler' }, undefined)
       ).rejects.toThrow('logger is required')
     })
 
@@ -759,7 +759,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      const result = await searchAdminAppliances(
+      const result = await getAllAdminAppliances(
         db,
         { query: 'no-match', page: 1, limit: 20, statuses: [] },
         mockLogger
@@ -787,7 +787,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      await searchAdminAppliances(
+      await getAllAdminAppliances(
         db,
         { query: '   ', page: 1, limit: 20 },
         mockLogger
@@ -816,7 +816,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      await searchAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
+      await getAllAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
 
       expect(applicationsCollection.find).toHaveBeenCalledWith({
         status: 'complete'
@@ -843,7 +843,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      await searchAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
+      await getAllAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
 
       const searchQuery = collection.find.mock.calls[0][0]
       expect(searchQuery.$or).toEqual([

@@ -1,13 +1,13 @@
 import Boom from '@hapi/boom'
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { searchAdminAppliances } from '#src/routes/appliances/search-admin-appliances.js'
+import { getAllAdminAppliances } from '#src/routes/appliances/get-all-admin-appliances.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
 import * as applianceController from '#src/controllers/appliances-controller.js'
 
 // Mock the controller
 vi.mock('#src/controllers/appliances-controller.js', () => ({
   default: {},
-  searchAdminAppliances: vi.fn()
+  getAllAdminAppliances: vi.fn()
 }))
 
 describe('GET /admin/appliances', () => {
@@ -47,7 +47,7 @@ describe('GET /admin/appliances', () => {
         }
       ]
 
-      applianceController.searchAdminAppliances.mockResolvedValueOnce({
+      applianceController.getAllAdminAppliances.mockResolvedValueOnce({
         success: true,
         data: results,
         pagination: {
@@ -59,12 +59,12 @@ describe('GET /admin/appliances', () => {
       })
 
       const h = mockToolkit
-      const result = await searchAdminAppliances.handler(mockRequest, h)
+      const result = await getAllAdminAppliances.handler(mockRequest, h)
 
       expect(result.success).toBe(true)
       expect(result.data).toEqual(results)
       expect(result.statusCode).toBe(statusCodes.ok)
-      expect(applianceController.searchAdminAppliances).toHaveBeenCalledWith(
+      expect(applianceController.getAllAdminAppliances).toHaveBeenCalledWith(
         mockRequest.db,
         { query: 'boiler', page: 1, limit: 20, statuses: [] },
         mockRequest.logger
@@ -72,7 +72,7 @@ describe('GET /admin/appliances', () => {
     })
 
     test('returns pagination metadata', async () => {
-      applianceController.searchAdminAppliances.mockResolvedValueOnce({
+      applianceController.getAllAdminAppliances.mockResolvedValueOnce({
         success: true,
         data: [],
         pagination: {
@@ -84,7 +84,7 @@ describe('GET /admin/appliances', () => {
       })
 
       const h = mockToolkit
-      const result = await searchAdminAppliances.handler(mockRequest, h)
+      const result = await getAllAdminAppliances.handler(mockRequest, h)
 
       expect(result.pagination).toBeDefined()
       expect(result.pagination.page).toBe(2)
@@ -94,7 +94,7 @@ describe('GET /admin/appliances', () => {
     })
 
     test('returns empty array when no results found', async () => {
-      applianceController.searchAdminAppliances.mockResolvedValueOnce({
+      applianceController.getAllAdminAppliances.mockResolvedValueOnce({
         success: true,
         data: [],
         pagination: {
@@ -106,7 +106,7 @@ describe('GET /admin/appliances', () => {
       })
 
       const h = mockToolkit
-      const result = await searchAdminAppliances.handler(mockRequest, h)
+      const result = await getAllAdminAppliances.handler(mockRequest, h)
 
       expect(result.data).toEqual([])
       expect(result.pagination.total).toBe(0)
@@ -115,16 +115,16 @@ describe('GET /admin/appliances', () => {
     test('passes query param as search query', async () => {
       mockRequest.query.q = 'furnace model x'
 
-      applianceController.searchAdminAppliances.mockResolvedValueOnce({
+      applianceController.getAllAdminAppliances.mockResolvedValueOnce({
         success: true,
         data: [],
         pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
       })
 
       const h = mockToolkit
-      await searchAdminAppliances.handler(mockRequest, h)
+      await getAllAdminAppliances.handler(mockRequest, h)
 
-      expect(applianceController.searchAdminAppliances).toHaveBeenCalledWith(
+      expect(applianceController.getAllAdminAppliances).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ query: 'furnace model x' }),
         expect.anything()
@@ -134,16 +134,16 @@ describe('GET /admin/appliances', () => {
     test('passes status filter params to controller', async () => {
       mockRequest.query.status = 'pending,live'
 
-      applianceController.searchAdminAppliances.mockResolvedValueOnce({
+      applianceController.getAllAdminAppliances.mockResolvedValueOnce({
         success: true,
         data: [],
         pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
       })
 
       const h = mockToolkit
-      await searchAdminAppliances.handler(mockRequest, h)
+      await getAllAdminAppliances.handler(mockRequest, h)
 
-      expect(applianceController.searchAdminAppliances).toHaveBeenCalledWith(
+      expect(applianceController.getAllAdminAppliances).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ statuses: ['pending', 'live'] }),
         expect.anything()
@@ -153,16 +153,16 @@ describe('GET /admin/appliances', () => {
     test('ignores blank status values when building the filter', async () => {
       mockRequest.query.status = ' , pending, , live , '
 
-      applianceController.searchAdminAppliances.mockResolvedValueOnce({
+      applianceController.getAllAdminAppliances.mockResolvedValueOnce({
         success: true,
         data: [],
         pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
       })
 
       const h = mockToolkit
-      await searchAdminAppliances.handler(mockRequest, h)
+      await getAllAdminAppliances.handler(mockRequest, h)
 
-      expect(applianceController.searchAdminAppliances).toHaveBeenCalledWith(
+      expect(applianceController.getAllAdminAppliances).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ statuses: ['pending', 'live'] }),
         expect.anything()
@@ -171,10 +171,10 @@ describe('GET /admin/appliances', () => {
 
     test('rethrows boom errors without wrapping them', async () => {
       const boomError = Boom.badRequest('Invalid query')
-      applianceController.searchAdminAppliances.mockRejectedValueOnce(boomError)
+      applianceController.getAllAdminAppliances.mockRejectedValueOnce(boomError)
 
       await expect(
-        searchAdminAppliances.handler(mockRequest, mockToolkit)
+        getAllAdminAppliances.handler(mockRequest, mockToolkit)
       ).rejects.toBe(boomError)
     })
 
@@ -182,16 +182,16 @@ describe('GET /admin/appliances', () => {
       mockRequest.query.page = 3
       mockRequest.query.limit = 15
 
-      applianceController.searchAdminAppliances.mockResolvedValueOnce({
+      applianceController.getAllAdminAppliances.mockResolvedValueOnce({
         success: true,
         data: [],
         pagination: { page: 3, limit: 15, total: 0, totalPages: 0 }
       })
 
       const h = mockToolkit
-      await searchAdminAppliances.handler(mockRequest, h)
+      await getAllAdminAppliances.handler(mockRequest, h)
 
-      expect(applianceController.searchAdminAppliances).toHaveBeenCalledWith(
+      expect(applianceController.getAllAdminAppliances).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ page: 3, limit: 15 }),
         expect.anything()
@@ -200,10 +200,10 @@ describe('GET /admin/appliances', () => {
 
     test('returns 500 on controller error', async () => {
       const error = new Error('Search failed')
-      applianceController.searchAdminAppliances.mockRejectedValueOnce(error)
+      applianceController.getAllAdminAppliances.mockRejectedValueOnce(error)
 
       const h = mockToolkit
-      const result = await searchAdminAppliances.handler(mockRequest, h)
+      const result = await getAllAdminAppliances.handler(mockRequest, h)
 
       expect(result.isBoom).toBe(true)
       expect(result.output.statusCode).toBe(statusCodes.internalServerError)
@@ -219,9 +219,9 @@ describe('GET /admin/appliances', () => {
 
     test('returns 502 when controller reports an upstream gateway failure', async () => {
       const error = { status: statusCodes.badGateway }
-      applianceController.searchAdminAppliances.mockRejectedValueOnce(error)
+      applianceController.getAllAdminAppliances.mockRejectedValueOnce(error)
 
-      const result = await searchAdminAppliances.handler(
+      const result = await getAllAdminAppliances.handler(
         mockRequest,
         mockToolkit
       )
@@ -234,16 +234,16 @@ describe('GET /admin/appliances', () => {
     })
 
     test('uses request.logger', async () => {
-      applianceController.searchAdminAppliances.mockResolvedValueOnce({
+      applianceController.getAllAdminAppliances.mockResolvedValueOnce({
         success: true,
         data: [],
         pagination: { page: 1, limit: 20, total: 0, totalPages: 0 }
       })
 
       const h = mockToolkit
-      await searchAdminAppliances.handler(mockRequest, h)
+      await getAllAdminAppliances.handler(mockRequest, h)
 
-      expect(applianceController.searchAdminAppliances).toHaveBeenCalledWith(
+      expect(applianceController.getAllAdminAppliances).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
         mockRequest.logger
@@ -253,74 +253,74 @@ describe('GET /admin/appliances', () => {
 
   describe('options.method', () => {
     test('route is GET', () => {
-      expect(searchAdminAppliances.method).toBe('GET')
+      expect(getAllAdminAppliances.method).toBe('GET')
     })
   })
 
   describe('options.path', () => {
     test('route path is /admin/appliances', () => {
-      expect(searchAdminAppliances.path).toBe('/admin/appliances')
+      expect(getAllAdminAppliances.path).toBe('/admin/appliances')
     })
   })
 
   describe('options.validate', () => {
     test('validates query params', () => {
-      expect(searchAdminAppliances.options.validate).toBeDefined()
-      expect(searchAdminAppliances.options.validate.query).toBeDefined()
+      expect(getAllAdminAppliances.options.validate).toBeDefined()
+      expect(getAllAdminAppliances.options.validate.query).toBeDefined()
     })
 
     test('allows empty q query values for a full-list search', () => {
-      const querySchema = searchAdminAppliances.options.validate.query
+      const querySchema = getAllAdminAppliances.options.validate.query
       const { error } = querySchema.validate({})
       expect(error).toBeUndefined()
     })
 
     test('accepts a short query value when it is otherwise valid', () => {
-      const querySchema = searchAdminAppliances.options.validate.query
+      const querySchema = getAllAdminAppliances.options.validate.query
       const { error } = querySchema.validate({ q: 'a' })
       expect(error).toBeUndefined()
     })
 
     test('has default page value', () => {
-      const querySchema = searchAdminAppliances.options.validate.query
+      const querySchema = getAllAdminAppliances.options.validate.query
       const { value, error } = querySchema.validate({ q: 'test' })
       expect(error).toBeUndefined()
       expect(value.page).toBe(1)
     })
 
     test('has default limit value', () => {
-      const querySchema = searchAdminAppliances.options.validate.query
+      const querySchema = getAllAdminAppliances.options.validate.query
       const { value, error } = querySchema.validate({ q: 'test' })
       expect(error).toBeUndefined()
       expect(value.limit).toBe(20)
     })
 
     test('validates page is at least 1', () => {
-      const querySchema = searchAdminAppliances.options.validate.query
+      const querySchema = getAllAdminAppliances.options.validate.query
       const { error } = querySchema.validate({ q: 'test', page: 0 })
       expect(error).toBeDefined()
     })
 
     test('validates limit is at least 1', () => {
-      const querySchema = searchAdminAppliances.options.validate.query
+      const querySchema = getAllAdminAppliances.options.validate.query
       const { error } = querySchema.validate({ q: 'test', limit: 0 })
       expect(error).toBeDefined()
     })
 
     test('validates limit max is 100', () => {
-      const querySchema = searchAdminAppliances.options.validate.query
+      const querySchema = getAllAdminAppliances.options.validate.query
       const { error } = querySchema.validate({ q: 'test', limit: 101 })
       expect(error).toBeDefined()
     })
 
     test('accepts valid page and limit', () => {
-      const querySchema = searchAdminAppliances.options.validate.query
+      const querySchema = getAllAdminAppliances.options.validate.query
       const { error } = querySchema.validate({ q: 'test', page: 2, limit: 50 })
       expect(error).toBeUndefined()
     })
 
     test('documents all searchable appliance fields', () => {
-      const querySchema = searchAdminAppliances.options.validate.query
+      const querySchema = getAllAdminAppliances.options.validate.query
       const { q } = querySchema.describe().keys
 
       expect(q.flags.description).toContain('modelName')

@@ -8,7 +8,7 @@ import { createResultHandler } from '../../common/helpers/route-response.js'
 
 const MAX_QUERY_LENGTH = 50
 const DEFAULT_LIMIT = 20
-export const searchAdminAppliances = {
+export const getAllAdminAppliances = {
   method: 'GET',
   path: '/admin/appliances',
   options: {
@@ -43,7 +43,7 @@ export const searchAdminAppliances = {
               .filter(Boolean)
           : []
 
-      return applianceController.searchAdminAppliances(
+      return applianceController.getAllAdminAppliances(
         request.db,
         { query: q, page, limit, statuses },
         request.logger

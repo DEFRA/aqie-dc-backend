@@ -285,7 +285,7 @@ async function deleteAppliance(db, id, logger) {
 /**
  * Admin: search appliances by name, model number, or type with pagination
  */
-async function searchAdminAppliances(
+async function getAllAdminAppliances(
   db,
   { query = '', page = 1, limit = 20, statuses = [] } = {},
   logger
@@ -510,7 +510,7 @@ export {
   getApplianceById,
   updateAppliance,
   deleteAppliance,
-  searchAdminAppliances,
+  getAllAdminAppliances,
   getAdminApplianceById,
   updateApplianceVisibility
 }

@@ -17,7 +17,7 @@ import { createAppliance } from '../routes/appliances/create-appliance.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { recordApplianceCheck } from '../routes/appliances/record-appliance-check.js'
-import { searchAdminAppliances } from '../routes/appliances/search-admin-appliances.js'
+import { getAllAdminAppliances } from '../routes/appliances/get-all-admin-appliances.js'
 import { getAdminApplianceById } from '../routes/appliances/get-admin-appliance-by-id.js'
 import { getApplianceActionHistory } from '../routes/appliances/get-appliance-action-history.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
@@ -113,7 +113,7 @@ const router = {
       server.route([
         createAppliance,
         getAllAppliances,
-        searchAdminAppliances,
+        getAllAdminAppliances,
         getAdminApplianceById,
         getApplianceActionHistory,
         getApplianceReview,
