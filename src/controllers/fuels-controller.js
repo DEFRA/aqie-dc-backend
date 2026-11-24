@@ -109,10 +109,10 @@ async function getAllFuels(db, { query = '', page = 1, limit } = {}, logger) {
     const cursor = collection.find(searchQuery).sort({ createdAt: -1 })
 
     if (!limit) {
-      const fuels = await cursor.toArray()
+      const allFuels = await cursor.toArray()
       return {
         success: true,
-        data: fuels.map((item) => mapFuelSummary(item))
+        data: allFuels.map((item) => mapFuelSummary(item))
       }
     }
 

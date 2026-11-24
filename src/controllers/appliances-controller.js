@@ -135,7 +135,7 @@ function buildPublicSearchQuery({
     conditions.push({
       $or: fuelsAllowed.map((fuel) => ({
         permittedFuels: {
-          $regex: `(^|,)\\s*${escapeRegex(fuel)}\\s*(,|$)`,
+          $regex: String.raw`(^|,)\s*${escapeRegex(fuel)}\s*(,|$)`,
           $options: 'i'
         }
       }))
@@ -169,10 +169,10 @@ async function getAllAppliances(
     const cursor = collection.find(searchQuery).sort({ createdAt: -1 })
 
     if (!limit) {
-      const appliances = await cursor.toArray()
+      const allAppliances = await cursor.toArray()
       return {
         success: true,
-        data: appliances.map((item) => mapApplianceSummary(item))
+        data: allAppliances.map((item) => mapApplianceSummary(item))
       }
     }
 

@@ -8,10 +8,9 @@ import { createResultHandler } from '../../common/helpers/route-response.js'
 
 const MAX_QUERY_LENGTH = 50
 const DEFAULT_LIMIT = 20
-// TODO: rename to GET /admin/appliances (drop /search) to match public routes; the admin frontend must change too
 export const searchAdminAppliances = {
   method: 'GET',
-  path: '/admin/appliances/search',
+  path: '/admin/appliances',
   options: {
     validate: {
       query: Joi.object({
