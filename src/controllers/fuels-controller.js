@@ -5,9 +5,16 @@ import {
 } from '../common/helpers/data-transformer.js'
 import {
   findCertified,
-  findLastCertifiedDate
+  findLastCertifiedDate,
+  findNotYetNotifiedCountries,
+  mapCertifications
 } from '../common/helpers/certification.js'
-import { ensureLogger } from '../common/helpers/controller-utils.js'
+import {
+  ensureLogger,
+  FUEL_NOT_FOUND
+} from '../common/helpers/controller-utils.js'
+
+const FUEL_STATUSES = new Set(['pending', 'live', 'hidden', 'rejected'])
 
 /**
  * Fuels Controller
@@ -314,7 +321,80 @@ async function getFuelWithRelatedItems(db, fuelId, logger) {
   }
 }
 
+// The fuel record only shows the date first certified, so lastCertifiedAt is dropped.
+const mapFirstCertifiedOnly = (item) =>
+  Object.fromEntries(
+    Object.entries(mapCertifications(item)).map(
+      ([country, { status, firstCertifiedAt }]) => [
+        country,
+        { status, firstCertifiedAt }
+      ]
+    )
+  )
+
+/**
+ * Admin: get a single fuel record for the admin frontend.
+ * The response is fully normalised so the frontend only maps values to labels.
+ */
+async function getAdminFuelById(db, id, logger) {
+  ensureLogger(logger)
+  try {
+    const item = await db.collection('Fuels').findOne(
+      { id },
+      {
+        projection: {
+          _id: 0,
+          id: 1,
+          brandName: 1,
+          applicationId: 1,
+          supplierType: 1,
+          isLegacyRecord: 1,
+          isVisibleToPublic: 1,
+          englandCertification: 1,
+          scotlandCertification: 1,
+          walesCertification: 1,
+          nIrelandCertification: 1,
+          fuelStatus: 1,
+          technicalReview: 1
+        }
+      }
+    )
+
+    if (!item) {
+      return { success: false, message: FUEL_NOT_FOUND, notFound: true }
+    }
+
+    if (findNotYetNotifiedCountries(item).length > 0) {
+      logger.warn(
+        `Fuel ${id} has countries that have not been notified that a decision is required`
+      )
+    }
+
+    return {
+      success: true,
+      data: {
+        id: item.id ?? id,
+        name: item.brandName ?? '',
+        applicationId: item.applicationId ?? null,
+        supplierType: item.supplierType ?? null,
+        status: FUEL_STATUSES.has(item.fuelStatus)
+          ? item.fuelStatus
+          : 'pending',
+        certifications: mapFirstCertifiedOnly(item),
+        canTogglePublicVisibility: findCertified(item).length > 0,
+        isVisibleToPublic: item.isVisibleToPublic !== false,
+        isLegacyRecord: item.isLegacyRecord ?? false,
+        technicalReview: item.technicalReview ?? null
+      }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to fetch admin fuel')
+    throw error
+  }
+}
+
 export {
+  getAdminFuelById,
   createFuel,
   getAllFuels,
   getFuelById,

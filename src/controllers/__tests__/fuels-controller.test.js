@@ -8,7 +8,8 @@ import {
   deleteFuel,
   getAllFuelsWithPagination,
   searchFuels,
-  getFuelWithRelatedItems
+  getFuelWithRelatedItems,
+  getAdminFuelById
 } from '#src/controllers/fuels-controller.js'
 
 import {
@@ -485,6 +486,133 @@ describe('fuels-controller', () => {
       await expect(
         getFuelWithRelatedItems(db, 'FUEL-001', mockLogger)
       ).rejects.toThrow('fetch failed')
+    })
+  })
+
+  describe('getAdminFuelById', () => {
+    const certified = (firstCertifiedAt) => ({
+      status: 'certified',
+      firstCertifiedAt,
+      lastCertifiedAt: '2026-03-01'
+    })
+
+    beforeEach(() => {
+      mockLogger.warn = vi.fn()
+    })
+
+    test('returns the normalised admin fields for a live Manufacture fuel', async () => {
+      findCertified.mockReturnValueOnce(['England', 'Wales'])
+      collection.findOne.mockResolvedValue({
+        id: '7756-0001',
+        brandName: 'Cosytherm Briquettes',
+        applicationId: '1234-0307',
+        supplierType: 'Manufacture',
+        isVisibleToPublic: true,
+        fuelStatus: 'live',
+        technicalReview: { status: 'accepted' },
+        englandCertification: certified('2025-05-10'),
+        scotlandCertification: { status: 'uncertified' },
+        walesCertification: certified('2025-05-25'),
+        nIrelandCertification: { status: 'awaiting_decision' }
+      })
+
+      const result = await getAdminFuelById(db, '7756-0001', mockLogger)
+
+      expect(db.collection).toHaveBeenCalledWith('Fuels')
+      expect(result).toEqual({
+        success: true,
+        data: {
+          id: '7756-0001',
+          name: 'Cosytherm Briquettes',
+          applicationId: '1234-0307',
+          supplierType: 'Manufacture',
+          status: 'live',
+          certifications: {
+            england: { status: 'certified', firstCertifiedAt: '2025-05-10' },
+            scotland: { status: 'uncertified', firstCertifiedAt: null },
+            wales: { status: 'certified', firstCertifiedAt: '2025-05-25' },
+            northernIreland: {
+              status: 'awaiting_decision',
+              firstCertifiedAt: null
+            }
+          },
+          canTogglePublicVisibility: true,
+          isVisibleToPublic: true,
+          isLegacyRecord: false,
+          technicalReview: { status: 'accepted' }
+        }
+      })
+      expect(mockLogger.warn).not.toHaveBeenCalled()
+    })
+
+    test('defaults missing fields and unknown status', async () => {
+      findCertified.mockReturnValueOnce([])
+      collection.findOne.mockResolvedValue({
+        id: 'FUEL-2',
+        fuelStatus: 'unexpected'
+      })
+
+      const { data } = await getAdminFuelById(db, 'FUEL-2', mockLogger)
+
+      expect(data).toMatchObject({
+        name: '',
+        applicationId: null,
+        supplierType: null,
+        status: 'pending',
+        canTogglePublicVisibility: false,
+        isVisibleToPublic: true,
+        isLegacyRecord: false,
+        technicalReview: null
+      })
+      expect(data.certifications.england).toEqual({
+        status: 'awaiting_decision',
+        firstCertifiedAt: null
+      })
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('FUEL-2')
+      )
+    })
+
+    test('reports a hidden fuel as not visible', async () => {
+      findCertified.mockReturnValueOnce(['England'])
+      collection.findOne.mockResolvedValue({
+        id: 'FUEL-3',
+        fuelStatus: 'hidden',
+        isVisibleToPublic: false
+      })
+
+      const { data } = await getAdminFuelById(db, 'FUEL-3', mockLogger)
+
+      expect(data.status).toBe('hidden')
+      expect(data.isVisibleToPublic).toBe(false)
+      expect(data.canTogglePublicVisibility).toBe(true)
+    })
+
+    test('returns not found', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      const result = await getAdminFuelById(db, 'missing', mockLogger)
+
+      expect(result).toEqual({
+        success: false,
+        message: 'Fuel not found',
+        notFound: true
+      })
+    })
+
+    test('logs and rethrows database errors', async () => {
+      collection.findOne.mockRejectedValue(new Error('db down'))
+
+      await expect(getAdminFuelById(db, 'FUEL-1', mockLogger)).rejects.toThrow(
+        'db down'
+      )
+      expect(mockLogger.error).toHaveBeenCalled()
+    })
+
+    test('requires a logger', async () => {
+      await expect(getAdminFuelById(db, 'FUEL-1')).rejects.toThrow(
+        'logger is required'
+      )
     })
   })
 
