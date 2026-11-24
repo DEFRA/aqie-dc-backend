@@ -145,7 +145,13 @@ export const saveDecision = async (
     .collection('Appliances')
     .findOneAndUpdate(
       { id: applianceId },
-      { $set: { [certificationField]: certification, updatedAt: now } },
+      {
+        $set: {
+          [certificationField]: certification,
+          updatedAt: now,
+          certificationUpdatedAt: now
+        }
+      },
       { returnDocument: 'after' }
     )
 

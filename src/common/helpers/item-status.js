@@ -151,6 +151,7 @@ export const calculateItemStatus = async (
   // Only the first time it goes live; later hide/re-live keeps the original date
   if (update[itemStatus] === 'live' && !item.publishedDate) {
     update.publishedDate = new Date()
+    update.certificationUpdatedAt = update.publishedDate
   }
 
   await collection.updateOne({ id: itemId }, { $set: update })

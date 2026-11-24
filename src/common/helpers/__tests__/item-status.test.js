@@ -82,7 +82,13 @@ describe('calculateItemStatus', () => {
     expect(db.collection).toHaveBeenCalledWith('Fuels')
     expect(collection.updateOne).toHaveBeenCalledWith(
       { id: 'FUEL-1' },
-      { $set: { fuelStatus: 'live', publishedDate: expect.any(Date) } }
+      {
+        $set: {
+          fuelStatus: 'live',
+          publishedDate: expect.any(Date),
+          certificationUpdatedAt: expect.any(Date)
+        }
+      }
     )
   })
 
