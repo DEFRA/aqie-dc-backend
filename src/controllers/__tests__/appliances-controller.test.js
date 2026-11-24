@@ -7,7 +7,6 @@ import {
   updateAppliance,
   deleteAppliance,
   searchAdminAppliances,
-  searchPublicAppliances,
   getAdminApplianceById,
   updateApplianceVisibility
 } from '#src/controllers/appliances-controller.js'
@@ -209,7 +208,7 @@ describe('appliances-controller', () => {
       await getAllAppliances(db, {}, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({
-        applianceStatus: 'live'
+        $and: [{ applianceStatus: 'live' }]
       })
     })
 
@@ -296,6 +295,17 @@ describe('appliances-controller', () => {
         'AB1 2CD'
       ])
       expect(result.data.certifiedCountries).toEqual(['England'])
+    })
+
+    test('only looks up live appliances', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      await getApplianceById(db, 'APP-001', mockLogger)
+
+      expect(collection.findOne).toHaveBeenCalledWith({
+        id: 'APP-001',
+        applianceStatus: 'live'
+      })
     })
 
     test('returns not found', async () => {
@@ -480,7 +490,7 @@ describe('appliances-controller', () => {
     })
   })
 
-  describe('searchPublicAppliances', () => {
+  describe('getAllAppliances with search and pagination', () => {
     const mockCursor = (rows = []) => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
@@ -505,7 +515,7 @@ describe('appliances-controller', () => {
       ])
       collection.countDocuments.mockResolvedValue(21)
 
-      const result = await searchPublicAppliances(
+      const result = await getAllAppliances(
         db,
         { page: 3, limit: 10 },
         mockLogger
@@ -533,7 +543,7 @@ describe('appliances-controller', () => {
       mockCursor()
       collection.countDocuments.mockResolvedValue(0)
 
-      await searchPublicAppliances(
+      await getAllAppliances(
         db,
         {
           query: 'a.b, boiler',
@@ -559,7 +569,7 @@ describe('appliances-controller', () => {
       mockCursor()
       collection.countDocuments.mockResolvedValue(0)
 
-      await searchPublicAppliances(db, { certifiedIn: ['mars'] }, mockLogger)
+      await getAllAppliances(db, { certifiedIn: ['mars'] }, mockLogger)
 
       expect(collection.find.mock.calls[0][0].$and[1]).toEqual({
         $or: [{ _id: null }]
@@ -571,7 +581,7 @@ describe('appliances-controller', () => {
         throw new Error('db down')
       })
 
-      await expect(searchPublicAppliances(db, {}, mockLogger)).rejects.toThrow(
+      await expect(getAllAppliances(db, {}, mockLogger)).rejects.toThrow(
         'db down'
       )
       expect(mockLogger.error).toHaveBeenCalled()

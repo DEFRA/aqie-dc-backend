@@ -6,8 +6,7 @@ import {
   getFuelById,
   updateFuel,
   deleteFuel,
-  getAllFuelsWithPagination,
-  searchFuels
+  getAllFuelsWithPagination
 } from '#src/controllers/fuels-controller.js'
 
 import {
@@ -156,6 +155,7 @@ describe('fuels-controller', () => {
   describe('getAllFuels', () => {
     test('returns fuel summaries', async () => {
       const cursor = {
+        sort: vi.fn().mockReturnThis(),
         toArray: vi.fn().mockResolvedValue([
           {
             id: 'FUEL-001',
@@ -171,7 +171,7 @@ describe('fuels-controller', () => {
 
       collection.find.mockReturnValue(cursor)
 
-      const result = await getAllFuels(db, mockLogger)
+      const result = await getAllFuels(db, {}, mockLogger)
 
       expect(result.success).toBe(true)
       expect(result.data).toHaveLength(1)
@@ -181,13 +181,14 @@ describe('fuels-controller', () => {
 
     test('only returns live fuels', async () => {
       collection.find.mockReturnValue({
+        sort: vi.fn().mockReturnThis(),
         toArray: vi.fn().mockResolvedValue([])
       })
 
-      await getAllFuels(db, mockLogger)
+      await getAllFuels(db, {}, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({
-        fuelStatus: 'live'
+        $and: [{ fuelStatus: 'live' }]
       })
     })
 
@@ -200,7 +201,9 @@ describe('fuels-controller', () => {
         throw new Error('query failed')
       })
 
-      await expect(getAllFuels(db, mockLogger)).rejects.toThrow('query failed')
+      await expect(getAllFuels(db, {}, mockLogger)).rejects.toThrow(
+        'query failed'
+      )
 
       expect(mockLogger.error).toHaveBeenCalled()
     })
@@ -232,6 +235,17 @@ describe('fuels-controller', () => {
       expect(result.data.certifiedCountries).toBe('England')
       expect(result.data.lastUpdatedDate).toBe('2024-01-01')
       expect(result.data.fullAddress).toBe('1 Test Street')
+    })
+
+    test('only looks up live fuels', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      await getFuelById(db, 'FUEL-001', mockLogger)
+
+      expect(collection.findOne).toHaveBeenCalledWith({
+        id: 'FUEL-001',
+        fuelStatus: 'live'
+      })
     })
 
     test('returns not found', async () => {
@@ -400,7 +414,7 @@ describe('fuels-controller', () => {
     })
   })
 
-  describe('searchFuels', () => {
+  describe('getAllFuels with search and pagination', () => {
     test('returns search results with pagination', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
@@ -431,7 +445,7 @@ describe('fuels-controller', () => {
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(25)
 
-      const result = await searchFuels(
+      const result = await getAllFuels(
         db,
         { query: 'test', page: 1, limit: 10 },
         mockLogger
@@ -464,7 +478,7 @@ describe('fuels-controller', () => {
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(0)
 
-      const result = await searchFuels(
+      const result = await getAllFuels(
         db,
         { query: '', page: 1, limit: 10 },
         mockLogger
@@ -486,7 +500,7 @@ describe('fuels-controller', () => {
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(100)
 
-      await searchFuels(db, { query: 'test', page: 3, limit: 20 }, mockLogger)
+      await getAllFuels(db, { query: 'test', page: 3, limit: 20 }, mockLogger)
 
       // Verify skip and limit were called correctly
       expect(cursor.skip).toHaveBeenCalledWith(40) // (3-1) * 20
@@ -504,7 +518,7 @@ describe('fuels-controller', () => {
       collection.find.mockReturnValue(cursor)
       collection.countDocuments.mockResolvedValue(0)
 
-      await searchFuels(db, { query: 'test', page: 1, limit: 10 }, mockLogger)
+      await getAllFuels(db, { query: 'test', page: 1, limit: 10 }, mockLogger)
 
       const findCall = collection.find.mock.calls[0][0]
       expect(findCall.$and[0]).toEqual({ fuelStatus: 'live' })
@@ -516,7 +530,7 @@ describe('fuels-controller', () => {
       })
 
       await expect(
-        searchFuels(db, { query: 'fuel', page: 1, limit: 10 }, mockLogger)
+        getAllFuels(db, { query: 'fuel', page: 1, limit: 10 }, mockLogger)
       ).rejects.toThrow('search failed')
     })
   })
@@ -527,7 +541,7 @@ describe('fuels-controller', () => {
       () => updateFuel(db, '1', {}),
       () => deleteFuel(db, '1'),
       () => getAllFuelsWithPagination(db),
-      () => searchFuels(db, { query: 'a' })
+      () => getAllFuels(db, { query: 'a' })
     ])('throws when logger missing', async (fn) => {
       await expect(fn()).rejects.toThrow('logger is required')
     })

@@ -91,32 +91,6 @@ function mapApplianceSummary(item) {
   }
 }
 
-/**
- * Get all appliances (pagination not currently supported)
- * Returns only certified appliances per business requirements
- */
-async function getAllAppliances(db, _options, logger) {
-  ensureLogger(logger)
-  try {
-    const collection = db.collection('Appliances')
-
-    // The overall status already reflects review, certification and visibility, so
-    // 'live' is the only condition needed here.
-    const appliances = await collection
-      .find({ applianceStatus: 'live' })
-      .sort({ createdAt: -1 })
-      .toArray()
-
-    return {
-      success: true,
-      data: appliances.map((item) => mapApplianceSummary(item))
-    }
-  } catch (error) {
-    logger.error(error, 'Failed to fetch appliances')
-    throw error
-  }
-}
-
 const containsAny = (field, terms) =>
   terms.map((term) => ({
     [field]: { $regex: escapeRegex(term), $options: 'i' }
@@ -180,22 +154,30 @@ function buildPublicSearchQuery({
 }
 
 /**
- * Public: search/filter live appliances with pagination
+ * Get live appliances, optionally searched/filtered.
+ * Paginated when `limit` is given; otherwise returns every match.
  */
-async function searchPublicAppliances(
+async function getAllAppliances(
   db,
-  { page = 1, limit = 10, ...filters } = {},
+  { page = 1, limit, ...filters } = {},
   logger
 ) {
   ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
     const searchQuery = buildPublicSearchQuery(filters)
+    const cursor = collection.find(searchQuery).sort({ createdAt: -1 })
+
+    if (!limit) {
+      const appliances = await cursor.toArray()
+      return {
+        success: true,
+        data: appliances.map((item) => mapApplianceSummary(item))
+      }
+    }
 
     const [appliances, total] = await Promise.all([
-      collection
-        .find(searchQuery)
-        .sort({ createdAt: -1 })
+      cursor
         .skip((page - 1) * limit)
         .limit(limit)
         .toArray(),
@@ -209,23 +191,23 @@ async function searchPublicAppliances(
         page,
         limit,
         total,
-        totalPages: Math.max(Math.ceil(total / limit), 0)
+        totalPages: Math.ceil(total / limit)
       }
     }
   } catch (error) {
-    logger.error(error, 'Failed to search public appliances')
+    logger.error(error, 'Failed to fetch appliances')
     throw error
   }
 }
 
 /**
- * Get a single appliance by ID
+ * Public: get a single live appliance by ID (non-live is treated as not found)
  */
 async function getApplianceById(db, id, logger) {
   ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
-    const item = await collection.findOne({ id })
+    const item = await collection.findOne({ id, applianceStatus: 'live' })
 
     if (!item) {
       return {
@@ -529,7 +511,6 @@ export {
   updateAppliance,
   deleteAppliance,
   searchAdminAppliances,
-  searchPublicAppliances,
   getAdminApplianceById,
   updateApplianceVisibility
 }

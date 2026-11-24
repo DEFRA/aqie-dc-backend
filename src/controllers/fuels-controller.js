@@ -84,22 +84,51 @@ function mapFuelSummary(item) {
   }
 }
 
-//async function getAllFuel(db, type) {
-async function getAllFuels(db, logger) {
+/**
+ * Get live fuels, optionally searched by brand/company name.
+ * Paginated when `limit` is given; otherwise returns every match.
+ */
+async function getAllFuels(db, { query = '', page = 1, limit } = {}, logger) {
   ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
 
     // The overall status already reflects review, certification and visibility, so
-    // 'live' is the only condition needed here.
-    const fuels = await collection
-      .find({ fuelStatus: 'live' })
-      // .sort({ createdAt: -1 }) //what is the sort order for fuels? maybe by name?
-      .toArray()
+    // 'live' is the only status condition needed here.
+    const conditions = [{ fuelStatus: 'live' }]
+    if (query) {
+      const regex = { $regex: escapeRegex(query), $options: 'i' }
+      conditions.push({
+        $or: [
+          { brandName: regex },
+          { additionalBrandNames: regex },
+          { companyName: regex }
+        ]
+      })
+    }
+    const searchQuery = { $and: conditions }
+    const cursor = collection.find(searchQuery).sort({ createdAt: -1 })
+
+    if (!limit) {
+      const fuels = await cursor.toArray()
+      return {
+        success: true,
+        data: fuels.map((item) => mapFuelSummary(item))
+      }
+    }
+
+    const [fuels, total] = await Promise.all([
+      cursor
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(searchQuery)
+    ])
 
     return {
       success: true,
-      data: fuels.map((item) => mapFuelSummary(item))
+      data: fuels.map((item) => mapFuelSummary(item)),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch fuels')
@@ -108,13 +137,13 @@ async function getAllFuels(db, logger) {
 }
 
 /**
- * Find a single fuel by ID
+ * Public: get a single live fuel by ID (non-live is treated as not found)
  */
 async function getFuelById(db, fuelId, logger) {
   ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
-    const item = await collection.findOne({ id: fuelId })
+    const item = await collection.findOne({ id: fuelId, fuelStatus: 'live' })
 
     if (!item) {
       return {
@@ -240,63 +269,11 @@ async function getAllFuelsWithPagination(
   }
 }
 
-/**
- * Public: search and paginate live fuels by search query
- */
-async function searchFuels(
-  db,
-  { query = '', page = 1, limit = 10 } = {},
-  logger
-) {
-  ensureLogger(logger)
-  try {
-    const collection = db.collection('Fuels')
-
-    const escapedQuery = escapeRegex(query)
-    const searchQuery = {
-      $and: [
-        { fuelStatus: 'live' },
-        {
-          $or: [
-            { brandName: { $regex: escapedQuery, $options: 'i' } },
-            { additionalBrandNames: { $regex: escapedQuery, $options: 'i' } },
-            { companyName: { $regex: escapedQuery, $options: 'i' } }
-          ]
-        }
-      ]
-    }
-
-    const fuels = await collection
-      .find(searchQuery)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .toArray()
-
-    const total = await collection.countDocuments(searchQuery)
-
-    return {
-      success: true,
-      data: fuels.map((item) => mapFuelSummary(item)),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.max(Math.ceil(total / limit), 0)
-      }
-    }
-  } catch (error) {
-    logger.error(error, 'Failed to search fuels')
-    throw error
-  }
-}
-
 export {
   createFuel,
   getAllFuels,
   getFuelById,
   updateFuel,
   deleteFuel,
-  getAllFuelsWithPagination,
-  searchFuels
+  getAllFuelsWithPagination
 }

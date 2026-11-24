@@ -10,7 +10,7 @@ vi.mock('#src/controllers/appliances-controller.js', () => ({
   searchAdminAppliances: vi.fn()
 }))
 
-describe('GET /admin/appliances/search', () => {
+describe('GET /admin/appliances', () => {
   let mockRequest
   let mockToolkit
 
@@ -258,8 +258,8 @@ describe('GET /admin/appliances/search', () => {
   })
 
   describe('options.path', () => {
-    test('route path is /admin/appliances/search', () => {
-      expect(searchAdminAppliances.path).toBe('/admin/appliances/search')
+    test('route path is /admin/appliances', () => {
+      expect(searchAdminAppliances.path).toBe('/admin/appliances')
     })
   })
 
