@@ -5,8 +5,7 @@ import {
   getAllFuels,
   getFuelById,
   updateFuel,
-  deleteFuel,
-  getAllFuelsWithPagination
+  deleteFuel
 } from '#src/controllers/fuels-controller.js'
 
 import {
@@ -374,46 +373,6 @@ describe('fuels-controller', () => {
     })
   })
 
-  describe('getAllFuelsWithPagination', () => {
-    test('returns paginated results', async () => {
-      const cursor = {
-        sort: vi.fn().mockReturnThis(),
-        skip: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockReturnThis(),
-        toArray: vi.fn().mockResolvedValue([
-          {
-            id: 'FUEL-001',
-            brandName: 'Fuel A',
-            englandCertification: {
-              lastCertifiedAt: '2024-01-01'
-            },
-            scotlandCertification: {
-              lastCertifiedAt: '2024-01-01'
-            },
-            walesCertification: {
-              lastCertifiedAt: '2024-01-01'
-            },
-            nIrelandCertification: {
-              lastCertifiedAt: '2024-01-01'
-            }
-          }
-        ])
-      }
-
-      collection.find.mockReturnValue(cursor)
-      collection.countDocuments.mockResolvedValue(41)
-
-      const result = await getAllFuelsWithPagination(
-        db,
-        { page: 2, limit: 20 },
-        mockLogger
-      )
-
-      expect(result.pagination.total).toBe(41)
-      expect(result.pagination.totalPages).toBe(3)
-    })
-  })
-
   describe('getAllFuels with search and pagination', () => {
     test('returns search results with pagination', async () => {
       const cursor = {
@@ -540,7 +499,6 @@ describe('fuels-controller', () => {
       () => getFuelById(db, '1'),
       () => updateFuel(db, '1', {}),
       () => deleteFuel(db, '1'),
-      () => getAllFuelsWithPagination(db),
       () => getAllFuels(db, { query: 'a' })
     ])('throws when logger missing', async (fn) => {
       await expect(fn()).rejects.toThrow('logger is required')
