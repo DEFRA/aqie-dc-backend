@@ -79,8 +79,7 @@ function mapFuelSummary(item) {
     id: item.id,
     name: item.brandName,
     companyName: item.companyName,
-    certifiedCountries: findCertified(item),
-    lastUpdatedDate: findLastCertifiedDate(item)
+    certifiedCountries: findCertified(item)
   }
 }
 
