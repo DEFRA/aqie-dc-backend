@@ -10,7 +10,8 @@ vi.mock('#src/controllers/appliances-controller.js', () => ({
   searchAdminAppliances: vi.fn()
 }))
 
-describe('GET /admin/appliances', () => {
+// TODO: when the route drops the /search suffix (GET /admin/appliances), update the paths in this file
+describe('GET /admin/appliances/search', () => {
   let mockRequest
   let mockToolkit
 
@@ -258,8 +259,8 @@ describe('GET /admin/appliances', () => {
   })
 
   describe('options.path', () => {
-    test('route path is /admin/appliances', () => {
-      expect(searchAdminAppliances.path).toBe('/admin/appliances')
+    test('route path is /admin/appliances/search', () => {
+      expect(searchAdminAppliances.path).toBe('/admin/appliances/search')
     })
   })
 
