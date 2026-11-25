@@ -3,19 +3,20 @@ import {
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
+import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 import {
   findCertified,
   findLastCertifiedDate
 } from '../common/helpers/certification.js'
 /**
- * Fuels Controller
- * Business logic for fuel-related operations
+- Fuels Controller
+- Business logic for fuel-related operations
  */
 
 const LOGGER_REQUIRED_ERROR = 'logger is required'
 
 /**
- * Create a new fuel
+- Create a new fuel
  */
 async function createFuel(db, item, logger) {
   if (!db) {
@@ -122,7 +123,87 @@ async function getAllFuels(db, logger) {
 }
 
 /**
- * Find a single fuel by ID
+- Admin: list and search fuels by brand name or ID with status filtering and pagination
+ */
+async function getAdminFuels(
+  db,
+  { query = '', page = 1, limit = 20, statuses = [] } = {},
+  logger
+) {
+  if (!logger) {
+    throw new Error(LOGGER_REQUIRED_ERROR)
+  }
+  try {
+    const collection = db.collection('Fuels')
+    const skip = (page - 1) * limit
+    const normalisedStatuses = (statuses || [])
+      .map((status) => (status || '').toLowerCase().trim())
+      .filter(Boolean)
+
+    // Only return fuels whose technical review has reached a final status
+    const searchQuery = {
+      'technicalReview.status': { $in: REVIEWED_STATUSES }
+    }
+
+    // Fuels stay out of the list until their application is submitted.
+    // Records with no application (legacy imports) are not affected.
+    const unfinishedApplications = await db
+      .collection('Applications')
+      .find({ status: { $ne: 'complete' } }, { projection: { id: 1, _id: 0 } })
+      .toArray()
+
+    if (unfinishedApplications.length > 0) {
+      searchQuery.applicationId = {
+        $nin: unfinishedApplications.map(({ id }) => id)
+      }
+    }
+
+    if (query?.trim()) {
+      const trimmedQuery = query.trim()
+      searchQuery.$or = [
+        { brandName: { $regex: trimmedQuery, $options: 'i' } },
+        { additionalBrandNames: { $regex: trimmedQuery, $options: 'i' } },
+        { id: { $regex: trimmedQuery, $options: 'i' } }
+      ]
+    }
+
+    if (normalisedStatuses.length > 0) {
+      searchQuery.fuelStatus = {
+        $in: normalisedStatuses.map((status) => new RegExp(`^${status}$`, 'i'))
+      }
+    }
+
+    const fuels = await collection
+      .find(searchQuery)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray()
+
+    const total = await collection.countDocuments(searchQuery)
+
+    return {
+      success: true,
+      data: fuels.map((item) => ({
+        id: item.id || '',
+        brandName: item.brandName || '',
+        status: item.fuelStatus || 'pending'
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 0)
+      }
+    }
+  } catch (error) {
+    logger.error(error, 'Failed to fetch admin fuels')
+    throw error
+  }
+}
+
+/**
+- Find a single fuel by ID
  */
 async function getFuelById(db, fuelId, logger) {
   if (!logger) {
@@ -151,7 +232,7 @@ async function getFuelById(db, fuelId, logger) {
 }
 
 /**
- * Update a fuel
+- Update a fuel
  */
 async function updateFuel(db, fuelId, updates, logger) {
   if (!logger) {
@@ -196,7 +277,7 @@ async function updateFuel(db, fuelId, updates, logger) {
 }
 
 /**
- * Delete a fuel
+- Delete a fuel
  */
 async function deleteFuel(db, fuelId, logger) {
   if (!logger) {
@@ -216,8 +297,8 @@ async function deleteFuel(db, fuelId, logger) {
 }
 
 /**
- * Get all fuels with pagination
- * @deprecated not sure if pagniation is needed, if not can delete, if yes then replace with this
+- Get all fuels with pagination
+- @deprecated not sure if pagniation is needed, if not can delete, if yes then replace with this
  */
 async function getAllFuelsWithPagination(
   db,
@@ -257,7 +338,7 @@ async function getAllFuelsWithPagination(
 }
 
 /**
- * Search fuels by name or type with pagination
+- Search fuels by name or type with pagination
  */
 async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
   if (!logger) {
@@ -301,8 +382,8 @@ async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
 }
 //not sure this is needed - maybe for future admin
 /**
- * Get fuel with all users/applications that use it
- * @deprecated Relationship queries may need review for current schema
+- Get fuel with all users/applications that use it
+- @deprecated Relationship queries may need review for current schema
  */
 async function getFuelWithRelatedItems(db, fuelId, logger) {
   if (!logger) {
@@ -333,6 +414,7 @@ async function getFuelWithRelatedItems(db, fuelId, logger) {
 export {
   createFuel,
   getAllFuels,
+  getAdminFuels,
   getFuelById,
   updateFuel,
   deleteFuel,
