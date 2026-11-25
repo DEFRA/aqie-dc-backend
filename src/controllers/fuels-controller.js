@@ -14,6 +14,8 @@ import {
  * Business logic for fuel-related operations
  */
 
+const LOGGER_REQUIRED_ERROR = 'logger is required'
+
 /**
  * Create a new fuel
  */
@@ -25,7 +27,7 @@ async function createFuel(db, item, logger) {
     throw new Error('item is required')
   }
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -98,7 +100,7 @@ function mapFuelSummary(item) {
 
 async function getAllFuels(db, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -126,7 +128,7 @@ async function getAdminFuels(
   logger
 ) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -202,7 +204,7 @@ async function getAdminFuels(
  */
 async function getFuelById(db, fuelId, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -231,7 +233,7 @@ async function getFuelById(db, fuelId, logger) {
  */
 async function updateFuel(db, fuelId, updates, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
@@ -276,7 +278,7 @@ async function updateFuel(db, fuelId, updates, logger) {
  */
 async function deleteFuel(db, fuelId, logger) {
   if (!logger) {
-    throw new Error('logger is required')
+    throw new Error(LOGGER_REQUIRED_ERROR)
   }
   try {
     const collection = db.collection('Fuels')
