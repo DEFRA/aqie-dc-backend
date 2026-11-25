@@ -572,7 +572,7 @@ describe('fuels-controller', () => {
         name: '',
         applicationId: null,
         supplierType: null,
-        status: 'pending',
+        status: undefined,
         canTogglePublicVisibility: false,
         isVisibleToPublic: true,
         isLegacyRecord: false,
