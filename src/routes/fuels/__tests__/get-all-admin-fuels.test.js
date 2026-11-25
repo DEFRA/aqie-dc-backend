@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest'
 
-import { getAdminFuels } from '#src/routes/fuels/get-admin-fuels.js'
+import { getAdminFuels } from '#src/routes/fuels/get-all-admin-fuels.js'
 import * as fuelController from '#src/controllers/fuels-controller.js'
 
 vi.mock('#src/controllers/fuels-controller.js', () => ({
@@ -42,11 +42,12 @@ describe('getAdminFuels route', () => {
   describe('query validation', () => {
     const schema = getAdminFuels.options.validate.query
 
-    test('applies default page and limit when omitted', () => {
+    test('applies default page, limit, and status when omitted', () => {
       const { value, error } = schema.validate({})
 
       expect(error).toBeUndefined()
       expect(value).toEqual({
+        status: [],
         page: 1,
         limit: 20
       })
@@ -63,7 +64,7 @@ describe('getAdminFuels route', () => {
       expect(error).toBeUndefined()
       expect(value).toEqual({
         q: "Oak-Briquette_1 & Co.'s",
-        status: 'live,pending',
+        status: ['live', 'pending'],
         page: 2,
         limit: 50
       })

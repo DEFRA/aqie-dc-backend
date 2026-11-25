@@ -38,7 +38,7 @@ import { getApplianceTypes } from '../routes/appliance-types/get-appliance-types
 import Inert from '@hapi/inert'
 import H2o2 from '@hapi/h2o2'
 import { config } from '../config.js'
-import { getAdminFuels } from '../routes/fuels/get-admin-fuels.js'
+import { getAdminFuels } from '../routes/fuels/get-all-admin-fuels.js'
 
 const router = {
   plugin: {
