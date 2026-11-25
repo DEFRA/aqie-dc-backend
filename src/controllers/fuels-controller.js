@@ -364,18 +364,7 @@ async function getAdminFuelById(db, id, logger) {
         name: item.brandName ?? '',
         applicationId: item.applicationId ?? null,
         supplierType: item.supplierType ?? null,
-        // Schema enforces the allowed values and default; log if it is missing.
-        status: (() => {
-          if (!item.fuelStatus) {
-            logger.error(
-              `Fuel ${id} has invalid status: "${item.fuelStatus}"`,
-              {
-                fuelStatus: item.fuelStatus
-              }
-            )
-          }
-          return item.fuelStatus ? item.fuelStatus : 'pending'
-        })(),
+        status: item.fuelStatus || 'pending',
         certifications: mapCertifications(item),
         canTogglePublicVisibility: findCertified(item).length > 0,
         isVisibleToPublic: item.isVisibleToPublic !== false,

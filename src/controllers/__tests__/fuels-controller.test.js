@@ -576,10 +576,6 @@ describe('fuels-controller', () => {
         status: 'awaiting_decision',
         firstCertifiedAt: null
       })
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('FUEL-2'),
-        { fuelStatus: undefined }
-      )
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('FUEL-2')
       )
