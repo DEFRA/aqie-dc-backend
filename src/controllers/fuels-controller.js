@@ -264,7 +264,7 @@ async function getAdminFuelById(db, id, logger) {
       return { success: false, message: FUEL_NOT_FOUND, notFound: true }
     }
 
-    // Writes default fuelStatus to 'pending' in the frontend, so a missing value signals bad data.
+    // Writes default fuelStatus to 'pending', so a missing value signals bad data.
     if (!item.fuelStatus) {
       logger.error(`Fuel ${id} is missing fuelStatus, defaulting to pending`)
     }
