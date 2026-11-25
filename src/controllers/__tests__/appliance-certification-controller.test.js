@@ -120,6 +120,26 @@ describe('appliance-certification-controller updateCertificationStatus', () => {
     expect($set.englandCertification.firstCertifiedAt).toBeNull()
   })
 
+  test('sets certificationUpdatedAt whenever a country status changes', async () => {
+    const { db, appliances } = makeDb({
+      id: 'APP-1',
+      publishedDate: new Date('2020-01-01'),
+      englandCertification: { status: 'certified' }
+    })
+
+    await updateCertificationStatus(
+      db,
+      'APP-1',
+      'england',
+      'uncertified',
+      decidedBy,
+      logger
+    )
+
+    const { $set } = appliances.findOneAndUpdate.mock.calls[0][1]
+    expect($set.certificationUpdatedAt).toEqual($set.updatedAt)
+  })
+
   test('preserves firstCertifiedAt on re-certification', async () => {
     const firstCertifiedAt = new Date('2020-01-01')
     const { db, appliances } = makeDb({

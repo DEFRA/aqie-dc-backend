@@ -122,9 +122,9 @@ export const applianceSchema = Joi.object({
     .default(null)
     .description('If it is a variant, details'),
   nominalOutput: Joi.number().required().description('Thermal output (kW)'),
-  multifuelAppliance: Joi.boolean()
+  isMultifuelAppliance: Joi.boolean()
     .required()
-    .description('Multifuel capability'),
+    .description('Is a multifuel appliance'),
   permittedFuels: Joi.string()
     .trim()
     .min(1)
@@ -204,10 +204,7 @@ export const applianceSchema = Joi.object({
     publicationDate: Joi.date()
       .optional()
       .description('Servicing manual publication date'),
-    version: Joi.string().optional().description('Servicing manual version'),
-    additionalInfo: Joi.string()
-      .optional()
-      .description('Servicing manual additional information')
+    version: Joi.string().optional().description('Servicing manual version')
   }).optional(),
   legacy: Joi.object({
     comments: Joi.array().optional().description('Legacy comments'),
@@ -220,8 +217,7 @@ export const applianceSchema = Joi.object({
   }).optional(),
   //Reviews/Certifications
   isPermittedToBurnWood: Joi.boolean()
-    .allow(null)
-    .optional()
+    .required()
     .description('Whether the appliance is permitted to burn wood'),
   technicalReview: Joi.object({
     status: Joi.string()
@@ -268,6 +264,12 @@ export const applianceSchema = Joi.object({
     .optional()
     .description(
       'When the appliance was last updated in our system (server-generated), best practice to use this field when anything is updated in the appliance'
+    ),
+  certificationUpdatedAt: Joi.date()
+    .allow(null)
+    .optional()
+    .description(
+      'Last change to a country certification status; equals publishedDate until a status changes after publication'
     ),
   // Fields for frontends
   isLegacyRecord: Joi.boolean()
@@ -525,6 +527,12 @@ export const fuelSchema = Joi.object({
   isVisibleToPublic: Joi.boolean()
     .default(true)
     .description('Should this fuel be visible to the public?'),
+  certificationUpdatedAt: Joi.date()
+    .allow(null)
+    .optional()
+    .description(
+      'Last change to a country certification status; equals publishedDate until a status changes after publication'
+    ),
   fuelStatus: Joi.string()
     .valid('pending', 'live', 'hidden', 'rejected')
     .description(

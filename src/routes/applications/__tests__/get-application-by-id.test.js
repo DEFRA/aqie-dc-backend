@@ -257,6 +257,44 @@ describe('GET /applications/{applicationId}', () => {
         'Application service is currently unavailable'
       )
     })
+
+    test('returns legacy application when found by legacy.applicationId', async () => {
+      const mockLegacyApplication = {
+        success: true,
+        message: 'Legacy application retrieved successfully',
+        data: {
+          id: 'CAA-EA-00001719',
+          legacy: {
+            applicationId: 'CAA-EA-00001719',
+            applianceId: 'legacy-001',
+            comments: ['imported from legacy system']
+          },
+          isLegacyReference: true,
+          linkedItems: []
+        }
+      }
+
+      mockRequest.params.applicationId = 'CAA-EA-00001719'
+      applicationsController.getApplicationById.mockResolvedValueOnce(
+        mockLegacyApplication
+      )
+
+      const h = mockToolkit
+      const result = await getApplicationById.handler(mockRequest, h)
+
+      expect(result.success).toBe(true)
+      expect(result.message).toBe('Legacy application retrieved successfully')
+      expect(result.data.id).toBe('CAA-EA-00001719')
+      expect(result.data.isLegacyReference).toBe(true)
+      expect(result.data.legacy.applicationId).toBe('CAA-EA-00001719')
+      expect(result.statusCode).toBe(statusCodes.ok)
+      expect(applicationsController.getApplicationById).toHaveBeenCalledWith(
+        mockRequest.db,
+        'CAA-EA-00001719',
+        mockRequest.logger,
+        undefined
+      )
+    })
   })
 
   describe('options.method', () => {

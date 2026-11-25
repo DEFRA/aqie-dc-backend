@@ -141,13 +141,17 @@ export const saveDecision = async (
     now
   )
 
-  const updated = await db
-    .collection('Appliances')
-    .findOneAndUpdate(
-      { id: applianceId },
-      { $set: { [certificationField]: certification, updatedAt: now } },
-      { returnDocument: 'after' }
-    )
+  const updated = await db.collection('Appliances').findOneAndUpdate(
+    { id: applianceId },
+    {
+      $set: {
+        [certificationField]: certification,
+        updatedAt: now,
+        certificationUpdatedAt: now
+      }
+    },
+    { returnDocument: 'after' }
+  )
 
   if (!updated) {
     logger.error(`Failed to update appliance: ${applianceId}`)
