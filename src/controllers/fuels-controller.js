@@ -8,15 +8,14 @@ import {
   findCertified,
   findLastCertifiedDate
 } from '../common/helpers/certification.js'
+
 /**
-- Fuels Controller
-- Business logic for fuel-related operations
+ * Fuels Controller
+ * Business logic for fuel-related operations
  */
 
-const LOGGER_REQUIRED_ERROR = 'logger is required'
-
 /**
-- Create a new fuel
+ * Create a new fuel
  */
 async function createFuel(db, item, logger) {
   if (!db) {
@@ -26,7 +25,7 @@ async function createFuel(db, item, logger) {
     throw new Error('item is required')
   }
   if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
+    throw new Error('logger is required')
   }
   try {
     const collection = db.collection('Fuels')
@@ -97,20 +96,16 @@ function mapFuelSummary(item) {
   }
 }
 
-//async function getAllFuel(db, type) {
 async function getAllFuels(db, logger) {
   if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
+    throw new Error('logger is required')
   }
   try {
     const collection = db.collection('Fuels')
 
     // Visibility is derived from review and certification outcomes when a
     // fuel's status is calculated, so it is the only condition needed here.
-    const fuels = await collection
-      .find({ isVisibleToPublic: true })
-      // .sort({ createdAt: -1 }) //what is the sort order for fuels? maybe by name?
-      .toArray()
+    const fuels = await collection.find({ isVisibleToPublic: true }).toArray()
 
     return {
       success: true,
@@ -123,7 +118,7 @@ async function getAllFuels(db, logger) {
 }
 
 /**
-- Admin: list and search fuels by brand name or ID with status filtering and pagination
+ * Admin: list and search fuels by brand name or ID with status filtering and pagination
  */
 async function getAdminFuels(
   db,
@@ -131,7 +126,7 @@ async function getAdminFuels(
   logger
 ) {
   if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
+    throw new Error('logger is required')
   }
   try {
     const collection = db.collection('Fuels')
@@ -203,11 +198,11 @@ async function getAdminFuels(
 }
 
 /**
-- Find a single fuel by ID
+ * Find a single fuel by ID
  */
 async function getFuelById(db, fuelId, logger) {
   if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
+    throw new Error('logger is required')
   }
   try {
     const collection = db.collection('Fuels')
@@ -232,11 +227,11 @@ async function getFuelById(db, fuelId, logger) {
 }
 
 /**
-- Update a fuel
+ * Update a fuel
  */
 async function updateFuel(db, fuelId, updates, logger) {
   if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
+    throw new Error('logger is required')
   }
   try {
     const collection = db.collection('Fuels')
@@ -277,11 +272,11 @@ async function updateFuel(db, fuelId, updates, logger) {
 }
 
 /**
-- Delete a fuel
+ * Delete a fuel
  */
 async function deleteFuel(db, fuelId, logger) {
   if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
+    throw new Error('logger is required')
   }
   try {
     const collection = db.collection('Fuels')
@@ -296,129 +291,11 @@ async function deleteFuel(db, fuelId, logger) {
   }
 }
 
-/**
-- Get all fuels with pagination
-- @deprecated not sure if pagniation is needed, if not can delete, if yes then replace with this
- */
-async function getAllFuelsWithPagination(
-  db,
-  { page = 1, limit = 20 } = {},
-  logger
-) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
-  try {
-    const collection = db.collection('Fuels')
-    const skip = (page - 1) * limit
-
-    const fuels = await collection
-      .find({ isVisibleToPublic: true })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray()
-
-    const total = await collection.countDocuments({ isVisibleToPublic: true })
-
-    return {
-      success: true,
-      data: fuels.map((item) => mapFuelSummary(item)),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    }
-  } catch (error) {
-    logger.error(error, 'Failed to fetch fuels with pagination')
-    throw error
-  }
-}
-
-/**
-- Search fuels by name or type with pagination
- */
-async function searchFuels(db, { query, page = 1, limit = 20 } = {}, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
-  try {
-    const collection = db.collection('Fuels')
-    const skip = (page - 1) * limit
-
-    const searchQuery = {
-      $or: [
-        { brandName: { $regex: query, $options: 'i' } },
-        { additionalBrandNames: { $regex: query, $options: 'i' } },
-        { companyName: { $regex: query, $options: 'i' } }
-      ]
-    }
-
-    const fuels = await collection
-      .find(searchQuery)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray()
-
-    const total = await collection.countDocuments(searchQuery)
-
-    return {
-      success: true,
-      data: fuels.map((item) => mapFuelSummary(item)),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    }
-  } catch (error) {
-    logger.error(error, 'Failed to search fuels')
-    throw error
-  }
-}
-//not sure this is needed - maybe for future admin
-/**
-- Get fuel with all users/applications that use it
-- @deprecated Relationship queries may need review for current schema
- */
-async function getFuelWithRelatedItems(db, fuelId, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
-  try {
-    // Get fuel
-    const fuel = await db.collection('Fuels').findOne({ id: fuelId })
-
-    if (!fuel) {
-      return {
-        success: false,
-        message: 'Fuel not found',
-        notFound: true
-      }
-    }
-
-    return {
-      success: true,
-      data: mapFuelDetail(fuel)
-    }
-  } catch (error) {
-    logger.error(error, 'Failed to fetch fuel with related items')
-    throw error
-  }
-}
-
 export {
   createFuel,
   getAllFuels,
   getAdminFuels,
   getFuelById,
   updateFuel,
-  deleteFuel,
-  getAllFuelsWithPagination,
-  searchFuels,
-  getFuelWithRelatedItems
+  deleteFuel
 }
