@@ -266,9 +266,7 @@ async function getAdminFuelById(db, id, logger) {
 
     // Writes default fuelStatus to 'pending', so a missing value signals bad data.
     if (!item.fuelStatus) {
-      logger.error(
-        `Fuel ${id} is missing fuelStatus, frontend will default to pending`
-      )
+      logger.error(`Fuel ${id} is missing fuelStatus, defaulting to pending`)
     }
 
     if (findNotYetNotifiedCountries(item).length > 0) {
@@ -284,7 +282,7 @@ async function getAdminFuelById(db, id, logger) {
         name: item.brandName ?? '',
         applicationId: item.applicationId ?? null,
         supplierType: item.supplierType ?? null,
-        status: item.fuelStatus,
+        status: item.fuelStatus || 'pending',
         certifications: mapCertifications(item),
         canTogglePublicVisibility: findCertified(item).length > 0,
         isVisibleToPublic: item.isVisibleToPublic !== false,
