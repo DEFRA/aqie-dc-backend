@@ -26,8 +26,12 @@ async function getCompleteApplicationIds(db) {
   return completeApplications.map((app) => app.id).filter(Boolean)
 }
 
+const escapeRegex = (value) =>
+  String(value).replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)
+
 export {
   ensureLogger,
+  escapeRegex,
   getCompleteApplicationIds,
   LOGGER_REQUIRED_ERROR,
   APPLICATION_NOT_FOUND,

@@ -17,14 +17,13 @@ import { createAppliance } from '../routes/appliances/create-appliance.js'
 import { getAllAppliances } from '../routes/appliances/get-all-appliances.js'
 import { getApplianceById } from '../routes/appliances/get-appliance-by-id.js'
 import { recordApplianceCheck } from '../routes/appliances/record-appliance-check.js'
-import { searchAdminAppliances } from '../routes/appliances/search-admin-appliances.js'
+import { getAllAdminAppliances } from '../routes/appliances/get-all-admin-appliances.js'
 import { getAdminApplianceById } from '../routes/appliances/get-admin-appliance-by-id.js'
 import { getApplianceActionHistory } from '../routes/appliances/get-appliance-action-history.js'
 import { updateAppliance } from '../routes/appliances/update-appliance.js'
 import { updateCertificationStatus } from '../routes/appliances/update-certification-status.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
 import { getFuelById } from '../routes/fuels/get-fuel-by-id.js'
-import { searchFuels } from '../routes/fuels/search-fuels.js'
 import { createFuel } from '../routes/fuels/create-fuel.js'
 import { getAllFuels } from '../routes/fuels/get-all-fuels.js'
 import { updateFuel } from '../routes/fuels/update-fuel.js'
@@ -114,7 +113,7 @@ const router = {
       server.route([
         createAppliance,
         getAllAppliances,
-        searchAdminAppliances, // Must come before getApplianceById to avoid route conflict
+        getAllAdminAppliances,
         getAdminApplianceById,
         getApplianceActionHistory,
         getApplianceReview,
@@ -134,7 +133,6 @@ const router = {
         getAllFuels,
         updateFuel,
         deleteFuel,
-        searchFuels, // Must come before getFuelById to avoid route conflict
         getFuelReview,
         updateFuelReview,
         recordFuelCheck,

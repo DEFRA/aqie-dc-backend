@@ -3,157 +3,96 @@ import { getAllAppliances } from '#src/routes/appliances/get-all-appliances.js'
 import { statusCodes } from '#src/common/constants/status-codes.js'
 import * as applianceController from '#src/controllers/appliances-controller.js'
 
-// Mock the controller
 vi.mock('#src/controllers/appliances-controller.js', () => ({
   default: {},
   getAllAppliances: vi.fn()
 }))
 
+const validate = (query) =>
+  getAllAppliances.options.validate.query.validate(query)
+
 describe('GET /appliances', () => {
   let mockRequest
-  let mockToolkit
+  let h
 
   beforeEach(() => {
     vi.clearAllMocks()
-
-    mockToolkit = {
+    h = {
       response: vi.fn((data) => ({
         code: vi.fn((code) => ({ ...data, statusCode: code }))
       }))
     }
-
     mockRequest = {
-      db: {},
-      logger: {
-        info: vi.fn(),
-        error: vi.fn()
+      query: {
+        q: 'boiler',
+        page: 1,
+        limit: 10,
+        fuelsAllowed: []
       },
-      query: {}
+      db: {},
+      logger: { info: vi.fn(), error: vi.fn() }
     }
   })
 
-  describe('handler', () => {
-    test('returns all appliances successfully', async () => {
-      const mockAppliances = [
-        {
-          name: 'Model X',
-          id: 'APP-001',
-          manufacturer: 'ACME',
-          type: 'boiler'
-        },
-        {
-          name: 'Model Y',
-          id: 'APP-002',
-          manufacturer: 'TechCorp',
-          type: 'furnace'
-        }
-      ]
-
-      applianceController.getAllAppliances.mockResolvedValueOnce({
-        success: true,
-        data: mockAppliances
-      })
-
-      const h = mockToolkit
-      const result = await getAllAppliances.handler(mockRequest, h)
-
-      expect(result.success).toBe(true)
-      expect(result.data).toEqual(mockAppliances)
-      expect(result.statusCode).toBe(statusCodes.ok)
-      expect(applianceController.getAllAppliances).toHaveBeenCalledWith(
-        mockRequest.db,
-        { page: 1, limit: 999999 },
-        mockRequest.logger
-      )
+  test('delegates to the controller and returns pagination', async () => {
+    const pagination = { page: 1, limit: 10, total: 1, totalPages: 1 }
+    applianceController.getAllAppliances.mockResolvedValueOnce({
+      success: true,
+      data: [{ id: 'A1' }],
+      pagination
     })
 
-    test('returns empty array when no appliances exist', async () => {
-      applianceController.getAllAppliances.mockResolvedValueOnce({
-        success: true,
-        data: []
-      })
+    const result = await getAllAppliances.handler(mockRequest, h)
 
-      const h = mockToolkit
-      const result = await getAllAppliances.handler(mockRequest, h)
-
-      expect(result.success).toBe(true)
-      expect(result.data).toEqual([])
-    })
-
-    test('handles controller error and returns 500', async () => {
-      const error = new Error('Database connection failed')
-      applianceController.getAllAppliances.mockRejectedValueOnce(error)
-
-      const h = mockToolkit
-      const result = await getAllAppliances.handler(mockRequest, h)
-
-      expect(result.isBoom).toBe(true)
-      expect(result.output.statusCode).toBe(statusCodes.internalServerError)
-      expect(result.message).toBe('Failed to fetch appliances')
-      expect(result.output.payload.message).toBe(
-        'An internal server error occurred'
-      )
-      expect(mockRequest.logger.error).toHaveBeenCalledWith(
-        error,
-        'Failed to fetch appliances'
-      )
-    })
-
-    test('passes default pagination params to controller', async () => {
-      applianceController.getAllAppliances.mockResolvedValueOnce({
-        success: true,
-        data: []
-      })
-
-      const h = mockToolkit
-      await getAllAppliances.handler(mockRequest, h)
-
-      expect(applianceController.getAllAppliances).toHaveBeenCalledWith(
-        expect.anything(),
-        { page: 1, limit: 999999 },
-        expect.anything()
-      )
-    })
-
-    test('logs errors to request.logger', async () => {
-      const error = new Error('Test error')
-      applianceController.getAllAppliances.mockRejectedValueOnce(error)
-
-      const h = mockToolkit
-      await getAllAppliances.handler(mockRequest, h)
-
-      expect(mockRequest.logger.error).toHaveBeenCalled()
-    })
+    expect(result.statusCode).toBe(statusCodes.ok)
+    expect(result.pagination).toEqual(pagination)
+    expect(applianceController.getAllAppliances).toHaveBeenCalledWith(
+      mockRequest.db,
+      {
+        query: 'boiler',
+        page: 1,
+        limit: 10,
+        fuelsAllowed: []
+      },
+      mockRequest.logger
+    )
   })
 
-  describe('options.method', () => {
-    test('route is GET', () => {
-      expect(getAllAppliances.method).toBe('GET')
+  test('applies defaults and normalises single filter values to arrays', () => {
+    const { value, error } = validate({ certifiedIn: 'England' })
+
+    expect(error).toBeUndefined()
+    expect(value).toMatchObject({
+      page: 1,
+      certifiedIn: ['england'],
+      fuelsAllowed: [],
+      applianceType: []
     })
+    expect(value.limit).toBeUndefined()
   })
 
-  describe('options.path', () => {
-    test('route path is /appliances', () => {
-      expect(getAllAppliances.path).toBe('/appliances')
-    })
+  test('returns a 500 Boom error when the controller fails', async () => {
+    applianceController.getAllAppliances.mockRejectedValueOnce(
+      new Error('db down')
+    )
+
+    const result = await getAllAppliances.handler(mockRequest, h)
+
+    expect(result.isBoom).toBe(true)
+    expect(result.output.statusCode).toBe(statusCodes.internalServerError)
   })
 
-  describe('options.tags', () => {
-    test('includes api and appliances tags', () => {
-      expect(getAllAppliances.options.tags).toContain('api')
-      expect(getAllAppliances.options.tags).toContain('appliances')
-    })
+  test('is a GET on /appliances', () => {
+    expect(getAllAppliances.method).toBe('GET')
+    expect(getAllAppliances.path).toBe('/appliances')
   })
 
-  describe('options.description', () => {
-    test('has description', () => {
-      expect(getAllAppliances.options.description).toBeDefined()
-    })
-  })
-
-  describe('options.notes', () => {
-    test('has notes about certified appliances', () => {
-      expect(getAllAppliances.options.notes).toBeDefined()
-    })
+  test.each([
+    { limit: 101 },
+    { page: 0 },
+    { q: 'a'.repeat(51) },
+    { q: '<script>' }
+  ])('rejects invalid query %j', (query) => {
+    expect(validate(query).error).toBeDefined()
   })
 })

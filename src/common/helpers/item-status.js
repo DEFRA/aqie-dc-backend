@@ -125,6 +125,7 @@ export const calculateItemStatus = async (
           CERTIFICATION_FIELDS.map((field) => [`${field}.status`, 1])
         ),
         isVisibleToPublic: 1,
+        publishedDate: 1,
         [itemStatus]: 1,
         _id: 0
       }
@@ -146,6 +147,12 @@ export const calculateItemStatus = async (
     itemStatus,
     item.technicalReview?.status
   )
+
+  // Only the first time it goes live; later hide/re-live keeps the original date
+  if (update[itemStatus] === 'live' && !item.publishedDate) {
+    update.publishedDate = new Date()
+    update.certificationUpdatedAt = update.publishedDate
+  }
 
   await collection.updateOne({ id: itemId }, { $set: update })
 

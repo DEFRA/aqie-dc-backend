@@ -56,7 +56,13 @@ async function createIndexes(db, logger) {
   // Setup Appliances and Fuels collections if they don't exist
   await ensureAppliancesAndFuelsCollections(db, logger)
 
-  //
+  // Public finder: live appliances listed newest first (idempotent on every start)
+  await db
+    .collection('Appliances')
+    .createIndex({ applianceStatus: 1, createdAt: -1 })
+
+  // Public finder: live fuels listed newest first (idempotent on every start)
+  await db.collection('Fuels').createIndex({ fuelStatus: 1, createdAt: -1 })
 }
 
 async function ensureAppliancesAndFuelsCollections(db, logger) {

@@ -82,6 +82,31 @@ describe('calculateItemStatus', () => {
     expect(db.collection).toHaveBeenCalledWith('Fuels')
     expect(collection.updateOne).toHaveBeenCalledWith(
       { id: 'FUEL-1' },
+      {
+        $set: {
+          fuelStatus: 'live',
+          publishedDate: expect.any(Date),
+          certificationUpdatedAt: expect.any(Date)
+        }
+      }
+    )
+  })
+
+  test('keeps an existing publishedDate when live again', async () => {
+    collection.findOne.mockResolvedValue({
+      technicalReview: { status: 'accepted' },
+      englandCertification: { status: 'certified' },
+      scotlandCertification: { status: 'awaiting_decision' },
+      walesCertification: { status: 'awaiting_decision' },
+      nIrelandCertification: { status: 'awaiting_decision' },
+      isVisibleToPublic: true,
+      publishedDate: new Date('2026-01-01')
+    })
+
+    await calculateItemStatus(db, 'fuel', 'FUEL-1')
+
+    expect(collection.updateOne).toHaveBeenCalledWith(
+      { id: 'FUEL-1' },
       { $set: { fuelStatus: 'live' } }
     )
   })

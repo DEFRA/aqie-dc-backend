@@ -1,49 +1,60 @@
 /**
- * Get all appliances
- * TODO: DECISION REQUIRED - Should pagination be enabled for this endpoint?
- * Currently returns all certified appliances. Pagination can be enabled by:
- * 1. Uncomment the validate block with page/limit query params
- * 2. Uncomment page/limit destructuring in handler
- * 3. Pass { page, limit } to controller instead of hard-coded values
- * 4. Uncomment pagination filtering in controller
- * 5. Include pagination metadata in response
+ * Get live appliances with optional search, filters and pagination.
+ * Without `limit` every matching appliance is returned (no pagination block).
  */
 
+import Joi from 'joi'
 import * as applianceController from '../../controllers/appliances-controller.js'
 import { createResultHandler } from '../../common/helpers/route-response.js'
+
+const MAX_QUERY_LENGTH = 50
+const MAX_LIMIT = 100
+
+const filterList = (description) =>
+  Joi.array()
+    .items(Joi.string().trim().lowercase().max(50))
+    .single()
+    .default([])
+    .description(description)
 
 export const getAllAppliances = {
   method: 'GET',
   path: '/appliances',
   options: {
     tags: ['api', 'appliances'],
-    description: 'Get all appliances',
-    notes: 'Returns all certified appliances'
-    // TODO: PAGINATION - Uncomment validation below if pagination is re-enabled
-    // validate: {
-    //   query: Joi.object({
-    //     page: Joi.number()
-    //       .integer()
-    //       .min(1)
-    //       .default(1)
-    //       .description('Page number'),
-    //     limit: Joi.number()
-    //       .integer()
-    //       .min(1)
-    //       .max(100)
-    //       .default(20)
-    //       .description('Results per page')
-    //   })
-    // }
+    description:
+      'Get live appliances with optional search, filters and pagination',
+    validate: {
+      query: Joi.object({
+        q: Joi.string()
+          .trim()
+          .allow('')
+          .max(MAX_QUERY_LENGTH)
+          .pattern(/^[a-zA-Z0-9\s\-_.,&']*$/)
+          .description(
+            'Comma-separated search terms matched against modelName, companyName, modelNumber or applianceType. Max 50 chars.'
+          ),
+        certifiedIn: filterList('Countries the appliance is certified in'),
+        fuelsAllowed: filterList('Permitted fuels'),
+        applianceType: filterList('Appliance types'),
+        page: Joi.number().integer().min(1).default(1),
+        limit: Joi.number()
+          .integer()
+          .min(1)
+          .max(MAX_LIMIT)
+          .description('Results per page; omit to return all')
+      })
+    }
   },
-  // TODO: PAGINATION - Pass { page, limit } from request.query when re-enabled
   handler: createResultHandler(
-    (request) =>
-      applianceController.getAllAppliances(
+    (request) => {
+      const { q = '', ...rest } = request.query
+      return applianceController.getAllAppliances(
         request.db,
-        { page: 1, limit: 999999 }, // Return all certified appliances
+        { query: q, ...rest },
         request.logger
-      ),
+      )
+    },
     {
       logMessage: 'Failed to fetch appliances',
       fallbackMessage: 'Failed to fetch appliances',

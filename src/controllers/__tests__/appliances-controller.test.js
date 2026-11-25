@@ -6,7 +6,7 @@ import {
   getApplianceById,
   updateAppliance,
   deleteAppliance,
-  searchAdminAppliances,
+  getAllAdminAppliances,
   getAdminApplianceById,
   updateApplianceVisibility
 } from '#src/controllers/appliances-controller.js'
@@ -194,7 +194,7 @@ describe('appliances-controller', () => {
       expect(result.data).toHaveLength(1)
       expect(result.data[0].name).toBe('Certified Model')
       expect(result.data[0].id).toBe('APP-001')
-      expect(result.data[0].authorisedIn).toEqual(['England'])
+      expect(result.data[0].certifiedCountries).toEqual(['England'])
     })
 
     test('queries live appliances only', async () => {
@@ -208,7 +208,7 @@ describe('appliances-controller', () => {
       await getAllAppliances(db, {}, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({
-        applianceStatus: 'live'
+        $and: [{ applianceStatus: 'live' }]
       })
     })
 
@@ -235,10 +235,10 @@ describe('appliances-controller', () => {
       const summary = result.data[0]
 
       expect(summary.name).toBe('Test Model')
-      expect(summary.manufacturer).toBe('Test Corp')
+      expect(summary.companyName).toBe('Test Corp')
       expect(summary.type).toBe('boiler')
       expect(summary.modelNumber).toBe('M123')
-      expect(summary.authorisedIn).toEqual(['England'])
+      expect(summary.certifiedCountries).toEqual(['England'])
     })
 
     test('handles fuels array correctly', async () => {
@@ -294,7 +294,18 @@ describe('appliances-controller', () => {
         'Testville',
         'AB1 2CD'
       ])
-      expect(result.data.authorisedIn).toEqual(['England'])
+      expect(result.data.certifiedCountries).toEqual(['England'])
+    })
+
+    test('only looks up live appliances', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      await getApplianceById(db, 'APP-001', mockLogger)
+
+      expect(collection.findOne).toHaveBeenCalledWith({
+        id: 'APP-001',
+        applianceStatus: 'live'
+      })
     })
 
     test('returns not found', async () => {
@@ -479,7 +490,105 @@ describe('appliances-controller', () => {
     })
   })
 
-  describe('searchAdminAppliances', () => {
+  describe('getAllAppliances with search and pagination', () => {
+    const mockCursor = (rows = []) => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue(rows)
+      }
+      collection.find.mockReturnValue(cursor)
+      return cursor
+    }
+
+    test('returns paginated summaries for live appliances', async () => {
+      const cursor = mockCursor([
+        {
+          id: 'APP-001',
+          modelName: 'Model',
+          companyName: 'Co',
+          permittedFuels: 'wood logs',
+          applianceType: 'boiler',
+          ...certifiedInEngland
+        }
+      ])
+      collection.countDocuments.mockResolvedValue(21)
+
+      const result = await getAllAppliances(
+        db,
+        { page: 3, limit: 10 },
+        mockLogger
+      )
+
+      expect(cursor.skip).toHaveBeenCalledWith(20)
+      expect(cursor.limit).toHaveBeenCalledWith(10)
+      expect(result.data[0]).toMatchObject({
+        id: 'APP-001',
+        name: 'Model',
+        certifiedCountries: ['England']
+      })
+      expect(result.pagination).toEqual({
+        page: 3,
+        limit: 10,
+        total: 21,
+        totalPages: 3
+      })
+      expect(collection.find.mock.calls[0][0]).toEqual({
+        $and: [{ applianceStatus: 'live' }]
+      })
+    })
+
+    test('builds escaped search and filter conditions', async () => {
+      mockCursor()
+      collection.countDocuments.mockResolvedValue(0)
+
+      await getAllAppliances(
+        db,
+        {
+          query: 'a.b, boiler',
+          certifiedIn: ['northern ireland'],
+          fuelsAllowed: ['wood logs'],
+          applianceType: ['boiler']
+        },
+        mockLogger
+      )
+
+      const { $and } = collection.find.mock.calls[0][0]
+      expect($and).toHaveLength(5)
+      expect($and[1].$or).toHaveLength(8)
+      expect($and[1].$or[0].modelName.$regex).toBe(String.raw`a\.b`)
+      expect($and[2].$or).toEqual([
+        { 'nIrelandCertification.status': 'certified' }
+      ])
+      expect($and[3].$or[0].permittedFuels.$regex).toContain('wood logs')
+      expect($and[4].$or[0].applianceType.$regex).toBe('^boiler$')
+    })
+
+    test('unrecognised country matches nothing', async () => {
+      mockCursor()
+      collection.countDocuments.mockResolvedValue(0)
+
+      await getAllAppliances(db, { certifiedIn: ['mars'] }, mockLogger)
+
+      expect(collection.find.mock.calls[0][0].$and[1]).toEqual({
+        $or: [{ _id: null }]
+      })
+    })
+
+    test('logs and rethrows database errors', async () => {
+      collection.find.mockImplementation(() => {
+        throw new Error('db down')
+      })
+
+      await expect(getAllAppliances(db, {}, mockLogger)).rejects.toThrow(
+        'db down'
+      )
+      expect(mockLogger.error).toHaveBeenCalled()
+    })
+  })
+
+  describe('getAllAdminAppliances', () => {
     let applicationsCollection
 
     beforeEach(() => {
@@ -514,7 +623,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      const result = await searchAdminAppliances(
+      const result = await getAllAdminAppliances(
         db,
         {
           query: 'search',
@@ -550,7 +659,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      await searchAdminAppliances(
+      await getAllAdminAppliances(
         db,
         {
           query: '  boiler  ',
@@ -601,7 +710,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      const result = await searchAdminAppliances(
+      const result = await getAllAdminAppliances(
         db,
         {
           query: '',
@@ -630,7 +739,7 @@ describe('appliances-controller', () => {
 
     test('throws if logger is missing', async () => {
       await expect(
-        searchAdminAppliances(db, { query: 'boiler' }, undefined)
+        getAllAdminAppliances(db, { query: 'boiler' }, undefined)
       ).rejects.toThrow('logger is required')
     })
 
@@ -650,7 +759,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      const result = await searchAdminAppliances(
+      const result = await getAllAdminAppliances(
         db,
         { query: 'no-match', page: 1, limit: 20, statuses: [] },
         mockLogger
@@ -678,7 +787,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      await searchAdminAppliances(
+      await getAllAdminAppliances(
         db,
         { query: '   ', page: 1, limit: 20 },
         mockLogger
@@ -707,7 +816,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      await searchAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
+      await getAllAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
 
       expect(applicationsCollection.find).toHaveBeenCalledWith({
         status: 'complete'
@@ -734,7 +843,7 @@ describe('appliances-controller', () => {
         })
       })
 
-      await searchAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
+      await getAllAdminAppliances(db, { page: 1, limit: 20 }, mockLogger)
 
       const searchQuery = collection.find.mock.calls[0][0]
       expect(searchQuery.$or).toEqual([
