@@ -5,6 +5,8 @@ import {
 } from '../common/helpers/data-transformer.js'
 import {
   CERTIFICATION_FIELDS,
+  COUNTRY_CERTIFICATION_FIELDS,
+  CERTIFIED_STATUS,
   findCertified,
   findNotYetNotifiedCountries,
   mapCertifications
@@ -14,6 +16,7 @@ import { toUserActor } from '../common/helpers/action-history.js'
 import { validateApplicationType } from '../common/helpers/application-type.js'
 import {
   ensureLogger,
+  escapeRegex,
   getCompleteApplicationIds,
   APPLIANCE_NOT_FOUND
 } from '../common/helpers/controller-utils.js'
@@ -75,50 +78,121 @@ async function createAppliance(db, item, logger) {
 }
 
 // --- Mapping helpers ---
-// Returns full detail object for single item views
-function mapApplianceDetail(item) {
-  return {
-    ...item,
-    authorisedIn: findCertified(item),
-    name: item.modelName || '',
-    id: item.id || '',
-    manufacturer: item.companyName || '',
-    fullAddress: getFullAddress(item)
-  }
-}
-
 // Returns summary object for list views
 function mapApplianceSummary(item) {
   return {
-    name: item.modelName || '',
     id: item.id || '',
-    manufacturer: item.companyName || '',
+    name: item.modelName || '',
+    companyName: item.companyName || '',
     permittedFuels: item.permittedFuels || '',
     type: item.applianceType,
     modelNumber: item.modelNumber,
-    authorisedIn: findCertified(item)
+    certifiedCountries: findCertified(item)
   }
 }
 
+const containsAny = (field, terms) =>
+  terms.map((term) => ({
+    [field]: { $regex: escapeRegex(term), $options: 'i' }
+  }))
+
+// Builds the public finder filter: live appliances matching search terms (OR across
+// fields/terms) AND every selected filter group (OR within a group).
+function buildPublicSearchQuery({
+  query = '',
+  certifiedIn = [],
+  fuelsAllowed = [],
+  applianceType = []
+}) {
+  const conditions = [{ applianceStatus: 'live' }]
+
+  const terms = query
+    .split(',')
+    .map((term) => term.trim())
+    .filter(Boolean)
+  if (terms.length > 0) {
+    conditions.push({
+      $or: ['modelName', 'companyName', 'modelNumber', 'applianceType'].flatMap(
+        (field) => containsAny(field, terms)
+      )
+    })
+  }
+
+  if (certifiedIn.length > 0) {
+    const certificationFilters = certifiedIn
+      .map(
+        (country) => COUNTRY_CERTIFICATION_FIELDS[country.replaceAll(' ', '-')]
+      )
+      .filter(Boolean)
+      .map((field) => ({ [`${field}.status`]: CERTIFIED_STATUS }))
+    // An unrecognised country must match nothing rather than be ignored
+    conditions.push({
+      $or: certificationFilters.length ? certificationFilters : [{ _id: null }]
+    })
+  }
+
+  if (fuelsAllowed.length > 0) {
+    conditions.push({
+      $or: fuelsAllowed.map((fuel) => ({
+        permittedFuels: {
+          $regex: String.raw`(^|,)\s*${escapeRegex(fuel)}\s*(,|$)`,
+          $options: 'i'
+        }
+      }))
+    })
+  }
+
+  if (applianceType.length > 0) {
+    conditions.push({
+      $or: applianceType.map((type) => ({
+        applianceType: { $regex: `^${escapeRegex(type)}$`, $options: 'i' }
+      }))
+    })
+  }
+
+  return { $and: conditions }
+}
+
 /**
- * Get all appliances (pagination not currently supported)
- * Returns only certified appliances per business requirements
+ * Get live appliances, optionally searched/filtered.
+ * Paginated when `limit` is given; otherwise returns every match.
  */
-async function getAllAppliances(db, _options, logger) {
+async function getAllAppliances(
+  db,
+  { page = 1, limit, ...filters } = {},
+  logger
+) {
   ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
+    const searchQuery = buildPublicSearchQuery(filters)
+    const cursor = collection.find(searchQuery).sort({ createdAt: -1 })
 
-    // The overall status already reflects review, certification and visibility, so
-    // 'live' is the only condition needed here.
-    const appliances = await collection
-      .find({ applianceStatus: 'live' })
-      .sort({ createdAt: -1 })
-      .toArray()
+    if (!limit) {
+      const allAppliances = await cursor.toArray()
+      return {
+        success: true,
+        data: allAppliances.map((item) => mapApplianceSummary(item))
+      }
+    }
+
+    const [appliances, total] = await Promise.all([
+      cursor
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(searchQuery)
+    ])
 
     return {
       success: true,
-      data: appliances.map((item) => mapApplianceSummary(item))
+      data: appliances.map((item) => mapApplianceSummary(item)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch appliances')
@@ -127,13 +201,13 @@ async function getAllAppliances(db, _options, logger) {
 }
 
 /**
- * Get a single appliance by ID
+ * Public: get a single live appliance by ID (non-live is treated as not found)
  */
 async function getApplianceById(db, id, logger) {
   ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
-    const item = await collection.findOne({ id })
+    const item = await collection.findOne({ id, applianceStatus: 'live' })
 
     if (!item) {
       return {
@@ -145,7 +219,12 @@ async function getApplianceById(db, id, logger) {
 
     return {
       success: true,
-      data: mapApplianceDetail(item)
+      data: {
+        ...item,
+        certifiedCountries: findCertified(item),
+        name: item.modelName,
+        fullAddress: getFullAddress(item)
+      }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch appliance')
@@ -206,7 +285,7 @@ async function deleteAppliance(db, id, logger) {
 /**
  * Admin: search appliances by name, model number, or type with pagination
  */
-async function searchAdminAppliances(
+async function getAllAdminAppliances(
   db,
   { query = '', page = 1, limit = 20, statuses = [] } = {},
   logger
@@ -431,7 +510,7 @@ export {
   getApplianceById,
   updateAppliance,
   deleteAppliance,
-  searchAdminAppliances,
+  getAllAdminAppliances,
   getAdminApplianceById,
   updateApplianceVisibility
 }

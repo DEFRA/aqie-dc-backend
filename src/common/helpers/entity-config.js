@@ -268,7 +268,8 @@ function transformToAppliance(row) {
     technicalReview,
     // Earliest certification date across the countries; omitted when none is certified
     ...(earliestCertifiedDate(certifications) && {
-      publishedDate: earliestCertifiedDate(certifications)
+      publishedDate: earliestCertifiedDate(certifications),
+      certificationUpdatedAt: earliestCertifiedDate(certifications)
     }),
     updatedAt: new Date(),
     createdAt: new Date()

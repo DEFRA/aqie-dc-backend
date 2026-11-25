@@ -6,9 +6,6 @@ import {
   getFuelById,
   updateFuel,
   deleteFuel,
-  getAllFuelsWithPagination,
-  searchFuels,
-  getFuelWithRelatedItems,
   getAdminFuelById
 } from '#src/controllers/fuels-controller.js'
 
@@ -158,6 +155,7 @@ describe('fuels-controller', () => {
   describe('getAllFuels', () => {
     test('returns fuel summaries', async () => {
       const cursor = {
+        sort: vi.fn().mockReturnThis(),
         toArray: vi.fn().mockResolvedValue([
           {
             id: 'FUEL-001',
@@ -173,7 +171,7 @@ describe('fuels-controller', () => {
 
       collection.find.mockReturnValue(cursor)
 
-      const result = await getAllFuels(db, mockLogger)
+      const result = await getAllFuels(db, {}, mockLogger)
 
       expect(result.success).toBe(true)
       expect(result.data).toHaveLength(1)
@@ -183,13 +181,14 @@ describe('fuels-controller', () => {
 
     test('only returns live fuels', async () => {
       collection.find.mockReturnValue({
+        sort: vi.fn().mockReturnThis(),
         toArray: vi.fn().mockResolvedValue([])
       })
 
-      await getAllFuels(db, mockLogger)
+      await getAllFuels(db, {}, mockLogger)
 
       expect(collection.find).toHaveBeenCalledWith({
-        fuelStatus: 'live'
+        $and: [{ fuelStatus: 'live' }]
       })
     })
 
@@ -202,7 +201,9 @@ describe('fuels-controller', () => {
         throw new Error('query failed')
       })
 
-      await expect(getAllFuels(db, mockLogger)).rejects.toThrow('query failed')
+      await expect(getAllFuels(db, {}, mockLogger)).rejects.toThrow(
+        'query failed'
+      )
 
       expect(mockLogger.error).toHaveBeenCalled()
     })
@@ -231,9 +232,20 @@ describe('fuels-controller', () => {
       const result = await getFuelById(db, 'FUEL-001', mockLogger)
 
       expect(result.success).toBe(true)
-      expect(result.data.authorisedIn).toBe('England')
+      expect(result.data.certifiedCountries).toBe('England')
       expect(result.data.lastUpdatedDate).toBe('2024-01-01')
       expect(result.data.fullAddress).toBe('1 Test Street')
+    })
+
+    test('only looks up live fuels', async () => {
+      collection.findOne.mockResolvedValue(null)
+
+      await getFuelById(db, 'FUEL-001', mockLogger)
+
+      expect(collection.findOne).toHaveBeenCalledWith({
+        id: 'FUEL-001',
+        fuelStatus: 'live'
+      })
     })
 
     test('returns not found', async () => {
@@ -362,8 +374,8 @@ describe('fuels-controller', () => {
     })
   })
 
-  describe('getAllFuelsWithPagination', () => {
-    test('returns paginated results', async () => {
+  describe('getAllFuels with search and pagination', () => {
+    test('returns search results with pagination', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
@@ -371,7 +383,9 @@ describe('fuels-controller', () => {
         toArray: vi.fn().mockResolvedValue([
           {
             id: 'FUEL-001',
-            brandName: 'Fuel A',
+            brandName: 'Test Fuel',
+            companyName: 'Test Company',
+            fuelStatus: 'live',
             englandCertification: {
               lastCertifiedAt: '2024-01-01'
             },
@@ -389,52 +403,85 @@ describe('fuels-controller', () => {
       }
 
       collection.find.mockReturnValue(cursor)
-      collection.countDocuments.mockResolvedValue(41)
+      collection.countDocuments.mockResolvedValue(25)
 
-      const result = await getAllFuelsWithPagination(
+      const result = await getAllFuels(
         db,
-        { page: 2, limit: 20 },
+        { query: 'test', page: 1, limit: 10 },
         mockLogger
       )
 
-      expect(result.pagination.total).toBe(41)
-      expect(result.pagination.totalPages).toBe(3)
-    })
-  })
+      expect(result.success).toBe(true)
+      expect(result.data).toHaveLength(1)
+      expect(result.pagination).toEqual({
+        page: 1,
+        limit: 10,
+        total: 25,
+        totalPages: 3
+      })
 
-  describe('searchFuels', () => {
-    test('returns search results', async () => {
+      // Verify the query was constructed correctly
+      expect(collection.find).toHaveBeenCalled()
+      const findCall = collection.find.mock.calls[0][0]
+      expect(findCall.$and[0]).toEqual({ fuelStatus: 'live' })
+      expect(findCall.$and[1].$or).toBeDefined()
+    })
+
+    test('handles empty search query', async () => {
       const cursor = {
         sort: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
-        toArray: vi.fn().mockResolvedValue([
-          {
-            id: 'FUEL-001',
-            brandName: 'Search Fuel',
-            englandCertification: {
-              lastCertifiedAt: '2024-01-01'
-            },
-            scotlandCertification: {
-              lastCertifiedAt: '2024-01-01'
-            },
-            walesCertification: {
-              lastCertifiedAt: '2024-01-01'
-            },
-            nIrelandCertification: {
-              lastCertifiedAt: '2024-01-01'
-            }
-          }
-        ])
+        toArray: vi.fn().mockResolvedValue([])
       }
 
       collection.find.mockReturnValue(cursor)
-      collection.countDocuments.mockResolvedValue(10)
+      collection.countDocuments.mockResolvedValue(0)
 
-      const result = await searchFuels(db, { query: 'fuel' }, mockLogger)
+      const result = await getAllFuels(
+        db,
+        { query: '', page: 1, limit: 10 },
+        mockLogger
+      )
 
       expect(result.success).toBe(true)
-      expect(result.pagination.total).toBe(10)
+      expect(result.data).toHaveLength(0)
+      expect(result.pagination.total).toBe(0)
+    })
+
+    test('respects pagination parameters', async () => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([])
+      }
+
+      collection.find.mockReturnValue(cursor)
+      collection.countDocuments.mockResolvedValue(100)
+
+      await getAllFuels(db, { query: 'test', page: 3, limit: 20 }, mockLogger)
+
+      // Verify skip and limit were called correctly
+      expect(cursor.skip).toHaveBeenCalledWith(40) // (3-1) * 20
+      expect(cursor.limit).toHaveBeenCalledWith(20)
+    })
+
+    test('filters by live status only', async () => {
+      const cursor = {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([])
+      }
+
+      collection.find.mockReturnValue(cursor)
+      collection.countDocuments.mockResolvedValue(0)
+
+      await getAllFuels(db, { query: 'test', page: 1, limit: 10 }, mockLogger)
+
+      const findCall = collection.find.mock.calls[0][0]
+      expect(findCall.$and[0]).toEqual({ fuelStatus: 'live' })
     })
 
     test('handles search errors', async () => {
@@ -443,49 +490,8 @@ describe('fuels-controller', () => {
       })
 
       await expect(
-        searchFuels(db, { query: 'fuel' }, mockLogger)
+        getAllFuels(db, { query: 'fuel', page: 1, limit: 10 }, mockLogger)
       ).rejects.toThrow('search failed')
-    })
-  })
-
-  describe('getFuelWithRelatedItems', () => {
-    test('returns fuel detail', async () => {
-      collection.findOne.mockResolvedValue({
-        id: 'FUEL-001',
-        brandName: 'Related Fuel',
-        englandCertification: {
-          lastCertifiedAt: '2024-01-01'
-        },
-        scotlandCertification: {
-          lastCertifiedAt: '2024-01-01'
-        },
-        walesCertification: {
-          lastCertifiedAt: '2024-01-01'
-        },
-        nIrelandCertification: {
-          lastCertifiedAt: '2024-01-01'
-        }
-      })
-
-      const result = await getFuelWithRelatedItems(db, 'FUEL-001', mockLogger)
-
-      expect(result.success).toBe(true)
-    })
-
-    test('returns not found', async () => {
-      collection.findOne.mockResolvedValue(null)
-
-      const result = await getFuelWithRelatedItems(db, 'missing', mockLogger)
-
-      expect(result.notFound).toBe(true)
-    })
-
-    test('handles errors', async () => {
-      collection.findOne.mockRejectedValue(new Error('fetch failed'))
-
-      await expect(
-        getFuelWithRelatedItems(db, 'FUEL-001', mockLogger)
-      ).rejects.toThrow('fetch failed')
     })
   })
 
@@ -576,6 +582,9 @@ describe('fuels-controller', () => {
         status: 'awaiting_decision',
         firstCertifiedAt: null
       })
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('FUEL-2')
+      )
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('FUEL-2')
       )
@@ -629,9 +638,7 @@ describe('fuels-controller', () => {
       () => getFuelById(db, '1'),
       () => updateFuel(db, '1', {}),
       () => deleteFuel(db, '1'),
-      () => getAllFuelsWithPagination(db),
-      () => searchFuels(db, { query: 'a' }),
-      () => getFuelWithRelatedItems(db, '1')
+      () => getAllFuels(db, { query: 'a' })
     ])('throws when logger missing', async (fn) => {
       await expect(fn()).rejects.toThrow('logger is required')
     })

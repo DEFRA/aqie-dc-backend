@@ -1,123 +1,95 @@
 import { beforeEach, describe, test, expect, vi } from 'vitest'
-import { getAllFuels } from '../get-all-fuels.js'
-import { statusCodes } from '../../../common/constants/status-codes.js'
-import * as fuelController from '../../../controllers/fuels-controller.js'
+import { getAllFuels } from '#src/routes/fuels/get-all-fuels.js'
+import { statusCodes } from '#src/common/constants/status-codes.js'
+import * as fuelsController from '#src/controllers/fuels-controller.js'
 
-// Mock the controller
-vi.mock('../../../controllers/fuels-controller.js', () => ({
+vi.mock('#src/controllers/fuels-controller.js', () => ({
   default: {},
   getAllFuels: vi.fn()
 }))
 
+const validate = (query) => getAllFuels.options.validate.query.validate(query)
+
 describe('GET /fuels', () => {
   let mockRequest
-  let mockToolkit
+  let h
 
   beforeEach(() => {
     vi.clearAllMocks()
-
-    mockToolkit = {
+    h = {
       response: vi.fn((data) => ({
         code: vi.fn((code) => ({ ...data, statusCode: code }))
       }))
     }
-
     mockRequest = {
-      db: {},
-      logger: {
-        info: vi.fn(),
-        error: vi.fn()
+      query: {
+        q: 'wood',
+        page: 1,
+        limit: 10
       },
-      query: {}
+      db: {},
+      logger: { info: vi.fn(), error: vi.fn() }
     }
   })
 
-  describe('handler', () => {
-    test('returns all fuels successfully', async () => {
-      const mockFuels = [
-        {
-          name: 'Premium Pellets',
-          id: 'FUEL-001',
-          manufacturer: 'FuelCorp'
-        },
-        {
-          name: 'Standard Logs',
-          id: 'FUEL-002',
-          manufacturer: 'LogCorp'
-        }
-      ]
-
-      fuelController.getAllFuels.mockResolvedValueOnce({
-        success: true,
-        data: mockFuels
-      })
-
-      const h = mockToolkit
-      const result = await getAllFuels.handler(mockRequest, h)
-
-      expect(result.success).toBe(true)
-      expect(result.data).toEqual(mockFuels)
-      expect(result.statusCode).toBe(statusCodes.ok)
-      expect(fuelController.getAllFuels).toHaveBeenCalledWith(
-        mockRequest.db,
-        mockRequest.logger
-      )
+  test('delegates to the controller and returns pagination', async () => {
+    const pagination = { page: 1, limit: 10, total: 5, totalPages: 1 }
+    fuelsController.getAllFuels.mockResolvedValueOnce({
+      success: true,
+      data: [{ id: 'F1' }],
+      pagination
     })
 
-    test('returns empty array when no fuels exist', async () => {
-      fuelController.getAllFuels.mockResolvedValueOnce({
-        success: true,
-        data: []
-      })
+    const result = await getAllFuels.handler(mockRequest, h)
 
-      const h = mockToolkit
-      const result = await getAllFuels.handler(mockRequest, h)
-
-      expect(result.success).toBe(true)
-      expect(result.data).toEqual([])
-    })
-
-    test('handles controller error and returns 500', async () => {
-      const error = new Error('Database connection failed')
-      fuelController.getAllFuels.mockRejectedValueOnce(error)
-
-      const h = mockToolkit
-      const result = await getAllFuels.handler(mockRequest, h)
-
-      expect(result.success).toBe(false)
-      expect(result.message).toBe('Failed to fetch fuels')
-      expect(result.error).toBe('Database connection failed')
-    })
+    expect(result.statusCode).toBe(statusCodes.ok)
+    expect(result.pagination).toEqual(pagination)
+    expect(fuelsController.getAllFuels).toHaveBeenCalledWith(
+      mockRequest.db,
+      {
+        query: 'wood',
+        page: 1,
+        limit: 10
+      },
+      mockRequest.logger
+    )
   })
 
-  describe('options.method', () => {
-    test('route is GET', () => {
-      expect(getAllFuels.method).toBe('GET')
-    })
+  test('applies defaults for pagination', () => {
+    const { value, error } = validate({ q: 'wood' })
+
+    expect(error).toBeUndefined()
+    expect(value).toMatchObject({ q: 'wood', page: 1 })
+    expect(value.limit).toBeUndefined()
   })
 
-  describe('options.path', () => {
-    test('route path is /fuels', () => {
-      expect(getAllFuels.path).toBe('/fuels')
-    })
+  test('returns a 500 Boom error when the controller fails', async () => {
+    fuelsController.getAllFuels.mockRejectedValueOnce(new Error('db down'))
+
+    const result = await getAllFuels.handler(mockRequest, h)
+
+    expect(result.isBoom).toBe(true)
+    expect(result.output.statusCode).toBe(statusCodes.internalServerError)
   })
 
-  describe('options.tags', () => {
-    test('includes api and fuels tags', () => {
-      expect(getAllFuels.options.tags).toContain('api')
-      expect(getAllFuels.options.tags).toContain('fuels')
-    })
+  test('is a GET on /fuels', () => {
+    expect(getAllFuels.method).toBe('GET')
+    expect(getAllFuels.path).toBe('/fuels')
   })
 
-  describe('options.description', () => {
-    test('has description', () => {
-      expect(getAllFuels.options.description).toBeDefined()
-    })
+  test('allows empty query', () => {
+    const { value, error } = validate({ q: '' })
+
+    expect(error).toBeUndefined()
+    expect(value.q).toBe('')
   })
 
-  describe('options.notes', () => {
-    test('has notes about certified fuels', () => {
-      expect(getAllFuels.options.notes).toBeDefined()
-    })
+  test.each([
+    { limit: 101 },
+    { page: 0 },
+    { q: 'a'.repeat(51) },
+    { q: '<script>' }
+  ])('rejects invalid query %j', (query) => {
+    expect(validate(query).error).toBeDefined()
   })
 })

@@ -265,6 +265,12 @@ export const applianceSchema = Joi.object({
     .description(
       'When the appliance was last updated in our system (server-generated), best practice to use this field when anything is updated in the appliance'
     ),
+  certificationUpdatedAt: Joi.date()
+    .allow(null)
+    .optional()
+    .description(
+      'Last change to a country certification status; equals publishedDate until a status changes after publication'
+    ),
   // Fields for frontends
   isLegacyRecord: Joi.boolean()
     .default(false)
@@ -521,6 +527,12 @@ export const fuelSchema = Joi.object({
   isVisibleToPublic: Joi.boolean()
     .default(true)
     .description('Should this fuel be visible to the public?'),
+  certificationUpdatedAt: Joi.date()
+    .allow(null)
+    .optional()
+    .description(
+      'Last change to a country certification status; equals publishedDate until a status changes after publication'
+    ),
   fuelStatus: Joi.string()
     .valid('pending', 'live', 'hidden', 'rejected')
     .description(
