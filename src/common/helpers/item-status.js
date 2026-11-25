@@ -20,7 +20,7 @@ export const STATUS_DRIVING_FIELDS = [
 
 // Works out the $set update for an item once its technical review has reached
 // a final status (accepted/rejected) - items still mid-review are not expected here.
-function resolveStatusUpdate(item, itemStatus, reviewStatus) {
+export function resolveStatusUpdate(item, itemStatus, reviewStatus) {
   // isVisibleToPublic is left untouched for rejected items: a rejected item
   // can't be re-certified without going through review again.
   if (reviewStatus === 'rejected') {
@@ -125,6 +125,7 @@ export const calculateItemStatus = async (
           CERTIFICATION_FIELDS.map((field) => [`${field}.status`, 1])
         ),
         isVisibleToPublic: 1,
+        publishedDate: 1,
         [itemStatus]: 1,
         _id: 0
       }
@@ -146,6 +147,12 @@ export const calculateItemStatus = async (
     itemStatus,
     item.technicalReview?.status
   )
+
+  // Only the first time it goes live; later hide/re-live keeps the original date
+  if (update[itemStatus] === 'live' && !item.publishedDate) {
+    update.publishedDate = new Date()
+    update.certificationUpdatedAt = update.publishedDate
+  }
 
   await collection.updateOne({ id: itemId }, { $set: update })
 

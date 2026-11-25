@@ -3,9 +3,10 @@ import {
   getFullAddress,
   toDotted
 } from '../common/helpers/data-transformer.js'
-import { REVIEWED_STATUSES } from '../common/helpers/review-status.js'
 import {
   CERTIFICATION_FIELDS,
+  COUNTRY_CERTIFICATION_FIELDS,
+  CERTIFIED_STATUS,
   findCertified,
   findNotYetNotifiedCountries,
   mapCertifications
@@ -13,14 +14,12 @@ import {
 import { calculateItemStatus } from '../common/helpers/item-status.js'
 import { toUserActor } from '../common/helpers/action-history.js'
 import { validateApplicationType } from '../common/helpers/application-type.js'
-
-/**
- * Appliances Controller
- * Business logic for appliance-related operations
- */
-
-const LOGGER_REQUIRED_ERROR = 'logger is required'
-const APPLIANCE_NOT_FOUND = 'Appliance not found'
+import {
+  ensureLogger,
+  escapeRegex,
+  getCompleteApplicationIds,
+  APPLIANCE_NOT_FOUND
+} from '../common/helpers/controller-utils.js'
 
 /**
  * Create a new appliance
@@ -32,9 +31,7 @@ async function createAppliance(db, item, logger) {
   if (!item) {
     throw new Error('item is required')
   }
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
 
@@ -81,52 +78,121 @@ async function createAppliance(db, item, logger) {
 }
 
 // --- Mapping helpers ---
-// Returns full detail object for single item views
-function mapApplianceDetail(item) {
-  return {
-    ...item,
-    authorisedIn: findCertified(item),
-    name: item.modelName || '',
-    id: item.id || '',
-    manufacturer: item.companyName || '',
-    fullAddress: getFullAddress(item)
-  }
-}
-
 // Returns summary object for list views
 function mapApplianceSummary(item) {
   return {
-    name: item.modelName || '',
     id: item.id || '',
-    manufacturer: item.companyName || '',
+    name: item.modelName || '',
+    companyName: item.companyName || '',
     permittedFuels: item.permittedFuels || '',
     type: item.applianceType,
     modelNumber: item.modelNumber,
-    authorisedIn: findCertified(item)
+    certifiedCountries: findCertified(item)
   }
 }
 
-/**
- * Get all appliances (pagination not currently supported)
- * Returns only certified appliances per business requirements
- */
-async function getAllAppliances(db, _options, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
+const containsAny = (field, terms) =>
+  terms.map((term) => ({
+    [field]: { $regex: escapeRegex(term), $options: 'i' }
+  }))
+
+// Builds the public finder filter: live appliances matching search terms (OR across
+// fields/terms) AND every selected filter group (OR within a group).
+function buildPublicSearchQuery({
+  query = '',
+  certifiedIn = [],
+  fuelsAllowed = [],
+  applianceType = []
+}) {
+  const conditions = [{ applianceStatus: 'live' }]
+
+  const terms = query
+    .split(',')
+    .map((term) => term.trim())
+    .filter(Boolean)
+  if (terms.length > 0) {
+    conditions.push({
+      $or: ['modelName', 'companyName', 'modelNumber', 'applianceType'].flatMap(
+        (field) => containsAny(field, terms)
+      )
+    })
   }
+
+  if (certifiedIn.length > 0) {
+    const certificationFilters = certifiedIn
+      .map(
+        (country) => COUNTRY_CERTIFICATION_FIELDS[country.replaceAll(' ', '-')]
+      )
+      .filter(Boolean)
+      .map((field) => ({ [`${field}.status`]: CERTIFIED_STATUS }))
+    // An unrecognised country must match nothing rather than be ignored
+    conditions.push({
+      $or: certificationFilters.length ? certificationFilters : [{ _id: null }]
+    })
+  }
+
+  if (fuelsAllowed.length > 0) {
+    conditions.push({
+      $or: fuelsAllowed.map((fuel) => ({
+        permittedFuels: {
+          $regex: String.raw`(^|,)\s*${escapeRegex(fuel)}\s*(,|$)`,
+          $options: 'i'
+        }
+      }))
+    })
+  }
+
+  if (applianceType.length > 0) {
+    conditions.push({
+      $or: applianceType.map((type) => ({
+        applianceType: { $regex: `^${escapeRegex(type)}$`, $options: 'i' }
+      }))
+    })
+  }
+
+  return { $and: conditions }
+}
+
+/**
+ * Get live appliances, optionally searched/filtered.
+ * Paginated when `limit` is given; otherwise returns every match.
+ */
+async function getAllAppliances(
+  db,
+  { page = 1, limit, ...filters } = {},
+  logger
+) {
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
+    const searchQuery = buildPublicSearchQuery(filters)
+    const cursor = collection.find(searchQuery).sort({ createdAt: -1 })
 
-    // Visibility is derived from review and certification outcomes when an
-    // appliance's status is calculated, so it is the only condition needed here.
-    const appliances = await collection
-      .find({ isVisibleToPublic: true })
-      .sort({ createdAt: -1 })
-      .toArray()
+    if (!limit) {
+      const allAppliances = await cursor.toArray()
+      return {
+        success: true,
+        data: allAppliances.map((item) => mapApplianceSummary(item))
+      }
+    }
+
+    const [appliances, total] = await Promise.all([
+      cursor
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .toArray(),
+      collection.countDocuments(searchQuery)
+    ])
 
     return {
       success: true,
-      data: appliances.map((item) => mapApplianceSummary(item))
+      data: appliances.map((item) => mapApplianceSummary(item)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch appliances')
@@ -135,15 +201,13 @@ async function getAllAppliances(db, _options, logger) {
 }
 
 /**
- * Get a single appliance by ID
+ * Public: get a single live appliance by ID (non-live is treated as not found)
  */
 async function getApplianceById(db, id, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
-    const item = await collection.findOne({ id })
+    const item = await collection.findOne({ id, applianceStatus: 'live' })
 
     if (!item) {
       return {
@@ -155,7 +219,12 @@ async function getApplianceById(db, id, logger) {
 
     return {
       success: true,
-      data: mapApplianceDetail(item)
+      data: {
+        ...item,
+        certifiedCountries: findCertified(item),
+        name: item.modelName,
+        fullAddress: getFullAddress(item)
+      }
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch appliance')
@@ -167,9 +236,7 @@ async function getApplianceById(db, id, logger) {
  * Update an appliance
  */
 async function updateAppliance(db, id, updates, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
     const now = new Date()
@@ -197,9 +264,7 @@ async function updateAppliance(db, id, updates, logger) {
  * Delete an appliance
  */
 async function deleteAppliance(db, id, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
     const result = await collection.deleteOne({ id })
@@ -220,14 +285,12 @@ async function deleteAppliance(db, id, logger) {
 /**
  * Admin: search appliances by name, model number, or type with pagination
  */
-async function searchAdminAppliances(
+async function getAllAdminAppliances(
   db,
   { query = '', page = 1, limit = 20, statuses = [] } = {},
   logger
 ) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const collection = db.collection('Appliances')
     const skip = (page - 1) * limit
@@ -235,31 +298,27 @@ async function searchAdminAppliances(
       .map((status) => (status || '').toLowerCase().trim())
       .filter(Boolean)
 
-    // Only return appliances whose technical review has reached a final status
+    const completeAppIds = await getCompleteApplicationIds(db)
+
+    // Return appliances from complete applications or legacy records
     const searchQuery = {
-      'technicalReview.status': { $in: REVIEWED_STATUSES }
-    }
-
-    // Appliances stay out of the list until their application is submitted.
-    // Records with no application (legacy imports) are not affected.
-    const unfinishedApplications = await db
-      .collection('Applications')
-      .find({ status: { $ne: 'complete' } }, { projection: { id: 1, _id: 0 } })
-      .toArray()
-
-    if (unfinishedApplications.length > 0) {
-      searchQuery.applicationId = {
-        $nin: unfinishedApplications.map(({ id }) => id)
-      }
+      $or: [
+        { applicationId: { $in: completeAppIds } },
+        { isLegacyRecord: true }
+      ]
     }
 
     if (query?.trim()) {
       const trimmedQuery = query.trim()
-      searchQuery.$or = [
-        { modelName: { $regex: trimmedQuery, $options: 'i' } },
-        { companyName: { $regex: trimmedQuery, $options: 'i' } },
-        { modelNumber: { $regex: trimmedQuery, $options: 'i' } },
-        { applianceType: { $regex: trimmedQuery, $options: 'i' } }
+      searchQuery.$and = [
+        {
+          $or: [
+            { modelName: { $regex: trimmedQuery, $options: 'i' } },
+            { companyName: { $regex: trimmedQuery, $options: 'i' } },
+            { modelNumber: { $regex: trimmedQuery, $options: 'i' } },
+            { applianceType: { $regex: trimmedQuery, $options: 'i' } }
+          ]
+        }
       ]
     }
 
@@ -302,9 +361,7 @@ async function searchAdminAppliances(
  * Admin: get a single appliance record for the admin frontend
  */
 async function getAdminApplianceById(db, id, logger) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   try {
     const item = await db.collection('Appliances').findOne(
       { id },
@@ -322,7 +379,10 @@ async function getAdminApplianceById(db, id, logger) {
           walesCertification: 1,
           nIrelandCertification: 1,
           applianceStatus: 1,
-          technicalReview: 1
+          technicalReview: 1,
+          instructionManual: 1,
+          servicingManual: 1,
+          legacy: 1
         }
       }
     )
@@ -349,15 +409,18 @@ async function getAdminApplianceById(db, id, logger) {
       success: true,
       data: {
         id: item.id ?? id,
-        modelName: item.modelName || '',
+        modelName: item.modelName,
         modelNumber: item.modelNumber || '',
         applicationId: item.applicationId || null,
         certifications,
-        status: item.applianceStatus || 'pending',
+        status: item.applianceStatus,
         canTogglePublicVisibility: findCertified(item).length > 0,
         isVisibleToPublic: item.isVisibleToPublic,
         isLegacyRecord: item.isLegacyRecord,
-        technicalReview: item.technicalReview ?? null
+        technicalReview: item.technicalReview,
+        instructionManual: item.instructionManual ?? null,
+        servicingManual: item.servicingManual ?? null,
+        legacy: item.legacy ?? null
       }
     }
   } catch (error) {
@@ -380,9 +443,7 @@ async function updateApplianceVisibility(
   reviewedBy,
   type = 'appliance'
 ) {
-  if (!logger) {
-    throw new Error(LOGGER_REQUIRED_ERROR)
-  }
+  ensureLogger(logger)
   const applicationTypeDetails = validateApplicationType(type, logger)
   if (!applicationTypeDetails) {
     throw new Error(`Unsupported item type: ${type}`)
@@ -449,7 +510,7 @@ export {
   getApplianceById,
   updateAppliance,
   deleteAppliance,
-  searchAdminAppliances,
+  getAllAdminAppliances,
   getAdminApplianceById,
   updateApplianceVisibility
 }
