@@ -24,6 +24,7 @@ import { updateAppliance } from '../routes/appliances/update-appliance.js'
 import { updateCertificationStatus } from '../routes/appliances/update-certification-status.js'
 import { deleteAppliance } from '../routes/appliances/delete-appliance.js'
 import { getFuelById } from '../routes/fuels/get-fuel-by-id.js'
+import { getAdminFuelById } from '../routes/fuels/get-admin-fuel-by-id.js'
 import { createFuel } from '../routes/fuels/create-fuel.js'
 import { getAllFuels } from '../routes/fuels/get-all-fuels.js'
 import { updateFuel } from '../routes/fuels/update-fuel.js'
@@ -133,6 +134,7 @@ const router = {
         getAllFuels,
         updateFuel,
         deleteFuel,
+        getAdminFuelById,
         getFuelReview,
         updateFuelReview,
         recordFuelCheck,
