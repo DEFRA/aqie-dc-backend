@@ -528,13 +528,22 @@ describe('fuels-controller', () => {
           supplierType: 'Manufacture',
           status: 'live',
           certifications: {
-            england: { status: 'certified', firstCertifiedAt: '2025-05-10' },
-            scotland: { status: 'uncertified', firstCertifiedAt: null },
-            wales: { status: 'certified', firstCertifiedAt: '2025-05-25' },
-            northernIreland: {
+            england: expect.objectContaining({
+              status: 'certified',
+              firstCertifiedAt: '2025-05-10'
+            }),
+            scotland: expect.objectContaining({
+              status: 'uncertified',
+              firstCertifiedAt: null
+            }),
+            wales: expect.objectContaining({
+              status: 'certified',
+              firstCertifiedAt: '2025-05-25'
+            }),
+            northernIreland: expect.objectContaining({
               status: 'awaiting_decision',
               firstCertifiedAt: null
-            }
+            })
           },
           canTogglePublicVisibility: true,
           isVisibleToPublic: true,
@@ -545,11 +554,10 @@ describe('fuels-controller', () => {
       expect(mockLogger.warn).not.toHaveBeenCalled()
     })
 
-    test('defaults missing fields and unknown status', async () => {
+    test('defaults missing fields and logs a missing status', async () => {
       findCertified.mockReturnValueOnce([])
       collection.findOne.mockResolvedValue({
-        id: 'FUEL-2',
-        fuelStatus: 'unexpected'
+        id: 'FUEL-2'
       })
 
       const { data } = await getAdminFuelById(db, 'FUEL-2', mockLogger)
@@ -564,10 +572,14 @@ describe('fuels-controller', () => {
         isLegacyRecord: false,
         technicalReview: null
       })
-      expect(data.certifications.england).toEqual({
+      expect(data.certifications.england).toMatchObject({
         status: 'awaiting_decision',
         firstCertifiedAt: null
       })
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('FUEL-2'),
+        { fuelStatus: undefined }
+      )
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('FUEL-2')
       )

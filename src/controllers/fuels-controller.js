@@ -14,8 +14,6 @@ import {
   FUEL_NOT_FOUND
 } from '../common/helpers/controller-utils.js'
 
-const FUEL_STATUSES = new Set(['pending', 'live', 'hidden', 'rejected'])
-
 /**
  * Fuels Controller
  * Business logic for fuel-related operations
@@ -321,17 +319,6 @@ async function getFuelWithRelatedItems(db, fuelId, logger) {
   }
 }
 
-// The fuel record only shows the date first certified, so lastCertifiedAt is dropped.
-const mapFirstCertifiedOnly = (item) =>
-  Object.fromEntries(
-    Object.entries(mapCertifications(item)).map(
-      ([country, { status, firstCertifiedAt }]) => [
-        country,
-        { status, firstCertifiedAt }
-      ]
-    )
-  )
-
 /**
  * Admin: get a single fuel record for the admin frontend.
  * The response is fully normalised so the frontend only maps values to labels.
@@ -377,10 +364,19 @@ async function getAdminFuelById(db, id, logger) {
         name: item.brandName ?? '',
         applicationId: item.applicationId ?? null,
         supplierType: item.supplierType ?? null,
-        status: FUEL_STATUSES.has(item.fuelStatus)
-          ? item.fuelStatus
-          : 'pending',
-        certifications: mapFirstCertifiedOnly(item),
+        // Schema enforces the allowed values and default; log if it is missing.
+        status: (() => {
+          if (!item.fuelStatus) {
+            logger.error(
+              `Fuel ${id} has invalid status: "${item.fuelStatus}"`,
+              {
+                fuelStatus: item.fuelStatus
+              }
+            )
+          }
+          return item.fuelStatus ? item.fuelStatus : 'pending'
+        })(),
+        certifications: mapCertifications(item),
         canTogglePublicVisibility: findCertified(item).length > 0,
         isVisibleToPublic: item.isVisibleToPublic !== false,
         isLegacyRecord: item.isLegacyRecord ?? false,
