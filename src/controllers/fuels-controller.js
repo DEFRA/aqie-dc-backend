@@ -9,17 +9,20 @@ import {
 } from '../common/helpers/certification.js'
 import {
   ensureLogger,
-  escapeRegex,
-  getCompleteApplicationIds
+  getCompleteApplicationIds,
+  buildAdminSearchQuery,
+  fetchPaginatedAdminItems,
+  FUEL_NOT_FOUND,
+  ID_PATTERN
 } from '../common/helpers/controller-utils.js'
 
 /**
- * Fuels Controller
- * Business logic for fuel-related operations
+- Fuels Controller
+- Business logic for fuel-related operations
  */
 
 /**
- * Create a new fuel
+- Create a new fuel
  */
 async function createFuel(db, item, logger) {
   if (!db) {
@@ -38,7 +41,7 @@ async function createFuel(db, item, logger) {
     let id = item.id
     if (!id) {
       const lastFuel = await collection.findOne(
-        { id: { $regex: /^\d{4}-\d+$/ } },
+        { id: { $regex: ID_PATTERN } },
         { sort: { _id: -1 }, projection: { id: 1 } }
       )
       id = generateNextId(lastFuel?.id)
@@ -118,7 +121,7 @@ async function getAllFuels(db, logger) {
 }
 
 /**
- * Admin: list and search fuels by brand name or ID with status filtering and pagination
+- Admin: list and search fuels by brand name or ID with status filtering and pagination
  */
 async function getAdminFuels(
   db,
@@ -127,66 +130,23 @@ async function getAdminFuels(
 ) {
   ensureLogger(logger)
   try {
-    const collection = db.collection('Fuels')
-    const skip = (page - 1) * limit
-    const normalisedStatuses = (statuses || [])
-      .map((status) => (status || '').toLowerCase().trim())
-      .filter(Boolean)
-
     const completeAppIds = await getCompleteApplicationIds(db)
+    const searchQuery = buildAdminSearchQuery(completeAppIds, {
+      query,
+      statuses,
+      searchFields: ['brandName', 'additionalBrandNames', 'id'],
+      statusField: 'fuelStatus'
+    })
 
-    // Return fuels from complete applications or legacy records
-    const searchQuery = {
-      $or: [
-        { applicationId: { $in: completeAppIds } },
-        { isLegacyRecord: true }
-      ]
-    }
-
-    if (query?.trim()) {
-      const trimmedQuery = escapeRegex(query.trim())
-      searchQuery.$and = [
-        {
-          $or: [
-            { brandName: { $regex: trimmedQuery, $options: 'i' } },
-            { additionalBrandNames: { $regex: trimmedQuery, $options: 'i' } },
-            { id: { $regex: trimmedQuery, $options: 'i' } }
-          ]
-        }
-      ]
-    }
-
-    if (normalisedStatuses.length > 0) {
-      searchQuery.fuelStatus = {
-        $in: normalisedStatuses.map(
-          (status) => new RegExp(`^${escapeRegex(status)}$`, 'i')
-        )
-      }
-    }
-
-    const fuels = await collection
-      .find(searchQuery)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray()
-
-    const total = await collection.countDocuments(searchQuery)
-
-    return {
-      success: true,
-      data: fuels.map((item) => ({
+    return await fetchPaginatedAdminItems(db.collection('Fuels'), searchQuery, {
+      page,
+      limit,
+      mapItem: (item) => ({
         id: item.id || '',
         brandName: item.brandName || '',
         status: item.fuelStatus || 'pending'
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.max(Math.ceil(total / limit), 0)
-      }
-    }
+      })
+    })
   } catch (error) {
     logger.error(error, 'Failed to fetch admin fuels')
     throw error
@@ -194,7 +154,7 @@ async function getAdminFuels(
 }
 
 /**
- * Find a single fuel by ID
+- Find a single fuel by ID
  */
 async function getFuelById(db, fuelId, logger) {
   ensureLogger(logger)
@@ -205,7 +165,7 @@ async function getFuelById(db, fuelId, logger) {
     if (!item) {
       return {
         success: false,
-        message: 'Fuel not found',
+        message: FUEL_NOT_FOUND,
         notFound: true
       }
     }
@@ -221,7 +181,7 @@ async function getFuelById(db, fuelId, logger) {
 }
 
 /**
- * Update a fuel
+- Update a fuel
  */
 async function updateFuel(db, fuelId, updates, logger) {
   ensureLogger(logger)
@@ -264,7 +224,7 @@ async function updateFuel(db, fuelId, updates, logger) {
 }
 
 /**
- * Delete a fuel
+- Delete a fuel
  */
 async function deleteFuel(db, fuelId, logger) {
   ensureLogger(logger)
