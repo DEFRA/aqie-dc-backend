@@ -62,7 +62,9 @@ describe('fuels-controller', () => {
 
     applicationsCollection = {
       find: vi.fn().mockReturnValue({
-        toArray: vi.fn().mockResolvedValue([])
+        project: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([])
+        })
       })
     }
 
@@ -215,9 +217,12 @@ describe('fuels-controller', () => {
   })
 
   describe('getAdminFuels', () => {
-    test('returns paginated admin fuels with search, status filters, and unfinished application exclusions', async () => {
+    test('returns paginated admin fuels with search, status filters, and complete application or legacy filtering', async () => {
+      const projectMock = vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([{ id: 'APP-COMPLETE' }])
+      })
       applicationsCollection.find.mockReturnValue({
-        toArray: vi.fn().mockResolvedValue([{ id: 'APP-INCOMPLETE' }])
+        project: projectMock
       })
 
       const cursor = {
@@ -247,10 +252,17 @@ describe('fuels-controller', () => {
         mockLogger
       )
 
+      expect(applicationsCollection.find).toHaveBeenCalledWith({
+        status: 'complete'
+      })
+      expect(projectMock).toHaveBeenCalledWith({ id: 1, _id: 0 })
       expect(collection.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          applicationId: { $nin: ['APP-INCOMPLETE'] },
-          $or: expect.any(Array),
+          $or: [
+            { applicationId: { $in: ['APP-COMPLETE'] } },
+            { isLegacyRecord: true }
+          ],
+          $and: [{ $or: expect.any(Array) }],
           fuelStatus: { $in: [expect.any(RegExp), expect.any(RegExp)] }
         })
       )
