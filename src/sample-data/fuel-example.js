@@ -2,22 +2,22 @@
 /* export default {
   companyName: 'FuelCo',
   isUkBased: true,
-  //companyFullAddress: '789 Industrial Estate, Building C, Manchester, Greater Manchester, M1 3CD',
+  //companyFullAddress: '2 Example Street, Building C, Manchester, Greater Manchester, AB1 2CD',
   companyAddress: {
-    line1: '789 Industrial Estate',
+    line1: '2 Example Street',
     line2: 'Building C',
     city: 'Manchester',
     county: 'Greater Manchester',
-    postcode: 'M1 3CD'
+    postcode: 'AB1 2CD'
   },
   companyContact: {
-    name: 'Fuel Person',
-    email: 'fuel@co.com',
-    alternativeEmail: 'alt@co.com',
-    phone: '+447537328906'
+    name: 'Test Contact',
+    email: 'contact@example.com',
+    alternativeEmail: 'alt.contact@example.com',
+    phone: '+447700900101'
   },
-  responsibleName: 'Rep Name',
-  responsibleEmailAddress: 'rep@co.com',
+  responsibleName: 'Test Responsible Person',
+  responsibleEmailAddress: 'responsible@example.com',
   hasCustomerComplaintsSystem: false,
   fuelBagging: 'Bagged',
   //   baggedAtSource: true,
@@ -45,8 +45,8 @@
   technicalReview: {
     status: 'accepted',
     reviewedBy: {
-      name: 'Fuel Reviewer',
-      email: 'reviewer@fuel.com'
+      name: 'Test Reviewer',
+      email: 'reviewer@example.com'
     },
     updatedAt: '2026-02-10'
   },
@@ -104,21 +104,21 @@ const baseFuel = {
   companyName: 'FuelCo',
   isUkBased: true,
   companyAddress: {
-    uprn: '100071384716',
-    line1: 'Unit 6 Caxton Gate',
-    line2: 'Corporation Street',
+    uprn: '000000000002',
+    line1: '3 Example Street',
+    line2: 'Example Road',
     city: 'Birmingham',
-    postcode: 'B2 4LP'
+    postcode: 'AB1 2CD'
   },
   companyContact: {
-    name: 'Fuel Person',
-    email: 'JD@email.com',
-    alternativeEmail: 'alt@email.com',
-    phone: '07594416260'
+    name: 'Test Contact',
+    email: 'contact@example.com',
+    alternativeEmail: 'alt.contact@example.com',
+    phone: '07700900103'
   },
   responsiblePerson: {
-    name: 'Rep Name',
-    email: 'rep@co.com'
+    name: 'Test Responsible Person',
+    email: 'responsible@example.com'
   },
   hasCustomerComplaintsSystem: true,
   fuelBagging: 'Loose (unbagged)',

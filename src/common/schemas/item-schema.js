@@ -93,7 +93,7 @@ export const applianceSchema = Joi.object({
       .default(null)
       .pattern(/^(0(?:\d\s?){10}|\+(?:\d\s?){11,13})$/)
       .description(
-        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432 or 07700 988 342) and international numbers with an optional leading + (e.g. +445398914260 or +44 808 157 0123).'
+        'Company contact phone number. Accepts local UK numbers (a leading 0 followed by 10 digits) and international numbers (a leading + followed by 11 to 13 digits). Single spaces between digits are allowed.'
       )
   }),
   modelName: Joi.string().required().description('Model name'),
@@ -359,7 +359,7 @@ export const fuelSchema = Joi.object({
       .default(null)
       .pattern(/^(0(?:\d\s?){10}|\+(?:\d\s?){11,13})$/)
       .description(
-        'Company contact phone number. Accepts local UK numbers (e.g. 07582812432 or 07700 988 342) and international numbers with an optional leading + (e.g. +445398914260 or +44 808 157 0123).'
+        'Company contact phone number. Accepts local UK numbers (a leading 0 followed by 10 digits) and international numbers (a leading + followed by 11 to 13 digits). Single spaces between digits are allowed.'
       )
   }),
   responsiblePerson: Joi.object({

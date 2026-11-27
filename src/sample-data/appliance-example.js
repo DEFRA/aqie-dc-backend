@@ -7,20 +7,20 @@
   // updatedAt: new Date('2026-07-01T10:00:00Z'),
   companyName: 'ACME',
   companyContact: {
-    name: 'John Doe',
-    email: 'john@acme.com',
-    alternativeEmail: 'alt@acme.com',
-    phone: '+447537328906'
+    name: 'Test Contact',
+    email: 'contact@example.com',
+    alternativeEmail: 'alt.contact@example.com',
+    phone: '+447700900101'
   },
   isUkBased: true,
-  //companyFullAddress: '456 Factory Road, Unit 7, Birmingham, West Midlands, B1 2AB',
+  //companyFullAddress: '1 Example Street, Unit 7, Birmingham, West Midlands, AB1 2CD',
   companyAddress: {
-    uprn: '10012345678',
-    line1: '456 Factory Road',
+    uprn: '000000000001',
+    line1: '1 Example Street',
     line2: 'Unit 7',
     city: 'Birmingham',
     county: 'West Midlands',
-    postcode: 'B1 2AB'
+    postcode: 'AB1 2CD'
   },
   modelName: 'Model X',
   modelNumber: '123',
@@ -67,8 +67,8 @@
   technicalReview: {
     status: 'accepted',
     reviewedBy: {
-      name: 'John Reviewer',
-      email: 'john.reviewer@example.com'
+      name: 'Test Reviewer',
+      email: 'reviewer@example.com'
     },
     updatedAt: '2026-02-10',
 
@@ -136,18 +136,18 @@
 export default {
   companyName: 'ACME',
   isUkBased: true,
-  //companyFullAddress: '456 Factory Road, Unit 7, Birmingham, West Midlands, B1 2AB',
+  //companyFullAddress: '1 Example Street, Unit 7, Birmingham, West Midlands, AB1 2CD',
   companyAddress: {
-    uprn: '10012345678',
-    line1: '456 Factory Road',
+    uprn: '000000000001',
+    line1: '1 Example Street',
     line2: 'Unit 7',
     city: 'Birmingham',
     county: 'West Midlands',
-    postcode: 'B1 2AB'
+    postcode: 'AB1 2CD'
   },
   companyContact: {
-    name: 'John Doe',
-    email: 'JD@email.com'
+    name: 'Test Contact',
+    email: 'contact@example.com'
   },
   modelName: 'Model X',
   applianceType: 'heat',
