@@ -22,15 +22,13 @@ export const ENTITY_CONFIG = {
     idPattern: /^\d{4}-\d+$/,
     compareRows: compareByApplianceId,
     transform: transformToAppliance,
-    buildActions: buildApplianceActions,
-    sampleData: getSampleAppliance
+    buildActions: buildApplianceActions
   },
   [ENTITY_TYPES.FUELS]: {
     collectionName: 'Fuels',
     defaultSheetName: 'Fuels',
     uniqueKey: 'fuelId',
-    transform: transformToFuel,
-    sampleData: getSampleFuel
+    transform: transformToFuel
   }
 }
 
@@ -898,64 +896,4 @@ function transformToFuel(row) {
   }
 
   return fuel
-}
-
-/**
- * Sample data generators
- */
-function getSampleAppliance() {
-  return {
-    applianceId: 'APP001',
-    manufacturer: 'Stoves LTD',
-    manufacturerAddress: '24 Bowerfield Lane Newcastle NE638BO',
-    manufacturerContactName: 'Joe Bloggs',
-    manufacturerContactEmail: 'Joe.bloggs@gmail.com',
-    manufacturerAlternateEmail: 'Joe.bloggs2@gmail.com',
-    manufacturerPhone: '7846638263',
-    modelName: 'Hot Stove 89',
-    modelNumber: 'AHS231',
-    applianceType: 'Stove',
-    isVariant: 'Yes',
-    existingAuthorisedAppliance: 'Hot Stove 88',
-    nominalOutput: '12',
-    allowedFuels: 'Wood Logs, Wood Pellets',
-    permittedFuels: 'FUEL001, FUEL002',
-    instructionManualTitle: 'Stove manual instructions',
-    instructionManualDate: '01/07/2024',
-    instructionManualReference: 'Issue 08',
-    additionalConditions:
-      'Must be fitted with the supplied secondary air control limiters',
-    submittedBy: 'Phil Mitchell',
-    approvedBy: 'Bruce Lee',
-    publishedDate: '04/02/2025'
-  }
-}
-
-function getSampleFuel() {
-  return {
-    fuelId: 'FUEL001',
-    manufacturerName: 'Fuels Company Ltd',
-    manufacturerAddress: '24 Bowerfield Lane Newcastle NE638BO',
-    manufacturerContactName: 'Joe Bloggs',
-    manufacturerContactEmail: 'Joe.bloggs@gmail.com',
-    manufacturerAlternateEmail: 'Joe.bloggs2@gmail.com',
-    manufacturerPhone: '7846638263',
-    representativeName: 'Simon Gates',
-    representativeEmail: 'Simon.Gates@FuelsLTD.com',
-    hasCustomerComplaints: 'No',
-    qualityControlSystem: 'ISO 9001 certified',
-    certificationScheme: 'Fuel authorisation under the Clean Air Act 1993',
-    fuelName: 'Eco Briquettes Premium',
-    fuelBagging: 'Bagged',
-    isBaggedAtSource: 'Yes',
-    appearance: 'Pillow-shaped briquettes with single line indentation',
-    weight: 'Average weight of 125 to 135 grams per briquette',
-    composition: 'Anthracite fines (60% to 80%)',
-    sulphurContent: '20',
-    manufacturingProcess:
-      'Roll pressing and heat treatment at 300 degrees celsius',
-    isRebrandedProduct: 'No',
-    hasChangedFromOriginal: 'No',
-    brandNames: 'Fuel brand 1, Fuel brand 2'
-  }
 }

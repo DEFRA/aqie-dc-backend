@@ -10,8 +10,8 @@ export const applianceApplicationExample = {
   // createdAt: new Date('2026-07-01T10:00:00Z'),
   status: 'new', // auto-generated but can be set for Swagger input
   reviewedBy: {
-    name: 'John Reviewer',
-    email: 'john@reviewer.com'
+    name: 'Test Reviewer',
+    email: 'reviewer@example.com'
   },
   referenceNumber: 'referencenumber435435',
   appliances: [
@@ -24,19 +24,19 @@ export const applianceApplicationExample = {
 
       companyName: 'ACME',
       companyContact: {
-        name: 'John Doe',
-        email: 'john@acme.com',
-        alternativeEmail: 'alt@acme.com',
-        phone: '+447537328930'
+        name: 'Test Contact',
+        email: 'contact@example.com',
+        alternativeEmail: 'alt.contact@example.com',
+        phone: '+447700900102'
       },
       isUkBased: true,
-      // companyFullAddress: '456 Factory Road, Unit 7, Birmingham, West Midlands, B1 2AB',
+      // companyFullAddress: '1 Example Street, Unit 7, Birmingham, West Midlands, AB1 2CD',
       companyAddress: {
-        line1: '456 Factory Road',
+        line1: '1 Example Street',
         line2: 'Unit 7',
         city: 'Birmingham',
         county: 'West Midlands',
-        postcode: 'B1 2AB'
+        postcode: 'AB1 2CD'
       },
       modelName: 'Model X',
       modelNumber: '123',
@@ -83,13 +83,13 @@ export const applianceApplicationExample = {
 
       companyName: 'Beta Heating',
       companyContact: {
-        name: 'Jane Smith',
-        email: 'jane@beta.com'
+        name: 'Test Contact',
+        email: 'contact@example.com'
       },
       isUkBased: false,
-      companyFullAddress: '789 International Ave',
+      companyFullAddress: '4 Example Avenue',
       // companyAddress: {
-      //   line1: '789 International Ave',
+      //   line1: '4 Example Avenue',
       //   city: 'London',
       //   postcode: 'W1A 1AA'
       // },
@@ -133,8 +133,8 @@ const fuelApplicationBase = {
   submittedAt: new Date('2026-04-24T12:00:00Z'),
   status: 'new',
   reviewedBy: {
-    name: 'John Reviewer',
-    email: 'john@reviewer.com'
+    name: 'Test Reviewer',
+    email: 'reviewer@example.com'
   },
   referenceNumber: 'referencenumber435435'
 }
