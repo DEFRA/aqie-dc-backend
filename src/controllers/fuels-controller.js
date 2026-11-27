@@ -9,16 +9,20 @@ import {
 } from '../common/helpers/certification.js'
 import {
   ensureLogger,
-  escapeRegex
+  getCompleteApplicationIds,
+  buildAdminSearchQuery,
+  fetchPaginatedAdminItems,
+  FUEL_NOT_FOUND,
+  ID_PATTERN
 } from '../common/helpers/controller-utils.js'
 
 /**
- * Fuels Controller
- * Business logic for fuel-related operations
+- Fuels Controller
+- Business logic for fuel-related operations
  */
 
 /**
- * Create a new fuel
+- Create a new fuel
  */
 async function createFuel(db, item, logger) {
   if (!db) {
@@ -37,7 +41,7 @@ async function createFuel(db, item, logger) {
     let id = item.id
     if (!id) {
       const lastFuel = await collection.findOne(
-        { id: { $regex: /^\d{4}-\d+$/ } },
+        { id: { $regex: ID_PATTERN } },
         { sort: { _id: -1 }, projection: { id: 1 } }
       )
       id = generateNextId(lastFuel?.id)
@@ -73,61 +77,42 @@ async function createFuel(db, item, logger) {
 }
 
 // --- Mapping helpers ---
-// Returns summary object for list views
-function mapFuelSummary(item) {
+// Returns full detail object for single item views
+function mapFuelDetail(item) {
   return {
-    id: item.id,
+    ...item,
+    authorisedIn: findCertified(item),
+    lastUpdatedDate: findLastCertifiedDate(item),
     name: item.brandName,
-    companyName: item.companyName,
-    certifiedCountries: findCertified(item)
+    id: item.id,
+    manufacturer: item.companyName,
+    fullAddress: getFullAddress(item)
   }
 }
 
-/**
- * Get live fuels, optionally searched by brand/company name.
- * Paginated when `limit` is given; otherwise returns every match.
- */
-async function getAllFuels(db, { query = '', page = 1, limit } = {}, logger) {
+// Returns summary object for list views
+function mapFuelSummary(item) {
+  return {
+    name: item.brandName,
+    id: item.id,
+    manufacturer: item.companyName,
+    authorisedIn: findCertified(item),
+    lastUpdatedDate: findLastCertifiedDate(item)
+  }
+}
+
+async function getAllFuels(db, logger) {
   ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
 
-    // The overall status already reflects review, certification and visibility, so
-    // 'live' is the only status condition needed here.
-    const conditions = [{ fuelStatus: 'live' }]
-    if (query) {
-      const regex = { $regex: escapeRegex(query), $options: 'i' }
-      conditions.push({
-        $or: [
-          { brandName: regex },
-          { additionalBrandNames: regex },
-          { companyName: regex }
-        ]
-      })
-    }
-    const searchQuery = { $and: conditions }
-    const cursor = collection.find(searchQuery).sort({ createdAt: -1 })
-
-    if (!limit) {
-      const allFuels = await cursor.toArray()
-      return {
-        success: true,
-        data: allFuels.map((item) => mapFuelSummary(item))
-      }
-    }
-
-    const [fuels, total] = await Promise.all([
-      cursor
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .toArray(),
-      collection.countDocuments(searchQuery)
-    ])
+    // Visibility is derived from review and certification outcomes when a
+    // fuel's status is calculated, so it is the only condition needed here.
+    const fuels = await collection.find({ isVisibleToPublic: true }).toArray()
 
     return {
       success: true,
-      data: fuels.map((item) => mapFuelSummary(item)),
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+      data: fuels.map((item) => mapFuelSummary(item))
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch fuels')
@@ -136,31 +121,58 @@ async function getAllFuels(db, { query = '', page = 1, limit } = {}, logger) {
 }
 
 /**
- * Public: get a single live fuel by ID (non-live is treated as not found)
+- Admin: list and search fuels by brand name or ID with status filtering and pagination
+ */
+async function getAdminFuels(
+  db,
+  { query = '', page = 1, limit = 20, statuses = [] } = {},
+  logger
+) {
+  ensureLogger(logger)
+  try {
+    const completeAppIds = await getCompleteApplicationIds(db)
+    const searchQuery = buildAdminSearchQuery(completeAppIds, {
+      query,
+      statuses,
+      searchFields: ['brandName', 'additionalBrandNames', 'id'],
+      statusField: 'fuelStatus'
+    })
+
+    return await fetchPaginatedAdminItems(db.collection('Fuels'), searchQuery, {
+      page,
+      limit,
+      mapItem: (item) => ({
+        id: item.id || '',
+        brandName: item.brandName || '',
+        status: item.fuelStatus || 'pending'
+      })
+    })
+  } catch (error) {
+    logger.error(error, 'Failed to fetch admin fuels')
+    throw error
+  }
+}
+
+/**
+- Find a single fuel by ID
  */
 async function getFuelById(db, fuelId, logger) {
   ensureLogger(logger)
   try {
     const collection = db.collection('Fuels')
-    const item = await collection.findOne({ id: fuelId, fuelStatus: 'live' })
+    const item = await collection.findOne({ id: fuelId })
 
     if (!item) {
       return {
         success: false,
-        message: 'Fuel not found',
+        message: FUEL_NOT_FOUND,
         notFound: true
       }
     }
 
     return {
       success: true,
-      data: {
-        ...item,
-        certifiedCountries: findCertified(item),
-        lastUpdatedDate: findLastCertifiedDate(item),
-        name: item.brandName,
-        fullAddress: getFullAddress(item)
-      }
+      data: mapFuelDetail(item)
     }
   } catch (error) {
     logger.error(error, 'Failed to fetch fuel')
@@ -169,7 +181,7 @@ async function getFuelById(db, fuelId, logger) {
 }
 
 /**
- * Update a fuel
+- Update a fuel
  */
 async function updateFuel(db, fuelId, updates, logger) {
   ensureLogger(logger)
@@ -212,7 +224,7 @@ async function updateFuel(db, fuelId, updates, logger) {
 }
 
 /**
- * Delete a fuel
+- Delete a fuel
  */
 async function deleteFuel(db, fuelId, logger) {
   ensureLogger(logger)
@@ -229,4 +241,11 @@ async function deleteFuel(db, fuelId, logger) {
   }
 }
 
-export { createFuel, getAllFuels, getFuelById, updateFuel, deleteFuel }
+export {
+  createFuel,
+  getAllFuels,
+  getAdminFuels,
+  getFuelById,
+  updateFuel,
+  deleteFuel
+}

@@ -18,11 +18,14 @@ import {
   ensureLogger,
   escapeRegex,
   getCompleteApplicationIds,
-  APPLIANCE_NOT_FOUND
+  buildAdminSearchQuery,
+  fetchPaginatedAdminItems,
+  APPLIANCE_NOT_FOUND,
+  ID_PATTERN
 } from '../common/helpers/controller-utils.js'
 
 /**
- * Create a new appliance
+- Create a new appliance
  */
 async function createAppliance(db, item, logger) {
   if (!db) {
@@ -41,7 +44,7 @@ async function createAppliance(db, item, logger) {
     let id = item.id
     if (!id) {
       const lastAppliance = await collection.findOne(
-        { id: { $regex: /^\d{4}-\d+$/ } },
+        { id: { $regex: ID_PATTERN } },
         { sort: { _id: -1 }, projection: { id: 1 } }
       )
       id = generateNextId(lastAppliance?.id)
@@ -154,8 +157,8 @@ function buildPublicSearchQuery({
 }
 
 /**
- * Get live appliances, optionally searched/filtered.
- * Paginated when `limit` is given; otherwise returns every match.
+- Get live appliances, optionally searched/filtered.
+- Paginated when `limit` is given; otherwise returns every match.
  */
 async function getAllAppliances(
   db,
@@ -201,7 +204,7 @@ async function getAllAppliances(
 }
 
 /**
- * Public: get a single live appliance by ID (non-live is treated as not found)
+- Public: get a single live appliance by ID (non-live is treated as not found)
  */
 async function getApplianceById(db, id, logger) {
   ensureLogger(logger)
@@ -233,7 +236,7 @@ async function getApplianceById(db, id, logger) {
 }
 
 /**
- * Update an appliance
+- Update an appliance
  */
 async function updateAppliance(db, id, updates, logger) {
   ensureLogger(logger)
@@ -261,7 +264,7 @@ async function updateAppliance(db, id, updates, logger) {
 }
 
 /**
- * Delete an appliance
+- Delete an appliance
  */
 async function deleteAppliance(db, id, logger) {
   ensureLogger(logger)
@@ -283,7 +286,7 @@ async function deleteAppliance(db, id, logger) {
 }
 
 /**
- * Admin: search appliances by name, model number, or type with pagination
+- Admin: search appliances by name, model number, or type with pagination
  */
 async function getAllAdminAppliances(
   db,
@@ -292,65 +295,32 @@ async function getAllAdminAppliances(
 ) {
   ensureLogger(logger)
   try {
-    const collection = db.collection('Appliances')
-    const skip = (page - 1) * limit
-    const normalisedStatuses = (statuses || [])
-      .map((status) => (status || '').toLowerCase().trim())
-      .filter(Boolean)
-
     const completeAppIds = await getCompleteApplicationIds(db)
+    const searchQuery = buildAdminSearchQuery(completeAppIds, {
+      query,
+      statuses,
+      searchFields: [
+        'modelName',
+        'companyName',
+        'modelNumber',
+        'applianceType'
+      ],
+      statusField: 'applianceStatus'
+    })
 
-    // Return appliances from complete applications or legacy records
-    const searchQuery = {
-      $or: [
-        { applicationId: { $in: completeAppIds } },
-        { isLegacyRecord: true }
-      ]
-    }
-
-    if (query?.trim()) {
-      const trimmedQuery = query.trim()
-      searchQuery.$and = [
-        {
-          $or: [
-            { modelName: { $regex: trimmedQuery, $options: 'i' } },
-            { companyName: { $regex: trimmedQuery, $options: 'i' } },
-            { modelNumber: { $regex: trimmedQuery, $options: 'i' } },
-            { applianceType: { $regex: trimmedQuery, $options: 'i' } }
-          ]
-        }
-      ]
-    }
-
-    if (normalisedStatuses.length > 0) {
-      searchQuery.applianceStatus = {
-        $in: normalisedStatuses.map((status) => new RegExp(`^${status}$`, 'i'))
-      }
-    }
-
-    const appliances = await collection
-      .find(searchQuery)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray()
-
-    const total = await collection.countDocuments(searchQuery)
-
-    return {
-      success: true,
-      data: appliances.map((item) => ({
-        id: item.id || '',
-        name: item.modelName || '',
-        status: item.applianceStatus || 'pending'
-      })),
-      pagination: {
+    return await fetchPaginatedAdminItems(
+      db.collection('Appliances'),
+      searchQuery,
+      {
         page,
         limit,
-        total,
-        totalPages: Math.max(Math.ceil(total / limit), 0)
+        mapItem: (item) => ({
+          id: item.id || '',
+          name: item.modelName || '',
+          status: item.applianceStatus || 'pending'
+        })
       }
-    }
+    )
   } catch (error) {
     logger.error(error, 'Failed to search admin appliances')
     throw error
@@ -358,7 +328,7 @@ async function getAllAdminAppliances(
 }
 
 /**
- * Admin: get a single appliance record for the admin frontend
+- Admin: get a single appliance record for the admin frontend
  */
 async function getAdminApplianceById(db, id, logger) {
   ensureLogger(logger)
@@ -430,10 +400,10 @@ async function getAdminApplianceById(db, id, logger) {
 }
 
 /**
- * Set public visibility for an appliance or fuel and recalculate its status
+- Set public visibility for an appliance or fuel and recalculate its status
  *
- * @param {{ name: string, email?: string }} reviewedBy - signed-in user who clicked
- * @param {'appliance'|'fuel'} [type]
+- @param {{ name: string, email?: string }} reviewedBy - signed-in user who clicked
+- @param {'appliance'|'fuel'} [type]
  */
 async function updateApplianceVisibility(
   db,
